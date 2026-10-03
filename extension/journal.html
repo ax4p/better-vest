@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en" data-theme="astral">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Calendar · Better Vest by Astra</title>
+<link rel="icon" href="icons/icon32.png">
+<link rel="stylesheet" href="journal/journal.css">
+<link rel="stylesheet" href="journal/views.css">
+<!-- blocking on purpose: applies the cached theme before first paint (MV3 forbids inline scripts) -->
+<script src="journal/theme-boot.js"></script>
+</head>
+<body>
+<canvas id="stars" aria-hidden="true"></canvas>
+<div id="app" class="app"></div>
+<div id="layers"></div>
+<script type="module" src="journal/app.js"></script>
+</body>
+</html>

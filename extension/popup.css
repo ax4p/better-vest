@@ -1,0 +1,65 @@
+:root {
+  --bg: #070a13;
+  --panel: #0d1527;
+  --btn: #1e293b;
+  --line: #334155;
+  --text: #e2e8f0;
+  --muted: #94a3b8;
+  --accent: #38bdf8;
+  --up: #34d399;
+  --down: #f87171;
+}
+* { box-sizing: border-box; }
+html { background: var(--bg); }
+body {
+  margin: 0; width: 300px; padding: 12px;
+  background: radial-gradient(circle at 50% 0%, #0e172a 0%, var(--bg) 70%);
+  color: var(--text); font: 12px/1.35 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.logo { width: 36px; height: 36px; border-radius: 50%; border: 2px solid var(--accent); box-shadow: 0 0 10px rgba(56, 189, 248, 0.4); }
+.name { font-weight: 800; font-size: 14px; letter-spacing: .02em; }
+.by { color: var(--muted); font-size: 11px; }
+.muted { color: var(--muted); }
+.status { display: flex; align-items: center; gap: 7px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 7px 9px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex: 0 0 auto; }
+.dot.live { background: var(--up); box-shadow: 0 0 6px var(--up); }
+.dot.bad { background: var(--down); }
+.label { color: var(--accent); font-size: 10px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; margin: 12px 0 6px; }
+.row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+button {
+  background: var(--btn); color: var(--text); border: 1px solid var(--line); border-radius: 6px;
+  padding: 6px 0; font: 700 11px system-ui, sans-serif; cursor: pointer;
+}
+button:hover { border-color: var(--accent); }
+button.on { border-color: var(--accent); color: #7dd3fc; background: rgba(56, 189, 248, 0.14); }
+button.primary { width: 100%; background: #2563eb; border-color: var(--accent); color: #fff; padding: 8px 0; }
+.themes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+.theme { height: 38px; border-radius: 7px; border: 1px solid; display: flex; flex-direction: column; justify-content: space-between; align-items: flex-start; padding: 5px 6px; text-align: left; }
+.theme.on { outline: 2px solid var(--accent); outline-offset: 1px; }
+.theme i { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 2px; }
+.theme b { font-size: 9.5px; }
+
+.label { display: flex; justify-content: space-between; align-items: center; }
+button.mini { padding: 3px 8px; font-size: 10px; text-transform: none; letter-spacing: 0; border-radius: 999px; }
+button { transition: background-color .15s, border-color .15s, transform .1s; }
+button:active { transform: scale(.97); }
+
+.flow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+.flow div { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 6px 7px; }
+.flow small { display: block; color: var(--muted); font-size: 9px; font-weight: 800; letter-spacing: .05em; }
+.flow b { font-size: 12px; font-variant-numeric: tabular-nums; }
+.flow b.long { color: var(--up); } .flow b.short { color: var(--down); }
+
+.cal { background: linear-gradient(180deg, rgba(56, 189, 248, 0.07), transparent 70%), var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 9px 10px 10px; margin-bottom: 10px; }
+.cal-head { display: flex; justify-content: space-between; align-items: baseline; }
+.cal-label { margin: 0 0 7px; }
+.cal-sync { color: var(--muted); font-size: 10px; }
+.cal-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 9px; }
+.cal-grid div { display: flex; flex-direction: column; gap: 1px; }
+.cal-grid small { color: var(--muted); font-size: 9px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+.cal-grid b { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.cal-grid b.up { color: var(--up); } .cal-grid b.down { color: var(--down); }
+.cal-grid i { font-style: normal; color: var(--muted); font-size: 10px; font-variant-numeric: tabular-nums; }
+button.cal-open { display: flex; justify-content: center; align-items: center; gap: 8px; }
+.kbd { font-size: 9px; font-weight: 700; opacity: .75; border: 1px solid rgba(255,255,255,.35); border-radius: 4px; padding: 0 4px; }
