@@ -8,7 +8,7 @@ A Chrome extension for [Vest Markets](https://next.vestmarkets.com) that puts yo
 
 Made by **Astral** · Discord **@ax4p**
 
-**[Download the latest version](https://github.com/ax4p/better-vest/releases/latest)** · [How to install](INSTALL.md) · [Is it safe?](SECURITY.md)
+**[Download the latest version](https://github.com/ax4p/better-vest/releases/latest)** · [How to install](CONTRIBUTING.md) · [Is it safe?](SECURITY.md)
 
 ## Why I made it
 
@@ -103,7 +103,7 @@ About two minutes in Chrome, Brave, Edge or Arc:
 2. Unzip it.
 3. Load the folder on `chrome://extensions` with Developer mode on.
 
-Step by step, with screenshots, in [INSTALL.md](INSTALL.md). Before you use it for real, press **Alt+Shift+D** on the trade page and try it on the demo position: nothing is sent while the demo is on.
+Step by step, with screenshots, in the [install guide](CONTRIBUTING.md). Before you use it for real, press **Alt+Shift+D** on the trade page and try it on the demo position: nothing is sent while the demo is on.
 
 It's still a trading tool, so watch your first few real orders the way you would with any new setup.
 
@@ -122,7 +122,7 @@ It only runs on Vest and asks Chrome for two permissions. It places orders throu
 No, only on next.vestmarkets.com.
 
 **I installed it and nothing shows up on Vest.**
-See [INSTALL.md](INSTALL.md#if-somethings-off).
+See the [install guide](CONTRIBUTING.md#if-somethings-off).
 
 **Can I share the zip or post it somewhere else?**
 Please share the link to this page instead, so people always get the current version. The details are in the license.
