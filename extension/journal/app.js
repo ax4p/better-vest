@@ -428,7 +428,7 @@ function buildTopbar() {
         h('div', { class: 'brand' },
             h('img', { class: 'logo', src: 'icons/icon48.png', alt: '', width: 26, height: 26 }),
             h('b', null, 'Calendar'),
-            h('small', null, 'Better Vest · Astra')),
+            h('small', null, 'Better Vest · Astral')),
         single ? null : h('nav', { class: 'tabs' }, TABS.map((t, i) => h('button', {
             class: 'tab' + (t.id === state.tab ? ' on' : ''), type: 'button', onclick: () => switchTab(t.id)
         }, t.label, h('kbd', null, String(i + 1))))),
