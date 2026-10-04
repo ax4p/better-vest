@@ -12,7 +12,7 @@
 (function () {
     'use strict';
 
-    const VERSION = '7.5.1';
+    const VERSION = '7.5.2';
     // true only in the Chrome extension build (tools/build.py defines BV_EXT there)
     const IS_EXT = typeof BV_EXT !== 'undefined' && !!BV_EXT;
     // 'standard' = the shareable build; anything else = WICKED, the author's own full build.
@@ -181,7 +181,7 @@
         chart: { sync: true, upColor: '', downColor: '', bgColor: '', hideVolume: true, hideGrid: true, volRemoved: false, hideSessions: true },
         ui: { compactDock: false, glass: 88, dockCalendar: true, wickAuto: true },
         // Execute card: partial take-profit plan and the collapsed pill
-        xc: { partials: false, tp1Pts: 20, tp1Pct: 50, collapsed: false },
+        xc: { partials: false, tp1Pts: 20, tp1Pct: 50, targets: null, collapsed: false },
         tpsl: { enabled: true, showR: true, demo: false, followBars: true, be: { show: true, pct: 5, mode: 'pctProfit', ticks: 1, points: 0, minProfitTicks: 2, allowAtEntry: false } }
     };
 
@@ -251,6 +251,8 @@
     }
     S.ui = Object.assign({}, DEFAULTS.ui, S.ui || {});
     S.xc = Object.assign({}, DEFAULTS.xc, S.xc || {});
+    // Partials take any number of targets since 7.5.2; 7.5.1 kept one (tp1Pts / tp1Pct), which becomes TP1
+    if (!Array.isArray(S.xc.targets) || !S.xc.targets.length) S.xc.targets = [{ pts: Number(S.xc.tp1Pts) || 20, pct: Number(S.xc.tp1Pct) || 50 }];
     if (!(S.v >= 7.2)) {
         S.v = 7.2;
     }
@@ -604,6 +606,7 @@
             #ax4p-exec-deck .xc-pos b { font-weight: 600; color: var(--ax-text); }
             #ax4p-exec-deck .xc-pos.flat { color: var(--ax-dim); }
             #ax4p-exec-deck .xc-pos:empty { border-left-color: transparent; }
+            #ax4p-exec-deck .xc-unk { color: var(--ax-dim); font-weight: 500; }
             #ax4p-exec-deck .xc-side { font-size: 10px; font-weight: 700; letter-spacing: .08em; }
             #ax4p-exec-deck .xc-pos .xc-pnl { margin-left: 4px; font-size: 14px; font-weight: 700; }
             #ax4p-exec-deck .xc-demo { font-size: 9px; font-weight: 700; letter-spacing: .08em; color: var(--ax-warn); border: 1px solid color-mix(in srgb, var(--ax-warn) 45%, transparent); border-radius: 4px; padding: 0 4px; line-height: 14px; }
@@ -644,18 +647,32 @@
             #ax4p-exec-deck .xc-sw.on span { transform: translateX(16px); background: #fff; }
             #ax4p-exec-deck .xc-sw:disabled { cursor: not-allowed; opacity: .55; }
             /* partials: one slim line, only when on */
-            #ax4p-exec-deck .xc-parts { display: grid; grid-template-columns: 248px 1fr; column-gap: 8px; margin: -2px 0 10px; }
-            #ax4p-exec-deck .xc-pg { display: flex; align-items: center; gap: 8px; height: 32px; }
-            #ax4p-exec-deck .xc-pg + .xc-pg { position: relative; }
-            #ax4p-exec-deck .xc-pg + .xc-pg::before { content: ""; position: absolute; left: -8px; top: 4px; bottom: 4px; border-left: 1px solid var(--ax-line); }
-            #ax4p-exec-deck .xc-pg .xc-tag { width: 40px; }
-            #ax4p-exec-deck .xc-pg + .xc-pg .xc-tag { width: 48px; }
-            #ax4p-exec-deck .xc-pg .xc-field { width: 64px; flex: none; }
+            /* Partials: the ladder of targets on the left, the runner on the right, beside all of them */
+            #ax4p-exec-deck .xc-parts { display: grid; grid-template-columns: 316px 1fr; column-gap: 16px; row-gap: 8px; margin: -2px 0 10px; }
+            #ax4p-exec-deck .xc-pg { grid-column: 1; display: flex; align-items: center; gap: 8px; height: 32px; }
+            #ax4p-exec-deck .xc-pg > * { flex: none; }
+            #ax4p-exec-deck .xc-pg .xc-tag { width: 32px; }
+            #ax4p-exec-deck .xc-pg .xc-field, #ax4p-exec-deck .xc-run .xc-field { width: 64px; flex: none; }
             #ax4p-exec-deck .xc-pg .xc-field input { width: 28px; padding: 0; border: 0; background: none; text-align: right; font-weight: 600; color: var(--ax-text); outline: none; -moz-appearance: textfield; }
+            #ax4p-exec-deck .xc-pg .xc-field.bad { border-color: var(--ax-down); }
+            #ax4p-exec-deck .xc-run { grid-column: 2; display: flex; align-items: center; gap: 8px; align-self: stretch; padding-left: 16px; border-left: 1px solid var(--ax-line); }
+            #ax4p-exec-deck .xc-run .xc-tag { width: 48px; }
+            #ax4p-exec-deck .xc-pg .xc-usd { min-width: 60px; }
+            #ax4p-exec-deck .xc-run { flex-wrap: wrap; align-content: center; row-gap: 4px; }
+            #ax4p-exec-deck .xc-run .xc-field--ro.bad { border-color: var(--ax-down); }
+            #ax4p-exec-deck .xc-run .xc-field--ro.bad b { color: var(--ax-down); }
+            #ax4p-exec-deck .xc-why { flex-basis: 100%; font-size: 10px; line-height: 12px; color: var(--ax-down); }
+            #ax4p-exec-deck .xc-why:empty { display: none; }
+            #ax4p-exec-deck .xc-tool { display: grid; place-items: center; width: 24px; height: 24px; flex: none; border-radius: 6px; color: var(--ax-dim); }
+            #ax4p-exec-deck .xc-tool:hover { color: var(--ax-text); background: var(--ax-btn); }
+            #ax4p-exec-deck .xc-tool--del:hover { color: var(--ax-down); }
+            #ax4p-exec-deck .xc-tool--add { border: 1px dashed var(--ax-line); color: var(--ax-text); }
+            #ax4p-exec-deck .xc-tool--add:hover { border-style: solid; border-color: var(--ax-dim); }
+            #ax4p-exec-deck .xc-swrow { display: flex; align-items: center; gap: 8px; }
             #ax4p-exec-deck .xc-field--ro { background: transparent; }
             #ax4p-exec-deck .xc-field--ro b { color: var(--ax-muted); font-weight: 500; }
             #ax4p-exec-deck .xc-usd { min-width: 40px; font-weight: 600; }
-            #ax4p-exec-deck .xc-apply { margin-left: auto; height: 24px; padding: 0 10px; border: 1px solid var(--ax-line); border-radius: 6px; background: var(--ax-btn); color: var(--ax-text); font-size: 11px; font-weight: 600; white-space: nowrap; }
+            #ax4p-exec-deck .xc-apply { height: 24px; padding: 0 10px; border: 1px solid var(--ax-line); border-radius: 6px; background: var(--ax-btn); color: var(--ax-text); font-size: 11px; font-weight: 600; white-space: nowrap; }
             #ax4p-exec-deck .xc-apply:hover:not(:disabled) { border-color: var(--ax-dim); }
             #ax4p-exec-deck .xc-apply:disabled { opacity: .5; cursor: not-allowed; }
             /* bottom tier: risk left, decision right */
@@ -698,7 +715,7 @@
             #ax4p-exec-deck .xc-sec.busy .xc-m:not(#ax4p-flatten-btn) { opacity: .6; pointer-events: none; }
             #ax4p-exec-deck button:focus-visible { outline: 1px solid var(--ax-accent); outline-offset: 2px; }
             /* collapsed: a slim pill (its buttons press the card's own LONG / SHORT / FLAT) */
-            #ax4p-exec-deck .xc-pill { display: none; align-items: center; gap: 8px; height: 40px; padding: 0 4px 0 12px; }
+            #ax4p-exec-deck .xc-pill { display: none; align-items: center; gap: 8px; height: 40px; padding: 0 4px 0 12px; user-select: none; -webkit-user-select: none; }
             #ax4p-exec-deck.xc-collapsed { width: auto; padding: 0; border-radius: 20px; box-shadow: 0 12px 32px var(--ax-shadow); }
             #ax4p-exec-deck.xc-collapsed .xc-full { display: none; }
             #ax4p-exec-deck.xc-collapsed .xc-pill { display: flex; }
@@ -2312,11 +2329,21 @@
         if (el && el.textContent !== v) el.textContent = v;
         return el;
     }
-    // The partial take-profit plan: TP1 closes tp1Pct% at tp1Pts, the rest rides to the main target.
+    // The partial take-profit plan: each target closes its share at its distance, the rest (the runner) rides to the
+    // main target. why: '' when it can be placed, else the reason in plain words.
+    const XC_MAX_TARGETS = 4;
     function xcPlan(size, tpPts) {
-        const pct = Math.min(99, Math.max(1, Math.round(Number(S.xc.tp1Pct) || 50)));
-        const p1 = Math.max(0.25, Number(S.xc.tp1Pts) || 0);
-        return { pct, p1, tp1Usd: size * p1 * pct / 100, runUsd: size * tpPts * (100 - pct) / 100 };
+        const legs = S.xc.targets.map((x) => ({ pts: Number(x.pts) || 0, pct: Math.round(Number(x.pct) || 0) }));
+        legs.forEach((l) => { l.usd = size * l.pts * l.pct / 100; l.bad = !(l.pts > 0) || l.pts >= tpPts || !(l.pct >= 1); });
+        const runPct = 100 - legs.reduce((s, l) => s + l.pct, 0);
+        const runUsd = size * tpPts * Math.max(0, runPct) / 100;
+        legs.forEach((l) => { l.dup = legs.filter((m) => m.pts === l.pts).length > 1; });
+        let why = '', code = '';
+        if (legs.some((l) => !(l.pct >= 1))) { why = 'every target needs a share of at least 1%'; code = 'pct'; }
+        else if (runPct < 1) { why = 'the targets add up to 100% or more, so nothing is left for the runner'; code = 'sum'; }
+        else if (legs.some((l) => l.bad)) { why = 'every target has to be closer than the main target (' + fmtSize(tpPts) + ' pt)'; code = 'far'; }
+        else if (legs.some((l) => l.dup)) { why = 'two targets are at the same distance'; code = 'dup'; }
+        return { legs, runPct, runUsd, total: legs.reduce((s, l) => s + l.usd, 0) + runUsd, why, code };
     }
     function updateExecutionRiskCalc() {
         const slPts = parseFloat(document.getElementById('ax4p-sl-pts')?.value) || S.sl || 15;
@@ -2325,10 +2352,10 @@
         if (!document.getElementById('ax4p-exec-risk-display')) return;
         const risk = slPts * size;
         const plan = xcPartialsOn() ? xcPlan(size, tpPts) : null;
-        const target = plan ? plan.tp1Usd + plan.runUsd : tpPts * size;
+        const target = plan ? plan.total : tpPts * size;
         const rr = risk > 0 ? target / risk : 0;
         const pct = acctPct(risk);
-        const key = [slPts, tpPts, size, S.account, plan && plan.pct, plan && plan.p1].join('|');
+        const key = [slPts, tpPts, size, S.account, plan ? JSON.stringify(S.xc.targets) : ''].join('|');
         if (key !== lastRiskHtml) {
             lastRiskHtml = key;
             xcText('ax4p-xc-risk', xcUsd(risk));
@@ -2342,10 +2369,23 @@
             xcText('ax4p-xc-pct-lab', '% of ' + (ACCOUNT_LABELS[S.account] || ''));
             xcText('ax4p-xc-pct', pct == null ? '' : (pct < 1 ? pct.toFixed(2) : pct.toFixed(1)) + '%');
             if (plan) {
-                xcText('ax4p-xc-tp1-usd', '+' + xcUsd(plan.tp1Usd));
+                plan.legs.forEach((l, i) => {
+                    const usd = document.querySelector(`#ax4p-xc-parts [data-tp-usd="${i}"]`);
+                    if (usd && usd.textContent !== '+' + xcUsd(l.usd)) usd.textContent = '+' + xcUsd(l.usd);
+                    document.querySelectorAll(`#ax4p-xc-parts [data-tp="${i}"]`).forEach((inp) => {
+                        const f = inp.closest('.xc-field');
+                        if (f) f.classList.toggle('bad', inp.getAttribute('data-k') === 'pts' ? !(l.pts > 0) || l.pts >= tpPts || l.dup : !(l.pct >= 1) || plan.runPct < 1);
+                    });
+                });
                 xcText('ax4p-xc-run-pts', fmtSize(tpPts));
-                xcText('ax4p-xc-run-pct', String(100 - plan.pct));
+                xcText('ax4p-xc-run-pct', String(Math.max(0, plan.runPct)));
                 xcText('ax4p-xc-run-usd', '+' + xcUsd(plan.runUsd));
+                const runPct = document.getElementById('ax4p-xc-run-pct');
+                if (runPct) runPct.closest('.xc-field').classList.toggle('bad', plan.runPct < 1);
+                const short = { pct: 'Each target needs at least 1%', sum: 'Shares add up to 100% or more', far: 'A target is past the main target', dup: 'Two targets at the same distance' };
+                xcText('ax4p-xc-why', plan.code ? short[plan.code] : '');
+                const run = document.querySelector('#ax4p-xc-parts .xc-run');
+                if (run) run.title = plan.why ? 'Partials not set: ' + plan.why + '.' : 'The rest of the position, at the main target';
             }
             xcText('ax4p-xc-pill-size', fmtSize(size));
             xcText('ax4p-xc-pill-sl', fmtSize(slPts));
@@ -2487,30 +2527,55 @@
         el.style.bottom = 'auto';
     }
 
-    function makeMovable(element, handle, key) {
-        let dragging = false, sx, sy, ix, iy;
+    // opts.anywhere: the handle is mostly buttons (the folded Execute bar), so a drag may start on a button too. It only
+    // becomes a drag after the mouse travels 5 px, and the click that ends a drag is swallowed before anything sees it,
+    // so letting go over LONG never presses LONG. A plain click is still a click.
+    function makeMovable(element, handle, key, opts) {
+        const anywhere = !!(opts && opts.anywhere);
+        let dragging = false, sx, sy, ix, iy, swallowUntil = 0;
         handle.style.cursor = 'move';
+        if (anywhere) {
+            win.addEventListener('click', (e) => {
+                if (now() < swallowUntil && element.contains(e.target)) { swallowUntil = 0; e.stopImmediatePropagation(); e.preventDefault(); }
+            }, true);
+        }
         handle.addEventListener('mousedown', (e) => {
-            if (e.target.closest('button, input, select, textarea')) return;
-            dragging = true;
+            if (e.button !== 0) return;
+            const onCtl = e.target.closest('button, input, select, textarea');
+            if (onCtl && (!anywhere || e.target.closest('input, select, textarea'))) return;
+            dragging = !anywhere;
             sx = e.clientX; sy = e.clientY;
-            const r = element.getBoundingClientRect();
-            ix = r.left; iy = r.top;
-            element.style.right = 'auto';
-            element.style.bottom = 'auto';
-            element.style.left = ix + 'px';
-            element.style.top = iy + 'px';
+            const begin = () => {
+                const r = element.getBoundingClientRect();
+                ix = r.left; iy = r.top;
+                element.style.right = 'auto';
+                element.style.bottom = 'auto';
+                element.style.left = ix + 'px';
+                element.style.top = iy + 'px';
+            };
+            if (dragging) begin();
+            else if (!onCtl) e.preventDefault(); // no text selection while the bar is grabbed by its text
             const move = (ev) => {
-                if (!dragging) return;
+                if (!dragging) {
+                    if (Math.abs(ev.clientX - sx) + Math.abs(ev.clientY - sy) < 5) return;
+                    dragging = true;
+                    begin();
+                    // the press focused a button (LONG...): a drag must not leave it there for Space or Enter to press
+                    const a = document.activeElement;
+                    if (a && element.contains(a) && a.blur) a.blur();
+                }
                 const nx = Math.max(6, Math.min(window.innerWidth - element.offsetWidth - 6, ix + ev.clientX - sx));
                 const ny = Math.max(6, Math.min(window.innerHeight - element.offsetHeight - 6, iy + ev.clientY - sy));
                 element.style.left = nx + 'px';
                 element.style.top = ny + 'px';
             };
-            const up = () => {
-                dragging = false;
+            const up = (ev) => {
                 document.removeEventListener('mousemove', move);
                 document.removeEventListener('mouseup', up);
+                if (!dragging) return;
+                dragging = false;
+                // the click that follows lands on the bar only when the mouse is let go over it
+                if (anywhere && ev && element.contains(ev.target)) swallowUntil = now() + 400;
                 S.pos[key] = { left: element.style.left, top: element.style.top };
                 persist();
             };
@@ -2648,12 +2713,13 @@
     // The extension fills xcHooks (positions, Demo, hotkey labels, 50% and REV). The userscript keeps these stubs, so there
     // the card trades exactly like the old strip and 50% / REV stay off.
     // known() is false when the card cannot see your position: then it shows no position line instead of "Flat".
-    const xcHooks = { known: () => false, position: () => null, demo: () => false, keyFor: () => '', half: null, rev: null, busy: () => false, armed: () => false,
+    const xcHooks = { known: () => false, unknownWhy: () => '', position: () => null, demo: () => false, keyFor: () => '', half: null, rev: null, busy: () => false, armed: () => false,
         partials: () => 'Partials need the Better Vest extension.', assetOf: () => null, applyPartials: null };
     const XC_ICON = {
         grip: '<svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true"><circle cx="4" cy="2.5" r="1"/><circle cx="8" cy="2.5" r="1"/><circle cx="4" cy="6" r="1"/><circle cx="8" cy="6" r="1"/><circle cx="4" cy="9.5" r="1"/><circle cx="8" cy="9.5" r="1"/></svg>',
         minus: '<svg width="10" height="10" viewBox="0 0 10 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M2 5h6"/></svg>',
         plus: '<svg width="10" height="10" viewBox="0 0 10 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M2 5h6M5 2v6"/></svg>',
+        x: '<svg width="10" height="10" viewBox="0 0 10 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M2.5 2.5l5 5M7.5 2.5l-5 5"/></svg>',
         collapse: '<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 7.5L6 4l3.5 3.5"/></svg>',
         expand: '<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 4.5L6 8l3.5-3.5"/></svg>',
         flat: '<svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><rect x="2.5" y="2.5" width="11" height="11" rx="3" stroke="currentColor" stroke-width="1.6"/><path d="M5.9 5.9l4.2 4.2M10.1 5.9l-4.2 4.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>',
@@ -2699,6 +2765,39 @@
         input.dispatchEvent(new Event('input', { bubbles: true }));
     }
 
+    function xcRenderParts() {
+        const box = document.getElementById('ax4p-xc-parts');
+        if (!box) return;
+        const n = S.xc.targets.length;
+        box.innerHTML = S.xc.targets.map((x, i) => `<div class="xc-pg"><span class="xc-tag">TP${i + 1}</span>` +
+            `<label class="xc-field"><input data-tp="${i}" data-k="pts" type="number" min="0.25" step="0.25" value="${escHtml(x.pts)}" aria-label="TP${i + 1} distance from the entry, in points"><i>pt</i></label>` +
+            `<label class="xc-field"><input data-tp="${i}" data-k="pct" type="number" min="1" max="99" step="1" value="${escHtml(x.pct)}" aria-label="TP${i + 1} share of the position, in percent"><i>%</i></label>` +
+            `<span class="xc-usd up" data-tp-usd="${i}"></span>` +
+            (n > 1 ? `<button type="button" class="xc-tool xc-tool--del" data-tp-del="${i}" title="Remove TP${i + 1}" aria-label="Remove TP${i + 1}">${XC_ICON.x}</button>` : '') +
+            (i === n - 1 && n < XC_MAX_TARGETS ? `<button type="button" class="xc-tool xc-tool--add" data-tp-add="1" title="Add a target (up to ${XC_MAX_TARGETS})" aria-label="Add a target">${XC_ICON.plus}</button>` : '') +
+            '</div>').join('') +
+            `<div class="xc-run" style="grid-row: 1 / span ${n}"><span class="xc-tag">Runner</span><div class="xc-field xc-field--ro" title="follows the target"><b id="ax4p-xc-run-pts"></b><i>pt</i></div>` +
+            '<div class="xc-field xc-field--ro" title="the rest"><b id="ax4p-xc-run-pct"></b><i>%</i></div><span class="xc-usd up" id="ax4p-xc-run-usd"></span><span class="xc-why" id="ax4p-xc-why"></span></div>';
+    }
+
+    // a new target: halfway between the last one and the main target, with a share that leaves the runner something
+    function xcAddTarget() {
+        const ts = S.xc.targets;
+        if (ts.length >= XC_MAX_TARGETS) return;
+        const tpPts = parseFloat(document.getElementById('ax4p-tp-pts')?.value) || S.tp || 30;
+        const last = Number(ts[ts.length - 1].pts) || 0;
+        const left = 100 - ts.reduce((s, x) => s + (Math.round(Number(x.pct)) || 0), 0);
+        if (left < 2) { flashExec('No share left for another target: lower one first'); return; }
+        const pts = Math.max(0.25, Math.min(tpPts - 0.25, Math.round(((last + tpPts) / 2) * 4) / 4));
+        ts.push({ pts, pct: Math.floor(left / 2) });
+        persist();
+        xcRenderParts();
+        lastRiskHtml = '';
+        updateExecutionRiskCalc();
+        const inp = document.querySelector(`#ax4p-xc-parts [data-tp="${ts.length - 1}"][data-k="pts"]`);
+        if (inp) inp.focus();
+    }
+
     function xcPaintPartials() {
         const sw = document.getElementById('ax4p-xc-partials');
         if (!sw) return;
@@ -2724,7 +2823,7 @@
         const line = document.getElementById('ax4p-xc-pos');
         if (line) {
             let html;
-            if (!known) html = '';
+            if (!known) { const w = xcHooks.unknownWhy(); html = w ? `<span class="xc-unk">${escHtml(w)}</span>` : ''; }
             else if (!pos) html = 'Flat';
             else {
                 const pnl = pos.pnl;
@@ -2793,11 +2892,32 @@
             xcPaint();
             updateExecutionRiskCalc();
         });
-        [['ax4p-xc-tp1-pts', 'tp1Pts'], ['ax4p-xc-tp1-pct', 'tp1Pct']].forEach(([id, k]) => {
-            document.getElementById(id).addEventListener('input', (e) => {
-                const v = parseFloat(e.target.value);
-                if (v > 0) { S.xc[k] = v; persist(); lastRiskHtml = ''; updateExecutionRiskCalc(); }
-            });
+        const parts = document.getElementById('ax4p-xc-parts');
+        xcRenderParts();
+        parts.addEventListener('input', (e) => {
+            const inp = e.target.closest('[data-tp]');
+            if (!inp) return;
+            const i = Number(inp.getAttribute('data-tp'));
+            const v = parseFloat(inp.value);
+            if (!S.xc.targets[i]) return;
+            // a cleared or 0 field is 0 (red, and Partials refuse it), never the number that was there before
+            S.xc.targets[i][inp.getAttribute('data-k') === 'pct' ? 'pct' : 'pts'] = v > 0 ? v : 0;
+            persist();
+            lastRiskHtml = '';
+            updateExecutionRiskCalc();
+        });
+        parts.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.closest('[data-tp]')) e.target.blur(); });
+        parts.addEventListener('click', (e) => {
+            const del = e.target.closest('[data-tp-del]');
+            if (del && S.xc.targets.length > 1) {
+                S.xc.targets.splice(Number(del.getAttribute('data-tp-del')), 1);
+                persist();
+                xcRenderParts();
+                lastRiskHtml = '';
+                updateExecutionRiskCalc();
+                return;
+            }
+            if (e.target.closest('[data-tp-add]')) xcAddTarget();
         });
         document.getElementById('ax4p-xc-p-apply').addEventListener('click', () => { if (xcHooks.applyPartials) xcHooks.applyPartials(); });
         document.getElementById('ax4p-half-btn').addEventListener('click', () => { if (xcHooks.half) xcHooks.half(); });
@@ -2980,12 +3100,9 @@
                     <div class="xc-g"><span class="xc-lab">Size<em id="ax4p-mnq-readout"></em></span><div class="xc-sizes"><div class="xc-seg" id="ax4p-sz-wrap"></div><input id="ax4p-custom-sz" class="xc-field" type="number" placeholder="Custom" min="0" step="0.1" value="${escHtml(S.customSz || '')}" title="custom size"></div></div>
                     <div class="xc-g"><span class="xc-lab dn"><span class="xc-dot"></span><span style="color:var(--ax-dim)">Stop</span></span>${xcStepper('ax4p-sl-pts', S.sl, 'xc-step--sl', 'Stop')}</div>
                     <div class="xc-g"><span class="xc-lab up"><span class="xc-dot"></span><span style="color:var(--ax-dim)">Target</span></span>${xcStepper('ax4p-tp-pts', S.tp, 'xc-step--tp', 'Target')}</div>
-                    <div class="xc-g xc-g--sw"><span class="xc-lab">Partials</span><button type="button" class="xc-sw" id="ax4p-xc-partials" role="switch" aria-checked="false"><span></span></button></div>
+                    <div class="xc-g xc-g--sw"><span class="xc-lab">Partials</span><div class="xc-swrow"><button type="button" class="xc-apply" id="ax4p-xc-p-apply" title="Split this position's take-profit the same way, in Vest's Edit TP/SL window" hidden>Set on position</button><button type="button" class="xc-sw" id="ax4p-xc-partials" role="switch" aria-checked="false"><span></span></button></div></div>
                 </div>
-                <div class="xc-parts" id="ax4p-xc-parts" hidden>
-                    <div class="xc-pg"><span class="xc-tag">TP1</span><label class="xc-field"><input id="ax4p-xc-tp1-pts" type="number" min="0.25" step="0.25" value="${escHtml(S.xc.tp1Pts)}"><i>pt</i></label><label class="xc-field"><input id="ax4p-xc-tp1-pct" type="number" min="1" max="99" step="1" value="${escHtml(S.xc.tp1Pct)}"><i>%</i></label><span class="xc-usd up" id="ax4p-xc-tp1-usd"></span></div>
-                    <div class="xc-pg"><span class="xc-tag">Runner</span><div class="xc-field xc-field--ro" title="follows the target"><b id="ax4p-xc-run-pts"></b><i>pt</i></div><div class="xc-field xc-field--ro" title="the rest"><b id="ax4p-xc-run-pct"></b><i>%</i></div><span class="xc-usd up" id="ax4p-xc-run-usd"></span><button type="button" class="xc-apply" id="ax4p-xc-p-apply" title="Split this position's take-profit the same way, in Vest's Edit TP/SL window" hidden>Set on position</button></div>
-                </div>
+                <div class="xc-parts" id="ax4p-xc-parts" hidden></div>
                 <div class="xc-dc">
                     <dl class="xc-risk" id="ax4p-exec-risk-display">
                         <div><dt>Risk</dt><dd id="ax4p-xc-risk"></dd></div>
@@ -3020,7 +3137,8 @@
         `;
         document.body.appendChild(execBox);
         applyPos(execBox, 'exec', { left: '80px', top: '120px' });
-        execBox.querySelectorAll('.xc-hd, .xc-pill').forEach((h) => makeMovable(execBox, h, 'exec'));
+        makeMovable(execBox, execBox.querySelector('.xc-hd'), 'exec');
+        makeMovable(execBox, execBox.querySelector('.xc-pill'), 'exec', { anywhere: true });
         renderSizeButtons();
         document.getElementById('ax4p-custom-sz').addEventListener('input', (e) => {
             const val = parseFloat(e.target.value);
@@ -3671,9 +3789,34 @@
             }
             if (v) { out = String(v); break; }
         }
+        // Vest only stores that key once an account is picked in its menu; after a fresh login it trades the account
+        // its order ticket holds. Read that one, from the ticket's own state (no request, nothing guessed).
+        if (!out && uid) out = tpTicketAccount();
         TP.acc = out;
         TP.accAt = now();
         return out;
+    }
+
+    // The account Vest's order ticket trades: a hook of the ticket keeps Vest's account object
+    // ({ id, name, type, rootAccountId, ... }). Found by walking up from the ticket's own Buy button.
+    const TP_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    function tpTicketAccount() {
+        try {
+            const el = document.querySelector('[data-testid="submit-long"]') || document.querySelector('[data-testid="submit-short"]');
+            let f = el ? tpFiberUp(el) : null;
+            const ids = new Set();
+            for (let d = 0; f && d < 40; d++, f = f.return) {
+                for (let s = f.memoizedState, i = 0; s && typeof s === 'object' && i < 80; s = s.next, i++) {
+                    const m = s.memoizedState;
+                    if (m && typeof m === 'object' && !Array.isArray(m) && typeof m.id === 'string' && TP_UUID.test(m.id) &&
+                        'rootAccountId' in m && 'stage' in m && typeof m.name === 'string') ids.add(m.id);
+                }
+            }
+            // one account, or nothing: two different ones means we can't tell which is traded
+            return ids.size === 1 ? [...ids][0] : null;
+        } catch (e) {
+            return null;
+        }
     }
 
     async function tpLoadInfo(b) {
@@ -6566,29 +6709,39 @@
         return null;
     }
 
-    // TP1 for this position and its take-profit leg, or why not
+    // The targets for this position and its take-profit leg, as prices on this market, or why not
     function xcPartialPlan(pos, leg) {
         const info = tpInfoFor(pos.symbol || tpSymbol());
-        const pct = Math.round(Number(S.xc.tp1Pct));
-        const p1 = Number(S.xc.tp1Pts);
-        if (!(pct >= 1 && pct <= 99)) return { why: 'the TP1 share has to be between 1 and 99%' };
-        if (!(p1 > 0)) return { why: 'TP1 needs a distance in points' };
         const dir = pos.isLong ? 1 : -1;
-        const tp1 = snapToTick(pos.entry + dir * p1, info.tick, info.dec);
-        if (!tp1) return { why: 'the TP1 price could not be worked out' };
-        const main = leg.trigger;
-        const mainText = Number(main).toFixed(tp1.dec);
-        // on the profit side, strictly between the entry and the target, two ticks clear of both
-        if (!((tp1.n - pos.entry) * dir >= 2 * info.tick - 1e-12 && (main - tp1.n) * dir >= 2 * info.tick - 1e-12)) {
-            return { why: `TP1 (${tp1.s}) has to sit between the entry and the target (${mainText})` };
+        const legs = [];
+        for (const [i, x] of S.xc.targets.entries()) {
+            const pct = Math.round(Number(x.pct));
+            const pts = Number(x.pts);
+            if (!(pct >= 1 && pct <= 99)) return { why: `TP${i + 1} needs a share between 1 and 99%` };
+            if (!(pts > 0)) return { why: `TP${i + 1} needs a distance in points` };
+            const sn = snapToTick(pos.entry + dir * pts, info.tick, info.dec);
+            if (!sn) return { why: `the TP${i + 1} price could not be worked out` };
+            legs.push({ n: i + 1, pct, pts, sn });
         }
+        if (!legs.length) return { why: 'there is no target to set' };
+        const runPct = 100 - legs.reduce((s, l) => s + l.pct, 0);
+        if (runPct < 1) return { why: 'the targets add up to 100% or more, so nothing would be left at the main target' };
+        const main = leg.trigger;
+        const mainText = Number(main).toFixed(legs[0].sn.dec);
+        const t2 = 2 * info.tick - 1e-12;
+        // on the profit side, strictly between the entry and the main target, two ticks clear of both and of each other
+        for (const l of legs) {
+            if (!((l.sn.n - pos.entry) * dir >= t2 && (main - l.sn.n) * dir >= t2)) return { why: `TP${l.n} (${l.sn.s}) has to sit between the entry and the target (${mainText})` };
+        }
+        const prices = legs.map((l) => l.sn.n).sort((a, b) => a - b);
+        for (let i = 1; i < prices.length; i++) if (prices[i] - prices[i - 1] < t2) return { why: 'two targets are too close together' };
         const mid = tpLivePrice();
-        if (mid && (tp1.n - mid) * dir <= info.tick) return { why: 'the price is already at TP1' };
-        return { pct, p1, tp1, main, mainText, tick: info.tick };
+        if (mid && legs.some((l) => (l.sn.n - mid) * dir <= info.tick)) return { why: 'the price is already at or past a target' };
+        return { legs, runPct, main, mainText, tick: info.tick };
     }
 
-    // One pass through Vest's Edit TP/SL window. Returns { sent: true, s0, s1 } after pressing Apply Changes, or { why }
-    // with the window closed again and nothing changed.
+    // One pass through Vest's Edit TP/SL window. Returns { sent: true, rest, sizes } after pressing Apply Changes (sizes:
+    // what Vest worked out for each target, in order), or { why } with the window closed again and nothing changed.
     async function xcSplitTp(pos, plan, acc0, sym0) {
         const id = String(pos.id).replace(/["\\]/g, '');
         const open = document.querySelector(`button[data-testid="tpsl-edit-open-${id}"]`);
@@ -6607,6 +6760,7 @@
         const txt = (el) => (el ? el.textContent.replace(/\s+/g, ' ').trim() : '');
         const near = (a, b) => Math.abs(a - b) < plan.tick / 2;
         const stop = (why) => { xcDismiss(dlg); return { why }; };
+        const n = plan.legs.length;
         // what Vest shows has to be what we read: one take-profit, at the target, closing all of the position, in price and %
         if (!q('tpsl-edit-tp-input-0') || q('tpsl-edit-tp-input-1')) return stop('Vest shows more than one take-profit, or none');
         if (!near(num(q('tpsl-edit-tp-input-0')), plan.main)) return stop("the take-profit in Vest's window is not the one on the position");
@@ -6614,35 +6768,45 @@
         if (num(q('tpsl-edit-tp-qty-0')) !== 100) return stop('the take-profit already closes only part of the position');
         if (!q('tpsl-edit-add-tp')) return stop('"Add Another Target" is not there');
         const sl0 = q('tpsl-edit-sl-input-0') ? q('tpsl-edit-sl-input-0').value : null;
-        // 1. the target keeps the rest
-        setReactInputValue(q('tpsl-edit-tp-qty-0'), String(100 - plan.pct));
-        if (!(await xcWait(() => XC.abort || num(q('tpsl-edit-tp-qty-0')) === 100 - plan.pct, 1500))) return stop('Vest did not take the new share');
-        if (XC.abort) return stop('you pressed FLAT');
-        // 2. TP1, in a row of its own ("Add Another Target" comes alive once less than 100% is allocated)
-        if (!(await xcWait(() => XC.abort || (q('tpsl-edit-add-tp') && !q('tpsl-edit-add-tp').disabled), 1500))) return stop('"Add Another Target" stayed disabled');
-        if (XC.abort) return stop('you pressed FLAT');
-        invokeReactClick(q('tpsl-edit-add-tp'));
-        if (!(await xcWait(() => XC.abort || (q('tpsl-edit-tp-input-1') && q('tpsl-edit-tp-qty-1')), 1500))) return stop('"Add Another Target" did not add a row');
-        if (XC.abort) return stop('you pressed FLAT');
-        if (txt(q('tpsl-edit-tp-unit-1')) !== 'Price' || txt(q('tpsl-edit-tp-size-unit-1')) !== '%') return stop("Vest's new row is set to other units");
-        // the share first, then the price: if Vest sorts its rows by price, the share moves with its row
-        setReactInputValue(q('tpsl-edit-tp-qty-1'), String(plan.pct));
-        setReactInputValue(q('tpsl-edit-tp-input-1'), plan.tp1.s);
-        // two rows, in whatever order Vest shows them: the target with the rest and TP1 with its share, 100% allocated
-        const rows = () => [0, 1].map((i) => ({ i, p: num(q('tpsl-edit-tp-input-' + i)), s: num(q('tpsl-edit-tp-qty-' + i)) }));
+        // rows in whatever order Vest shows them (it may sort them by price)
+        const rows = () => [...Array(n + 1).keys()].map((i) => ({ i, p: num(q('tpsl-edit-tp-input-' + i)), s: num(q('tpsl-edit-tp-qty-' + i)) }));
         const rowAt = (rs, px, share) => rs.find((r) => near(r.p, px) && r.s === share);
+        // 1. the main target keeps the runner's share
+        setReactInputValue(q('tpsl-edit-tp-qty-0'), String(plan.runPct));
+        if (!(await xcWait(() => XC.abort || num(q('tpsl-edit-tp-qty-0')) === plan.runPct, 1500))) return stop('Vest did not take the new share');
+        if (XC.abort) return stop('you pressed FLAT');
+        // 2. one row per target ("Add Another Target" is alive while less than 100% is allocated; new rows come last)
+        for (const [k, l] of plan.legs.entries()) {
+            const row = k + 1;
+            if (!(await xcWait(() => XC.abort || (q('tpsl-edit-add-tp') && !q('tpsl-edit-add-tp').disabled), 1500))) return stop('"Add Another Target" stayed disabled');
+            if (XC.abort) return stop('you pressed FLAT');
+            invokeReactClick(q('tpsl-edit-add-tp'));
+            if (!(await xcWait(() => XC.abort || (q('tpsl-edit-tp-input-' + row) && q('tpsl-edit-tp-qty-' + row)), 1500))) return stop('"Add Another Target" did not add a row');
+            if (XC.abort) return stop('you pressed FLAT');
+            if (txt(q('tpsl-edit-tp-unit-' + row)) !== 'Price' || txt(q('tpsl-edit-tp-size-unit-' + row)) !== '%') return stop("Vest's new row is set to other units");
+            // the share first, then the price: if Vest sorts its rows by price, the share moves with its row
+            setReactInputValue(q('tpsl-edit-tp-qty-' + row), String(l.pct));
+            setReactInputValue(q('tpsl-edit-tp-input-' + row), l.sn.s);
+            if (!(await xcWait(() => XC.abort || rowAt(rows(), l.sn.n, l.pct), 1500))) return stop(`Vest's window did not take TP${l.n}`);
+            if (XC.abort) return stop('you pressed FLAT');
+        }
+        // every row where it belongs, nothing extra, 100% allocated
         const ready = await xcWait(() => {
             if (XC.abort) return 'abort';
             const rs = rows();
-            return !q('tpsl-edit-tp-input-2') && rowAt(rs, plan.main, 100 - plan.pct) && rowAt(rs, plan.tp1.n, plan.pct) &&
+            return !q('tpsl-edit-tp-input-' + (n + 1)) && rowAt(rs, plan.main, plan.runPct) && plan.legs.every((l) => rowAt(rs, l.sn.n, l.pct)) &&
                 /^100\s*%/.test(txt(q('tpsl-edit-tp-allocated'))) ? 'ok' : null;
         }, 2000);
-        if (ready !== 'ok') return stop(ready === 'abort' ? 'you pressed FLAT' : "Vest's window did not show both take-profits adding up to 100%");
-        // the sizes Vest worked out have to add up to the position
+        if (ready !== 'ok') return stop(ready === 'abort' ? 'you pressed FLAT' : "Vest's window did not show the take-profits adding up to 100%");
+        // the sizes Vest worked out have to add up to the position, none of them zero
         const size = (i) => { const m = txt(q('tpsl-edit-tp-size-equiv-' + i)).replace(/,/g, '').match(/(\d+(?:\.\d+)?)/); return m ? parseFloat(m[1]) : NaN; };
         const rs = rows();
-        const s0 = size(rowAt(rs, plan.main, 100 - plan.pct).i), s1 = size(rowAt(rs, plan.tp1.n, plan.pct).i);
-        if (!(s0 > 0 && s1 > 0) || Math.abs(s0 + s1 - pos.qty) > Math.max(1e-9, pos.qty * 0.002)) return stop(`the position (${fmtSize(pos.qty)}) is too small to split ${plan.pct}/${100 - plan.pct}`);
+        const rest = size(rowAt(rs, plan.main, plan.runPct).i);
+        const sizes = plan.legs.map((l) => size(rowAt(rs, l.sn.n, l.pct).i));
+        const sum = sizes.reduce((s, x) => s + x, rest);
+        if (!(rest > 0) || !sizes.every((x) => x > 0) || Math.abs(sum - pos.qty) > Math.max(1e-9, pos.qty * 0.002)) {
+            return stop(`the position (${fmtSize(pos.qty)}) is too small to split ${plan.legs.map((l) => l.pct).join('/')}/${plan.runPct}`);
+        }
         // the stop is left alone
         if (sl0 != null && (!q('tpsl-edit-sl-input-0') || q('tpsl-edit-sl-input-0').value !== sl0)) return stop("the stop in Vest's window changed");
         const submit = q('tpsl-edit-submit');
@@ -6651,7 +6815,7 @@
         if (XC.abort || document.querySelector('[data-testid="close-dialog"]')) return stop('you pressed FLAT');
         if (xcDemoOn() || tpActiveAccount() !== acc0 || tpSymbol() !== sym0) return stop('the account or the market changed');
         invokeReactClick(submit);
-        return { sent: true, s0, s1 };
+        return { sent: true, rest, sizes };
     }
 
     // Splits this position's one take-profit, then reads the result back. Holds the card's busy flag while it works.
@@ -6674,21 +6838,22 @@
                 xcSay('Partials not set: ' + r.why + ". Nothing changed, the position's TP and SL are as they were.", r.why === 'you pressed FLAT' ? 'warn' : 'bad');
                 return;
             }
-            flashExec(`Partials: TP1 ${fmtSize(r.s1)} at ${plan.tp1.s}, the rest at ${plan.mainText}`);
+            const list = plan.legs.map((l, k) => `TP${l.n} ${fmtSize(r.sizes[k])} at ${l.sn.s}`).join(', ');
+            flashExec(`Partials: ${list}, the rest at ${plan.mainText}`);
             if (!(await xcWait(() => !xcTpslDialog(), 5000, 100))) { xcSay('Vest kept its Edit TP/SL window open. Check it before anything else.', 'bad'); return; }
             await sleep(250);
             if (xcOtherDialog()) { xcSay('Vest is asking you to confirm in its own window. The take-profits change only when you do.', 'warn'); return; }
-            // read it back: "set" only once Vest shows both take-profits
+            // read it back: "set" only once Vest shows every take-profit
             let done = false;
             for (let i = 0; i < 5 && !done; i++) {
                 await sleep(600);
                 const f = await xcFreshFull();
                 const p = f && f.find((x) => x.id === pos.id);
                 const at = (px) => p.legs.tp.some((l) => Math.abs(l.trigger - px) < plan.tick / 2);
-                done = !!p && p.legs.tp.length === 2 && at(plan.tp1.n) && at(plan.main);
+                done = !!p && p.legs.tp.length === plan.legs.length + 1 && at(plan.main) && plan.legs.every((l) => at(l.sn.n));
             }
-            if (done) xcSay(`Partials set: TP1 ${fmtSize(r.s1)} at ${plan.tp1.s}, the rest (${fmtSize(r.s0)}) at ${plan.mainText}.`, 'good');
-            else xcSay("Partials sent. Vest is not showing both take-profits yet, so check the position's TP/SL.", 'warn');
+            if (done) xcSay(`Partials set: ${list}, the rest (${fmtSize(r.rest)}) at ${plan.mainText}.`, 'good');
+            else xcSay("Partials sent. Vest is not showing all the take-profits yet, so check the position's TP/SL.", 'warn');
         } finally {
             XC.busy = false;
             XC.what = '';
@@ -6740,13 +6905,17 @@
         xcEntryPartials(side, new Set()).catch(() => {});
     }
 
+    // "TP1 10 pt for 30%, TP2 20 pt for 30%"
+    const xcTargetsText = () => S.xc.targets.map((x, i) => `TP${i + 1} ${fmtSize(Number(x.pts))} pt for ${Math.round(Number(x.pct))}%`).join(', ');
+
     // "Set on position": the same split on the position that's open now
     async function xcPartialsNow() {
         if (XC.busy) return;
         const pos = xcPositionNow();
         if (!pos) { xcSay('No position on this market.'); return; }
         if (xcDemoOn()) {
-            xcSay(`[DEMO] Partials would split the take-profit: TP1 ${fmtSize(Number(S.xc.tp1Pts))} pt from the entry for ${Math.round(Number(S.xc.tp1Pct))}%, the rest at the target. Nothing sent.`);
+            const why = xcPlan(activeSelectedSize, parseFloat(document.getElementById('ax4p-tp-pts')?.value) || S.tp || 30).why;
+            xcSay(why ? `[DEMO] Partials would not be set: ${why}. Nothing sent.` : `[DEMO] Partials would split the take-profit: ${xcTargetsText()}, the rest at the target. Nothing sent.`);
             return;
         }
         const acc0 = tpActiveAccount(), sym0 = tpSymbol();
@@ -6761,6 +6930,16 @@
     }
 
     xcHooks.known = () => { try { return xcKnown(); } catch (e) { return false; } };
+    // logged in, but Vest hasn't said which account is traded (its menu saves that; the ticket shows evaluation and funded
+    // accounts, not the main wallet account)
+    xcHooks.unknownWhy = () => {
+        try {
+            const b = tpBridge();
+            // only once the ticket is up (it's the other place the account comes from), so a page still loading shows nothing
+            const ticket = document.querySelector('[data-testid="submit-long"]') || document.querySelector('[data-testid="submit-short"]');
+            return TP.on && !TP.demo && TP.err === 'no-account' && ticket && b && b.userId && b.userId() ? 'Pick your account once in the account menu' : '';
+        } catch (e) { return ''; }
+    };
     xcHooks.position = () => { try { return xcPositionNow(); } catch (e) { return null; } };
     xcHooks.demo = xcDemoOn;
     xcHooks.keyFor = (act) => {
@@ -6803,7 +6982,9 @@
         e.stopImmediatePropagation();
         e.preventDefault();
         const pts = xcPts();
-        const plan = xcPartialsOn() ? `TP1 ${fmtSize(Number(S.xc.tp1Pts))} pt for ${Math.round(Number(S.xc.tp1Pct))}%, the rest at ${fmtSize(pts.tp)} pt` : `target ${fmtSize(pts.tp)} pt`;
+        const why = xcPartialsOn() ? xcPlan(activeSelectedSize, pts.tp).why : '';
+        const plan = !xcPartialsOn() ? `target ${fmtSize(pts.tp)} pt`
+            : why ? `target ${fmtSize(pts.tp)} pt (Partials would not be set: ${why})` : `${xcTargetsText()}, the rest at ${fmtSize(pts.tp)} pt`;
         if (b.id === 'ax4p-flatten-btn') xcSay('[DEMO] FLAT would close the whole position. Nothing sent.');
         else xcSay(`[DEMO] ${b.id === 'ax4p-buy-btn' ? 'LONG' : 'SHORT'} ${fmtSize(activeSelectedSize)} at market, stop ${fmtSize(pts.sl)} pt, ${plan}. Nothing sent.`);
     }, true);
