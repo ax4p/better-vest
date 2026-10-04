@@ -8,7 +8,7 @@ A Chrome extension for [Vest Markets](https://next.vestmarkets.com) that puts yo
 
 Made by **Astral** · Discord **@ax4p**
 
-**[Download the latest version](https://github.com/ax4p/better-vest/releases/latest)** · [How to install](INSTALL.md) · [Is it safe?](TRANSPARENCY.md)
+**[Download the latest version](https://github.com/ax4p/better-vest/releases/latest)** · [How to install](INSTALL.md) · [Is it safe?](SECURITY.md)
 
 ## Why I made it
 
@@ -94,7 +94,7 @@ Better Vest is a Chrome extension. It only runs on next.vestmarkets.com, and whe
 
 It doesn't have its own way to trade. When you press LONG, it fills in Vest's own order ticket and presses Vest's own Buy button, the way you would. Moving a TP or SL on the chart goes through Vest's own TP/SL handler, and FLAT, 50%, REV and Partials use Vest's own windows. Prices come from Vest's public market feed. The Calendar reads your trade history from Vest with read-only requests and keeps it on your computer.
 
-There's no server behind it and nothing about you goes to me. Updates come from this repo and are signed, so a changed file can't slip in. [TRANSPARENCY.md](TRANSPARENCY.md) lists every address it talks to and shows how to check all of it yourself, including an antivirus scan of the zip.
+There's no server behind it and nothing about you goes to me. Updates come from this repo and are signed, so a changed file can't slip in. The [Security](SECURITY.md) page lists every address it talks to and shows how to check all of it yourself, including an antivirus scan of the zip.
 
 ## Install
 
@@ -116,7 +116,7 @@ No. It's an independent project and has no connection to Vest Markets.
 No.
 
 **Is it safe?**
-It only runs on Vest and asks Chrome for two permissions. It places orders through Vest's own buttons and never touches your password, your wallet or your withdrawals. Everything is explained, with ways to check it yourself, in [TRANSPARENCY.md](TRANSPARENCY.md).
+It only runs on Vest and asks Chrome for two permissions. It places orders through Vest's own buttons and never touches your password, your wallet or your withdrawals. Everything is explained, with ways to check it yourself, on the [Security](SECURITY.md) page.
 
 **Does it work on trade.vestmarkets.com?**
 No, only on next.vestmarkets.com.

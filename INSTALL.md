@@ -44,7 +44,7 @@ Your settings and your Calendar stay as they are.
 
 **Not sure which folder Chrome runs?** On `chrome://extensions`, click **Details** on Better Vest: **Source** shows the folder. On a Mac, folders whose name starts with a dot are hidden in the folder picker. Press **Cmd+Shift+.** to show them, or **Cmd+Shift+G** to paste a path.
 
-**Before it writes anything,** it downloads every file of the new version from this repo and checks them against a list I sign on my own computer. If one file doesn't match, nothing changes. [TRANSPARENCY.md](TRANSPARENCY.md) has the details.
+**Before it writes anything,** it downloads every file of the new version from this repo and checks them against a list I sign on my own computer. If one file doesn't match, nothing changes. The [Security](SECURITY.md) page has the details.
 
 **Coming from an older version?**
 
