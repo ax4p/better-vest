@@ -15,6 +15,16 @@
     let swEverConnected = false;
     let lastAck = 0;
     let lastOpen = 0;
+    let tellTimer = 0;
+
+    // After the extension reloads (an update or a manual reload), this copy keeps running in tabs that were already
+    // open, but it is cut off: chrome.runtime and chrome.storage are gone and every call throws. Go quiet instead.
+    function alive() {
+        try { if (chrome.runtime && chrome.runtime.id) return true; } catch (e) {}
+        window.removeEventListener('message', onWindowMessage);
+        clearInterval(tellTimer);
+        return false;
+    }
 
     function toPage(msg) {
         try { if (pagePort) pagePort.postMessage(msg); } catch (e) {}
@@ -67,10 +77,11 @@
         window.postMessage({ bv: 1, dir: 'toPage', type: 'jport', nonce: d.nonce }, location.origin, [ch.port2]);
     }
 
-    window.addEventListener('message', (ev) => {
+    function onWindowMessage(ev) {
         if (ev.source !== window) return;
         const d = ev.data;
         if (!d || d.bv !== 1 || d.dir !== 'toExt') return;
+        if (!alive()) return;
         if (d.type === 'settings') {
             chrome.storage.local.set({ settings: d.value, settingsAt: Date.now() }).catch(() => {});
         } else if (d.type === 'state') {
@@ -97,7 +108,8 @@
             lastOpen = t;
             chrome.runtime.sendMessage({ type: 'update-open' }).catch(() => {});
         }
-    });
+    }
+    window.addEventListener('message', onWindowMessage);
 
     chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         if (!msg) return;
@@ -137,11 +149,12 @@
 
     // a newer release waiting on GitHub: the dock shows an Update button (only the version number goes to the page)
     function tellUpdate() {
+        if (!alive()) return;
         chrome.runtime.sendMessage({ type: 'update-state' }).then((s) => {
             const v = s && s.available && /^\d{1,4}\.\d{1,4}\.\d{1,4}$/.test(String(s.available.version)) ? String(s.available.version) : '';
             window.postMessage({ bv: 1, dir: 'toPage', cmd: 'update', version: v }, location.origin);
         }).catch(() => {});
     }
     setTimeout(tellUpdate, 3000);
-    setInterval(tellUpdate, 15 * 60 * 1000);
+    tellTimer = setInterval(tellUpdate, 15 * 60 * 1000);
 })();

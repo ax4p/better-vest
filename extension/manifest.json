@@ -2,8 +2,8 @@
   "manifest_version": 3,
   "name": "Better Vest by Astral",
   "short_name": "Better Vest",
-  "version": "7.4.0",
-  "description": "Astral suite for Vest Markets: exec strip with account presets, hotkey macros, chart TP/SL with breakeven, themes, chart styling, focus mode, calendar.",
+  "version": "7.5.0",
+  "description": "Astral suite for Vest Markets: Execute card with account presets, hotkey macros, chart TP/SL with breakeven, themes, chart styling, focus mode, calendar.",
   "minimum_chrome_version": "116",
   "icons": {
     "16": "icons/icon16.png",
