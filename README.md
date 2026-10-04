@@ -28,15 +28,21 @@ BE moves your stop to entry plus 5% of the open profit, so a breakeven stop stil
 
 ### The Execute card
 
-LONG and SHORT in one click, with your stop and target (in points) attached to every order. Pick the account at the top (5K, 10K, 25K or Custom) and the size presets follow it. Next to the size it shows what that means on the market you're on: MNQ on NQ, MES on ES, MGC on gold, shares on stocks, the coin or the currency elsewhere. Before you click, the card shows what the stop and the target are worth in dollars, the R:R, and how much of the account you're risking.
+LONG and SHORT in one click, with your stop and target (in points) attached to every order, unless you switch one off (below). Pick the account at the top (5K, 10K, 25K or Custom) and the size presets follow it. Next to the size it shows what that means on the market you're on: MNQ on NQ, MES on ES, MGC on gold, shares on stocks, the coin or the currency elsewhere. Before you click, the card shows what the stop and the target are worth in dollars, the R:R, and how much of the account you're risking.
 
 When you're in a position, it sits at the top of the card with its live P&L, and three buttons manage it. FLAT closes all of it. 50% closes half. REV closes it and opens the same size the other way, with the card's stop and target. It asks for a second click first, and it only opens the new side once Vest shows the old one closed. 50% and REV use Vest's own close window, the one the Close button in its Positions tab opens, so keep that tab open. REV works on NQ and MNQ, like the order hotkeys.
+
+Sometimes you want a raw order. Click **STOP** or **TARGET** above its field to switch it off. The dot goes hollow and the field dims. Switch both off and LONG or SHORT sends just the size, no stop and no target, and the card shows "No stop" and "-" for the R:R. With one off, the order gets only the other one. It remembers your choice, the folded bar shows it too, and the hotkeys and REV follow the same switches. Partials need a target, so they switch off with it.
 
 When you need the room, fold the card into a slim bar. Drag it anywhere.
 
 <p align="center"><img src="docs/media/exec-card.png" alt="The Execute card: account, size, stop and target, the Partials plan, risk and R:R, LONG, SHORT, FLAT, 50% and REV" width="760"></p>
 
 Turn on **Partials** to scale out. TP1 closes part of the position (half at 20 points, say), **+** adds more targets (up to four), and the rest rides to your target. Every target shows what it's worth in dollars while you type. Right after the fill, Better Vest sets them all in Vest's own Edit TP/SL window, the same one you'd use by hand, and your stop stays as it is. **Set on position** does the same for a position you already have. Like 50% and REV, it works through Vest's Positions tab, so keep that open.
+
+### Daily loss limit
+
+A soft lock for the days that go wrong. Turn it on in Settings > Exec, set a dollar limit (200 to start), and the card shows a small line like "Today -$120 of $200". It turns amber at 75%. At 100% new trades are locked until the reset hour (midnight unless you change it): LONG, SHORT, REV, the folded bar, the W S E Q hotkeys and Partials. FLAT, 50%, BE, dragging TP and SL on the chart and Vest's own close buttons always keep working, because cutting risk should never be locked. There's an option to lock Vest's own Buy and Sell too. Today's number is your Account Value now minus the first one it saw after the reset, kept for each account, read from the page you're looking at. Nothing is requested from Vest. It's your own limit, separate from any rule Vest has. A deposit, withdrawal or transfer moves the Account Value, so it counts as profit or loss. A lock stays until the reset hour, even if you reset or import your settings. Until the card is reading your Account Value it says "limit not active", and nothing is locked. It's a lock on your screen, so it can't stop an order that comes from somewhere else.
 
 ### Hotkeys
 
@@ -79,7 +85,7 @@ When your payouts add up, open the Portfolio page and make a certificate of your
 
 | Keys | What they do |
 |---|---|
-| W / S | Long / short at market, with the card's size, stop and target |
+| W / S | Long / short at market, with the card's size, and its stop and target when they're on |
 | E / Q | Limit buy at the best bid / limit sell at the best ask |
 | H | Stop to breakeven |
 | Alt+F | Focus mode on or off |

@@ -42,12 +42,14 @@ There's no other address in the code. No analytics, no tracking, no ads.
 
 It doesn't have its own way to trade. It works the page the way you would:
 
-- **LONG / SHORT:** fills in Vest's own order ticket (size, stop, target) and presses Vest's own Buy or Sell button.
+- **LONG / SHORT:** fills in Vest's own order ticket (size, stop, target) and presses Vest's own Buy or Sell button. With STOP or TARGET switched off on the card it leaves that leg out and empties its field. With both off it switches Vest's own TP/SL box off, and it sends nothing if the box won't go off.
 - **FLAT, 50%, REV:** use Vest's own close window, the one its Close button opens.
 - **Dragging TP or SL on the chart, and BE:** go through Vest's own TP/SL handler, the code Vest itself uses to change a take-profit or a stop.
 - **Partials:** done in Vest's own Edit TP/SL window. It sets the shares, adds the targets and presses Apply, and checks every field before it does.
 
 Better Vest never builds a trading request of its own. Vest's code sends everything, exactly as if you'd clicked.
+
+One more thing it does to your clicks: with the daily loss limit on and hit, it can swallow a click on Vest's own Buy and Sell on your screen, until the reset hour. You can turn that option off in Settings > Exec. It never blocks a close.
 
 With the demo position on (Alt+Shift+D), every button on the card only tells you what it would do. Nothing is sent.
 
@@ -66,6 +68,7 @@ With WICK you pay the same or less, and the purchase supports me.
 
 - Your settings, in Chrome's storage for the extension and in the Vest page's own storage.
 - Your Calendar history, in the browser's database on this computer.
+- If you turn on the daily loss limit, the Account Value it first saw each day, per account (`ax4p_dll` in the Vest page's storage). It reads the number from the page you're looking at and never asks Vest for it.
 - For one-click updates: a link to the folder you picked, so Chrome can write the new files there.
 
 None of it is sent anywhere. Removing the extension removes its storage. The copy of your settings in the Vest page's storage goes when you clear that site's data.
@@ -86,13 +89,13 @@ If anything is off, nothing changes. If writing fails halfway, the old files go 
 ## Check it yourself
 
 1. **Read the code.** The [`extension`](extension) folder in this repo is the zip, file for file. It isn't minified or obfuscated, so you can read it in your browser.
-2. **Check the zip is that code.** The SHA-256 of `better-vest-7.5.2.zip` is:
+2. **Check the zip is that code.** The SHA-256 of `better-vest-7.7.0.zip` is:
 
-   `ac21bdf8646485810fa89758a58297e0290bcb0f7e305050ba7a52c558ae9ceb`
+   `2349e1444caa8f7e461d536c669b9c295d644cef4e38923d4567f414f3687ea8`
 
-   - On Mac: `shasum -a 256 better-vest-7.5.2.zip`
-   - On Windows: `certutil -hashfile better-vest-7.5.2.zip SHA256`
-3. **Scan it.** VirusTotal checks a file with more than 60 antivirus engines. Here's the result for that exact zip: [VirusTotal report](https://www.virustotal.com/gui/file/ac21bdf8646485810fa89758a58297e0290bcb0f7e305050ba7a52c558ae9ceb) (0 of 65 engines flagged it, scanned 4 October 2026). You can also upload the zip there yourself.
+   - On Mac: `shasum -a 256 better-vest-7.7.0.zip`
+   - On Windows: `certutil -hashfile better-vest-7.7.0.zip SHA256`
+3. **Scan it.** VirusTotal checks a file with more than 60 antivirus engines. Upload the zip at [virustotal.com](https://www.virustotal.com) and you get the result for that exact file. The last version I scanned there, 7.5.2, came back with 0 of 65 engines flagging it ([report](https://www.virustotal.com/gui/file/ac21bdf8646485810fa89758a58297e0290bcb0f7e305050ba7a52c558ae9ceb)).
 
    The report also has an AI summary, "Code insights", which marks two things as suspicious. Both are on this page: the WICK code switch ([The WICK code](#the-wick-code)) and the updater writing its own files ([Updates are signed](#updates-are-signed)).
 4. **Watch it work.** Open Chrome's DevTools on the Vest tab (F12), go to Network, and use Better Vest. You'll only see the addresses listed above.
