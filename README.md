@@ -26,15 +26,15 @@ BE moves your stop to entry plus 5% of the open profit, so a breakeven stop stil
 
 ### The Execute card
 
-LONG and SHORT in one click, with your stop and target (in points) attached to every order. Pick the account at the top (5K, 10K, 25K or Custom) and the size presets follow it. Before you click, the card shows what the stop and the target are worth in dollars, the R:R, and how much of the account you're risking.
+LONG and SHORT in one click, with your stop and target (in points) attached to every order. Pick the account at the top (5K, 10K, 25K or Custom) and the size presets follow it. Next to the size it shows what that means on the market you're on: MNQ on NQ, MES on ES, MGC on gold, shares on stocks, the coin or the currency elsewhere. Before you click, the card shows what the stop and the target are worth in dollars, the R:R, and how much of the account you're risking.
 
 When you're in a position, it sits at the top of the card with its live P&L, and three buttons manage it. FLAT closes all of it. 50% closes half. REV closes it and opens the same size the other way, with the card's stop and target. It asks for a second click first, and it only opens the new side once Vest shows the old one closed. 50% and REV use Vest's own close window, the one the Close button in its Positions tab opens, so keep that tab open. REV works on NQ and MNQ, like the order hotkeys.
 
 When you need the room, fold the card into a slim bar. Drag it anywhere.
 
-<p align="center"><img src="docs/media/exec-card.png" alt="The Execute card: account, size, stop and target, risk and R:R, LONG, SHORT, FLAT, 50% and REV" width="760"></p>
+<p align="center"><img src="docs/media/exec-card.png" alt="The Execute card: account, size, stop and target, the Partials plan, risk and R:R, LONG, SHORT, FLAT, 50% and REV" width="760"></p>
 
-The Partials switch is a preview for now. On the demo position it shows a plan with a first target and a runner. Real partial take-profits come in a later update.
+Turn on **Partials** and every LONG or SHORT gets two take-profits: TP1 closes part of the position (half at 20 points, say) and the rest rides to your target. Right after the fill, Better Vest sets them in Vest's own Edit TP/SL window, the same one you'd use by hand, and your stop stays as it is. **Set on position** does the same for a position you already have. Like 50% and REV, it works through Vest's Positions tab, so keep that open.
 
 ### Hotkeys
 
@@ -77,14 +77,14 @@ When your payouts add up, open the Portfolio page and make a certificate of your
 
 About two minutes. Works in Chrome, Brave, Edge and Arc.
 
-1. Download **better-vest-7.5.0.zip** from the [latest release](https://github.com/ax4p/better-vest/releases/latest).
+1. Download **better-vest-7.5.1.zip** from the [latest release](https://github.com/ax4p/better-vest/releases/latest).
 2. Unzip it.
    - **Mac:** double-click the zip.
    - **Windows:** right-click the zip and choose **Extract All**.
 
    Keep the folder somewhere it can stay, like Documents. Chrome runs the extension from that folder, so don't delete it afterwards.
 3. Go to `chrome://extensions` (Brave: `brave://extensions`, Edge: `edge://extensions`).
-4. Turn on **Developer mode** in the top right corner, then click **Load unpacked** and pick the `better-vest-7.5.0` folder.
+4. Turn on **Developer mode** in the top right corner, then click **Load unpacked** and pick the `better-vest-7.5.1` folder.
 5. Pin it: click the puzzle piece in the toolbar, then the pin next to Better Vest.
 6. Open [next.vestmarkets.com](https://next.vestmarkets.com). The dock appears at the top of the page.
 
@@ -96,7 +96,7 @@ Leave Developer mode on afterwards. With it off, Chrome switches the extension o
 
 ### Updating
 
-From 7.4 on, Better Vest updates itself. When a new version is out, an **Update** button shows up in the dock and the toolbar icon says NEW. Click it, read what's new, then click **Update**. The first time, Chrome asks for your Better Vest folder: pick the one you loaded in step 4 and allow it to edit files. After that it's one click. Your settings and your Calendar stay as they are.
+From 7.4 on, Better Vest updates itself. When a new version is out, an **Update** button shows up in the dock and the toolbar icon says NEW. Click it, read what's new, then click **Update**. The first time, Chrome asks for your Better Vest folder: pick the one you loaded in step 4, or any folder it's in (like Documents), and allow it to edit files. After that it's one click. (Versions before 7.5.1 need the exact folder: on `chrome://extensions`, Details on Better Vest shows it under Source.) Your settings and your Calendar stay as they are.
 
 <p align="center"><img src="docs/media/update.png" alt="The update page: what's new, and the Update button" width="620"></p>
 
@@ -106,7 +106,7 @@ Coming from 7.3? That version can't update itself yet, so do it by hand once: do
 
 ## Try it first on the demo position
 
-On the trade page, press **Alt+Shift+D**. A demo position appears on the chart. You can drag its TP and SL, press BE, try the hotkeys and press LONG, SHORT, FLAT, 50% or REV on the card: none of that is sent to Vest while the demo is on, the card just tells you what it would do. Vest's own buttons are still real, so leave those alone while you practice. Press Alt+Shift+D again to remove the demo.
+On the trade page, press **Alt+Shift+D**. A demo position appears on the chart. You can drag its TP and SL, press BE, try the hotkeys and press any button on the card: none of that is sent to Vest while the demo is on, the card just tells you what it would do. Vest's own buttons are still real, so leave those alone while you practice. Press Alt+Shift+D again to remove the demo.
 
 ## Shortcuts
 
@@ -125,7 +125,7 @@ The order keys work on NQ and MNQ while the Execute card is showing. E and Q sta
 
 - The code is right here in the [`extension`](extension) folder. It's exactly what's inside the zip, so you can read it before you install.
 - It only runs on next.vestmarkets.com.
-- The one other place it talks to is GitHub. Every 6 hours, and when Chrome starts, it asks GitHub which version is the latest. Nothing about you or your trading is in that request. When you click Update, it downloads the new files from this repo. You can turn the check off in the toolbar popup.
+- The one other place it talks to is GitHub. Every 30 minutes, and when Chrome starts, it asks GitHub which version is the latest. Nothing about you or your trading is in that request. When you click Update, it downloads the new files from this repo. You can turn the check off in the toolbar popup.
 - Orders go through Vest's own buttons and order form, and closes through Vest's own close window. TP and SL changes go through Vest's own TP/SL handler. The extension doesn't build trading requests of its own.
 - The Calendar reads your history with read-only requests from your open Vest tab and stores it on this computer. Nothing is sent to me or to anyone else.
 - No analytics, no tracking, no account.
