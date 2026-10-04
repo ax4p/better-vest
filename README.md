@@ -71,14 +71,14 @@ When your payouts add up, open the Portfolio page and make a certificate of your
 
 About two minutes. Works in Chrome, Brave, Edge and Arc.
 
-1. Download **better-vest-7.3.0.zip** from the [latest release](https://github.com/ax4p/better-vest/releases/latest).
+1. Download **better-vest-7.4.0.zip** from the [latest release](https://github.com/ax4p/better-vest/releases/latest).
 2. Unzip it.
    - **Mac:** double-click the zip.
    - **Windows:** right-click the zip and choose **Extract All**.
 
    Keep the folder somewhere it can stay, like Documents. Chrome runs the extension from that folder, so don't delete it afterwards.
 3. Go to `chrome://extensions` (Brave: `brave://extensions`, Edge: `edge://extensions`).
-4. Turn on **Developer mode** in the top right corner, then click **Load unpacked** and pick the `better-vest-7.3.0` folder.
+4. Turn on **Developer mode** in the top right corner, then click **Load unpacked** and pick the `better-vest-7.4.0` folder.
 5. Pin it: click the puzzle piece in the toolbar, then the pin next to Better Vest.
 6. Open [next.vestmarkets.com](https://next.vestmarkets.com). The dock appears at the top of the page.
 
@@ -86,7 +86,17 @@ About two minutes. Works in Chrome, Brave, Edge and Arc.
 
 When Chrome starts, it may warn you about extensions in developer mode. That's normal for anything installed this way. Click **Keep**.
 
-**Updating:** download the new zip, unzip it over your old folder (replace the files), then press the round arrow on the Better Vest card in `chrome://extensions`. Your settings stay as they are.
+Leave Developer mode on afterwards. With it off, Chrome switches the extension off the next time it reloads, and an update reloads it.
+
+### Updating
+
+From 7.4 on, Better Vest updates itself. When a new version is out, an **Update** button shows up in the dock and the toolbar icon says NEW. Click it, read what's new, then click **Update**. The first time, Chrome asks for your Better Vest folder: pick the one you loaded in step 4 and allow it to edit files. After that it's one click. Your settings and your Calendar stay as they are.
+
+<p align="center"><img src="docs/media/update.png" alt="The update page: what's new, and the Update button" width="620"></p>
+
+Before it writes anything, it downloads every file of the new version from this repo and checks them against a list I sign on my own computer. If one file doesn't match, nothing changes.
+
+Coming from 7.3? That version can't update itself yet, so do it by hand once: download the new zip, unzip it over your old folder (replace the files), then press the round arrow on the Better Vest card in `chrome://extensions`.
 
 ## Try it first on the demo position
 
@@ -109,6 +119,7 @@ The order keys work on NQ and MNQ while the Execute strip is showing. E and Q st
 
 - The code is right here in the [`extension`](extension) folder. It's exactly what's inside the zip, so you can read it before you install.
 - It only runs on next.vestmarkets.com.
+- The one other place it talks to is GitHub. Every 6 hours, and when Chrome starts, it asks GitHub which version is the latest. Nothing about you or your trading is in that request. When you click Update, it downloads the new files from this repo. You can turn the check off in the toolbar popup.
 - Orders go through Vest's own buttons and order form. TP and SL changes go through Vest's own TP/SL handler. The extension doesn't build trading requests of its own.
 - The Calendar reads your history with read-only requests from your open Vest tab and stores it on this computer. Nothing is sent to me or to anyone else.
 - No analytics, no tracking, no account.
@@ -134,7 +145,9 @@ Please share the link to this page instead, so people always get the current ver
 
 ## Support the project
 
-Better Vest is free. If you're buying a Vest evaluation or instant account, use the code **WICK** at checkout. It doesn't cost you anything extra, and it helps keep this going. The extension shows a small reminder on the purchase screens, and you can close it with the ×.
+Better Vest is free. If you're buying a Vest evaluation or instant account, use the code **WICK** at checkout. It doesn't cost you anything extra, and it helps keep this going.
+
+On the purchase screens the extension shows a small card with a **Use WICK** button that puts the code in for you. When Vest has filled in its own default code VEST, Better Vest switches it to WICK by itself, where you can see it, and only keeps WICK if it gives the same discount or more. Any other code is never touched. Undo on the card puts VEST back and stops the switch, and Settings > More turns it on or off.
 
 ## Credits and rights
 
