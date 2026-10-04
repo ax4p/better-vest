@@ -4,9 +4,11 @@
 
 # Better Vest
 
-A Chrome extension for [Vest Markets](https://next.vestmarkets.com) that puts your take profit and stop loss on the chart, adds a one-click order card, hotkeys, a focus mode, seven themes and a P&L calendar.
+A Chrome extension for [Vest Markets](https://next.vestmarkets.com) that puts your take profit and stop loss on the chart, adds a one-click order card with partial take-profits, hotkeys, a focus mode, seven themes and a P&L calendar.
 
-Made by **Astral** · Discord **@ax4p** · [Download the latest version](https://github.com/ax4p/better-vest/releases/latest)
+Made by **Astral** · Discord **@ax4p**
+
+**[Download the latest version](https://github.com/ax4p/better-vest/releases/latest)** · [How to install](INSTALL.md) · [Is it safe?](TRANSPARENCY.md)
 
 ## Why I made it
 
@@ -34,7 +36,7 @@ When you need the room, fold the card into a slim bar. Drag it anywhere.
 
 <p align="center"><img src="docs/media/exec-card.png" alt="The Execute card: account, size, stop and target, the Partials plan, risk and R:R, LONG, SHORT, FLAT, 50% and REV" width="760"></p>
 
-Turn on **Partials** and every LONG or SHORT gets two take-profits: TP1 closes part of the position (half at 20 points, say) and the rest rides to your target. Right after the fill, Better Vest sets them in Vest's own Edit TP/SL window, the same one you'd use by hand, and your stop stays as it is. **Set on position** does the same for a position you already have. Like 50% and REV, it works through Vest's Positions tab, so keep that open.
+Turn on **Partials** to scale out. TP1 closes part of the position (half at 20 points, say), **+** adds more targets (up to four), and the rest rides to your target. Every target shows what it's worth in dollars while you type. Right after the fill, Better Vest sets them all in Vest's own Edit TP/SL window, the same one you'd use by hand, and your stop stays as it is. **Set on position** does the same for a position you already have. Like 50% and REV, it works through Vest's Positions tab, so keep that open.
 
 ### Hotkeys
 
@@ -73,42 +75,7 @@ When your payouts add up, open the Portfolio page and make a certificate of your
 
 <sub>The screenshots use the demo position and sample data. No real account is shown.</sub>
 
-## Install
-
-About two minutes. Works in Chrome, Brave, Edge and Arc.
-
-1. Download **better-vest-7.5.1.zip** from the [latest release](https://github.com/ax4p/better-vest/releases/latest).
-2. Unzip it.
-   - **Mac:** double-click the zip.
-   - **Windows:** right-click the zip and choose **Extract All**.
-
-   Keep the folder somewhere it can stay, like Documents. Chrome runs the extension from that folder, so don't delete it afterwards.
-3. Go to `chrome://extensions` (Brave: `brave://extensions`, Edge: `edge://extensions`).
-4. Turn on **Developer mode** in the top right corner, then click **Load unpacked** and pick the `better-vest-7.5.1` folder.
-5. Pin it: click the puzzle piece in the toolbar, then the pin next to Better Vest.
-6. Open [next.vestmarkets.com](https://next.vestmarkets.com). The dock appears at the top of the page.
-
-<p align="center"><img src="docs/media/install-extensions-page.png" alt="chrome://extensions with Developer mode on (1) and Load unpacked (2)" width="760"></p>
-
-When Chrome starts, it may warn you about extensions in developer mode. That's normal for anything installed this way. Click **Keep**.
-
-Leave Developer mode on afterwards. With it off, Chrome switches the extension off the next time it reloads, and an update reloads it.
-
-### Updating
-
-From 7.4 on, Better Vest updates itself. When a new version is out, an **Update** button shows up in the dock and the toolbar icon says NEW. Click it, read what's new, then click **Update**. The first time, Chrome asks for your Better Vest folder: pick the one you loaded in step 4, or any folder it's in (like Documents), and allow it to edit files. After that it's one click. (Versions before 7.5.1 need the exact folder: on `chrome://extensions`, Details on Better Vest shows it under Source.) Your settings and your Calendar stay as they are.
-
-<p align="center"><img src="docs/media/update.png" alt="The update page: what's new, and the Update button" width="620"></p>
-
-Before it writes anything, it downloads every file of the new version from this repo and checks them against a list I sign on my own computer. If one file doesn't match, nothing changes.
-
-Coming from 7.3? That version can't update itself yet, so do it by hand once: download the new zip, unzip it over your old folder (replace the files), then press the round arrow on the Better Vest card in `chrome://extensions`.
-
-## Try it first on the demo position
-
-On the trade page, press **Alt+Shift+D**. A demo position appears on the chart. You can drag its TP and SL, press BE, try the hotkeys and press any button on the card: none of that is sent to Vest while the demo is on, the card just tells you what it would do. Vest's own buttons are still real, so leave those alone while you practice. Press Alt+Shift+D again to remove the demo.
-
-## Shortcuts
+### Shortcuts
 
 | Keys | What they do |
 |---|---|
@@ -121,16 +88,24 @@ On the trade page, press **Alt+Shift+D**. A demo position appears on the chart. 
 
 The order keys work on NQ and MNQ while the Execute card is showing. E and Q start switched off: turn them on in Settings > Exec > Macros. They also need chart TP/SL to be on.
 
-## Privacy and safety
+## How it works
 
-- The code is right here in the [`extension`](extension) folder. It's exactly what's inside the zip, so you can read it before you install.
-- It only runs on next.vestmarkets.com.
-- The one other place it talks to is GitHub. Every 30 minutes, and when Chrome starts, it asks GitHub which version is the latest. Nothing about you or your trading is in that request. When you click Update, it downloads the new files from this repo. You can turn the check off in the toolbar popup.
-- Orders go through Vest's own buttons and order form, and closes through Vest's own close window. TP and SL changes go through Vest's own TP/SL handler. The extension doesn't build trading requests of its own.
-- The Calendar reads your history with read-only requests from your open Vest tab and stores it on this computer. Nothing is sent to me or to anyone else.
-- No analytics, no tracking, no account.
+Better Vest is a Chrome extension. It only runs on next.vestmarkets.com, and when you open Vest it adds its tools to the page you already use: the dock at the top, the Execute card and the labels on the chart.
 
-It's still a trading tool, so start with the demo position and watch your first few real orders the way you would with any new setup.
+It doesn't have its own way to trade. When you press LONG, it fills in Vest's own order ticket and presses Vest's own Buy button, the way you would. Moving a TP or SL on the chart goes through Vest's own TP/SL handler, and FLAT, 50%, REV and Partials use Vest's own windows. Prices come from Vest's public market feed. The Calendar reads your trade history from Vest with read-only requests and keeps it on your computer.
+
+There's no server behind it and nothing about you goes to me. Updates come from this repo and are signed, so a changed file can't slip in. [TRANSPARENCY.md](TRANSPARENCY.md) lists every address it talks to and shows how to check all of it yourself, including an antivirus scan of the zip.
+
+## Install
+
+About two minutes in Chrome, Brave, Edge or Arc:
+1. Download the zip.
+2. Unzip it.
+3. Load the folder on `chrome://extensions` with Developer mode on.
+
+Step by step, with screenshots, in [INSTALL.md](INSTALL.md). Before you use it for real, press **Alt+Shift+D** on the trade page and try it on the demo position: nothing is sent while the demo is on.
+
+It's still a trading tool, so watch your first few real orders the way you would with any new setup.
 
 ## FAQ
 
@@ -140,11 +115,14 @@ No. It's an independent project and has no connection to Vest Markets.
 **Does it cost anything?**
 No.
 
+**Is it safe?**
+It only runs on Vest and asks Chrome for two permissions. It places orders through Vest's own buttons and never touches your password, your wallet or your withdrawals. Everything is explained, with ways to check it yourself, in [TRANSPARENCY.md](TRANSPARENCY.md).
+
 **Does it work on trade.vestmarkets.com?**
 No, only on next.vestmarkets.com.
 
 **I installed it and nothing shows up on Vest.**
-Check that it's switched on in `chrome://extensions`, then reload the Vest tab. If you have another copy installed too (a userscript or a second version of the extension), keep just one on.
+See [INSTALL.md](INSTALL.md#if-somethings-off).
 
 **Can I share the zip or post it somewhere else?**
 Please share the link to this page instead, so people always get the current version. The details are in the license.
