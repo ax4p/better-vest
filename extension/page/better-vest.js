@@ -12,7 +12,7 @@
 (function () {
     'use strict';
 
-    const VERSION = '7.5';
+    const VERSION = '7.5.1';
     // true only in the Chrome extension build (tools/build.py defines BV_EXT there)
     const IS_EXT = typeof BV_EXT !== 'undefined' && !!BV_EXT;
     // 'standard' = the shareable build; anything else = WICKED, the author's own full build.
@@ -620,7 +620,6 @@
             #ax4p-exec-deck .xc-lab, #ax4p-exec-deck .xc-tag { display: flex; align-items: center; gap: 6px; height: 12px; font-size: 10px; line-height: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--ax-dim); white-space: nowrap; }
             #ax4p-exec-deck .xc-lab em { margin-left: 4px; letter-spacing: 0; text-transform: none; font-size: 11px; color: var(--ax-muted); }
             #ax4p-exec-deck .xc-lab em b { color: var(--ax-text); font-weight: 600; }
-            #ax4p-exec-deck .xc-soon { letter-spacing: .06em; font-size: 9px; color: var(--ax-warn); }
             #ax4p-exec-deck .xc-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
             #ax4p-exec-deck .xc-seg, #ax4p-exec-deck .xc-field, #ax4p-exec-deck .xc-step { height: 32px; border: 1px solid var(--ax-line); border-radius: 8px; background: var(--ax-btn); }
             #ax4p-exec-deck .xc-sizes { display: flex; gap: 8px; width: 232px; }
@@ -656,6 +655,9 @@
             #ax4p-exec-deck .xc-field--ro { background: transparent; }
             #ax4p-exec-deck .xc-field--ro b { color: var(--ax-muted); font-weight: 500; }
             #ax4p-exec-deck .xc-usd { min-width: 40px; font-weight: 600; }
+            #ax4p-exec-deck .xc-apply { margin-left: auto; height: 24px; padding: 0 10px; border: 1px solid var(--ax-line); border-radius: 6px; background: var(--ax-btn); color: var(--ax-text); font-size: 11px; font-weight: 600; white-space: nowrap; }
+            #ax4p-exec-deck .xc-apply:hover:not(:disabled) { border-color: var(--ax-dim); }
+            #ax4p-exec-deck .xc-apply:disabled { opacity: .5; cursor: not-allowed; }
             /* bottom tier: risk left, decision right */
             #ax4p-exec-deck .xc-dc { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 10px 0; border-top: 1px solid var(--ax-line); }
             #ax4p-exec-deck .xc-risk { display: flex; gap: 16px; margin: 0; }
@@ -2349,12 +2351,48 @@
             xcText('ax4p-xc-pill-sl', fmtSize(slPts));
             xcText('ax4p-xc-pill-tp', fmtSize(tpPts));
         }
-        // the MNQ equivalent only means something on NQ / MNQ
-        const mnqEl = document.getElementById('ax4p-mnq-readout');
-        if (mnqEl) {
-            const html = xcNqMarket() ? `<b>= ${+(size / 2).toFixed(2)}</b> MNQ` : '';
-            if (mnqEl.innerHTML !== html) mnqEl.innerHTML = html;
+        paintSizeUnit();
+    }
+
+    // What the size means on this market. Vest's perps are linear (one unit moves $1 per 1.00 of price), so where CME
+    // lists a micro contract the size is shown in micros: size ÷ the micro's dollars per point (NQ: MNQ is $2 a point).
+    // Anywhere else it is the asset's own unit: shares for stocks and ETFs, the coin or the currency otherwise. Off NQ the
+    // size goes into Vest's ticket in whatever unit the ticket shows, so a ticket set to USD means dollars.
+    const XC_MICRO = { NQ: ['MNQ', 2], ES: ['MES', 5], RTY: ['M2K', 5], GC: ['MGC', 10], SI: ['SIL', 1000], CL: ['MCL', 100], HG: ['MHG', 2500], NG: ['MNG', 1000] };
+    const XC_ALIAS = { NDX: 'NQ', SPX: 'ES' };
+    const XC_FX = /^(AUD|CAD|CHF|EUR|GBP|JPY|NOK|NZD|SEK)-USD-PERP$/;
+    const XC_CRYPTO = /^(BTC|ETH|SOL|HYPE|XRP)-PERP$/;
+    function xcNum(n) {
+        const a = Math.abs(n);
+        const d = a >= 100 ? 0 : a >= 1 ? 2 : a >= 0.01 ? 3 : 4;
+        return (+n.toFixed(d)).toLocaleString('en-US', { maximumFractionDigits: d });
+    }
+    // info (extension, from Vest's exchange info): { asset: 'stock' | 'crypto' | 'forex', cats: [...] } or null
+    function xcSizeUnit(sym, size, ticketUnit, info) {
+        const s = String(sym || '').toUpperCase();
+        const fx = XC_FX.exec(s);
+        let root = s.replace(/-USD-PERP$|-PERP$/, '');
+        root = XC_ALIAS[root] || root;
+        if (!root || !(size > 0)) return null;
+        const cats = (info && info.cats) || [];
+        const micro = XC_MICRO[root];
+        if (root !== 'NQ' && ticketUnit && /USD/.test(ticketUnit) && !ticketUnit.includes(root)) return { n: '$' + xcNum(size), unit: '' };
+        if (micro && (!info || cats.includes('index') || cats.includes('commodity'))) return { n: xcNum(size / micro[1]), unit: micro[0] };
+        if (fx || (info && info.asset === 'forex')) return { n: xcNum(size), unit: fx ? fx[1] : root };
+        if (XC_CRYPTO.test(s) || (info && info.asset === 'crypto')) return { n: xcNum(size), unit: root };
+        if ((info && info.asset === 'stock' && !cats.includes('commodity') && !cats.includes('index')) || (!info && /-USD-PERP$/.test(s))) {
+            return { n: xcNum(size), unit: size === 1 ? 'share' : 'shares' };
         }
+        return { n: xcNum(size), unit: root };
+    }
+    function paintSizeUnit() {
+        const el = document.getElementById('ax4p-mnq-readout');
+        if (!el) return;
+        let ticketUnit = '';
+        try { ticketUnit = unitText(qTicket('[data-testid="size-unit-toggle"]')); } catch (e) {}
+        const u = xcSizeUnit(detectedSymbol, activeSelectedSize, ticketUnit, xcHooks.assetOf(detectedSymbol));
+        const html = u ? `<b>= ${escHtml(u.n)}</b>${u.unit ? ' ' + escHtml(u.unit) : ''}` : '';
+        if (el.innerHTML !== html) el.innerHTML = html;
     }
 
     function flashExec(msg) {
@@ -2610,7 +2648,8 @@
     // The extension fills xcHooks (positions, Demo, hotkey labels, 50% and REV). The userscript keeps these stubs, so there
     // the card trades exactly like the old strip and 50% / REV stay off.
     // known() is false when the card cannot see your position: then it shows no position line instead of "Flat".
-    const xcHooks = { known: () => false, position: () => null, demo: () => false, keyFor: () => '', half: null, rev: null, busy: () => false, armed: () => false };
+    const xcHooks = { known: () => false, position: () => null, demo: () => false, keyFor: () => '', half: null, rev: null, busy: () => false, armed: () => false,
+        partials: () => 'Partials need the Better Vest extension.', assetOf: () => null, applyPartials: null };
     const XC_ICON = {
         grip: '<svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true"><circle cx="4" cy="2.5" r="1"/><circle cx="8" cy="2.5" r="1"/><circle cx="4" cy="6" r="1"/><circle cx="8" cy="6" r="1"/><circle cx="4" cy="9.5" r="1"/><circle cx="8" cy="9.5" r="1"/></svg>',
         minus: '<svg width="10" height="10" viewBox="0 0 10 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M2 5h6"/></svg>',
@@ -2622,9 +2661,8 @@
         rev: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 5.25h10.25M10.25 2.75l2.5 2.5-2.5 2.5M13.5 10.75H3.25M5.75 8.25l-2.5 2.5 2.5 2.5"/></svg>'
     };
     function xcMarket() { return String(detectedSymbol || '').replace(/-PERP$/, '') || 'NQ'; }
-    function xcNqMarket() { return /^(NQ|MNQ)-PERP$/.test(String(detectedSymbol || '')); }
-    // Partials are a plan for now: they show in Demo; placing real partial take-profits comes after a live test.
-    function xcPartialsOn() { return !!S.xc.partials && xcHooks.demo(); }
+    // Partials need the extension's TP/SL reader (or Demo): xcHooks.partials() says why not, '' when they can run.
+    function xcPartialsOn() { return !!S.xc.partials && !xcHooks.partials(); }
 
     function paintAcctTabs() {
         document.querySelectorAll('#ax4p-acct-tabs button').forEach((b) => b.classList.toggle('on', b.getAttribute('data-acct') === S.account));
@@ -2664,18 +2702,19 @@
     function xcPaintPartials() {
         const sw = document.getElementById('ax4p-xc-partials');
         if (!sw) return;
-        const demo = xcHooks.demo();
+        const why = xcHooks.partials();
         const on = xcPartialsOn();
         sw.classList.toggle('on', on);
         sw.setAttribute('aria-checked', String(on));
-        sw.disabled = !demo;
-        sw.title = demo ? 'Partial take-profit plan (Demo)'
-            : IS_EXT ? 'Partial take-profits are coming in the next update. Try the plan in Demo (Alt+Shift+D).'
-            : 'Partial take-profits are coming in a later update.';
-        const soon = document.getElementById('ax4p-xc-soon');
-        if (soon) soon.hidden = demo;
+        sw.disabled = !!why;
+        sw.title = why || 'Two take-profits: TP1 closes part of the position, the rest rides to the target. Set in Vest\'s own Edit TP/SL window right after the order fills.';
         const parts = document.getElementById('ax4p-xc-parts');
         if (parts) parts.hidden = !on;
+        const apply = document.getElementById('ax4p-xc-p-apply');
+        if (apply) {
+            apply.hidden = !(on && xcHooks.applyPartials && xcHooks.position());
+            apply.disabled = xcHooks.busy();
+        }
     }
 
     // Header line, manage capsule, hotkey caps. Runs every second and after each action.
@@ -2729,6 +2768,7 @@
             if (kb.textContent !== k) kb.textContent = k;
         });
         xcPaintPartials();
+        paintSizeUnit();
     }
 
     function xcWire(deck) {
@@ -2746,7 +2786,7 @@
             if (real) real.click();
         }));
         document.getElementById('ax4p-xc-partials').addEventListener('click', () => {
-            if (!xcHooks.demo()) return;
+            if (xcHooks.partials()) return;
             S.xc.partials = !S.xc.partials;
             persist();
             lastRiskHtml = '';
@@ -2759,6 +2799,7 @@
                 if (v > 0) { S.xc[k] = v; persist(); lastRiskHtml = ''; updateExecutionRiskCalc(); }
             });
         });
+        document.getElementById('ax4p-xc-p-apply').addEventListener('click', () => { if (xcHooks.applyPartials) xcHooks.applyPartials(); });
         document.getElementById('ax4p-half-btn').addEventListener('click', () => { if (xcHooks.half) xcHooks.half(); });
         document.getElementById('ax4p-rev-btn').addEventListener('click', () => { if (xcHooks.rev) xcHooks.rev(); });
         xcPaint();
@@ -2939,11 +2980,11 @@
                     <div class="xc-g"><span class="xc-lab">Size<em id="ax4p-mnq-readout"></em></span><div class="xc-sizes"><div class="xc-seg" id="ax4p-sz-wrap"></div><input id="ax4p-custom-sz" class="xc-field" type="number" placeholder="Custom" min="0" step="0.1" value="${escHtml(S.customSz || '')}" title="custom size"></div></div>
                     <div class="xc-g"><span class="xc-lab dn"><span class="xc-dot"></span><span style="color:var(--ax-dim)">Stop</span></span>${xcStepper('ax4p-sl-pts', S.sl, 'xc-step--sl', 'Stop')}</div>
                     <div class="xc-g"><span class="xc-lab up"><span class="xc-dot"></span><span style="color:var(--ax-dim)">Target</span></span>${xcStepper('ax4p-tp-pts', S.tp, 'xc-step--tp', 'Target')}</div>
-                    <div class="xc-g xc-g--sw"><span class="xc-lab">Partials<span class="xc-soon" id="ax4p-xc-soon">soon</span></span><button type="button" class="xc-sw" id="ax4p-xc-partials" role="switch" aria-checked="false"><span></span></button></div>
+                    <div class="xc-g xc-g--sw"><span class="xc-lab">Partials</span><button type="button" class="xc-sw" id="ax4p-xc-partials" role="switch" aria-checked="false"><span></span></button></div>
                 </div>
                 <div class="xc-parts" id="ax4p-xc-parts" hidden>
                     <div class="xc-pg"><span class="xc-tag">TP1</span><label class="xc-field"><input id="ax4p-xc-tp1-pts" type="number" min="0.25" step="0.25" value="${escHtml(S.xc.tp1Pts)}"><i>pt</i></label><label class="xc-field"><input id="ax4p-xc-tp1-pct" type="number" min="1" max="99" step="1" value="${escHtml(S.xc.tp1Pct)}"><i>%</i></label><span class="xc-usd up" id="ax4p-xc-tp1-usd"></span></div>
-                    <div class="xc-pg"><span class="xc-tag">Runner</span><div class="xc-field xc-field--ro" title="follows the target"><b id="ax4p-xc-run-pts"></b><i>pt</i></div><div class="xc-field xc-field--ro" title="the rest"><b id="ax4p-xc-run-pct"></b><i>%</i></div><span class="xc-usd up" id="ax4p-xc-run-usd"></span></div>
+                    <div class="xc-pg"><span class="xc-tag">Runner</span><div class="xc-field xc-field--ro" title="follows the target"><b id="ax4p-xc-run-pts"></b><i>pt</i></div><div class="xc-field xc-field--ro" title="the rest"><b id="ax4p-xc-run-pct"></b><i>%</i></div><span class="xc-usd up" id="ax4p-xc-run-usd"></span><button type="button" class="xc-apply" id="ax4p-xc-p-apply" title="Split this position's take-profit the same way, in Vest's Edit TP/SL window" hidden>Set on position</button></div>
                 </div>
                 <div class="xc-dc">
                     <dl class="xc-risk" id="ax4p-exec-risk-display">
@@ -3459,6 +3500,8 @@
         t = t.replace(/^.*:/, '').replace(/\/.*$/, '').replace(/-USD(?:-PERP)?$/, '').replace(/-PERP$/, '').replace(/-USD$/, '');
         if (t === 'NDX') t = 'NQ';
         else if (t === 'SPX') t = 'ES';
+        // the krone (NOK-USD-PERP) would otherwise shorten to Nokia (NOK-PERP)
+        if (t === 'NOK' && /^(?:.*:)?NOK-USD/i.test(String(s == null ? '' : s).trim())) t = 'NOK-USD';
         return t;
     }
 
@@ -3640,13 +3683,21 @@
         rows.forEach((x) => {
             if (!x || !x.symbol) return;
             const tick = tpNum(Array.isArray(x.tickSizes) ? x.tickSizes[0] : x.tick);
-            TP.info.set(tpNormSym(x.symbol), { tick: tick > 0 ? tick : null, dec: tpNum(x.priceDecimals) });
+            const rec = {
+                tick: tick > 0 ? tick : null, dec: tpNum(x.priceDecimals),
+                asset: String(x.asset || ''), cats: Array.isArray(x.categories) ? x.categories.map(String) : [], sizeDec: tpNum(x.sizeDecimals)
+            };
+            // by the exact symbol, and by the short spelling only where nothing else has it: NOK-USD-PERP (the krone)
+            // shortens to NOK-PERP, which is Nokia's own symbol
+            TP.info.set(String(x.symbol).toUpperCase(), rec);
+            if (!TP.info.has(tpNormSym(x.symbol))) TP.info.set(tpNormSym(x.symbol), rec);
         });
         TP.infoAt = now();
     }
 
+    const tpInfoGet = (sym) => TP.info.get(String(sym || '').toUpperCase()) || TP.info.get(tpNormSym(sym));
     function tpInfoFor(sym) {
-        const i = TP.info.get(tpNormSym(sym)) || {};
+        const i = tpInfoGet(sym) || {};
         let tick = i.tick;
         if (!(tick > 0)) tick = /^(NDX|SPX|NQ|ES)-/i.test(String(sym)) ? NQ_TICK : 0.01;
         const dec = Math.max(i.dec != null ? i.dec : 0, tpDecimals(tick));
@@ -6074,7 +6125,7 @@
         // Demo first: before the Exec strip, the ticket or any Vest handler can be reached
         if (mcDemo()) { mcDemoRun(id, k); return; }
         // 50% or REV running: only FLAT goes through (it presses the card's FLAT, which also stops them)
-        if (XC.busy && id !== 'flat') { mcToast(k, '· 50% or REV is still running. Nothing sent.', 'warn', true); return; }
+        if (XC.busy && id !== 'flat') { mcToast(k, '· ' + xcBusyText() + '. Nothing sent.', 'warn', true); return; }
         if (now() < mc.lockUntil) { mcToast(k, '· busy, one macro at a time', 'warn', true); return; }
         mc.lockUntil = now() + 9000;
         let hold = 0;
@@ -6247,7 +6298,8 @@
     // Both actions only use Vest's own screens: the position row's Close button, Vest's close window with its own 50% and
     // 100% buttons and its own Close, and the card's own LONG / SHORT (the protected order code, called, never changed).
     // Nothing here builds a request. In Demo every card button only says what it would do.
-    const XC = { busy: false, abort: false, revArm: null };
+    const XC = { busy: false, abort: false, revArm: null, what: '', revOpened: null };
+    const xcBusyText = () => (XC.what === 'Partials' ? 'Partials are being set' : (XC.what || '50% or REV') + ' is still running');
     const xcDemoOn = () => !!(TP.demo || S.tpsl.demo);
 
     // The card says "Flat" only when it can really tell: the TP/SL reader is on and has read this market on this account.
@@ -6340,6 +6392,7 @@
         if (xcDemoOn()) { xcSay(`[DEMO] 50% would close half of ${fmtSize(pos.qty)}. Nothing sent.`); return; }
         if (!tpSymbolsAgree()) { xcSay('The chart and the page show different markets. Nothing sent.', 'bad'); return; }
         XC.busy = true;
+        XC.what = '50%';
         XC.abort = false;
         xcPaint();
         // FLAT pressed meanwhile: from then on Vest's close window is FLAT's, so 50% steps aside and touches nothing
@@ -6392,6 +6445,7 @@
             else xcSay(`50% sent: ${fmtSize(got.n)} of ${fmtSize(qty)}. Vest is not showing the smaller position yet, so check Positions.`, 'warn');
         } finally {
             XC.busy = false;
+            XC.what = '';
             XC.abort = false;
             xcPaint();
         }
@@ -6421,6 +6475,7 @@
             return;
         }
         XC.busy = true;
+        XC.what = 'REV';
         XC.abort = false;
         xcPaint();
         try {
@@ -6478,13 +6533,231 @@
                 const f = await mcFreshPositions();
                 opened = !!f && f.length === 1 && f[0].isLong === !pos.isLong;
             }
-            if (opened) xcSay(`REV done: ${names[1]} ${fmtSize(qty)}.`, 'good');
+            if (opened) {
+                xcSay(`REV done: ${names[1]} ${fmtSize(qty)}.`, 'good');
+                XC.revOpened = { side, oldId: pos.id }; // Partials, when on, split the new position's TP once REV lets go
+            }
             else xcSay(`REV sent the ${names[1]} ${fmtSize(qty)}, but Vest is not showing it yet. Check Positions before you press anything.`, 'warn');
         } finally {
             XC.busy = false;
+            XC.what = '';
             XC.abort = false;
             xcPaint();
         }
+    }
+
+    // ---------- Partials: two take-profits, set in Vest's own Edit TP/SL window ----------
+    // After a LONG or SHORT with Partials on, the order's own take-profit (all of the position, at the card's target) is
+    // split the way a trader does it by hand: in Vest's Edit TP/SL window the existing target keeps the rest, "Add Another
+    // Target" adds TP1 at the TP1 distance from the entry with the TP1 share, then Vest's own Apply Changes. Vest builds
+    // the requests. Anything unexpected before Apply closes the window, so the order's TP and SL stay exactly as they were.
+    const XP = { arm: 0 };
+
+    // the positions on this market read just now, with ids, entries and legs; null = can't confirm
+    async function xcFreshFull() {
+        const f = await mcFreshPositions();
+        return f ? TP.model.positions.slice() : null;
+    }
+
+    function xcTpslDialog() {
+        for (const d of document.querySelectorAll('[role="dialog"]')) {
+            if (d.querySelector('[data-testid="tpsl-edit-submit"]') && d.getClientRects().length) return d;
+        }
+        return null;
+    }
+
+    // TP1 for this position and its take-profit leg, or why not
+    function xcPartialPlan(pos, leg) {
+        const info = tpInfoFor(pos.symbol || tpSymbol());
+        const pct = Math.round(Number(S.xc.tp1Pct));
+        const p1 = Number(S.xc.tp1Pts);
+        if (!(pct >= 1 && pct <= 99)) return { why: 'the TP1 share has to be between 1 and 99%' };
+        if (!(p1 > 0)) return { why: 'TP1 needs a distance in points' };
+        const dir = pos.isLong ? 1 : -1;
+        const tp1 = snapToTick(pos.entry + dir * p1, info.tick, info.dec);
+        if (!tp1) return { why: 'the TP1 price could not be worked out' };
+        const main = leg.trigger;
+        const mainText = Number(main).toFixed(tp1.dec);
+        // on the profit side, strictly between the entry and the target, two ticks clear of both
+        if (!((tp1.n - pos.entry) * dir >= 2 * info.tick - 1e-12 && (main - tp1.n) * dir >= 2 * info.tick - 1e-12)) {
+            return { why: `TP1 (${tp1.s}) has to sit between the entry and the target (${mainText})` };
+        }
+        const mid = tpLivePrice();
+        if (mid && (tp1.n - mid) * dir <= info.tick) return { why: 'the price is already at TP1' };
+        return { pct, p1, tp1, main, mainText, tick: info.tick };
+    }
+
+    // One pass through Vest's Edit TP/SL window. Returns { sent: true, s0, s1 } after pressing Apply Changes, or { why }
+    // with the window closed again and nothing changed.
+    async function xcSplitTp(pos, plan, acc0, sym0) {
+        const id = String(pos.id).replace(/["\\]/g, '');
+        const open = document.querySelector(`button[data-testid="tpsl-edit-open-${id}"]`);
+        if (!open) return { why: "open Vest's Positions tab first, so this position's TP/SL button is on screen" };
+        if (xcTpslDialog() || document.querySelector('[data-testid="close-dialog"]') || xcOtherDialog()) return { why: 'a Vest window is already open' };
+        invokeReactClick(open);
+        const dlg = await xcWait(() => XC.abort || xcTpslDialog(), 2500);
+        if (XC.abort || !dlg) {
+            // the window may still be on its way: close it when it shows, so it doesn't sit over FLAT or a later click
+            const late = xcTpslDialog() || (await xcWait(() => xcTpslDialog(), 1500));
+            if (late) xcDismiss(late);
+            return { why: XC.abort ? 'you pressed FLAT' : "Vest's Edit TP/SL window did not open" };
+        }
+        const q = (tid) => dlg.querySelector(`[data-testid="${tid}"]`);
+        const num = (el) => (el ? parseFloat(String(el.value).replace(/,/g, '')) : NaN);
+        const txt = (el) => (el ? el.textContent.replace(/\s+/g, ' ').trim() : '');
+        const near = (a, b) => Math.abs(a - b) < plan.tick / 2;
+        const stop = (why) => { xcDismiss(dlg); return { why }; };
+        // what Vest shows has to be what we read: one take-profit, at the target, closing all of the position, in price and %
+        if (!q('tpsl-edit-tp-input-0') || q('tpsl-edit-tp-input-1')) return stop('Vest shows more than one take-profit, or none');
+        if (!near(num(q('tpsl-edit-tp-input-0')), plan.main)) return stop("the take-profit in Vest's window is not the one on the position");
+        if (txt(q('tpsl-edit-tp-unit-0')) !== 'Price' || txt(q('tpsl-edit-tp-size-unit-0')) !== '%') return stop("Vest's window is set to other units");
+        if (num(q('tpsl-edit-tp-qty-0')) !== 100) return stop('the take-profit already closes only part of the position');
+        if (!q('tpsl-edit-add-tp')) return stop('"Add Another Target" is not there');
+        const sl0 = q('tpsl-edit-sl-input-0') ? q('tpsl-edit-sl-input-0').value : null;
+        // 1. the target keeps the rest
+        setReactInputValue(q('tpsl-edit-tp-qty-0'), String(100 - plan.pct));
+        if (!(await xcWait(() => XC.abort || num(q('tpsl-edit-tp-qty-0')) === 100 - plan.pct, 1500))) return stop('Vest did not take the new share');
+        if (XC.abort) return stop('you pressed FLAT');
+        // 2. TP1, in a row of its own ("Add Another Target" comes alive once less than 100% is allocated)
+        if (!(await xcWait(() => XC.abort || (q('tpsl-edit-add-tp') && !q('tpsl-edit-add-tp').disabled), 1500))) return stop('"Add Another Target" stayed disabled');
+        if (XC.abort) return stop('you pressed FLAT');
+        invokeReactClick(q('tpsl-edit-add-tp'));
+        if (!(await xcWait(() => XC.abort || (q('tpsl-edit-tp-input-1') && q('tpsl-edit-tp-qty-1')), 1500))) return stop('"Add Another Target" did not add a row');
+        if (XC.abort) return stop('you pressed FLAT');
+        if (txt(q('tpsl-edit-tp-unit-1')) !== 'Price' || txt(q('tpsl-edit-tp-size-unit-1')) !== '%') return stop("Vest's new row is set to other units");
+        // the share first, then the price: if Vest sorts its rows by price, the share moves with its row
+        setReactInputValue(q('tpsl-edit-tp-qty-1'), String(plan.pct));
+        setReactInputValue(q('tpsl-edit-tp-input-1'), plan.tp1.s);
+        // two rows, in whatever order Vest shows them: the target with the rest and TP1 with its share, 100% allocated
+        const rows = () => [0, 1].map((i) => ({ i, p: num(q('tpsl-edit-tp-input-' + i)), s: num(q('tpsl-edit-tp-qty-' + i)) }));
+        const rowAt = (rs, px, share) => rs.find((r) => near(r.p, px) && r.s === share);
+        const ready = await xcWait(() => {
+            if (XC.abort) return 'abort';
+            const rs = rows();
+            return !q('tpsl-edit-tp-input-2') && rowAt(rs, plan.main, 100 - plan.pct) && rowAt(rs, plan.tp1.n, plan.pct) &&
+                /^100\s*%/.test(txt(q('tpsl-edit-tp-allocated'))) ? 'ok' : null;
+        }, 2000);
+        if (ready !== 'ok') return stop(ready === 'abort' ? 'you pressed FLAT' : "Vest's window did not show both take-profits adding up to 100%");
+        // the sizes Vest worked out have to add up to the position
+        const size = (i) => { const m = txt(q('tpsl-edit-tp-size-equiv-' + i)).replace(/,/g, '').match(/(\d+(?:\.\d+)?)/); return m ? parseFloat(m[1]) : NaN; };
+        const rs = rows();
+        const s0 = size(rowAt(rs, plan.main, 100 - plan.pct).i), s1 = size(rowAt(rs, plan.tp1.n, plan.pct).i);
+        if (!(s0 > 0 && s1 > 0) || Math.abs(s0 + s1 - pos.qty) > Math.max(1e-9, pos.qty * 0.002)) return stop(`the position (${fmtSize(pos.qty)}) is too small to split ${plan.pct}/${100 - plan.pct}`);
+        // the stop is left alone
+        if (sl0 != null && (!q('tpsl-edit-sl-input-0') || q('tpsl-edit-sl-input-0').value !== sl0)) return stop("the stop in Vest's window changed");
+        const submit = q('tpsl-edit-submit');
+        if (!submit || submit.disabled) return stop('Vest kept Apply Changes disabled');
+        // last look before the one click that changes something
+        if (XC.abort || document.querySelector('[data-testid="close-dialog"]')) return stop('you pressed FLAT');
+        if (xcDemoOn() || tpActiveAccount() !== acc0 || tpSymbol() !== sym0) return stop('the account or the market changed');
+        invokeReactClick(submit);
+        return { sent: true, s0, s1 };
+    }
+
+    // Splits this position's one take-profit, then reads the result back. Holds the card's busy flag while it works.
+    async function xcPartialsRun(pos, leg, acc0, sym0) {
+        if (XC.busy) { xcSay('Partials not set: ' + xcBusyText() + '.', 'warn'); return; }
+        const plan = xcPartialPlan(pos, leg);
+        if (plan.why) { xcSay('Partials not set: ' + plan.why + ". The position's TP and SL stay as they are.", 'warn'); return; }
+        if (leg.fixed && !mcSameNum(leg.qty, pos.qty)) { xcSay('Partials not set: the take-profit covers only part of the position.', 'warn'); return; }
+        XC.busy = true;
+        XC.what = 'Partials';
+        XC.abort = false;
+        xcPaint();
+        try {
+            const r = await xcSplitTp(pos, plan, acc0, sym0);
+            if (!r.sent) {
+                if (xcTpslDialog() && !(await xcWait(() => !xcTpslDialog(), 1500, 100))) {
+                    xcSay('Partials not set: ' + r.why + ". Vest's Edit TP/SL window is still open with unsaved changes: close it with Cancel.", 'bad');
+                    return;
+                }
+                xcSay('Partials not set: ' + r.why + ". Nothing changed, the position's TP and SL are as they were.", r.why === 'you pressed FLAT' ? 'warn' : 'bad');
+                return;
+            }
+            flashExec(`Partials: TP1 ${fmtSize(r.s1)} at ${plan.tp1.s}, the rest at ${plan.mainText}`);
+            if (!(await xcWait(() => !xcTpslDialog(), 5000, 100))) { xcSay('Vest kept its Edit TP/SL window open. Check it before anything else.', 'bad'); return; }
+            await sleep(250);
+            if (xcOtherDialog()) { xcSay('Vest is asking you to confirm in its own window. The take-profits change only when you do.', 'warn'); return; }
+            // read it back: "set" only once Vest shows both take-profits
+            let done = false;
+            for (let i = 0; i < 5 && !done; i++) {
+                await sleep(600);
+                const f = await xcFreshFull();
+                const p = f && f.find((x) => x.id === pos.id);
+                const at = (px) => p.legs.tp.some((l) => Math.abs(l.trigger - px) < plan.tick / 2);
+                done = !!p && p.legs.tp.length === 2 && at(plan.tp1.n) && at(plan.main);
+            }
+            if (done) xcSay(`Partials set: TP1 ${fmtSize(r.s1)} at ${plan.tp1.s}, the rest (${fmtSize(r.s0)}) at ${plan.mainText}.`, 'good');
+            else xcSay("Partials sent. Vest is not showing both take-profits yet, so check the position's TP/SL.", 'warn');
+        } finally {
+            XC.busy = false;
+            XC.what = '';
+            XC.abort = false;
+            xcPaint();
+        }
+    }
+
+    // After LONG or SHORT (card, pill, hotkey) or REV with Partials on: wait for the fill and for the order's own
+    // take-profit on it, then split it. Only a new position on this market with exactly one take-profit is touched.
+    async function xcEntryPartials(side, before) {
+        const token = ++XP.arm;
+        const isLong = side === 'buy';
+        const acc0 = tpActiveAccount(), sym0 = tpSymbol();
+        const moved = () => tpActiveAccount() !== acc0 || tpSymbol() !== sym0;
+        let pos = null;
+        for (const t0 = now(); now() - t0 < 12000 && !pos;) {
+            await sleep(700);
+            if (token !== XP.arm) return; // a newer order took over
+            if (moved()) { xcSay('Partials not set: the account or the market changed.', 'warn'); return; }
+            const f = await xcFreshFull();
+            if (!f) continue;
+            if (f.length > 1) { xcSay('Partials not set: there is more than one position on this market.', 'warn'); return; }
+            if (f.length === 1 && f[0].isLong === isLong && !before.has(f[0].id)) pos = f[0];
+        }
+        if (!pos) { xcSay('Partials not set: no fill showed up within 12 s.', 'warn'); return; }
+        // the order's take-profit lands a moment after the fill
+        let leg = null;
+        for (const t1 = now(); now() - t1 < 10000 && !leg;) {
+            if (token !== XP.arm) return;
+            if (moved()) { xcSay('Partials not set: the account or the market changed.', 'warn'); return; }
+            const f = await xcFreshFull();
+            const p = f && f.find((x) => x.id === pos.id);
+            if (f && !p) { xcSay('Partials not set: the position closed.', 'warn'); return; }
+            if (p && p.legs.tp.length > 1) { xcSay('Partials not set: the position already has more than one take-profit.', 'warn'); return; }
+            if (p && p.legs.tp.length === 1) { pos = p; leg = p.legs.tp[0]; break; }
+            await sleep(700);
+        }
+        if (!leg) { xcSay("Partials not set: the order's take-profit did not show up on the position.", 'warn'); return; }
+        if (token !== XP.arm || !xcPartialsOn()) return;
+        await xcPartialsRun(pos, leg, acc0, sym0);
+    }
+
+    // a LONG or SHORT press with Partials on: only from flat, judged by a position reading at most 12 s old
+    function xcArmPartials(side) {
+        const fresh = TP.on && !TP.err && TP.rowsAt > 0 && now() - TP.rowsAt < 12000 && xcKnown();
+        if (!fresh) { xcSay("Partials not set: Better Vest couldn't confirm you were flat. The order keeps its one TP.", 'warn'); return; }
+        if (tpPositions().length) { xcSay('Partials skipped: you already have a position here, so the new order keeps its one TP.', 'warn'); return; }
+        xcEntryPartials(side, new Set()).catch(() => {});
+    }
+
+    // "Set on position": the same split on the position that's open now
+    async function xcPartialsNow() {
+        if (XC.busy) return;
+        const pos = xcPositionNow();
+        if (!pos) { xcSay('No position on this market.'); return; }
+        if (xcDemoOn()) {
+            xcSay(`[DEMO] Partials would split the take-profit: TP1 ${fmtSize(Number(S.xc.tp1Pts))} pt from the entry for ${Math.round(Number(S.xc.tp1Pct))}%, the rest at the target. Nothing sent.`);
+            return;
+        }
+        const acc0 = tpActiveAccount(), sym0 = tpSymbol();
+        const f = await xcFreshFull();
+        const p = f && f.length === 1 && f[0].id === pos.id ? f[0] : null;
+        if (!p) { xcSay('Could not confirm the position just now. Nothing sent.', 'bad'); return; }
+        if (p.legs.tp.length !== 1) {
+            xcSay(p.legs.tp.length ? 'Partials: this position already has more than one take-profit. Nothing changed.' : 'Partials: this position has no take-profit to split. Set one first.', 'warn');
+            return;
+        }
+        await xcPartialsRun(p, p.legs.tp[0], acc0, sym0);
     }
 
     xcHooks.known = () => { try { return xcKnown(); } catch (e) { return false; } };
@@ -6495,7 +6768,16 @@
         return S.macros && S.macros.on && a && a.on && a.key && mcMarketOk(detectedSymbol) ? mcKeyLabel(a.key) : '';
     };
     xcHooks.half = () => { xcHalf().catch(() => { XC.busy = false; xcPaint(); }); };
-    xcHooks.rev = () => { xcRev().catch(() => { XC.busy = false; xcPaint(); }); };
+    xcHooks.rev = () => {
+        xcRev().catch(() => { XC.busy = false; xcPaint(); }).then(() => {
+            const o = XC.revOpened;
+            XC.revOpened = null;
+            if (o && xcPartialsOn()) xcEntryPartials(o.side, new Set([o.oldId])).catch(() => {});
+        });
+    };
+    xcHooks.partials = () => (xcDemoOn() ? '' : !TP.on || S.tpsl.enabled === false ? 'Partials need chart TP/SL on (Settings > Chart).' : '');
+    xcHooks.assetOf = (sym) => { const i = tpInfoGet(sym); return i && i.asset ? { asset: i.asset, cats: i.cats || [] } : null; };
+    xcHooks.applyPartials = () => { xcPartialsNow().catch(() => { XC.busy = false; xcPaint(); }); };
     xcHooks.busy = () => XC.busy;
     xcHooks.armed = () => {
         const a = XC.revArm;
@@ -6509,16 +6791,21 @@
     document.addEventListener('click', (e) => {
         const b = e.target && e.target.closest ? e.target.closest('#ax4p-buy-btn, #ax4p-sell-btn, #ax4p-flatten-btn') : null;
         if (!b) return;
+        if (b.id === 'ax4p-flatten-btn') XP.arm++; // FLAT cancels a Partials arm still waiting for its fill
         if (XC.busy) {
             if (b.id === 'ax4p-flatten-btn') XC.abort = true;
-            else { e.stopImmediatePropagation(); e.preventDefault(); xcSay('50% or REV is still running. Nothing sent.', 'bad'); return; }
+            else { e.stopImmediatePropagation(); e.preventDefault(); xcSay(xcBusyText() + '. Nothing sent.', 'bad'); return; }
         }
-        if (!xcDemoOn()) return;
+        if (!xcDemoOn()) {
+            if (b.id !== 'ax4p-flatten-btn' && xcPartialsOn()) xcArmPartials(b.id === 'ax4p-buy-btn' ? 'buy' : 'sell');
+            return;
+        }
         e.stopImmediatePropagation();
         e.preventDefault();
         const pts = xcPts();
+        const plan = xcPartialsOn() ? `TP1 ${fmtSize(Number(S.xc.tp1Pts))} pt for ${Math.round(Number(S.xc.tp1Pct))}%, the rest at ${fmtSize(pts.tp)} pt` : `target ${fmtSize(pts.tp)} pt`;
         if (b.id === 'ax4p-flatten-btn') xcSay('[DEMO] FLAT would close the whole position. Nothing sent.');
-        else xcSay(`[DEMO] ${b.id === 'ax4p-buy-btn' ? 'LONG' : 'SHORT'} ${fmtSize(activeSelectedSize)} at market, stop ${fmtSize(pts.sl)} pt, target ${fmtSize(pts.tp)} pt. Nothing sent.`);
+        else xcSay(`[DEMO] ${b.id === 'ax4p-buy-btn' ? 'LONG' : 'SHORT'} ${fmtSize(activeSelectedSize)} at market, stop ${fmtSize(pts.sl)} pt, ${plan}. Nothing sent.`);
     }, true);
 
     // --- Better Vest extension bridge: popup/background talk to the page via window messages.
