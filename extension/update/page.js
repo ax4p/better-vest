@@ -1,6 +1,6 @@
 // Better Vest by Astral - update page (update.html). Shows what's new on GitHub and updates the folder Chrome
 // loaded this extension from, in one click. The checks and the writing live in core.js.
-import { compareVersions, fetchRelease, checkFolder, planRemove, applyUpdate, parseList, notesHtml } from './core.js';
+import { compareVersions, fetchRelease, findFolder, planRemove, applyUpdate, parseList, notesHtml } from './core.js';
 import { RELEASE_PUBLIC_KEY } from './key.js';
 
 const $ = (s) => document.querySelector(s);
@@ -100,14 +100,19 @@ function paint(state) {
     say('');
 }
 
-const REASONS = {
-    'no-manifest': 'That folder has no manifest.json, so it is not the Better Vest folder.',
-    'bad-manifest': 'That folder\'s manifest.json could not be read.',
-    'other-extension': 'That folder holds a different extension.',
-    'other-version': 'That folder holds a different version of Better Vest than the one Chrome is running.',
-    'other-copy': 'That folder holds another copy of Better Vest, not the one Chrome is running.'
-};
-const WHERE = ' Open chrome://extensions, find Better Vest, and pick the folder it was loaded from.';
+// why the picked folder can't be updated; name = the folder picked
+function reason(hit, name) {
+    const q = '"' + name + '"';
+    switch (hit.why) {
+        case 'none': return 'There is no Better Vest folder in ' + q + (hit.partial ? ' (it is too big to look through completely).' : ' (looked four folders deep).');
+        case 'several': return 'There is more than one copy of Better Vest in ' + q + ': ' + hit.paths.join(', ') + '. Pick the one Chrome runs.';
+        case 'bad-manifest': return 'The manifest.json in ' + q + ' could not be read.';
+        case 'other-extension': return q + ' holds a different extension.';
+        case 'other-version': return q + ' holds Better Vest, but not v' + manifest.version + ', the one Chrome runs. If it is a new download, pick the folder Chrome runs instead.';
+        default: return q + ' holds another copy of Better Vest, not the one Chrome runs.';
+    }
+}
+const WHERE = ' To see which folder Chrome runs: on chrome://extensions, click Details on Better Vest; "Source" shows it.';
 
 function explain(e) {
     const code = String((e && e.message) || e);
@@ -139,19 +144,23 @@ async function update() {
             if (p !== 'granted') p = await dir.requestPermission({ mode: 'readwrite' });
             if (p !== 'granted') dir = null;
         }
-        if (!dir) dir = await window.showDirectoryPicker({ id: 'better-vest', mode: 'readwrite' });
-        const bad = await checkFolder(dir, runningCopy);
-        if (bad) {
+        if (!dir) dir = await window.showDirectoryPicker({ id: 'better-vest', mode: 'readwrite', startIn: 'documents' });
+        // the folder itself, or the one copy Chrome runs somewhere inside it
+        step('folder', 'on', '· looking in ' + dir.name + '…');
+        const hit = await findFolder(dir, runningCopy);
+        if (!hit.dir) {
             folder = null;
             await kvSet('dir', null);
-            step('folder', 'bad');
-            say((REASONS[bad] || bad) + WHERE, 'warn');
+            step('folder', 'bad', '');
+            say('Nothing changed. ' + reason(hit, dir.name) + WHERE, 'warn');
+            $('#how').hidden = false;
             $('#go').disabled = false;
             return;
         }
-        folder = dir;
-        await kvSet('dir', dir);
-        step('folder', 'done');
+        step('folder', 'done', '· ' + (hit.path ? dir.name + '/' + hit.path : hit.dir.name));
+        dir = hit.dir; // the copy itself, when the folder picked was one above it
+        folder = hit.dir;
+        await kvSet('dir', hit.dir);
 
         // 2. everything downloaded and checked before anything is written
         step('download', 'on');
@@ -174,7 +183,9 @@ async function update() {
 
         // 4. Chrome reads the folder again; the new service worker reloads the Vest tabs and opens the done page
         step('restart', 'on');
-        await chrome.storage.local.set({ bvUpdated: { from: runningCopy.version, to: list.version, at: Date.now(), reloadTabs: true } });
+        // reloadAt: until then the service worker knows the restart hasn't happened yet
+        const at = Date.now();
+        await chrome.storage.local.set({ bvUpdated: { from: runningCopy.version, to: list.version, at, reloadAt: at + 700, reloadTabs: true } });
         say('Updated to v' + list.version + '. Restarting Better Vest…', 'good');
         setTimeout(() => chrome.runtime.reload(), 700);
     } catch (e) {
@@ -189,6 +200,13 @@ async function update() {
 
 async function load(fresh) {
     const done = location.hash === '#done';
+    // the last update was written into a copy Chrome doesn't run (sw.js opens this after the restart)
+    const elsewhere = location.hash === '#elsewhere';
+    if (elsewhere) {
+        folder = null;
+        await kvSet('dir', null).catch(() => {});
+        history.replaceState(null, '', location.pathname);
+    }
     if (done) {
         lead('Better Vest is now <b>v' + esc(manifest.version) + '</b>.');
         say('Your Vest tabs were reloaded, so they run the new version. Settings and Calendar are as you left them.', 'good');
@@ -199,6 +217,12 @@ async function load(fresh) {
         return;
     }
     paint(state);
+    if (elsewhere) {
+        lead('Chrome is still running v' + esc(manifest.version) + '.');
+        say('The new files went into a folder Chrome doesn\'t run, or Chrome didn\'t restart Better Vest. First press the round arrow on Better Vest in chrome://extensions. If it still says ' +
+            manifest.version + ', click Update here and pick the folder Chrome runs.' + WHERE, 'warn');
+        $('#how').hidden = false;
+    }
 }
 
 $('#go').onclick = update;

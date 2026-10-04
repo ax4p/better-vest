@@ -206,6 +206,44 @@ export async function checkFolder(root, running) {
     return null;
 }
 
+// The folder the user picked, or the one copy Chrome runs inside it (up to four levels down). People often pick the
+// folder above (Documents, Downloads, a projects folder), and the picker hides folders whose name starts with a dot,
+// so looking inside saves a round trip. A folder with a manifest of its own is never searched into.
+// Returns { dir, path } (path '' = the picked folder itself), or { why } with why one of checkFolder's codes,
+// 'none' (nothing inside; partial: true when the search stopped at its limits) or 'several' (paths: every match).
+const SKIP_DIRS = new Set(['node_modules', '.git', '.Trash', 'Library', 'Applications', 'System', 'Pictures', 'Movies', 'Music', 'AppData', '$RECYCLE.BIN']);
+export async function findFolder(root, running, opts = {}) {
+    const first = await checkFolder(root, running);
+    if (!first) return { dir: root, path: '' };
+    if (first !== 'no-manifest') return { why: first };
+    const maxDepth = opts.maxDepth || 4, maxDirs = opts.maxDirs || 4000, timeoutMs = opts.timeoutMs || 15000;
+    const clock = opts.now || (() => Date.now());
+    const t0 = clock();
+    const found = [];
+    let seen = 0, partial = false;
+    let level = [{ dir: root, path: '' }];
+    for (let depth = 1; depth <= maxDepth && level.length && !partial; depth++) {
+        const next = [];
+        for (const { dir, path } of level) {
+            if (partial) break;
+            try {
+                for await (const h of dir.values()) {
+                    if (h.kind !== 'directory' || SKIP_DIRS.has(h.name)) continue;
+                    if (++seen > maxDirs || clock() - t0 > timeoutMs) { partial = true; break; }
+                    const p = path ? path + '/' + h.name : h.name;
+                    const why = await checkFolder(h, running);
+                    if (!why) found.push({ dir: h, path: p });
+                    else if (why === 'no-manifest') next.push({ dir: h, path: p });
+                }
+            } catch (e) { /* a folder we may not read: skip it */ }
+        }
+        level = next;
+    }
+    if (found.length === 1) return found[0];
+    if (found.length > 1) return { why: 'several', paths: found.map((f) => f.path) };
+    return { why: 'none', partial };
+}
+
 // Writes `files` (path -> bytes) with manifest.json last, then removes `remove`. The old bytes are kept in
 // memory first; if anything fails, every touched file goes back to what it was (or is removed again if it is new)
 // and the error says whether that worked ('rolled-back') or not ('rollback-failed', with the paths).

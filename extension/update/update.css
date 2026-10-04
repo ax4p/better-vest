@@ -37,6 +37,11 @@ button.primary:hover { filter: brightness(1.1); }
 button.primary:disabled { opacity: .55; cursor: progress; }
 button.link { background: none; border: 0; padding: 0; color: var(--accent); font-weight: 600; }
 .hint { color: var(--muted); font-size: 12.5px; margin: 12px 0 0; }
+.how { margin: 0 0 14px; padding: 12px 14px; border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--line)); border-radius: 10px; background: rgba(56, 189, 248, 0.05); font-size: 13px; }
+.how p { margin: 0; }
+.how .hint { margin-top: 8px; }
+.how code, .how kbd { font: 12px ui-monospace, Menlo, monospace; background: var(--btn); border-radius: 4px; padding: 0 4px; }
+.how kbd { border: 1px solid var(--line); border-bottom-width: 2px; }
 .steps { margin: 14px 0 0; padding-left: 20px; color: var(--muted); font-size: 13px; }
 .steps li { margin: 3px 0; }
 .steps li.on { color: var(--text); }
