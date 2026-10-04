@@ -12,7 +12,7 @@
 (function () {
     'use strict';
 
-    const VERSION = '7.4';
+    const VERSION = '7.5';
     // true only in the Chrome extension build (tools/build.py defines BV_EXT there)
     const IS_EXT = typeof BV_EXT !== 'undefined' && !!BV_EXT;
     // 'standard' = the shareable build; anything else = WICKED, the author's own full build.
@@ -180,6 +180,8 @@
         settingsTab: 'look',
         chart: { sync: true, upColor: '', downColor: '', bgColor: '', hideVolume: true, hideGrid: true, volRemoved: false, hideSessions: true },
         ui: { compactDock: false, glass: 88, dockCalendar: true, wickAuto: true },
+        // Execute card: partial take-profit plan and the collapsed pill
+        xc: { partials: false, tp1Pts: 20, tp1Pct: 50, collapsed: false },
         tpsl: { enabled: true, showR: true, demo: false, followBars: true, be: { show: true, pct: 5, mode: 'pctProfit', ticks: 1, points: 0, minProfitTicks: 2, allowAtEntry: false } }
     };
 
@@ -248,6 +250,7 @@
         S.v = 7.1;
     }
     S.ui = Object.assign({}, DEFAULTS.ui, S.ui || {});
+    S.xc = Object.assign({}, DEFAULTS.xc, S.xc || {});
     if (!(S.v >= 7.2)) {
         S.v = 7.2;
     }
@@ -365,7 +368,7 @@
             [class*="Positions"], [class*="Account"] {
                 background-color: var(--ax-surface) !important;
             }
-            input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="file"]):not([type="range"]):not(.ax4p-in),
+            input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="file"]):not([type="range"]):not(.ax4p-in):not(#ax4p-exec-deck *),
             select:not(.ax4p-in), textarea:not(.ax4p-in) {
                 background-color: var(--ax-field) !important;
                 color: var(--ax-field-text) !important;
@@ -574,70 +577,143 @@
             .ax4p-seg button + button { border-left: 1px solid var(--ax-line); }
             .ax4p-seg button.on { background: var(--ax-sel); color: #fff; }
 
+            /* Execute card (7.5): two tiers on an 8px grid. Inputs 32px, LONG / SHORT 40px, colour only with meaning.
+               Every colour is a theme token, so the card follows all seven themes. */
             #ax4p-exec-deck {
-                display: flex !important;
-                flex-direction: row !important;
-                flex-wrap: nowrap !important;
-                align-items: center !important;
-                gap: 5px;
-                height: 36px !important;
-                min-height: 36px;
-                width: max-content !important;
-                max-width: calc(100vw - 24px);
-                padding: 0 6px !important;
-                cursor: move;
-                z-index: 999992;
-                border-radius: 8px;
-                border-color: color-mix(in srgb, var(--ax-accent) 45%, transparent);
+                --xc-on-btn: #ffffff; --xc-kbd: rgba(255, 255, 255, .2);
+                width: 672px; max-width: calc(100vw - 24px); padding: 0 16px; z-index: 999992;
+                background: var(--ax-raised); color: var(--ax-text);
+                border: 1px solid var(--ax-line); border-radius: 12px; box-shadow: 0 16px 48px var(--ax-shadow);
+                font: 12px/16px var(--ax-font, system-ui, -apple-system, "Inter", "Segoe UI", sans-serif);
+                font-variant-numeric: tabular-nums; text-align: left; -webkit-font-smoothing: antialiased;
             }
-            #ax4p-sz-wrap { display: flex; gap: 4px; }
-            .ax4p-sz-btn {
-                min-width: 24px; height: 22px; padding: 0 5px; border-radius: 4px; cursor: pointer;
-                font-weight: 700; font-size: 10px; color: var(--ax-text);
-                background: var(--ax-inset); border: 1px solid var(--ax-line); font-variant-numeric: tabular-nums;
-            }
-            .ax4p-sz-btn:hover { border-color: var(--ax-accent); }
-            .ax4p-sz-btn.on { background: var(--ax-sel); border-color: var(--ax-accent); color: #fff; }
-            #ax4p-acct-tag {
-                background: transparent; border: 1px dashed var(--ax-line); color: var(--ax-muted);
-                border-radius: 4px; height: 22px; padding: 0 5px; font-size: 9px; font-weight: 800;
-                letter-spacing: .04em; cursor: pointer;
-            }
-            #ax4p-acct-tag:hover { color: var(--ax-accent-text); border-color: var(--ax-accent); }
-            #ax4p-custom-sz { width: 34px; text-align: center; }
-            .ax4p-chip { display: flex; align-items: center; gap: 3px; font-size: 9px; font-weight: 700; }
-            .ax4p-chip-sl { color: var(--ax-down); }
-            .ax4p-chip-tp { color: var(--ax-up); }
-            #ax4p-sl-pts, #ax4p-tp-pts { width: 42px; padding: 0 3px; }
-            #ax4p-sl-pts { border-color: color-mix(in srgb, var(--ax-down) 50%, var(--ax-line)); }
-            #ax4p-tp-pts { border-color: color-mix(in srgb, var(--ax-up) 50%, var(--ax-line)); }
-            .ax4p-mnq {
-                font-size: 9px; font-weight: 800; color: var(--ax-accent-text); letter-spacing: .03em;
-                padding: 0 5px; border: 1px solid var(--ax-glow); border-radius: 4px;
-                height: 22px; display: flex; align-items: center;
-                background: color-mix(in srgb, var(--ax-accent) 8%, transparent);
-                white-space: nowrap; font-variant-numeric: tabular-nums;
-            }
-            .ax4p-vsep { width: 1px; height: 16px; background: var(--ax-line); }
-            #ax4p-exec-risk-display { font-size: 9px; min-width: 96px; white-space: nowrap; font-variant-numeric: tabular-nums; }
-            .ax4p-go {
-                border: none; height: 22px; padding: 0 10px; border-radius: 4px; color: #fff;
-                font-weight: 800; cursor: pointer; font-size: 10px; letter-spacing: .05em;
-            }
-            .ax4p-go:hover { filter: brightness(1.15); }
-            #ax4p-buy-btn { background: var(--ax-up-btn); }
-            #ax4p-sell-btn { background: var(--ax-down-btn); }
-            #ax4p-flatten-btn {
-                background: var(--ax-btn); color: var(--ax-muted); border: 1px solid var(--ax-line);
-                height: 22px; padding: 0 8px; border-radius: 4px; font-weight: 700; cursor: pointer; font-size: 10px;
-            }
-            #ax4p-flatten-btn:hover { color: var(--ax-text); border-color: var(--ax-accent); }
+            #ax4p-exec-deck, #ax4p-exec-deck .xc-hd, #ax4p-exec-deck .xc-pill { cursor: default; }
+            #ax4p-exec-deck *, #ax4p-exec-deck *::before, #ax4p-exec-deck *::after { box-sizing: border-box; }
+            #ax4p-exec-deck button { font: inherit; color: inherit; background: none; border: 0; padding: 0; margin: 0; cursor: pointer; }
+            #ax4p-exec-deck input { font: inherit; color: inherit; margin: 0; }
+            #ax4p-exec-deck b, #ax4p-exec-deck i, #ax4p-exec-deck em, #ax4p-exec-deck dt, #ax4p-exec-deck dd { font-style: normal; margin: 0; }
+            #ax4p-exec-deck .up { color: var(--ax-up); }
+            #ax4p-exec-deck .dn { color: var(--ax-down); }
+            #ax4p-exec-deck [hidden] { display: none !important; }
+            #ax4p-exec-deck svg { display: block; }
+            /* header: grip, market, position line, account tabs, collapse */
+            #ax4p-exec-deck .xc-hd { display: flex; align-items: center; gap: 8px; height: 28px; margin: 0 -4px; }
+            #ax4p-exec-deck .xc-grip { display: grid; place-items: center; width: 16px; height: 16px; color: var(--ax-dim); cursor: grab; }
+            #ax4p-exec-deck .xc-mk { font-weight: 700; font-size: 12px; letter-spacing: .06em; color: var(--ax-accent); }
+            #ax4p-exec-deck .xc-pos { flex: 1; display: flex; align-items: baseline; gap: 8px; margin-left: 4px; padding-left: 12px; border-left: 1px solid var(--ax-line); line-height: 16px; color: var(--ax-muted); white-space: nowrap; overflow: hidden; }
+            #ax4p-exec-deck .xc-pos b { font-weight: 600; color: var(--ax-text); }
+            #ax4p-exec-deck .xc-pos.flat { color: var(--ax-dim); }
+            #ax4p-exec-deck .xc-pos:empty { border-left-color: transparent; }
+            #ax4p-exec-deck .xc-side { font-size: 10px; font-weight: 700; letter-spacing: .08em; }
+            #ax4p-exec-deck .xc-pos .xc-pnl { margin-left: 4px; font-size: 14px; font-weight: 700; }
+            #ax4p-exec-deck .xc-demo { font-size: 9px; font-weight: 700; letter-spacing: .08em; color: var(--ax-warn); border: 1px solid color-mix(in srgb, var(--ax-warn) 45%, transparent); border-radius: 4px; padding: 0 4px; line-height: 14px; }
+            #ax4p-exec-deck .xc-tabs { display: flex; }
+            #ax4p-exec-deck .xc-tabs button { height: 24px; padding: 0 8px; border-radius: 6px; font-size: 11px; font-weight: 600; color: var(--ax-dim); }
+            #ax4p-exec-deck .xc-tabs button:hover { color: var(--ax-text); }
+            #ax4p-exec-deck .xc-tabs button.on { background: var(--ax-sel); color: #fff; }
+            #ax4p-exec-deck .xc-ico { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 6px; color: var(--ax-dim); }
+            #ax4p-exec-deck .xc-ico:hover { background: var(--ax-btn); color: var(--ax-text); }
+            /* top tier: quiet inputs on one baseline under 10px micro-labels */
+            #ax4p-exec-deck .xc-in { display: grid; grid-template-columns: 248px 112px 112px 1fr; column-gap: 8px; align-items: end; padding: 2px 0 10px; }
+            #ax4p-exec-deck .xc-g { display: grid; gap: 4px; min-width: 0; }
+            #ax4p-exec-deck .xc-g--sw { justify-items: end; }
+            #ax4p-exec-deck .xc-lab, #ax4p-exec-deck .xc-tag { display: flex; align-items: center; gap: 6px; height: 12px; font-size: 10px; line-height: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--ax-dim); white-space: nowrap; }
+            #ax4p-exec-deck .xc-lab em { margin-left: 4px; letter-spacing: 0; text-transform: none; font-size: 11px; color: var(--ax-muted); }
+            #ax4p-exec-deck .xc-lab em b { color: var(--ax-text); font-weight: 600; }
+            #ax4p-exec-deck .xc-soon { letter-spacing: .06em; font-size: 9px; color: var(--ax-warn); }
+            #ax4p-exec-deck .xc-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+            #ax4p-exec-deck .xc-seg, #ax4p-exec-deck .xc-field, #ax4p-exec-deck .xc-step { height: 32px; border: 1px solid var(--ax-line); border-radius: 8px; background: var(--ax-btn); }
+            #ax4p-exec-deck .xc-sizes { display: flex; gap: 8px; width: 232px; }
+            #ax4p-exec-deck .xc-seg { display: flex; padding: 2px; gap: 2px; }
+            #ax4p-exec-deck .xc-seg .ax4p-sz-btn { min-width: 32px; height: auto; padding: 0 6px; border: 0; border-radius: 6px; background: none; color: var(--ax-muted); font-size: 12px; font-weight: 500; box-shadow: none; }
+            #ax4p-exec-deck .xc-seg .ax4p-sz-btn:hover { color: var(--ax-text); }
+            #ax4p-exec-deck .xc-seg .ax4p-sz-btn.on { background: var(--ax-sel); color: #fff; font-weight: 700; box-shadow: none; }
+            #ax4p-exec-deck .xc-field { display: flex; align-items: center; justify-content: center; gap: 4px; width: 64px; padding: 0 8px; }
+            #ax4p-exec-deck input.xc-field { flex: 1; width: auto; min-width: 0; text-align: center; color: var(--ax-text); font-weight: 600; outline: none; -moz-appearance: textfield; }
+            #ax4p-exec-deck input.xc-field::placeholder { color: var(--ax-dim); font-weight: 400; font-size: 11px; }
+            #ax4p-exec-deck input.xc-field:focus, #ax4p-exec-deck .xc-step:focus-within { border-color: var(--ax-dim); }
+            #ax4p-exec-deck input::-webkit-outer-spin-button, #ax4p-exec-deck input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+            #ax4p-exec-deck .xc-step { display: flex; align-items: center; width: 112px; }
+            #ax4p-exec-deck .xc-step button { display: grid; place-items: center; width: 28px; height: 100%; color: var(--ax-dim); flex: none; }
+            #ax4p-exec-deck .xc-step button:hover { color: var(--ax-text); }
+            #ax4p-exec-deck .xc-stepv { flex: 1; display: flex; align-items: baseline; justify-content: center; gap: 2px; min-width: 0; }
+            #ax4p-exec-deck .xc-stepv input { width: 34px; padding: 0; border: 0; background: none; text-align: right; font-weight: 600; color: var(--ax-text); outline: none; -moz-appearance: textfield; }
+            #ax4p-exec-deck .xc-stepv i, #ax4p-exec-deck .xc-field i { color: var(--ax-dim); font-size: 11px; }
+            #ax4p-exec-deck .xc-sw { position: relative; width: 40px; height: 24px; margin: 4px 0; border-radius: 12px; background: var(--ax-btn); border: 1px solid var(--ax-line); transition: background .15s; }
+            #ax4p-exec-deck .xc-sw span { position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: var(--ax-dim); transition: transform .15s, background .15s; }
+            #ax4p-exec-deck .xc-sw.on { background: var(--ax-sel); border-color: var(--ax-dim); }
+            #ax4p-exec-deck .xc-sw.on span { transform: translateX(16px); background: #fff; }
+            #ax4p-exec-deck .xc-sw:disabled { cursor: not-allowed; opacity: .55; }
+            /* partials: one slim line, only when on */
+            #ax4p-exec-deck .xc-parts { display: grid; grid-template-columns: 248px 1fr; column-gap: 8px; margin: -2px 0 10px; }
+            #ax4p-exec-deck .xc-pg { display: flex; align-items: center; gap: 8px; height: 32px; }
+            #ax4p-exec-deck .xc-pg + .xc-pg { position: relative; }
+            #ax4p-exec-deck .xc-pg + .xc-pg::before { content: ""; position: absolute; left: -8px; top: 4px; bottom: 4px; border-left: 1px solid var(--ax-line); }
+            #ax4p-exec-deck .xc-pg .xc-tag { width: 40px; }
+            #ax4p-exec-deck .xc-pg + .xc-pg .xc-tag { width: 48px; }
+            #ax4p-exec-deck .xc-pg .xc-field { width: 64px; flex: none; }
+            #ax4p-exec-deck .xc-pg .xc-field input { width: 28px; padding: 0; border: 0; background: none; text-align: right; font-weight: 600; color: var(--ax-text); outline: none; -moz-appearance: textfield; }
+            #ax4p-exec-deck .xc-field--ro { background: transparent; }
+            #ax4p-exec-deck .xc-field--ro b { color: var(--ax-muted); font-weight: 500; }
+            #ax4p-exec-deck .xc-usd { min-width: 40px; font-weight: 600; }
+            /* bottom tier: risk left, decision right */
+            #ax4p-exec-deck .xc-dc { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 10px 0; border-top: 1px solid var(--ax-line); }
+            #ax4p-exec-deck .xc-risk { display: flex; gap: 16px; margin: 0; }
+            #ax4p-exec-deck .xc-risk div { display: grid; gap: 4px; }
+            #ax4p-exec-deck .xc-risk dt { font-size: 10px; line-height: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--ax-dim); white-space: nowrap; }
+            #ax4p-exec-deck .xc-risk dd { font-size: 14px; line-height: 20px; font-weight: 600; color: var(--ax-text); white-space: nowrap; }
+            #ax4p-exec-deck .xc-risk .xc-rr dd { font-weight: 700; color: var(--ax-accent); }
+            #ax4p-exec-deck .xc-risk .warn dd, #ax4p-exec-deck .xc-risk .warn dt { color: var(--ax-warn); }
+            #ax4p-exec-deck .xc-act { display: flex; align-items: center; gap: 8px; }
+            #ax4p-exec-deck .xc-big { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 112px; height: 40px; border-radius: 8px; font-size: 13px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--xc-on-btn); box-shadow: none; transition: filter .12s; }
+            #ax4p-exec-deck .xc-big:hover { filter: brightness(1.12); }
+            #ax4p-exec-deck .xc-big:active { filter: brightness(.95); }
+            #ax4p-exec-deck .xc-big.long { background: var(--ax-up-btn); }
+            #ax4p-exec-deck .xc-big.short { background: var(--ax-down-btn); }
+            #ax4p-exec-deck .xc-big kbd { display: grid; place-items: center; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 4px; background: var(--xc-kbd); font: 600 10px/1 system-ui, sans-serif; letter-spacing: 0; text-transform: uppercase; }
+            /* FLAT / 50% / REV: one segmented capsule, 24px of air and a hairline before SHORT; FLAT and REV at opposite ends */
+            #ax4p-exec-deck .xc-sec { position: relative; display: flex; gap: 3px; height: 40px; margin-left: 16px; padding: 2px; border: 1px solid var(--ax-line); border-radius: 8px;
+                background: linear-gradient(180deg, color-mix(in srgb, var(--ax-text) 6%, var(--ax-btn)), var(--ax-btn)); box-shadow: inset 0 1px 0 color-mix(in srgb, var(--ax-text) 6%, transparent); }
+            #ax4p-exec-deck .xc-sec::before { content: ""; position: absolute; left: -13px; top: 8px; bottom: 8px; width: 1px; background: linear-gradient(to bottom, transparent, var(--ax-line) 25%, var(--ax-line) 75%, transparent); }
+            #ax4p-exec-deck .xc-m { --t: var(--ax-accent); position: relative; display: inline-flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; width: 44px; border-radius: 6px; font-size: 10px; line-height: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--ax-text); transition: background .12s, box-shadow .12s, color .12s, transform .06s; }
+            #ax4p-exec-deck .xc-m svg { width: 18px; height: 18px; color: color-mix(in srgb, var(--ax-text) 72%, transparent); transition: color .12s; }
+            #ax4p-exec-deck .xc-m small { margin-left: -1px; font-size: 10px; font-weight: 600; letter-spacing: 0; opacity: .8; }
+            #ax4p-exec-deck .xc-m--flat { --t: var(--ax-down); }
+            #ax4p-exec-deck .xc-m--rev { --t: var(--ax-warn); }
+            #ax4p-exec-deck .xc-m--flat svg { color: var(--ax-down); }
+            #ax4p-exec-deck .xc-m--rev svg { color: var(--ax-warn); }
+            #ax4p-exec-deck .xc-m + .xc-m::before { content: ""; position: absolute; left: -2px; top: 8px; bottom: 8px; width: 1px; background: linear-gradient(to bottom, transparent, var(--ax-line) 25%, var(--ax-line) 75%, transparent); transition: opacity .12s; }
+            #ax4p-exec-deck .xc-m:hover:not(:disabled) { background: color-mix(in srgb, var(--t) 9%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--t) 40%, transparent); color: var(--ax-accent); }
+            #ax4p-exec-deck .xc-m:hover:not(:disabled) svg { color: var(--t); }
+            #ax4p-exec-deck .xc-m:hover:not(:disabled)::before, #ax4p-exec-deck .xc-m:hover:not(:disabled) + .xc-m::before { opacity: 0; }
+            #ax4p-exec-deck .xc-m:active:not(:disabled) { background: color-mix(in srgb, var(--t) 16%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--t) 55%, transparent), inset 0 2px 5px rgba(0, 0, 0, .55); transform: translateY(1px); }
+            #ax4p-exec-deck .xc-m.armed { background: color-mix(in srgb, var(--ax-warn) 18%, transparent); box-shadow: inset 0 0 0 1px var(--ax-warn); color: var(--ax-warn); }
+            #ax4p-exec-deck .xc-m:disabled, #ax4p-exec-deck .xc-m.idle { color: var(--ax-dim); }
+            #ax4p-exec-deck .xc-m:disabled { cursor: not-allowed; }
+            #ax4p-exec-deck .xc-m:disabled svg, #ax4p-exec-deck .xc-m.idle svg { color: color-mix(in srgb, var(--ax-dim) 85%, transparent); }
+            #ax4p-exec-deck .xc-sec.idle { background: var(--ax-base, var(--ax-btn)); box-shadow: none; }
+            /* while 50% or REV runs, FLAT stays live (pressing it also stops REV before it opens anything) */
+            #ax4p-exec-deck .xc-sec.busy .xc-m:not(#ax4p-flatten-btn) { opacity: .6; pointer-events: none; }
+            #ax4p-exec-deck button:focus-visible { outline: 1px solid var(--ax-accent); outline-offset: 2px; }
+            /* collapsed: a slim pill (its buttons press the card's own LONG / SHORT / FLAT) */
+            #ax4p-exec-deck .xc-pill { display: none; align-items: center; gap: 8px; height: 40px; padding: 0 4px 0 12px; }
+            #ax4p-exec-deck.xc-collapsed { width: auto; padding: 0; border-radius: 20px; box-shadow: 0 12px 32px var(--ax-shadow); }
+            #ax4p-exec-deck.xc-collapsed .xc-full { display: none; }
+            #ax4p-exec-deck.xc-collapsed .xc-pill { display: flex; }
+            #ax4p-exec-deck .xc-num { font-size: 13px; font-weight: 700; margin-left: 4px; }
+            #ax4p-exec-deck .xc-sltp { display: flex; gap: 4px; font-weight: 600; padding: 0 8px; }
+            #ax4p-exec-deck .xc-sltp i { color: var(--ax-dim); }
+            #ax4p-exec-deck .xc-pill .xc-pnl { font-size: 13px; font-weight: 700; padding-right: 4px; }
+            #ax4p-exec-deck .xc-big--s { width: auto; height: 28px; padding: 0 16px; font-size: 11px; border-radius: 14px; }
+            #ax4p-exec-deck .xc-flat { height: 28px; padding: 0 12px; border: 1px solid var(--ax-line); border-radius: 14px; font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--ax-text); }
+            #ax4p-exec-deck .xc-pill .xc-ico { width: 28px; height: 28px; border-radius: 14px; }
             #ax4p-exec-flash {
-                display: none; position: absolute; left: 8px; bottom: -16px;
-                color: var(--ax-accent); font-size: 10px; font-weight: 700; white-space: nowrap;
+                display: none; position: absolute; left: 16px; top: calc(100% + 6px); padding: 2px 8px; border-radius: 6px;
+                background: var(--ax-raised); border: 1px solid var(--ax-line); color: var(--ax-accent);
+                font-size: 11px; font-weight: 600; white-space: nowrap; pointer-events: none;
             }
             #ax4p-exec-note {
-                position: absolute; right: 8px; top: -15px; padding: 1px 6px; border-radius: 999px;
+                position: absolute; right: 12px; top: -10px; padding: 1px 6px; border-radius: 999px;
                 font-size: 9px; font-weight: 800; letter-spacing: .03em; white-space: nowrap; cursor: help;
                 color: var(--ax-warn); background: color-mix(in srgb, var(--ax-warn) 14%, var(--ax-raised));
                 border: 1px solid color-mix(in srgb, var(--ax-warn) 40%, transparent);
@@ -779,12 +855,6 @@
             .ax4p-shell::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--ax-accent) 30%, var(--ax-btn)); border-radius: 6px; }
             #ax4p-io { width: 100%; height: auto; padding: 6px 8px; margin-top: 8px; border-radius: 8px; font-family: ui-monospace, Menlo, monospace !important; font-size: 10px; resize: vertical; }
 
-            /* exec strip */
-            .ax4p-sz-btn { border-radius: 6px; transition: background-color .12s, border-color .12s, transform .1s, box-shadow .12s; }
-            .ax4p-sz-btn.on { box-shadow: 0 0 0 1px var(--ax-accent) inset, 0 4px 12px -6px var(--ax-sel); }
-            .ax4p-go { border-radius: 6px; box-shadow: 0 1px 0 rgba(255, 255, 255, .18) inset, 0 6px 14px -8px rgba(0, 0, 0, .8); }
-            #ax4p-buy-btn { background: linear-gradient(180deg, color-mix(in srgb, var(--ax-up-btn) 80%, #fff), var(--ax-up-btn)); }
-            #ax4p-sell-btn { background: linear-gradient(180deg, color-mix(in srgb, var(--ax-down-btn) 80%, #fff), var(--ax-down-btn)); }
 
 
             #ax4p-master-dock.compact .ax4p-lbl { display: none; }
@@ -1921,6 +1991,9 @@
         el.textContent = text;
         el.title = tip;
         el.hidden = !text;
+        xcText('ax4p-xc-mk', xcMarket());
+        xcText('ax4p-xc-pill-mk', xcMarket());
+        if (typeof updateExecutionRiskCalc === 'function') { lastRiskHtml = ''; updateExecutionRiskCalc(); }
     }
 
     function onSymbolChange() {
@@ -2222,25 +2295,66 @@
     // with a 5K / 10K / 25K preset active, show the stop as a share of the account
     function acctPct(risk) {
         const bal = { '5k': 5000, '10k': 10000, '25k': 25000 }[S.account];
-        if (!bal || !(risk > 0)) return '';
-        const pct = (risk / bal) * 100;
-        return `<span style="color:${pct > 1 ? 'var(--ax-warn)' : 'var(--ax-dim)'}"> · ${pct < 1 ? pct.toFixed(2) : pct.toFixed(1)}%</span>`;
+        if (!bal || !(risk > 0)) return null;
+        return (risk / bal) * 100;
+    }
+    // whole dollars from $100 up; below that cents, unless the amount is whole ($45, $22.50, $6.11)
+    function xcUsd(n) {
+        const a = Math.abs(n);
+        if (a >= 100) return '$' + Math.round(a).toLocaleString('en-US');
+        const c = Math.round(a * 100) / 100;
+        return '$' + (Number.isInteger(c) ? String(c) : c.toFixed(2));
+    }
+    function xcText(id, v) {
+        const el = document.getElementById(id);
+        if (el && el.textContent !== v) el.textContent = v;
+        return el;
+    }
+    // The partial take-profit plan: TP1 closes tp1Pct% at tp1Pts, the rest rides to the main target.
+    function xcPlan(size, tpPts) {
+        const pct = Math.min(99, Math.max(1, Math.round(Number(S.xc.tp1Pct) || 50)));
+        const p1 = Math.max(0.25, Number(S.xc.tp1Pts) || 0);
+        return { pct, p1, tp1Usd: size * p1 * pct / 100, runUsd: size * tpPts * (100 - pct) / 100 };
     }
     function updateExecutionRiskCalc() {
         const slPts = parseFloat(document.getElementById('ax4p-sl-pts')?.value) || S.sl || 15;
         const tpPts = parseFloat(document.getElementById('ax4p-tp-pts')?.value) || S.tp || 30;
         const size = activeSelectedSize;
-        const riskEl = document.getElementById('ax4p-exec-risk-display');
-        if (!riskEl) return;
-        const rr = (tpPts / (slPts || 1)).toFixed(1);
-        const usd = (n) => (n >= 100 ? n.toFixed(0) : String(+n.toFixed(1)));
-        const html = `<span style="color:var(--ax-down)">-$${usd(slPts * size)}</span>
-            <span style="color:var(--ax-dim)"> / </span>
-            <span style="color:var(--ax-up)">+$${usd(tpPts * size)}</span>
-            <span style="color:var(--ax-accent)">  1:${rr}</span>${acctPct(slPts * size)}`;
-        if (html !== lastRiskHtml) { riskEl.innerHTML = html; lastRiskHtml = html; }
+        if (!document.getElementById('ax4p-exec-risk-display')) return;
+        const risk = slPts * size;
+        const plan = xcPartialsOn() ? xcPlan(size, tpPts) : null;
+        const target = plan ? plan.tp1Usd + plan.runUsd : tpPts * size;
+        const rr = risk > 0 ? target / risk : 0;
+        const pct = acctPct(risk);
+        const key = [slPts, tpPts, size, S.account, plan && plan.pct, plan && plan.p1].join('|');
+        if (key !== lastRiskHtml) {
+            lastRiskHtml = key;
+            xcText('ax4p-xc-risk', xcUsd(risk));
+            xcText('ax4p-xc-target', xcUsd(target));
+            xcText('ax4p-xc-rr', '1:' + (+rr.toFixed(rr >= 10 ? 0 : 1)));
+            const cell = document.getElementById('ax4p-xc-pct-cell');
+            if (cell) {
+                cell.hidden = pct == null;
+                cell.classList.toggle('warn', pct != null && pct > 1);
+            }
+            xcText('ax4p-xc-pct-lab', '% of ' + (ACCOUNT_LABELS[S.account] || ''));
+            xcText('ax4p-xc-pct', pct == null ? '' : (pct < 1 ? pct.toFixed(2) : pct.toFixed(1)) + '%');
+            if (plan) {
+                xcText('ax4p-xc-tp1-usd', '+' + xcUsd(plan.tp1Usd));
+                xcText('ax4p-xc-run-pts', fmtSize(tpPts));
+                xcText('ax4p-xc-run-pct', String(100 - plan.pct));
+                xcText('ax4p-xc-run-usd', '+' + xcUsd(plan.runUsd));
+            }
+            xcText('ax4p-xc-pill-size', fmtSize(size));
+            xcText('ax4p-xc-pill-sl', fmtSize(slPts));
+            xcText('ax4p-xc-pill-tp', fmtSize(tpPts));
+        }
+        // the MNQ equivalent only means something on NQ / MNQ
         const mnqEl = document.getElementById('ax4p-mnq-readout');
-        if (mnqEl) mnqEl.textContent = `MNQ ${+(size / 2).toFixed(2)}`;
+        if (mnqEl) {
+            const html = xcNqMarket() ? `<b>= ${+(size / 2).toFixed(2)}</b> MNQ` : '';
+            if (mnqEl.innerHTML !== html) mnqEl.innerHTML = html;
+        }
     }
 
     function flashExec(msg) {
@@ -2430,8 +2544,7 @@
         wrap.querySelectorAll('.ax4p-sz-btn').forEach((btn) => {
             btn.addEventListener('click', () => selectPreset(Number(btn.getAttribute('data-i'))));
         });
-        const tag = document.getElementById('ax4p-acct-tag');
-        if (tag) tag.textContent = S.account === 'custom' ? 'CUST' : ACCOUNT_LABELS[S.account];
+        paintAcctTabs();
         paintSize();
     }
 
@@ -2491,6 +2604,165 @@
         renderSizeButtons();
         paintAccount();
         updateExecutionRiskCalc();
+    }
+
+    // --- Execute card (7.5) ---
+    // The extension fills xcHooks (positions, Demo, hotkey labels, 50% and REV). The userscript keeps these stubs, so there
+    // the card trades exactly like the old strip and 50% / REV stay off.
+    // known() is false when the card cannot see your position: then it shows no position line instead of "Flat".
+    const xcHooks = { known: () => false, position: () => null, demo: () => false, keyFor: () => '', half: null, rev: null, busy: () => false, armed: () => false };
+    const XC_ICON = {
+        grip: '<svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true"><circle cx="4" cy="2.5" r="1"/><circle cx="8" cy="2.5" r="1"/><circle cx="4" cy="6" r="1"/><circle cx="8" cy="6" r="1"/><circle cx="4" cy="9.5" r="1"/><circle cx="8" cy="9.5" r="1"/></svg>',
+        minus: '<svg width="10" height="10" viewBox="0 0 10 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M2 5h6"/></svg>',
+        plus: '<svg width="10" height="10" viewBox="0 0 10 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M2 5h6M5 2v6"/></svg>',
+        collapse: '<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 7.5L6 4l3.5 3.5"/></svg>',
+        expand: '<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 4.5L6 8l3.5-3.5"/></svg>',
+        flat: '<svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><rect x="2.5" y="2.5" width="11" height="11" rx="3" stroke="currentColor" stroke-width="1.6"/><path d="M5.9 5.9l4.2 4.2M10.1 5.9l-4.2 4.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>',
+        half: '<svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="5.75" stroke="currentColor" stroke-width="1.5"/><path d="M8 2.25a5.75 5.75 0 0 0 0 11.5z" fill="currentColor"/></svg>',
+        rev: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 5.25h10.25M10.25 2.75l2.5 2.5-2.5 2.5M13.5 10.75H3.25M5.75 8.25l-2.5 2.5 2.5 2.5"/></svg>'
+    };
+    function xcMarket() { return String(detectedSymbol || '').replace(/-PERP$/, '') || 'NQ'; }
+    function xcNqMarket() { return /^(NQ|MNQ)-PERP$/.test(String(detectedSymbol || '')); }
+    // Partials are a plan for now: they show in Demo; placing real partial take-profits comes after a live test.
+    function xcPartialsOn() { return !!S.xc.partials && xcHooks.demo(); }
+
+    function paintAcctTabs() {
+        document.querySelectorAll('#ax4p-acct-tabs button').forEach((b) => b.classList.toggle('on', b.getAttribute('data-acct') === S.account));
+    }
+
+    function xcSetCollapsed(on) {
+        S.xc.collapsed = !!on;
+        persist();
+        const deck = document.getElementById('ax4p-exec-deck');
+        if (deck) deck.classList.toggle('xc-collapsed', S.xc.collapsed);
+        setTimeout(() => {
+            if (typeof clampWidgets === 'function') clampWidgets();
+            // a pill parked at the right edge opens into a 672 px card: keep all of it on screen, LONG and SHORT sit at its right end
+            if (!deck || S.xc.collapsed) return;
+            const r = deck.getBoundingClientRect();
+            const maxL = window.innerWidth - r.width - 6;
+            if (r.width && r.left > maxL) {
+                deck.style.left = Math.max(6, maxL) + 'px';
+                deck.style.right = 'auto';
+                S.pos.exec = { left: deck.style.left, top: deck.style.top };
+                persist();
+            }
+        }, 0);
+    }
+
+    // − / + beside the stop and target: 1 point a step, Shift for 5, Alt for a quarter
+    function xcStep(id, dir, ev) {
+        const input = document.getElementById(id);
+        if (!input) return;
+        const by = ev && ev.shiftKey ? 5 : ev && ev.altKey ? 0.25 : 1;
+        const cur = parseFloat(input.value) || 0;
+        const next = Math.max(0.25, Math.round((cur + dir * by) * 4) / 4);
+        input.value = String(next);
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+
+    function xcPaintPartials() {
+        const sw = document.getElementById('ax4p-xc-partials');
+        if (!sw) return;
+        const demo = xcHooks.demo();
+        const on = xcPartialsOn();
+        sw.classList.toggle('on', on);
+        sw.setAttribute('aria-checked', String(on));
+        sw.disabled = !demo;
+        sw.title = demo ? 'Partial take-profit plan (Demo)'
+            : IS_EXT ? 'Partial take-profits are coming in the next update. Try the plan in Demo (Alt+Shift+D).'
+            : 'Partial take-profits are coming in a later update.';
+        const soon = document.getElementById('ax4p-xc-soon');
+        if (soon) soon.hidden = demo;
+        const parts = document.getElementById('ax4p-xc-parts');
+        if (parts) parts.hidden = !on;
+    }
+
+    // Header line, manage capsule, hotkey caps. Runs every second and after each action.
+    function xcPaint() {
+        const known = xcHooks.known();
+        const pos = known ? xcHooks.position() : null;
+        const line = document.getElementById('ax4p-xc-pos');
+        if (line) {
+            let html;
+            if (!known) html = '';
+            else if (!pos) html = 'Flat';
+            else {
+                const pnl = pos.pnl;
+                html = `<span class="xc-side ${pos.isLong ? 'up' : 'dn'}">${pos.isLong ? 'LONG' : 'SHORT'}</span><b>${escHtml(fmtSize(pos.qty))}</b><span>@ ${escHtml(pos.entryText)}</span>` +
+                    (pnl == null ? '' : `<b class="xc-pnl ${pnl >= 0 ? 'up' : 'dn'}">${pnl >= 0 ? '+' : '−'}${xcUsd(pnl)}</b>`) +
+                    (pos.demo ? '<span class="xc-demo">DEMO</span>' : '');
+            }
+            if (line.innerHTML !== html) line.innerHTML = html;
+            line.classList.toggle('flat', known && !pos);
+        }
+        const pill = document.getElementById('ax4p-xc-pill-pnl');
+        if (pill) {
+            const v = pos && pos.pnl != null ? (pos.pnl >= 0 ? '+' : '−') + xcUsd(pos.pnl) : '';
+            if (pill.textContent !== v) pill.textContent = v;
+            pill.className = 'xc-pnl ' + (pos && pos.pnl != null ? (pos.pnl >= 0 ? 'up' : 'dn') : '');
+        }
+        const busy = xcHooks.busy();
+        const sec = document.getElementById('ax4p-xc-manage');
+        if (sec) {
+            sec.classList.toggle('idle', known && !pos);
+            sec.classList.toggle('busy', busy);
+        }
+        // FLAT stays live even when we think you are flat (closing must never wait on our reading); 50% and REV need the position
+        const flat = document.getElementById('ax4p-flatten-btn');
+        if (flat) flat.classList.toggle('idle', known && !pos);
+        const half = document.getElementById('ax4p-half-btn');
+        if (half) half.disabled = !pos || !xcHooks.half;
+        const rev = document.getElementById('ax4p-rev-btn');
+        if (rev) {
+            rev.disabled = !pos || !xcHooks.rev;
+            const armed = xcHooks.armed();
+            rev.classList.toggle('armed', armed);
+            const label = rev.querySelector('span');
+            if (label && label.textContent !== (armed ? 'Sure?' : 'Rev')) label.textContent = armed ? 'Sure?' : 'Rev';
+        }
+        [['ax4p-xc-kl', 'long'], ['ax4p-xc-ks', 'short']].forEach(([id, act]) => {
+            const kb = document.getElementById(id);
+            if (!kb) return;
+            const k = xcHooks.keyFor(act);
+            kb.hidden = !k;
+            if (kb.textContent !== k) kb.textContent = k;
+        });
+        xcPaintPartials();
+    }
+
+    function xcWire(deck) {
+        deck.classList.toggle('xc-collapsed', !!S.xc.collapsed);
+        paintAcctTabs();
+        deck.querySelectorAll('#ax4p-acct-tabs button').forEach((b) => {
+            b.addEventListener('click', () => { chooseAccount(b.getAttribute('data-acct')); paintAcctTabs(); lastRiskHtml = ''; updateExecutionRiskCalc(); });
+        });
+        deck.querySelectorAll('[data-step]').forEach((b) => b.addEventListener('click', (e) => xcStep(b.getAttribute('data-step'), Number(b.getAttribute('data-dir')), e)));
+        document.getElementById('ax4p-xc-collapse').addEventListener('click', () => xcSetCollapsed(true));
+        document.getElementById('ax4p-xc-expand').addEventListener('click', () => xcSetCollapsed(false));
+        // the pill's buttons press the card's own LONG / SHORT / FLAT, so every check and the Demo guard still apply
+        deck.querySelectorAll('[data-press]').forEach((b) => b.addEventListener('click', () => {
+            const real = document.getElementById(b.getAttribute('data-press'));
+            if (real) real.click();
+        }));
+        document.getElementById('ax4p-xc-partials').addEventListener('click', () => {
+            if (!xcHooks.demo()) return;
+            S.xc.partials = !S.xc.partials;
+            persist();
+            lastRiskHtml = '';
+            xcPaint();
+            updateExecutionRiskCalc();
+        });
+        [['ax4p-xc-tp1-pts', 'tp1Pts'], ['ax4p-xc-tp1-pct', 'tp1Pct']].forEach(([id, k]) => {
+            document.getElementById(id).addEventListener('input', (e) => {
+                const v = parseFloat(e.target.value);
+                if (v > 0) { S.xc[k] = v; persist(); lastRiskHtml = ''; updateExecutionRiskCalc(); }
+            });
+        });
+        document.getElementById('ax4p-half-btn').addEventListener('click', () => { if (xcHooks.half) xcHooks.half(); });
+        document.getElementById('ax4p-rev-btn').addEventListener('click', () => { if (xcHooks.rev) xcHooks.rev(); });
+        xcPaint();
+        setInterval(xcPaint, 1000);
     }
 
     // --- Settings panel ---
@@ -2648,33 +2920,67 @@
         applyPos(pill, 'basis', { left: '300px', top: '64px' });
         makeMovable(pill, pill, 'basis');
 
+        // Execute card (7.5). The strip's ids stay: the order code and the hotkeys read #ax4p-sl-pts, #ax4p-tp-pts,
+        // #ax4p-sz-wrap, #ax4p-custom-sz and press #ax4p-buy-btn, #ax4p-sell-btn, #ax4p-flatten-btn.
         const execBox = document.createElement('div');
         execBox.id = 'ax4p-exec-deck';
         execBox.className = 'ax4p-shell';
+        const xcStepper = (id, val, cls, label) => `<div class="xc-step ${cls}"><button type="button" data-step="${id}" data-dir="-1" aria-label="${label} down">${XC_ICON.minus}</button><span class="xc-stepv"><input id="${id}" type="number" value="${escHtml(val)}" step="0.25" min="0.25" aria-label="${label} in points"><i>pt</i></span><button type="button" data-step="${id}" data-dir="1" aria-label="${label} up">${XC_ICON.plus}</button></div>`;
         execBox.innerHTML = `
-            <button id="ax4p-acct-tag" title="account size presets (Settings → Exec)"></button>
-            <span id="ax4p-sz-wrap"></span>
-            <input id="ax4p-custom-sz" class="ax4p-in" type="number" placeholder="n" min="0" step="0.1" value="${escHtml(S.customSz || '')}" title="custom size">
-            <span class="ax4p-mnq" id="ax4p-mnq-readout">MNQ 1.5</span>
-            <span class="ax4p-vsep"></span>
-            <label class="ax4p-chip ax4p-chip-sl">SL
-                <input id="ax4p-sl-pts" class="ax4p-in" type="number" value="${escHtml(S.sl)}" step="0.25">
-            </label>
-            <label class="ax4p-chip ax4p-chip-tp">TP
-                <input id="ax4p-tp-pts" class="ax4p-in" type="number" value="${escHtml(S.tp)}" step="0.25">
-            </label>
-            <div id="ax4p-exec-risk-display"></div>
-            <button id="ax4p-buy-btn" class="ax4p-go">LONG</button>
-            <button id="ax4p-sell-btn" class="ax4p-go">SHORT</button>
-            <button id="ax4p-flatten-btn">FLAT</button>
+            <div class="xc-full">
+                <div class="xc-hd">
+                    <span class="xc-grip" title="drag to move">${XC_ICON.grip}</span>
+                    <span class="xc-mk" id="ax4p-xc-mk">NQ</span>
+                    <span class="xc-pos" id="ax4p-xc-pos"></span>
+                    <div class="xc-tabs" id="ax4p-acct-tabs" role="tablist" aria-label="Account size presets">${['5k', '10k', '25k', 'custom'].map((a) => `<button type="button" data-acct="${a}">${ACCOUNT_LABELS[a]}</button>`).join('')}</div>
+                    <button type="button" class="xc-ico" id="ax4p-xc-collapse" title="collapse" aria-label="Collapse">${XC_ICON.collapse}</button>
+                </div>
+                <div class="xc-in">
+                    <div class="xc-g"><span class="xc-lab">Size<em id="ax4p-mnq-readout"></em></span><div class="xc-sizes"><div class="xc-seg" id="ax4p-sz-wrap"></div><input id="ax4p-custom-sz" class="xc-field" type="number" placeholder="Custom" min="0" step="0.1" value="${escHtml(S.customSz || '')}" title="custom size"></div></div>
+                    <div class="xc-g"><span class="xc-lab dn"><span class="xc-dot"></span><span style="color:var(--ax-dim)">Stop</span></span>${xcStepper('ax4p-sl-pts', S.sl, 'xc-step--sl', 'Stop')}</div>
+                    <div class="xc-g"><span class="xc-lab up"><span class="xc-dot"></span><span style="color:var(--ax-dim)">Target</span></span>${xcStepper('ax4p-tp-pts', S.tp, 'xc-step--tp', 'Target')}</div>
+                    <div class="xc-g xc-g--sw"><span class="xc-lab">Partials<span class="xc-soon" id="ax4p-xc-soon">soon</span></span><button type="button" class="xc-sw" id="ax4p-xc-partials" role="switch" aria-checked="false"><span></span></button></div>
+                </div>
+                <div class="xc-parts" id="ax4p-xc-parts" hidden>
+                    <div class="xc-pg"><span class="xc-tag">TP1</span><label class="xc-field"><input id="ax4p-xc-tp1-pts" type="number" min="0.25" step="0.25" value="${escHtml(S.xc.tp1Pts)}"><i>pt</i></label><label class="xc-field"><input id="ax4p-xc-tp1-pct" type="number" min="1" max="99" step="1" value="${escHtml(S.xc.tp1Pct)}"><i>%</i></label><span class="xc-usd up" id="ax4p-xc-tp1-usd"></span></div>
+                    <div class="xc-pg"><span class="xc-tag">Runner</span><div class="xc-field xc-field--ro" title="follows the target"><b id="ax4p-xc-run-pts"></b><i>pt</i></div><div class="xc-field xc-field--ro" title="the rest"><b id="ax4p-xc-run-pct"></b><i>%</i></div><span class="xc-usd up" id="ax4p-xc-run-usd"></span></div>
+                </div>
+                <div class="xc-dc">
+                    <dl class="xc-risk" id="ax4p-exec-risk-display">
+                        <div><dt>Risk</dt><dd id="ax4p-xc-risk"></dd></div>
+                        <div><dt>Target</dt><dd id="ax4p-xc-target"></dd></div>
+                        <div class="xc-rr"><dt>R:R</dt><dd id="ax4p-xc-rr"></dd></div>
+                        <div id="ax4p-xc-pct-cell"><dt id="ax4p-xc-pct-lab"></dt><dd id="ax4p-xc-pct"></dd></div>
+                    </dl>
+                    <div class="xc-act">
+                        <button type="button" id="ax4p-buy-btn" class="xc-big long">Long<kbd id="ax4p-xc-kl" hidden></kbd></button>
+                        <button type="button" id="ax4p-sell-btn" class="xc-big short">Short<kbd id="ax4p-xc-ks" hidden></kbd></button>
+                        <div class="xc-sec idle" id="ax4p-xc-manage" role="group" aria-label="Manage position">
+                            <button type="button" id="ax4p-flatten-btn" class="xc-m xc-m--flat idle" title="Flat: close the whole position">${XC_ICON.flat}<span>Flat</span></button>
+                            <button type="button" id="ax4p-half-btn" class="xc-m xc-m--half" title="Close 50% of the position" disabled>${XC_ICON.half}<span>50<small>%</small></span></button>
+                            <button type="button" id="ax4p-rev-btn" class="xc-m xc-m--rev" title="Reverse: close the position, then open the other side (click twice)" disabled>${XC_ICON.rev}<span>Rev</span></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="xc-pill">
+                <span class="xc-grip" title="drag to move">${XC_ICON.grip}</span>
+                <span class="xc-mk" id="ax4p-xc-pill-mk">NQ</span>
+                <b class="xc-num" id="ax4p-xc-pill-size"></b>
+                <span class="xc-sltp"><b class="dn" id="ax4p-xc-pill-sl"></b><i>/</i><b class="up" id="ax4p-xc-pill-tp"></b></span>
+                <button type="button" class="xc-big xc-big--s long" data-press="ax4p-buy-btn">Long</button>
+                <button type="button" class="xc-big xc-big--s short" data-press="ax4p-sell-btn">Short</button>
+                <button type="button" class="xc-flat" data-press="ax4p-flatten-btn">Flat</button>
+                <b class="xc-pnl" id="ax4p-xc-pill-pnl"></b>
+                <button type="button" class="xc-ico" id="ax4p-xc-expand" title="expand" aria-label="Expand">${XC_ICON.expand}</button>
+            </div>
             <div id="ax4p-exec-flash"></div>
             <div id="ax4p-exec-note" hidden></div>
         `;
         document.body.appendChild(execBox);
         applyPos(execBox, 'exec', { left: '80px', top: '120px' });
-        makeMovable(execBox, execBox, 'exec');
+        execBox.querySelectorAll('.xc-hd, .xc-pill').forEach((h) => makeMovable(execBox, h, 'exec'));
         renderSizeButtons();
-        document.getElementById('ax4p-acct-tag').onclick = () => openSettings('exec');
         document.getElementById('ax4p-custom-sz').addEventListener('input', (e) => {
             const val = parseFloat(e.target.value);
             if (val > 0) {
@@ -2694,6 +3000,7 @@
         document.getElementById('ax4p-buy-btn').onclick = () => triggerExecution('buy');
         document.getElementById('ax4p-sell-btn').onclick = () => triggerExecution('sell');
         document.getElementById('ax4p-flatten-btn').onclick = triggerCloseAll;
+        xcWire(execBox);
         updateExecutionRiskCalc();
         updateExecNote();
 
@@ -5766,6 +6073,8 @@
         if (!mcDebounce(mc.last, id, now(), MC_DEBOUNCE_MS)) return;
         // Demo first: before the Exec strip, the ticket or any Vest handler can be reached
         if (mcDemo()) { mcDemoRun(id, k); return; }
+        // 50% or REV running: only FLAT goes through (it presses the card's FLAT, which also stops them)
+        if (XC.busy && id !== 'flat') { mcToast(k, '· 50% or REV is still running. Nothing sent.', 'warn', true); return; }
         if (now() < mc.lockUntil) { mcToast(k, '· busy, one macro at a time', 'warn', true); return; }
         mc.lockUntil = now() + 9000;
         let hold = 0;
@@ -5933,6 +6242,284 @@
         mcEnsureCss();
         mcPaint();
     }
+
+    // ---------- Execute card (7.5): position line, Demo guard, 50% and REV ----------
+    // Both actions only use Vest's own screens: the position row's Close button, Vest's close window with its own 50% and
+    // 100% buttons and its own Close, and the card's own LONG / SHORT (the protected order code, called, never changed).
+    // Nothing here builds a request. In Demo every card button only says what it would do.
+    const XC = { busy: false, abort: false, revArm: null };
+    const xcDemoOn = () => !!(TP.demo || S.tpsl.demo);
+
+    // The card says "Flat" only when it can really tell: the TP/SL reader is on and has read this market on this account.
+    function xcKnown() {
+        if (TP.demo) return true;
+        if (!TP.on || TP.err || !TP.rowsAt || !tpSymbolsAgree()) return false;
+        const m = TP.model;
+        return tpSameSym(m.symbol, tpSymbol()) && m.accountId === tpActiveAccount() && m.positions.length <= 1;
+    }
+
+    function xcPositionNow() {
+        const list = tpPositions();
+        const p = list && list.length === 1 ? list[0] : null;
+        if (!p || !(p.qty > 0)) return null;
+        const info = tpInfoFor(p.symbol || tpSymbol());
+        const mid = tpLivePrice();
+        return {
+            id: p.id, isLong: p.isLong, qty: p.qty, entry: p.entry, demo: !!TP.demo,
+            entryText: Number(p.entry).toLocaleString('en-US', { minimumFractionDigits: info.dec, maximumFractionDigits: info.dec }),
+            pnl: mid != null && p.entry > 0 ? (mid - p.entry) * p.qty * (p.isLong ? 1 : -1) : null
+        };
+    }
+
+    function xcSay(msg, level) {
+        flashExec(msg);
+        tpToast(msg, level || 'warn', 5200);
+    }
+
+    async function xcWait(fn, ms, every) {
+        const t0 = now();
+        for (;;) {
+            let v = null;
+            try { v = fn(); } catch (e) { v = null; }
+            if (v) return v;
+            if (now() - t0 >= ms) return null;
+            await sleep(every || 50);
+        }
+    }
+
+    // the number in Vest's own "Close 4 NQ" button
+    function xcLabelQty(btn) {
+        const m = String((btn && btn.textContent) || '').replace(/,/g, '').match(/(\d+(?:\.\d+)?)/);
+        return m ? parseFloat(m[1]) : null;
+    }
+
+    // Vest's own Close button on this position's row (by the position id the TP/SL reader has)
+    function xcRowFor(pos) {
+        const id = String(pos.id).replace(/["\\]/g, '');
+        return document.querySelector(`button[data-testid="position-close-${id}"][data-slot="dialog-trigger"]`)
+            || document.querySelector(`button[data-testid="position-close-${id}"]`);
+    }
+
+    // close Vest's window without sending anything
+    function xcDismiss(dlg) {
+        const x = dlg && (dlg.querySelector('[data-slot="dialog-close"]') || dlg.querySelector('button[aria-label="Close"]'));
+        if (x && invokeReactClick(x)) return;
+        if (x) { x.click(); return; }
+        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true }));
+    }
+
+    function xcPts() {
+        return {
+            sl: parseFloat(document.getElementById('ax4p-sl-pts')?.value) || 0,
+            tp: parseFloat(document.getElementById('ax4p-tp-pts')?.value) || 0
+        };
+    }
+
+    // What REV's open needs on Vest's ticket ('' = ready). Checked before the close and again just before the open.
+    function xcTicketWhy(side) {
+        if (!findAmountInput()) return "the ticket's Amount field is not on screen";
+        if (!(findPlatformSideButton(side, findOrderPanel()) || findPlatformSideButton(side, document))) return "the ticket's " + (side === 'buy' ? 'Buy' : 'Sell') + ' button is not on screen';
+        if (mcReduceOnlyOn()) return 'Reduce-only is on in the ticket';
+        if (!mcMidRef()) return 'there is no live mid price';
+        return '';
+    }
+
+    // A Vest window other than its close window: its own confirmation (resting exit orders, slippage, limits). That choice is yours.
+    function xcOtherDialog() {
+        for (const el of document.querySelectorAll('[role="dialog"],[role="alertdialog"]')) {
+            if (isOurs(el) || el.closest('[data-testid="close-dialog"]') || el.querySelector('[data-testid="close-dialog"]')) continue;
+            if (el.getClientRects().length) return true;
+        }
+        return false;
+    }
+
+    async function xcHalf() {
+        if (XC.busy) return;
+        const pos = xcPositionNow();
+        if (!pos) { xcSay('No position on this market.'); return; }
+        if (xcDemoOn()) { xcSay(`[DEMO] 50% would close half of ${fmtSize(pos.qty)}. Nothing sent.`); return; }
+        if (!tpSymbolsAgree()) { xcSay('The chart and the page show different markets. Nothing sent.', 'bad'); return; }
+        XC.busy = true;
+        XC.abort = false;
+        xcPaint();
+        // FLAT pressed meanwhile: from then on Vest's close window is FLAT's, so 50% steps aside and touches nothing
+        const flatPressed = () => { if (XC.abort) xcSay('50% stopped: you pressed FLAT.', 'warn'); return XC.abort; };
+        try {
+            const fresh = await mcFreshPositions();
+            if (flatPressed()) return;
+            if (!fresh || fresh.length !== 1) { xcSay('Could not confirm the position just now. Nothing sent.', 'bad'); return; }
+            const qty = fresh[0].qty;
+            if (document.querySelector('[data-testid="close-dialog"]')) { xcSay('A close window is already open. Nothing sent.', 'bad'); return; }
+            const row = xcRowFor(pos);
+            if (!row) { xcSay("Open Vest's Positions tab first, so its Close button for this position is on screen. Nothing sent.", 'bad'); return; }
+            invokeReactClick(row);
+            const dlg = await xcWait(() => XC.abort || document.querySelector('[data-testid="close-dialog"]'), 2500);
+            if (flatPressed()) return;
+            if (!dlg) { xcSay("Vest's close window did not open. Nothing sent.", 'bad'); return; }
+            const p50 = await xcWait(() => XC.abort || dlg.querySelector('[data-testid="size-pct-50"]'), 1500);
+            if (flatPressed()) return;
+            if (!p50) { xcDismiss(dlg); xcSay('The close window has no 50% button. Nothing sent.', 'bad'); return; }
+            invokeReactClick(p50);
+            // Vest fills in the size one render later: read its own Close label until it shows a part of the position
+            const got = await xcWait(() => {
+                if (XC.abort) return { abort: true };
+                const b = dlg.querySelector('[data-testid="close-submit"]');
+                const n = xcLabelQty(b);
+                return b && n != null && n > 0 && n < qty ? { b, n } : null;
+            }, 2000);
+            if (flatPressed()) return;
+            if (!got || got.n > qty / 2 + 1e-9 || got.n < qty / 4) {
+                xcDismiss(dlg);
+                xcSay('50% did not line up' + (got ? ' (the window says ' + fmtSize(got.n) + ' of ' + fmtSize(qty) + ')' : ', the position may be too small to halve') + '. Nothing sent.', 'bad');
+                return;
+            }
+            if (got.b.disabled) { xcDismiss(dlg); xcSay('Vest kept its Close button disabled. Nothing sent.', 'bad'); return; }
+            invokeReactClick(got.b);
+            flashExec(`50%: closing ${fmtSize(got.n)} of ${fmtSize(qty)}`);
+            const gone = await xcWait(() => !document.querySelector('[data-testid="close-dialog"]'), 4000, 100);
+            if (!gone) { xcSay('Vest kept the close window open. Check it before anything else.', 'bad'); return; }
+            await sleep(250);
+            if (xcOtherDialog()) { xcSay('Vest is asking you to confirm in its own window. Nothing is closed until you do.', 'warn'); return; }
+            // read it back: say "done" only when Vest shows the smaller position
+            const left = qty - got.n;
+            let done = false;
+            for (let i = 0; i < 4 && !done; i++) {
+                const f = await mcFreshPositions();
+                done = !!f && f.length === 1 && mcSameNum(f[0].qty, left);
+                if (!done) await sleep(500);
+            }
+            if (done) xcSay(`50% done: closed ${fmtSize(got.n)}, ${fmtSize(left)} left.`, 'good');
+            else xcSay(`50% sent: ${fmtSize(got.n)} of ${fmtSize(qty)}. Vest is not showing the smaller position yet, so check Positions.`, 'warn');
+        } finally {
+            XC.busy = false;
+            XC.abort = false;
+            xcPaint();
+        }
+    }
+
+    async function xcRev() {
+        if (XC.busy) return;
+        const pos = xcPositionNow();
+        if (!pos) { xcSay('No position on this market.'); return; }
+        // two clicks: the first arms REV for 3 seconds, for this position and this mode (Demo or not) only
+        const t = now();
+        const arm = XC.revArm;
+        if (!(arm && arm.until > t && arm.id === pos.id && arm.demo === xcDemoOn())) {
+            XC.revArm = { until: t + 3000, id: pos.id, demo: xcDemoOn() };
+            xcPaint();
+            setTimeout(xcPaint, 3100);
+            flashExec('Click REV again within 3 s to reverse');
+            return;
+        }
+        XC.revArm = null;
+        const side = pos.isLong ? 'sell' : 'buy';
+        const want = pos.isLong ? 'short' : 'long';
+        const names = pos.isLong ? ['LONG', 'SHORT'] : ['SHORT', 'LONG'];
+        const pts = xcPts();
+        if (xcDemoOn()) {
+            xcSay(`[DEMO] REV would close ${names[0]} ${fmtSize(pos.qty)}, then open ${names[1]} ${fmtSize(pos.qty)} with stop ${fmtSize(pts.sl)} pt / target ${fmtSize(pts.tp)} pt. Nothing sent.`);
+            return;
+        }
+        XC.busy = true;
+        XC.abort = false;
+        xcPaint();
+        try {
+            // every check for the new side runs BEFORE anything is closed
+            const why = mcGate(want);
+            if (why) { xcSay('REV: ' + why + '. Nothing sent.', 'bad'); return; }
+            if (!(pts.sl > 0) || !(pts.tp > 0)) { xcSay('REV needs a stop and a target in points. Nothing sent.', 'bad'); return; }
+            const tw = xcTicketWhy(side);
+            if (tw) { xcSay('REV: ' + tw + '. Nothing sent.', 'bad'); return; }
+            const acc0 = tpActiveAccount(), sym0 = tpSymbol(), api0 = apiSymbol();
+            const fresh = await mcFreshPositions();
+            if (!fresh || fresh.length !== 1 || fresh[0].isLong !== pos.isLong) { xcSay('Could not confirm the position just now. Nothing sent.', 'bad'); return; }
+            const qty = fresh[0].qty;
+            if (document.querySelector('[data-testid="close-dialog"]')) { xcSay('A close window is already open. Nothing sent.', 'bad'); return; }
+            const row = xcRowFor(pos);
+            if (!row) { xcSay("Open Vest's Positions tab first, so its Close button for this position is on screen. Nothing sent.", 'bad'); return; }
+            if (!(await mcEnsureTab('market'))) { xcSay('Could not switch the ticket to Market. Nothing sent.', 'bad'); return; }
+            if (XC.abort) { xcSay('REV stopped: you pressed FLAT.', 'warn'); return; }
+            // 1. close all of it through Vest's own window, the same steps FLAT takes
+            invokeReactClick(row);
+            if (!(await confirmCloseDialog())) { xcSay("REV stopped: Vest's close window did not confirm. Nothing opened.", 'bad'); return; }
+            // 2. wait until it is really gone: two fresh reads in a row with no position here, and Vest's row gone
+            let ok = 0, asks = false;
+            const t0 = now();
+            while (now() - t0 < 10000 && ok < 2) {
+                await sleep(600);
+                if (xcOtherDialog()) { asks = true; break; }
+                const f = await mcFreshPositions();
+                ok = f && f.length === 0 && !xcRowFor(pos) ? ok + 1 : 0;
+            }
+            if (asks) { xcSay('REV stopped: Vest is asking you to confirm the close in its own window. Nothing was opened.', 'warn'); return; }
+            if (ok < 2) { xcSay('REV stopped: the close was not confirmed within 10 s, so nothing was opened. Check your position.', 'bad'); return; }
+            // 3. the other side, same size, the card's stop and target, through the card's own order code. Every check again first.
+            const stop = (reason) => xcSay(`REV closed your ${names[0]} but did not open the ${names[1]}: ${reason}. You are flat.`, 'bad');
+            if (XC.abort) { stop('you pressed FLAT'); return; }
+            if (xcDemoOn()) { stop('Demo was switched on'); return; }
+            if (tpActiveAccount() !== acc0 || tpSymbol() !== sym0 || apiSymbol() !== api0) { stop('the account or the market changed'); return; }
+            const why2 = mcGate(want);
+            if (why2) { stop(why2); return; }
+            if (!(await mcEnsureTab('market'))) { stop('the ticket could not be switched to Market'); return; }
+            const tw2 = xcTicketWhy(side);
+            if (tw2) { stop(tw2); return; }
+            if (XC.abort) { stop('you pressed FLAT'); return; }
+            const keep = activeSelectedSize;
+            activeSelectedSize = qty;
+            try { await triggerExecution(side); } finally { activeSelectedSize = keep; lastRiskHtml = ''; updateExecutionRiskCalc(); }
+            // the order code writes its own result line, "SELL 2 @ ..." once it has pressed Vest's button
+            const said = ((document.getElementById('ax4p-exec-flash') || {}).textContent || '').trim();
+            if (said.indexOf(side.toUpperCase() + ' ') !== 0) { stop(said ? 'the ticket did not take it (' + said + ')' : 'the ticket did not take it'); return; }
+            if (said.indexOf('(size?)') >= 0) { xcSay(`REV sent the ${names[1]} but could not set its size. Check Positions now.`, 'bad'); return; }
+            // 4. read it back. Never sent a second time.
+            let opened = false;
+            for (let i = 0; i < 4 && !opened; i++) {
+                await sleep(600);
+                const f = await mcFreshPositions();
+                opened = !!f && f.length === 1 && f[0].isLong === !pos.isLong;
+            }
+            if (opened) xcSay(`REV done: ${names[1]} ${fmtSize(qty)}.`, 'good');
+            else xcSay(`REV sent the ${names[1]} ${fmtSize(qty)}, but Vest is not showing it yet. Check Positions before you press anything.`, 'warn');
+        } finally {
+            XC.busy = false;
+            XC.abort = false;
+            xcPaint();
+        }
+    }
+
+    xcHooks.known = () => { try { return xcKnown(); } catch (e) { return false; } };
+    xcHooks.position = () => { try { return xcPositionNow(); } catch (e) { return null; } };
+    xcHooks.demo = xcDemoOn;
+    xcHooks.keyFor = (act) => {
+        const a = S.macros && S.macros.act && S.macros.act[act];
+        return S.macros && S.macros.on && a && a.on && a.key && mcMarketOk(detectedSymbol) ? mcKeyLabel(a.key) : '';
+    };
+    xcHooks.half = () => { xcHalf().catch(() => { XC.busy = false; xcPaint(); }); };
+    xcHooks.rev = () => { xcRev().catch(() => { XC.busy = false; xcPaint(); }); };
+    xcHooks.busy = () => XC.busy;
+    xcHooks.armed = () => {
+        const a = XC.revArm;
+        if (!a || !(a.until > now())) return false;
+        const p = xcHooks.position();
+        return !!p && p.id === a.id && a.demo === xcDemoOn();
+    };
+
+    // While 50% or REV runs: FLAT goes through and stops them before they do anything more; LONG and SHORT wait.
+    // In Demo: LONG, SHORT and FLAT on the card (and the pill, which presses them) only say what they would do.
+    document.addEventListener('click', (e) => {
+        const b = e.target && e.target.closest ? e.target.closest('#ax4p-buy-btn, #ax4p-sell-btn, #ax4p-flatten-btn') : null;
+        if (!b) return;
+        if (XC.busy) {
+            if (b.id === 'ax4p-flatten-btn') XC.abort = true;
+            else { e.stopImmediatePropagation(); e.preventDefault(); xcSay('50% or REV is still running. Nothing sent.', 'bad'); return; }
+        }
+        if (!xcDemoOn()) return;
+        e.stopImmediatePropagation();
+        e.preventDefault();
+        const pts = xcPts();
+        if (b.id === 'ax4p-flatten-btn') xcSay('[DEMO] FLAT would close the whole position. Nothing sent.');
+        else xcSay(`[DEMO] ${b.id === 'ax4p-buy-btn' ? 'LONG' : 'SHORT'} ${fmtSize(activeSelectedSize)} at market, stop ${fmtSize(pts.sl)} pt, target ${fmtSize(pts.tp)} pt. Nothing sent.`);
+    }, true);
 
     // --- Better Vest extension bridge: popup/background talk to the page via window messages.
     // Under Tampermonkey nothing sends these, so it stays idle. ---
