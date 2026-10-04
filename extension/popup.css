@@ -10,6 +10,7 @@
   --down: #f87171;
 }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html { background: var(--bg); }
 body {
   margin: 0; width: 300px; padding: 12px;
@@ -63,3 +64,10 @@ button:active { transform: scale(.97); }
 .cal-grid i { font-style: normal; color: var(--muted); font-size: 10px; font-variant-numeric: tabular-nums; }
 button.cal-open { display: flex; justify-content: center; align-items: center; gap: 8px; }
 .kbd { font-size: 9px; font-weight: 700; opacity: .75; border: 1px solid rgba(255,255,255,.35); border-radius: 4px; padding: 0 4px; }
+
+.upd { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 10px; padding: 8px 10px; border-radius: 10px;
+  border: 1px solid var(--accent); background: rgba(37, 99, 235, 0.18); }
+.upd b { color: #7dd3fc; }
+.upd button.mini { background: #2563eb; border-color: var(--accent); color: #fff; }
+.upd-pref { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; color: var(--muted); font-size: 11px; }
+.upd-pref input { accent-color: #2563eb; vertical-align: -2px; }

@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Better Vest by Astra",
+  "name": "Better Vest by Astral",
   "short_name": "Better Vest",
-  "version": "7.3.0",
+  "version": "7.4.0",
   "description": "Astral suite for Vest Markets: exec strip with account presets, hotkey macros, chart TP/SL with breakeven, themes, chart styling, focus mode, calendar.",
   "minimum_chrome_version": "116",
   "icons": {
@@ -12,7 +12,7 @@
     "128": "icons/icon128.png"
   },
   "action": {
-    "default_title": "Better Vest by Astra",
+    "default_title": "Better Vest by Astral",
     "default_popup": "popup.html",
     "default_icon": {
       "16": "icons/icon16.png",
@@ -24,7 +24,8 @@
     "type": "module"
   },
   "permissions": [
-    "storage"
+    "storage",
+    "alarms"
   ],
   "host_permissions": [
     "https://next.vestmarkets.com/*"

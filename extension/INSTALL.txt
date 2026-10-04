@@ -1,7 +1,7 @@
-Better Vest by Astra - how to install (2 minutes, Chrome / Brave / Edge / Arc)
+Better Vest by Astral - how to install (2 minutes, Chrome / Brave / Edge / Arc)
 
-1. Download better-vest-7.3.0.zip and double-click it.
-   You now have a folder called "better-vest-7.3.0". Keep it somewhere safe
+1. Download better-vest-7.4.0.zip and double-click it.
+   You now have a folder called "better-vest-7.4.0". Keep it somewhere safe
    (Documents is fine). Chrome loads the extension from this folder, so don't delete it.
 
 2. Open Chrome and type in the address bar:  chrome://extensions
@@ -9,8 +9,8 @@ Better Vest by Astra - how to install (2 minutes, Chrome / Brave / Edge / Arc)
 
 3. Top-right corner: turn ON "Developer mode".
 
-4. Click "Load unpacked" (top-left) and pick the "better-vest-7.3.0" folder.
-   "Better Vest by Astra" appears in the list. Done.
+4. Click "Load unpacked" (top-left) and pick the "better-vest-7.4.0" folder.
+   "Better Vest by Astral" appears in the list. Done.
 
 5. Pin it: click the puzzle icon in Chrome's toolbar and pin Better Vest.
 
@@ -35,7 +35,11 @@ WHAT YOU GET
 Using the Tampermonkey version, or the other edition of this extension, too? Keep only ONE on:
 turn the others OFF, otherwise the dock and the overlay show twice (the suite also refuses to start a second copy). Your settings carry over automatically.
 
-UPDATING: download the new zip, unzip it over the old folder (replace files),
+UPDATING: from 7.4 on it updates itself. When a new version is out, the dock shows an
+"Update" button (and the toolbar icon says NEW). Click it, then Update. The first time,
+Chrome asks for this folder: pick it and allow editing. Every file is checked against
+a signed list before anything is written. Leave Developer mode on.
+By hand (or coming from 7.3): unzip the new zip over the old folder (replace files),
 then on chrome://extensions press the circular arrow on the Better Vest card.
 
 Chrome may show "Disable developer mode extensions" on start-up. Click the X /

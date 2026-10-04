@@ -1,4 +1,4 @@
-// Better Vest by Astra - bridge (isolated world).
+// Better Vest by Astral - bridge (isolated world).
 // The suite runs in the page's MAIN world so it can reach React, TradingView and the page's
 // WebSockets; this script connects it to the extension (storage, popup, service worker).
 (() => {
@@ -90,6 +90,12 @@
             if (t - lastOpen < 1000) return;
             lastOpen = t;
             chrome.runtime.sendMessage({ type: 'cert-open' }).catch(() => {});
+        } else if (d.type === 'uopen') {
+            // the dock's Update button; same once-a-second limit
+            const t = Date.now();
+            if (t - lastOpen < 1000) return;
+            lastOpen = t;
+            chrome.runtime.sendMessage({ type: 'update-open' }).catch(() => {});
         }
     });
 
@@ -128,4 +134,14 @@
 
     // first state once the page has booted
     setTimeout(() => window.postMessage({ bv: 1, dir: 'toPage', cmd: 'ping' }, location.origin), 2500);
+
+    // a newer release waiting on GitHub: the dock shows an Update button (only the version number goes to the page)
+    function tellUpdate() {
+        chrome.runtime.sendMessage({ type: 'update-state' }).then((s) => {
+            const v = s && s.available && /^\d{1,4}\.\d{1,4}\.\d{1,4}$/.test(String(s.available.version)) ? String(s.available.version) : '';
+            window.postMessage({ bv: 1, dir: 'toPage', cmd: 'update', version: v }, location.origin);
+        }).catch(() => {});
+    }
+    setTimeout(tellUpdate, 3000);
+    setInterval(tellUpdate, 15 * 60 * 1000);
 })();

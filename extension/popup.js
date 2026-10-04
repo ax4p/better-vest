@@ -1,4 +1,4 @@
-// Better Vest by Astra - toolbar popup. Talks to the page through bridge.js.
+// Better Vest by Astral - toolbar popup. Talks to the page through bridge.js.
 const VEST = 'https://next.vestmarkets.com/';
 const $ = (s) => document.querySelector(s);
 let tabId = null;
@@ -85,6 +85,24 @@ function paintCal(sum) {
     $('#cal-sync').textContent = ago == null ? '' : ago < 1 ? 'synced just now' : ago < 60 ? 'synced ' + ago + 'm ago' : 'synced ' + Math.round(ago / 60) + 'h ago';
 }
 chrome.runtime.sendMessage({ type: 'journal-summary' }).then(paintCal).catch(() => paintCal(null));
+
+// Updates from GitHub (Standard, loaded unpacked): a pill when a newer release is out, and the check switch
+function paintUpdate(s) {
+    if (!s || !s.supported) return;
+    $('#upd-pref').hidden = false;
+    $('#upd-auto').checked = !!s.on;
+    $('#upd').hidden = !s.available;
+    if (s.available) $('#upd-v').textContent = 'v' + s.available.version;
+}
+chrome.runtime.sendMessage({ type: 'update-state' }).then(paintUpdate).catch(() => {});
+$('#upd-go').onclick = () => { chrome.runtime.sendMessage({ type: 'update-open' }).catch(() => {}); window.close(); };
+$('#upd-auto').onchange = (e) => { chrome.runtime.sendMessage({ type: 'update-auto', on: e.target.checked }).then(paintUpdate).catch(() => {}); };
+$('#upd-check').onclick = async () => {
+    $('#upd-msg').textContent = 'checking…';
+    const s = await chrome.runtime.sendMessage({ type: 'update-check' }).catch(() => null);
+    paintUpdate(s);
+    $('#upd-msg').textContent = !s ? 'no answer' : s.available ? '' : 'up to date';
+};
 
 chrome.tabs.query({ active: true, currentWindow: true }).then(async ([tab]) => {
     if (!tab || !tab.url || !tab.url.startsWith(VEST)) {

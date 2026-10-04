@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Update · Better Vest by Astral</title>
+<link rel="icon" href="icons/icon32.png">
+<link rel="stylesheet" href="update/update.css">
+</head>
+<body>
+<main class="wrap">
+  <header>
+    <img src="icons/icon48.png" alt="" class="logo">
+    <div>
+      <div class="name">Better Vest updates</div>
+      <div class="by">by Astral · <span id="cur"></span></div>
+    </div>
+  </header>
+
+  <section id="card" class="card">
+    <p id="lead" class="lead">Checking GitHub…</p>
+    <div id="notes" class="notes" hidden></div>
+    <button id="go" class="primary" hidden></button>
+    <p id="how" class="hint" hidden>
+      Takes a few seconds. Your settings and Calendar stay as they are.
+      The first time, Chrome asks for your Better Vest folder: pick the one you loaded on
+      <code>chrome://extensions</code> (it holds <code>manifest.json</code>), then allow it to edit files.
+    </p>
+    <ol id="steps" class="steps" hidden>
+      <li data-step="folder">Your Better Vest folder</li>
+      <li data-step="download">Download and check the signature <span class="n"></span></li>
+      <li data-step="write">Write the new files <span class="n"></span></li>
+      <li data-step="restart">Restart Better Vest and reload your Vest tabs</li>
+    </ol>
+    <p id="msg" class="msg" hidden></p>
+  </section>
+
+  <section class="prefs">
+    <label><input type="checkbox" id="auto"> Check for updates (one request to GitHub every 6 hours)</label>
+    <span class="links"><button id="check" class="link">Check now</button> · <button id="forget" class="link">Forget the folder</button> · <a id="rel" href="https://github.com/ax4p/better-vest/releases" target="_blank" rel="noopener">All releases</a></span>
+  </section>
+</main>
+<script type="module" src="update/page.js"></script>
+</body>
+</html>

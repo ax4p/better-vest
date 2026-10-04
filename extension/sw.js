@@ -1,14 +1,16 @@
-// Better Vest by Astra - service worker (ES module, static imports only).
+// Better Vest by Astral - service worker (ES module, static imports only).
 // 1. Keeps the latest page state per tab (for the popup and the toolbar badge).
 // 2. Journal hub: receives the trade history that the Vest page streams over the 'journal' port,
 //    validates and normalizes it, writes it to IndexedDB, runs the post-conditions, and serves
 //    the popup summary, the sync command relay and the Calendar tab opener.
+// 3. Updates (Standard, loaded unpacked): asks GitHub for the latest release every 6 hours; update.html does the rest.
 
 import { openDb, getAll, get, putMany, putMeta, getMeta, listUserIds } from './journal/db.js';
 import {
     normalizeCapitalAccount, normalizePrimaryAccount, mergeAccount, normalizePosition, normalizePayout, normalizeSymbol, NORMALIZER_VERSION
 } from './journal/model.js';
 import { filterTrades, reconcile, summary } from './journal/stats.js';
+import { LATEST_URL, compareVersions, parseLatest } from './update/core.js';
 
 const stateKey = (tabId) => 'tab:' + tabId;
 
@@ -16,11 +18,11 @@ chrome.runtime.onMessage.addListener((msg, sender) => {
     if (!msg || msg.type !== 'state' || !sender.tab) return;
     const st = msg.state || {};
     chrome.storage.session.set({ [stateKey(sender.tab.id)]: st }).catch(() => {});
-    chrome.action.setBadgeText({ tabId: sender.tab.id, text: st.feed ? '' : '!' }).catch(() => {});
-    chrome.action.setBadgeBackgroundColor({ tabId: sender.tab.id, color: '#b91c1c' }).catch(() => {});
+    chrome.action.setBadgeText({ tabId: sender.tab.id, text: st.feed ? updateBadge : '!' }).catch(() => {});
+    chrome.action.setBadgeBackgroundColor({ tabId: sender.tab.id, color: st.feed ? '#2563eb' : '#b91c1c' }).catch(() => {});
     chrome.action.setTitle({
         tabId: sender.tab.id,
-        title: `Better Vest by Astra v${st.version || ''}` + (st.symbol ? ` · ${st.symbol}` : '') + (st.feed ? ' · tape live' : ' · tape reconnecting')
+        title: `Better Vest by Astral v${st.version || ''}` + (st.symbol ? ` · ${st.symbol}` : '') + (st.feed ? ' · tape live' : ' · tape reconnecting')
     }).catch(() => {});
 });
 
@@ -558,7 +560,106 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         certOpen(sender).then(sendResponse, () => sendResponse({ ok: false, reason: 'error' }));
         return true;
     }
+    // updates: the dock and the popup ask; only extension pages may check, switch or open
+    if (msg.type === 'update-state' && (fromExtensionPage(sender) || fromVestScript(sender))) {
+        updateState().then(sendResponse, () => sendResponse(null));
+        return true;
+    }
+    if (msg.type === 'update-check' && fromExtensionPage(sender)) {
+        checkUpdate(true).then(sendResponse, () => sendResponse(null));
+        return true;
+    }
+    if (msg.type === 'update-auto' && fromExtensionPage(sender) && typeof msg.on === 'boolean') {
+        chrome.storage.local.set({ bvUpdateCheck: msg.on }).then(scheduleUpdates).then(updateState).then(sendResponse, () => sendResponse(null));
+        return true;
+    }
+    if (msg.type === 'update-open' && (fromExtensionPage(sender) || fromVestScript(sender))) {
+        openExtPage('update.html', sender).then(sendResponse, () => sendResponse({ ok: false, reason: 'error' }));
+        return true;
+    }
 });
+
+// ---------- updates ----------
+// Only the Standard build loaded unpacked from the GitHub zip updates from GitHub: the WICKED build is rebuilt from
+// its own source (the line below stays a comment there), and Web Store copies are updated by Chrome. The check is a
+// plain GET to GitHub's API with nothing from the user in it; nothing is downloaded until Update is clicked.
+let UPDATER = false;
+UPDATER = true;
+const UPDATE_ALARM = 'bv-update-check';
+let updateBadge = '';
+
+async function updaterSupported() {
+    if (!UPDATER || 'update_url' in chrome.runtime.getManifest()) return false;
+    try {
+        if (chrome.management && chrome.management.getSelf) return (await chrome.management.getSelf()).installType === 'development';
+    } catch (e) {}
+    return true;
+}
+
+async function updateState() {
+    const supported = await updaterSupported();
+    const st = await chrome.storage.local.get(['bvUpdate', 'bvUpdateCheck', 'bvUpdateAt']);
+    const version = chrome.runtime.getManifest().version;
+    const available = supported && st.bvUpdate && compareVersions(st.bvUpdate.version, version) > 0 ? st.bvUpdate : null;
+    return { supported, on: st.bvUpdateCheck !== false, available, checkedAt: st.bvUpdateAt || null, version };
+}
+
+async function paintUpdateBadge() {
+    const s = await updateState();
+    updateBadge = s.available ? 'NEW' : '';
+    await chrome.action.setBadgeText({ text: updateBadge }).catch(() => {});
+    if (updateBadge) await chrome.action.setBadgeBackgroundColor({ color: '#2563eb' }).catch(() => {});
+}
+
+async function checkUpdate(force) {
+    if (!(await updaterSupported())) return updateState();
+    const { bvUpdateCheck } = await chrome.storage.local.get('bvUpdateCheck');
+    if (bvUpdateCheck === false && !force) return updateState();
+    try {
+        const r = await fetch(LATEST_URL, { headers: { Accept: 'application/vnd.github+json' }, cache: 'no-store' });
+        if (r.ok) {
+            const rel = parseLatest(await r.json());
+            await chrome.storage.local.set({ bvUpdateAt: Date.now() });
+            if (rel && compareVersions(rel.version, chrome.runtime.getManifest().version) > 0) await chrome.storage.local.set({ bvUpdate: rel });
+            else await chrome.storage.local.remove('bvUpdate');
+        }
+    } catch (e) {}
+    await paintUpdateBadge();
+    return updateState();
+}
+
+async function scheduleUpdates() {
+    const on = (await updaterSupported()) && (await chrome.storage.local.get('bvUpdateCheck')).bvUpdateCheck !== false;
+    if (!on) {
+        await chrome.alarms.clear(UPDATE_ALARM).catch(() => {});
+        return;
+    }
+    if (!(await chrome.alarms.get(UPDATE_ALARM))) chrome.alarms.create(UPDATE_ALARM, { delayInMinutes: 1, periodInMinutes: 360 });
+}
+
+// After update.html rewrote the folder and restarted us: reload the Vest tabs (their page script is the old one
+// until then) and show the done page. The flag is only honoured by the version it names.
+let afterUpdateRan = false;
+async function afterSelfUpdate() {
+    if (afterUpdateRan) return;
+    afterUpdateRan = true;
+    const { bvUpdated } = await chrome.storage.local.get('bvUpdated');
+    if (!bvUpdated || bvUpdated.to !== chrome.runtime.getManifest().version) return;
+    await chrome.storage.local.remove(['bvUpdated', 'bvUpdate']);
+    await paintUpdateBadge();
+    if (bvUpdated.reloadTabs) {
+        let tabs = [];
+        try { tabs = await chrome.tabs.query({ url: VEST_URLS }); } catch (e) { tabs = []; }
+        for (const tab of tabs) chrome.tabs.reload(tab.id).catch(() => {});
+    }
+    await chrome.tabs.create({ url: chrome.runtime.getURL('update.html#done') }).catch(() => {});
+}
+
+chrome.alarms.onAlarm.addListener((a) => { if (a.name === UPDATE_ALARM) checkUpdate(false); });
+chrome.runtime.onStartup.addListener(() => { scheduleUpdates(); checkUpdate(false); });
+chrome.runtime.onInstalled.addListener(() => { scheduleUpdates(); afterSelfUpdate(); });
+paintUpdateBadge().catch(() => {});
+afterSelfUpdate().catch(() => {});
 
 // Whenever the worker starts, bring the last user's stored trades up to the current derivation rules.
 lastUserId().then((uid) => { if (uid) dbFor(uid).catch(() => {}); }).catch(() => {});

@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>Better Vest by Astra</title>
+<title>Better Vest by Astral</title>
 <link rel="stylesheet" href="popup.css">
 </head>
 <body>
@@ -10,9 +10,14 @@
     <img src="icons/icon48.png" alt="" class="logo">
     <div>
       <div class="name">Better Vest</div>
-      <div class="by">by Astra · <span id="ver"></span></div>
+      <div class="by">by Astral · <span id="ver"></span></div>
     </div>
   </header>
+
+  <section id="upd" class="upd" hidden>
+    <span><b id="upd-v"></b> is out</span>
+    <button id="upd-go" class="mini">What's new · Update</button>
+  </section>
 
   <section id="cal" class="cal">
     <div class="cal-head">
@@ -53,6 +58,11 @@
       <button data-hide="leftTools">Draw bar</button>
     </div>
   </section>
+
+  <div id="upd-pref" class="upd-pref" hidden>
+    <label><input type="checkbox" id="upd-auto"> Check for updates</label>
+    <span><button id="upd-check" class="mini">Check now</button> <span id="upd-msg" class="muted"></span></span>
+  </div>
 
   <script src="popup.js"></script>
 </body>
