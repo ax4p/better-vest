@@ -586,6 +586,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 let UPDATER = false;
 UPDATER = true;
 const UPDATE_ALARM = 'bv-update-check';
+const UPDATE_EVERY_MIN = 30;
 let updateBadge = '';
 
 async function updaterSupported() {
@@ -634,7 +635,9 @@ async function scheduleUpdates() {
         await chrome.alarms.clear(UPDATE_ALARM).catch(() => {});
         return;
     }
-    if (!(await chrome.alarms.get(UPDATE_ALARM))) chrome.alarms.create(UPDATE_ALARM, { delayInMinutes: 1, periodInMinutes: 360 });
+    // copies from before 7.5.1 made this alarm with a 6-hour period: replace it when the period differs
+    const a = await chrome.alarms.get(UPDATE_ALARM);
+    if (!a || a.periodInMinutes !== UPDATE_EVERY_MIN) chrome.alarms.create(UPDATE_ALARM, { delayInMinutes: 1, periodInMinutes: UPDATE_EVERY_MIN });
 }
 
 // After update.html rewrote the folder and restarted us: reload the Vest tabs (their page script is the old one
@@ -644,7 +647,19 @@ async function afterSelfUpdate() {
     if (afterUpdateRan) return;
     afterUpdateRan = true;
     const { bvUpdated } = await chrome.storage.local.get('bvUpdated');
-    if (!bvUpdated || bvUpdated.to !== chrome.runtime.getManifest().version) return;
+    if (!bvUpdated) return;
+    const v = chrome.runtime.getManifest().version;
+    if (bvUpdated.to !== v) {
+        // Running again and still the old version: the new files went into a copy Chrome doesn't run (an identical one
+        // in another folder), or the page closed before the restart. Say so once. A worker that starts before reloadAt
+        // is the old one waking up early (the restart is a timer set for reloadAt, never sooner).
+        const t = Date.now();
+        if (bvUpdated.from === v && t >= (bvUpdated.reloadAt || bvUpdated.at || 0) && t - (bvUpdated.at || 0) < 10 * 60 * 1000) {
+            await chrome.storage.local.remove('bvUpdated');
+            await chrome.tabs.create({ url: chrome.runtime.getURL('update.html#elsewhere') }).catch(() => {});
+        }
+        return;
+    }
     await chrome.storage.local.remove(['bvUpdated', 'bvUpdate']);
     await paintUpdateBadge();
     if (bvUpdated.reloadTabs) {
@@ -659,6 +674,7 @@ chrome.alarms.onAlarm.addListener((a) => { if (a.name === UPDATE_ALARM) checkUpd
 chrome.runtime.onStartup.addListener(() => { scheduleUpdates(); checkUpdate(false); });
 chrome.runtime.onInstalled.addListener(() => { scheduleUpdates(); afterSelfUpdate(); });
 paintUpdateBadge().catch(() => {});
+scheduleUpdates().catch(() => {});
 afterSelfUpdate().catch(() => {});
 
 // Whenever the worker starts, bring the last user's stored trades up to the current derivation rules.

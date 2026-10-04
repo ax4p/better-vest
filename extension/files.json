@@ -1,7 +1,7 @@
 {
  "edition": "standard",
  "files": {
-  "bridge.js": "4c9b211f8105c81850941c4ed436bff43ba8a0b7c1e0c3fead07a3757cfa20eb",
+  "bridge.js": "a4916ab07d0cf9be0a62544d0c18450b361d5fcd5b375873958d4ace42fe1d55",
   "cert/assets/bottom-glow.svg": "102b8d6705faa2d3abf42e4905d72802dc8b70a4db3d857bd2784a816b5c9749",
   "cert/assets/edge-shadow.svg": "ffe946ddd553a866df6a9eca1fb1438e1fd5216200c03226be170e0735501211",
   "cert/assets/green-glow.svg": "9f37a33066466454f697d584cf22fec9b5f2722ab1a7d68df7e110df11a5dfb0",
@@ -39,18 +39,18 @@
   "journal/views/shared.js": "30b1c9b67dd07d7f61ca6e86ed06805b3800b31c8aeeb03de1ce952c199a68aa",
   "journal/views/stats.js": "1bddadc7bd33f9d42854320fe3c9fc68e68cc9102787db5b7d5e215bbcbdcd3f",
   "journal/views/trades.js": "c266b799a68e14b68d912efdcbc81ba541671cc8b99e394eec719c7443404e83",
-  "manifest.json": "36b5470a9b91cc36636af7006913620881d97141547f61fc3338f0c471331efc",
-  "page/better-vest.js": "f55e41df738745053391a538ac93279b16a915dd9ec2334f7188d07a6d772183",
+  "manifest.json": "625848731288c64f8667a5ea43fbd5a9221fa39d8043860b5b32db753b6ff991",
+  "page/better-vest.js": "3b227ecc5869d8b2f0b494b780e608524a6945bdd1c185284a1157aa4ff5c413",
   "popup.css": "0153bf508f4bfdb53158ce4b51cd189b21e745ed07a00f1051b5e8d10b3cd231",
   "popup.html": "de23e9701c459ab80096aac695ba89dd0c7bf069810745b6aaaed41ea883ce42",
   "popup.js": "05cd059e1e3502d101d0fae41597302d7d13db15d36a2a64abe121cffac5f49f",
-  "sw.js": "75ba552c8f6fb546172f79c049b41a8d67923ba6a3b87295fd5e1bffb05c4b40",
-  "update.html": "c6e22e49dcd5d489d74769ae6e82c1fd8d6c94fc27c00e5b0eb6991561454925",
-  "update/core.js": "9f72e63ba3c6d0651db151cc827ed67a8a64cf78f37270718961a0ede8400646",
+  "sw.js": "109f0d573f9ceead2b7a4bb6e026815a77f8a2b0ef34f9356a3e67928fc94815",
+  "update.html": "18cf2bb253387723c49885c9c7c57339278a2ecc0b70374173a0ca70fc1d7797",
+  "update/core.js": "3ac2ebbec7a1575237bcce8c6f76b21fdeb007e8aa7ca51276d87bb6bbec200c",
   "update/key.js": "8669c2e8d9b8937ad5ecde2060a44b0758fc69e88dd3d491f794431893e83f7c",
-  "update/page.js": "afdd635432888bcf01aca139c94069c50540131b821dd4052d6c123a49e4ad35",
-  "update/update.css": "05e25bc1520a7e0acc8dad0cc34318556458c023140c54544361e86278e5ff67"
+  "update/page.js": "c01c2f9db0441bd3adfe6822997842369e1ff3c30c7b19fd854e3e0a785938c4",
+  "update/update.css": "1266c1d8451787f7a58055e04b7a0def2252cbb3200dd7f4862176b1ca0cbf1a"
  },
  "name": "Better Vest by Astral",
- "version": "7.5.0"
+ "version": "7.5.1"
 }

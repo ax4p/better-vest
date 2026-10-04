@@ -20,14 +20,17 @@
   <section id="card" class="card">
     <p id="lead" class="lead">Checking GitHub…</p>
     <div id="notes" class="notes" hidden></div>
+    <div id="how" class="how" hidden>
+      <p><b>First time only:</b> Chrome asks for a folder. Pick your Better Vest folder, the one you loaded on
+      <code>chrome://extensions</code>, or any folder it is in, like Documents. Then allow it to edit files.</p>
+      <p class="hint">Not sure where it is? On <code>chrome://extensions</code>, click <b>Details</b> on Better Vest:
+      <b>Source</b> shows the folder. On a Mac, folders whose name starts with a dot are hidden in the picker:
+      press <kbd>Cmd</kbd> <kbd>Shift</kbd> <kbd>.</kbd> to show them.</p>
+      <p class="hint">Takes a few seconds. Your settings and Calendar stay as they are.</p>
+    </div>
     <button id="go" class="primary" hidden></button>
-    <p id="how" class="hint" hidden>
-      Takes a few seconds. Your settings and Calendar stay as they are.
-      The first time, Chrome asks for your Better Vest folder: pick the one you loaded on
-      <code>chrome://extensions</code> (it holds <code>manifest.json</code>), then allow it to edit files.
-    </p>
     <ol id="steps" class="steps" hidden>
-      <li data-step="folder">Your Better Vest folder</li>
+      <li data-step="folder">Your Better Vest folder <span class="n"></span></li>
       <li data-step="download">Download and check the signature <span class="n"></span></li>
       <li data-step="write">Write the new files <span class="n"></span></li>
       <li data-step="restart">Restart Better Vest and reload your Vest tabs</li>
@@ -36,7 +39,7 @@
   </section>
 
   <section class="prefs">
-    <label><input type="checkbox" id="auto"> Check for updates (one request to GitHub every 6 hours)</label>
+    <label><input type="checkbox" id="auto"> Check for updates (one request to GitHub every 30 minutes)</label>
     <span class="links"><button id="check" class="link">Check now</button> · <button id="forget" class="link">Forget the folder</button> · <a id="rel" href="https://github.com/ax4p/better-vest/releases" target="_blank" rel="noopener">All releases</a></span>
   </section>
 </main>

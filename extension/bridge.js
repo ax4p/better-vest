@@ -156,5 +156,5 @@
         }).catch(() => {});
     }
     setTimeout(tellUpdate, 3000);
-    tellTimer = setInterval(tellUpdate, 15 * 60 * 1000);
+    tellTimer = setInterval(tellUpdate, 5 * 60 * 1000);
 })();
