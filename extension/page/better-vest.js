@@ -12,7 +12,7 @@
 (function () {
     'use strict';
 
-    const VERSION = '7.5.2';
+    const VERSION = '7.7.0';
     // true only in the Chrome extension build (tools/build.py defines BV_EXT there)
     const IS_EXT = typeof BV_EXT !== 'undefined' && !!BV_EXT;
     // 'standard' = the shareable build; anything else = WICKED, the author's own full build.
@@ -181,7 +181,9 @@
         chart: { sync: true, upColor: '', downColor: '', bgColor: '', hideVolume: true, hideGrid: true, volRemoved: false, hideSessions: true },
         ui: { compactDock: false, glass: 88, dockCalendar: true, wickAuto: true },
         // Execute card: partial take-profit plan and the collapsed pill
-        xc: { partials: false, tp1Pts: 20, tp1Pct: 50, targets: null, collapsed: false },
+        xc: { partials: false, tp1Pts: 20, tp1Pct: 50, targets: null, collapsed: false, slOn: true, tpOn: true },
+        // Daily loss limit (7.7, extension): a soft lockout for new trades. limit in dollars, reset hour in local time.
+        dll: { on: false, limit: 200, hour: 0, vest: true },
         tpsl: { enabled: true, showR: true, demo: false, followBars: true, be: { show: true, pct: 5, mode: 'pctProfit', ticks: 1, points: 0, minProfitTicks: 2, allowAtEntry: false } }
     };
 
@@ -251,6 +253,14 @@
     }
     S.ui = Object.assign({}, DEFAULTS.ui, S.ui || {});
     S.xc = Object.assign({}, DEFAULTS.xc, S.xc || {});
+    // 7.7: the stop and the target can be switched off (raw orders). Anything but an explicit false is on.
+    S.xc.slOn = S.xc.slOn !== false;
+    S.xc.tpOn = S.xc.tpOn !== false;
+    S.dll = Object.assign({}, DEFAULTS.dll, S.dll || {});
+    S.dll.on = S.dll.on === true;
+    S.dll.vest = S.dll.vest !== false;
+    if (!(Number(S.dll.limit) > 0)) S.dll.limit = DEFAULTS.dll.limit;
+    S.dll.hour = Number.isInteger(Number(S.dll.hour)) && Number(S.dll.hour) >= 0 && Number(S.dll.hour) <= 23 ? Number(S.dll.hour) : 0;
     // Partials take any number of targets since 7.5.2; 7.5.1 kept one (tp1Pts / tp1Pct), which becomes TP1
     if (!Array.isArray(S.xc.targets) || !S.xc.targets.length) S.xc.targets = [{ pts: Number(S.xc.tp1Pts) || 20, pct: Number(S.xc.tp1Pct) || 50 }];
     if (!(S.v >= 7.2)) {
@@ -623,7 +633,22 @@
             #ax4p-exec-deck .xc-lab, #ax4p-exec-deck .xc-tag { display: flex; align-items: center; gap: 6px; height: 12px; font-size: 10px; line-height: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--ax-dim); white-space: nowrap; }
             #ax4p-exec-deck .xc-lab em { margin-left: 4px; letter-spacing: 0; text-transform: none; font-size: 11px; color: var(--ax-muted); }
             #ax4p-exec-deck .xc-lab em b { color: var(--ax-text); font-weight: 600; }
-            #ax4p-exec-deck .xc-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+            #ax4p-exec-deck .xc-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex: none; }
+            /* STOP / TARGET labels are switches: dot filled = on, hollow = off (the stepper beside it dims and goes inert) */
+            #ax4p-exec-deck .xc-lab--tg { box-sizing: content-box; width: max-content; padding: 4px 6px; margin: -4px -6px; border-radius: 6px; cursor: pointer; user-select: none; -webkit-user-select: none; }
+            #ax4p-exec-deck .xc-lab--tg .xc-lt { color: var(--ax-dim); transition: color .12s; }
+            #ax4p-exec-deck .xc-lab--tg:hover .xc-lt { color: var(--ax-text); }
+            #ax4p-exec-deck .xc-lab--tg:focus-visible { outline: 1px solid var(--ax-accent); outline-offset: 0; }
+            #ax4p-exec-deck .xc-lab--tg[aria-checked="false"] .xc-dot { background: transparent; box-shadow: inset 0 0 0 1.5px currentColor; }
+            #ax4p-exec-deck .xc-g.off .xc-step { opacity: .4; pointer-events: none; }
+            /* daily loss limit: one quiet line under the header, a banner once it is hit */
+            #ax4p-exec-deck .xc-dll { margin: -2px 0 6px; font-size: 11px; line-height: 14px; color: var(--ax-dim); white-space: nowrap; }
+            #ax4p-exec-deck .xc-dll.warn { color: var(--ax-warn); }
+            #ax4p-exec-deck .xc-lock-banner { display: flex; align-items: center; gap: 8px; margin: 2px 0 8px; padding: 8px 12px; border-radius: 8px; font-size: 12px; line-height: 16px; font-weight: 600; color: var(--ax-down);
+                background: color-mix(in srgb, var(--ax-down) 12%, transparent); border: 1px solid color-mix(in srgb, var(--ax-down) 45%, transparent); }
+            #ax4p-exec-deck .xc-lock-banner svg { flex: none; }
+            #ax4p-exec-deck.xc-locked .xc-big, #ax4p-exec-deck.xc-locked #ax4p-rev-btn { opacity: .4; cursor: not-allowed; filter: none; }
+            #ax4p-exec-deck .xc-pill-lock { display: grid; place-items: center; color: var(--ax-down); }
             #ax4p-exec-deck .xc-seg, #ax4p-exec-deck .xc-field, #ax4p-exec-deck .xc-step { height: 32px; border: 1px solid var(--ax-line); border-radius: 8px; background: var(--ax-btn); }
             #ax4p-exec-deck .xc-sizes { display: flex; gap: 8px; width: 232px; }
             #ax4p-exec-deck .xc-seg { display: flex; padding: 2px; gap: 2px; }
@@ -722,6 +747,7 @@
             #ax4p-exec-deck .xc-num { font-size: 13px; font-weight: 700; margin-left: 4px; }
             #ax4p-exec-deck .xc-sltp { display: flex; gap: 4px; font-weight: 600; padding: 0 8px; }
             #ax4p-exec-deck .xc-sltp i { color: var(--ax-dim); }
+            #ax4p-exec-deck .xc-sltp b.off { color: var(--ax-dim); font-weight: 500; }
             #ax4p-exec-deck .xc-pill .xc-pnl { font-size: 13px; font-weight: 700; padding-right: 4px; }
             #ax4p-exec-deck .xc-big--s { width: auto; height: 28px; padding: 0 16px; font-size: 11px; border-radius: 14px; }
             #ax4p-exec-deck .xc-flat { height: 28px; padding: 0 12px; border: 1px solid var(--ax-line); border-radius: 14px; font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--ax-text); }
@@ -2350,17 +2376,19 @@
         const tpPts = parseFloat(document.getElementById('ax4p-tp-pts')?.value) || S.tp || 30;
         const size = activeSelectedSize;
         if (!document.getElementById('ax4p-exec-risk-display')) return;
+        const slOn = S.xc.slOn !== false, tpOn = S.xc.tpOn !== false;
         const risk = slPts * size;
         const plan = xcPartialsOn() ? xcPlan(size, tpPts) : null;
         const target = plan ? plan.total : tpPts * size;
         const rr = risk > 0 ? target / risk : 0;
-        const pct = acctPct(risk);
-        const key = [slPts, tpPts, size, S.account, plan ? JSON.stringify(S.xc.targets) : ''].join('|');
+        // no stop means no risk figure and no share of the account; either leg off means no R:R
+        const pct = slOn ? acctPct(risk) : null;
+        const key = [slPts, tpPts, size, S.account, slOn, tpOn, plan ? JSON.stringify(S.xc.targets) : ''].join('|');
         if (key !== lastRiskHtml) {
             lastRiskHtml = key;
-            xcText('ax4p-xc-risk', xcUsd(risk));
-            xcText('ax4p-xc-target', xcUsd(target));
-            xcText('ax4p-xc-rr', '1:' + (+rr.toFixed(rr >= 10 ? 0 : 1)));
+            xcText('ax4p-xc-risk', slOn ? xcUsd(risk) : 'No stop');
+            xcText('ax4p-xc-target', tpOn ? xcUsd(target) : '-');
+            xcText('ax4p-xc-rr', slOn && tpOn ? '1:' + (+rr.toFixed(rr >= 10 ? 0 : 1)) : '-');
             const cell = document.getElementById('ax4p-xc-pct-cell');
             if (cell) {
                 cell.hidden = pct == null;
@@ -2388,8 +2416,12 @@
                 if (run) run.title = plan.why ? 'Partials not set: ' + plan.why + '.' : 'The rest of the position, at the main target';
             }
             xcText('ax4p-xc-pill-size', fmtSize(size));
-            xcText('ax4p-xc-pill-sl', fmtSize(slPts));
-            xcText('ax4p-xc-pill-tp', fmtSize(tpPts));
+            xcText('ax4p-xc-pill-sl', slOn ? fmtSize(slPts) : 'off');
+            xcText('ax4p-xc-pill-tp', tpOn ? fmtSize(tpPts) : 'off');
+            [['ax4p-xc-pill-sl', slOn], ['ax4p-xc-pill-tp', tpOn]].forEach(([id, on]) => {
+                const el = document.getElementById(id);
+                if (el) el.classList.toggle('off', !on);
+            });
         }
         paintSizeUnit();
     }
@@ -2516,6 +2548,98 @@
         invokeReactClick(trigger);
         const ok = await confirmCloseDialog();
         if (!ok) flashExec('Opened close dialog — submit missed');
+    }
+
+    // ---------- Stop and target on / off (7.7): orders without a preset stop and / or target ----------
+    // Everything above is the protected order code and stays as it is. These functions only CALL it.
+    // xcExecute is the one door for a LONG or SHORT: the card, the pill and the W / S macros (both press the card's
+    // buttons), REV's open leg and the copy trader. Stop and target both on is the old path, triggerExecution itself.
+    const xcSlOn = () => S.xc.slOn !== false;
+    const xcTpOn = () => S.xc.tpOn !== false;
+    // ', no stop' / ', no target' / ', no stop, no target' for a toast; '' when both are on
+    function xcLegsOffText() {
+        return (xcSlOn() ? '' : ', no stop') + (xcTpOn() ? '' : ', no target');
+    }
+
+    // What the last raw order did, for the W / S macros: they press the card's button and cannot see the outcome otherwise.
+    const XCR = { n: 0, sent: false, msg: '' };
+
+    async function xcExecute(side) {
+        const lk = xcHooks.locked();
+        if (lk) { flashExec(lk.text); XCR.msg = lk.text; XCR.sent = false; XCR.n++; return false; }
+        if (xcSlOn() && xcTpOn()) return triggerExecution(side);
+        let sent = false;
+        try { sent = await xcRawExecution(side); } finally { XCR.sent = sent; XCR.n++; }
+        return sent;
+    }
+
+    // The wanted leg gets its price; the other one is cleared with '', so a price left from the last order can never
+    // ride along. A leg's price is null when it is not wanted. Returns what could be written, and whether an unwanted
+    // field still holds a price after the clear (left*).
+    function xcFillLegs(panel, slPrice, tpPrice) {
+        const slInput = findInputByLabel(/stop\s*loss|^sl$/i, panel);
+        const tpInput = findInputByLabel(/take\s*profit|^tp$/i, panel);
+        const out = { okSl: true, okTp: true, leftSl: false, leftTp: false };
+        if (slPrice != null) out.okSl = slInput ? setReactInputValue(slInput, slPrice) : false;
+        else if (slInput) { setReactInputValue(slInput, ''); out.leftSl = String(slInput.value == null ? '' : slInput.value).trim() !== ''; }
+        if (tpPrice != null) out.okTp = tpInput ? setReactInputValue(tpInput, tpPrice) : false;
+        else if (tpInput) { setReactInputValue(tpInput, ''); out.leftTp = String(tpInput.value == null ? '' : tpInput.value).trim() !== ''; }
+        return out;
+    }
+
+    // triggerExecution's steps, in its order, for an order with the stop and / or the target off. With neither wanted
+    // Vest's own TP/SL box is switched off (its fields are emptied first, in case Vest keeps them when the box goes off);
+    // with one wanted the box stays on and the other field is cleared. It refuses (nothing pressed) when the ticket does
+    // not end up the way this order needs it. true = Buy / Sell was pressed.
+    async function xcRawExecution(side) {
+        const useSl = xcSlOn(), useTp = xcTpOn();
+        const stop = (m) => { flashExec(m); XCR.msg = m; return false; };
+        const size = activeSelectedSize;
+        const slPts = parseFloat(document.getElementById('ax4p-sl-pts')?.value) || 15;
+        const tpPts = parseFloat(document.getElementById('ax4p-tp-pts')?.value) || 30;
+        const { mid } = detectPrices();
+        if (!mid) return stop('No mid yet');
+        const slPrice = roundToTick(side === 'buy' ? mid - slPts : mid + slPts);
+        const tpPrice = roundToTick(side === 'buy' ? mid + tpPts : mid - tpPts);
+        // isTpSlOn reads a missing switch as off, so "off" here means: the switch is found and reads off
+        const boxOff = () => { const b = tpSlButton(); return !!b && !isTpSlOn(b); };
+
+        const panel = findOrderPanel();
+        await ensureSizeUnitNq();
+        if (useSl || useTp) ensureTpSlChecked();
+        else {
+            if (!tpSlButton()) return stop("Could not find the ticket's TP/SL switch. Nothing sent.");
+            if (isTpSlOn()) {
+                xcFillLegs(panel, null, null);
+                invokeReactClick(tpSlButton());
+            }
+        }
+        await sleep(160);
+        if (!useSl && !useTp && !boxOff()) {
+            // Vest can be a moment slow to re-render: one more look before giving up
+            await sleep(200);
+            if (!boxOff()) return stop("Could not switch the ticket's TP/SL off. Nothing sent.");
+        }
+        const sizeInput = findAmountInput();
+        const sizeOk = sizeInput ? setReactInputValue(sizeInput, String(size)) : false;
+        if (sizeInput) {
+            await sleep(80);
+            setReactInputValue(sizeInput, String(size));
+        }
+
+        if (useSl || useTp) {
+            const filled = xcFillLegs(panel, useSl ? slPrice : null, useTp ? tpPrice : null);
+            if (!filled.okSl || !filled.okTp) return stop(`The ticket has no ${filled.okSl ? 'target' : 'stop'} field. Nothing sent.`);
+            if (filled.leftSl || filled.leftTp) return stop(`Could not empty the ${filled.leftSl ? 'stop' : 'target'} field. Nothing sent.`);
+        }
+        await sleep(80);
+        // a last look: Vest's own startup timers can switch the box back on while this order waits
+        if (!useSl && !useTp && !boxOff()) return stop("The ticket's TP/SL came back on. Nothing sent.");
+        const targetBtn = findPlatformSideButton(side, panel) || findPlatformSideButton(side, document);
+        if (!targetBtn) return stop(`Size ${sizeOk ? 'set' : 'NOT set'} · no Buy/Sell on ticket (Deposit only?)`);
+        targetBtn.click();
+        flashExec(`${side.toUpperCase()} ${size}${sizeOk ? '' : ' (size?)'} @ ${mid.toFixed(2)}  ${useSl ? 'SL ' + slPrice : 'no SL'}  ${useTp ? 'TP ' + tpPrice : 'no TP'}`);
+        return true;
     }
 
     function applyPos(el, key, fallback) {
@@ -2714,7 +2838,10 @@
     // the card trades exactly like the old strip and 50% / REV stay off.
     // known() is false when the card cannot see your position: then it shows no position line instead of "Flat".
     const xcHooks = { known: () => false, unknownWhy: () => '', position: () => null, demo: () => false, keyFor: () => '', half: null, rev: null, busy: () => false, armed: () => false,
-        partials: () => 'Partials need the Better Vest extension.', assetOf: () => null, applyPartials: null };
+        partials: () => 'Partials need the Better Vest extension.', assetOf: () => null, applyPartials: null,
+        // the daily loss limit (extension): locked() is { text } while new trades are locked, dll() is what the card shows
+        // lockedAny(): true while any account's lock is on, which also freezes the settings and a reset / import of them
+        locked: () => null, lockedAny: () => false, dll: () => null };
     const XC_ICON = {
         grip: '<svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor" aria-hidden="true"><circle cx="4" cy="2.5" r="1"/><circle cx="8" cy="2.5" r="1"/><circle cx="4" cy="6" r="1"/><circle cx="8" cy="6" r="1"/><circle cx="4" cy="9.5" r="1"/><circle cx="8" cy="9.5" r="1"/></svg>',
         minus: '<svg width="10" height="10" viewBox="0 0 10 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M2 5h6"/></svg>',
@@ -2724,11 +2851,14 @@
         expand: '<svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 4.5L6 8l3.5-3.5"/></svg>',
         flat: '<svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><rect x="2.5" y="2.5" width="11" height="11" rx="3" stroke="currentColor" stroke-width="1.6"/><path d="M5.9 5.9l4.2 4.2M10.1 5.9l-4.2 4.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>',
         half: '<svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="5.75" stroke="currentColor" stroke-width="1.5"/><path d="M8 2.25a5.75 5.75 0 0 0 0 11.5z" fill="currentColor"/></svg>',
-        rev: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 5.25h10.25M10.25 2.75l2.5 2.5-2.5 2.5M13.5 10.75H3.25M5.75 8.25l-2.5 2.5 2.5 2.5"/></svg>'
+        rev: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 5.25h10.25M10.25 2.75l2.5 2.5-2.5 2.5M13.5 10.75H3.25M5.75 8.25l-2.5 2.5 2.5 2.5"/></svg>',
+        lock: '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="7.25" width="9" height="6.25" rx="1.75"/><path d="M5.5 7.25V5.5a2.5 2.5 0 0 1 5 0v1.75"/></svg>'
     };
     function xcMarket() { return String(detectedSymbol || '').replace(/-PERP$/, '') || 'NQ'; }
     // Partials need the extension's TP/SL reader (or Demo): xcHooks.partials() says why not, '' when they can run.
-    function xcPartialsOn() { return !!S.xc.partials && !xcHooks.partials(); }
+    // A target is what Partials split, so with the target switched off they cannot run (the switch keeps its saved state).
+    function xcPartialsWhy() { return xcHooks.partials() || (S.xc.tpOn === false ? 'Partials need a target' : ''); }
+    function xcPartialsOn() { return !!S.xc.partials && !xcPartialsWhy(); }
 
     function paintAcctTabs() {
         document.querySelectorAll('#ax4p-acct-tabs button').forEach((b) => b.classList.toggle('on', b.getAttribute('data-acct') === S.account));
@@ -2798,15 +2928,68 @@
         if (inp) inp.focus();
     }
 
+    // STOP and TARGET switches: state, tooltip, and the stepper beside each one (dimmed and inert while off)
+    function xcPaintLegs() {
+        [['sl', 'Stop', 'slOn'], ['tp', 'Target', 'tpOn']].forEach(([k, name, key]) => {
+            const tg = document.getElementById(`ax4p-xc-${k}-tg`);
+            if (!tg) return;
+            const on = S.xc[key] !== false;
+            tg.setAttribute('aria-checked', String(on));
+            const tip = on ? `${name} on: every order gets this ${name.toLowerCase()}` : `${name} off: orders go in without a ${name.toLowerCase()}`;
+            if (tg.title !== tip) tg.title = tip;
+            const g = document.getElementById(`ax4p-xc-${k}-g`);
+            if (g) {
+                g.classList.toggle('off', !on);
+                const step = g.querySelector('.xc-step');
+                if (step && step.inert !== !on) step.inert = !on;
+            }
+        });
+    }
+
+    function xcSetLeg(key, on) {
+        S.xc[key] = !!on;
+        persist();
+        lastRiskHtml = '';
+        xcPaintLegs();
+        xcPaint();
+        updateExecutionRiskCalc();
+    }
+
+    // the daily loss limit's line and banner on the card (the extension fills xcHooks.dll; the userscript has none)
+    function xcPaintDll() {
+        const deck = document.getElementById('ax4p-exec-deck');
+        const info = xcHooks.dll();
+        const line = document.getElementById('ax4p-xc-dll');
+        if (line) {
+            line.hidden = !info;
+            if (info) {
+                if (line.textContent !== info.line) line.textContent = info.line;
+                line.classList.toggle('warn', info.level === 'warn');
+            }
+        }
+        const lk = xcHooks.locked();
+        const banner = document.getElementById('ax4p-xc-lock');
+        if (banner) {
+            banner.hidden = !lk;
+            if (lk) {
+                const html = XC_ICON.lock + '<span>' + escHtml(lk.text) + '</span>';
+                if (banner.innerHTML !== html) banner.innerHTML = html;
+            }
+        }
+        if (deck) deck.classList.toggle('xc-locked', !!lk);
+        const pl = document.getElementById('ax4p-xc-pill-lock');
+        if (pl) pl.hidden = !lk;
+    }
+
     function xcPaintPartials() {
         const sw = document.getElementById('ax4p-xc-partials');
         if (!sw) return;
-        const why = xcHooks.partials();
+        const why = xcPartialsWhy();
         const on = xcPartialsOn();
         sw.classList.toggle('on', on);
         sw.setAttribute('aria-checked', String(on));
         sw.disabled = !!why;
-        sw.title = why || 'Two take-profits: TP1 closes part of the position, the rest rides to the target. Set in Vest\'s own Edit TP/SL window right after the order fills.';
+        sw.title = why || 'Partial take-profits: each target closes its share of the position, the rest rides to your main target. Set in Vest\'s own Edit TP/SL window right after the order fills.';
         const parts = document.getElementById('ax4p-xc-parts');
         if (parts) parts.hidden = !on;
         const apply = document.getElementById('ax4p-xc-p-apply');
@@ -2866,6 +3049,8 @@
             kb.hidden = !k;
             if (kb.textContent !== k) kb.textContent = k;
         });
+        xcPaintLegs();
+        xcPaintDll();
         xcPaintPartials();
         paintSizeUnit();
     }
@@ -2884,8 +3069,17 @@
             const real = document.getElementById(b.getAttribute('data-press'));
             if (real) real.click();
         }));
+        [['sl', 'slOn'], ['tp', 'tpOn']].forEach(([k, key]) => {
+            const tg = document.getElementById(`ax4p-xc-${k}-tg`);
+            tg.addEventListener('click', () => xcSetLeg(key, S.xc[key] === false));
+            tg.addEventListener('keydown', (e) => {
+                if (e.key !== ' ' && e.key !== 'Enter') return;
+                e.preventDefault();
+                xcSetLeg(key, S.xc[key] === false);
+            });
+        });
         document.getElementById('ax4p-xc-partials').addEventListener('click', () => {
-            if (xcHooks.partials()) return;
+            if (xcPartialsWhy()) return;
             S.xc.partials = !S.xc.partials;
             persist();
             lastRiskHtml = '';
@@ -3096,10 +3290,12 @@
                     <div class="xc-tabs" id="ax4p-acct-tabs" role="tablist" aria-label="Account size presets">${['5k', '10k', '25k', 'custom'].map((a) => `<button type="button" data-acct="${a}">${ACCOUNT_LABELS[a]}</button>`).join('')}</div>
                     <button type="button" class="xc-ico" id="ax4p-xc-collapse" title="collapse" aria-label="Collapse">${XC_ICON.collapse}</button>
                 </div>
+                <div class="xc-dll" id="ax4p-xc-dll" hidden></div>
+                <div class="xc-lock-banner" id="ax4p-xc-lock" role="alert" hidden></div>
                 <div class="xc-in">
                     <div class="xc-g"><span class="xc-lab">Size<em id="ax4p-mnq-readout"></em></span><div class="xc-sizes"><div class="xc-seg" id="ax4p-sz-wrap"></div><input id="ax4p-custom-sz" class="xc-field" type="number" placeholder="Custom" min="0" step="0.1" value="${escHtml(S.customSz || '')}" title="custom size"></div></div>
-                    <div class="xc-g"><span class="xc-lab dn"><span class="xc-dot"></span><span style="color:var(--ax-dim)">Stop</span></span>${xcStepper('ax4p-sl-pts', S.sl, 'xc-step--sl', 'Stop')}</div>
-                    <div class="xc-g"><span class="xc-lab up"><span class="xc-dot"></span><span style="color:var(--ax-dim)">Target</span></span>${xcStepper('ax4p-tp-pts', S.tp, 'xc-step--tp', 'Target')}</div>
+                    <div class="xc-g" id="ax4p-xc-sl-g"><span class="xc-lab xc-lab--tg dn" id="ax4p-xc-sl-tg" role="switch" aria-checked="true" aria-label="Stop" tabindex="0"><span class="xc-dot"></span><span class="xc-lt">Stop</span></span>${xcStepper('ax4p-sl-pts', S.sl, 'xc-step--sl', 'Stop')}</div>
+                    <div class="xc-g" id="ax4p-xc-tp-g"><span class="xc-lab xc-lab--tg up" id="ax4p-xc-tp-tg" role="switch" aria-checked="true" aria-label="Target" tabindex="0"><span class="xc-dot"></span><span class="xc-lt">Target</span></span>${xcStepper('ax4p-tp-pts', S.tp, 'xc-step--tp', 'Target')}</div>
                     <div class="xc-g xc-g--sw"><span class="xc-lab">Partials</span><div class="xc-swrow"><button type="button" class="xc-apply" id="ax4p-xc-p-apply" title="Split this position's take-profit the same way, in Vest's Edit TP/SL window" hidden>Set on position</button><button type="button" class="xc-sw" id="ax4p-xc-partials" role="switch" aria-checked="false"><span></span></button></div></div>
                 </div>
                 <div class="xc-parts" id="ax4p-xc-parts" hidden></div>
@@ -3124,6 +3320,7 @@
             <div class="xc-pill">
                 <span class="xc-grip" title="drag to move">${XC_ICON.grip}</span>
                 <span class="xc-mk" id="ax4p-xc-pill-mk">NQ</span>
+                <span class="xc-pill-lock" id="ax4p-xc-pill-lock" hidden title="Daily loss limit hit: new trades are locked">${XC_ICON.lock}</span>
                 <b class="xc-num" id="ax4p-xc-pill-size"></b>
                 <span class="xc-sltp"><b class="dn" id="ax4p-xc-pill-sl"></b><i>/</i><b class="up" id="ax4p-xc-pill-tp"></b></span>
                 <button type="button" class="xc-big xc-big--s long" data-press="ax4p-buy-btn">Long</button>
@@ -3156,8 +3353,8 @@
         });
         document.getElementById('ax4p-sl-pts').addEventListener('input', (e) => { S.sl = parseFloat(e.target.value) || 15; persist(); updateExecutionRiskCalc(); });
         document.getElementById('ax4p-tp-pts').addEventListener('input', (e) => { S.tp = parseFloat(e.target.value) || 30; persist(); updateExecutionRiskCalc(); });
-        document.getElementById('ax4p-buy-btn').onclick = () => triggerExecution('buy');
-        document.getElementById('ax4p-sell-btn').onclick = () => triggerExecution('sell');
+        document.getElementById('ax4p-buy-btn').onclick = () => xcExecute('buy');
+        document.getElementById('ax4p-sell-btn').onclick = () => xcExecute('sell');
         document.getElementById('ax4p-flatten-btn').onclick = triggerCloseAll;
         xcWire(execBox);
         updateExecutionRiskCalc();
@@ -3254,6 +3451,7 @@
                     <div class="ax4p-btnrow"><button id="ax4p-preset-reset" class="ax4p-btn">Reset this account to default</button></div>
                     <div class="ax4p-hint">Each account keeps its own four sizes. Sizes are NQ units (MNQ = size ÷ 2). Switching account selects its smallest size.</div>
                 </div>
+                ${IS_EXT ? dllSettingsHtml() : ''}
                 ${IS_EXT ? mcSettingsHtml() : ''}
             </div>
             <div class="ax4p-tabpane" data-pane="market">
@@ -3364,6 +3562,7 @@
         document.getElementById('ax4p-ch-sess').onchange = (e) => { S.chart.hideSessions = e.target.checked; persist(); syncChartSoon(); };
         tpWireSettings();
         mcWireSettings();
+        dllWireSettings();
         document.getElementById('ax4p-ch-reset').onclick = () => {
             S.chart.upColor = '';
             S.chart.downColor = '';
@@ -3392,6 +3591,7 @@
             try { navigator.clipboard.writeText(io.value).then(done, () => { document.execCommand('copy'); done(); }); } catch (e) { ioMsg('Select the box and copy it.'); }
         };
         document.getElementById('ax4p-import').onclick = () => {
+            if (xcHooks.lockedAny()) { ioMsg('A daily loss lock is on. Settings cannot be replaced until it resets.'); return; }
             let next;
             try { next = JSON.parse(io.value); } catch (e) { ioMsg('That is not a settings backup (invalid JSON).'); return; }
             if (!next || typeof next !== 'object' || Array.isArray(next) || !('widgets' in next || 'theme' in next)) { ioMsg('That is not a Better Vest settings backup.'); return; }
@@ -3405,6 +3605,7 @@
             location.reload();
         };
         document.getElementById('ax4p-reset-all').onclick = () => {
+            if (xcHooks.lockedAny()) { ioMsg('A daily loss lock is on. Settings cannot be reset until it resets.'); return; }
             if (!win.confirm('Reset all Better Vest settings to defaults?')) return;
             writeStore('ax4p_settings', {});
             location.reload();
@@ -6067,6 +6268,9 @@
     // Why an order / flat macro must not run right now ('' = it may). BE has its own checks inside tpBreakeven.
     function mcGate(id) {
         if (id === 'be') return '';
+        // reducing risk is never locked: only the orders that open or add
+        const lk = id !== 'flat' ? xcHooks.locked() : null;
+        if (lk) return 'the daily loss limit is hit, ' + lk.short;
         if (!tpSymbolsAgree()) return 'the chart and the page show different markets';
         if (!mcExecVisible()) return 'the Exec strip is hidden. Show it first, so you can see the size';
         if (id !== 'flat' && !mcMarketOk(detectedSymbol)) return 'order hotkeys work on NQ and MNQ only (Exec sizes are NQ contracts)';
@@ -6119,8 +6323,15 @@
         if (!(await mcEnsureTab('market'))) { mcToast(k, '· could not switch the ticket to Market. Nothing sent.', 'bad', true); return 0; }
         if (mcDemo()) return 0;
         if (tpActiveAccount() !== acc0 || mcGate(side === 'buy' ? 'long' : 'short')) { mcToast(k, '· the account or the market changed. Nothing sent.', 'bad', true); return 0; }
+        const n0 = XCR.n;
         btn.click();
-        mcToast(k, '· ' + (side === 'buy' ? 'Long ' : 'Short ') + mcSizeTxt() + ' @ market', side === 'buy' ? 'long' : 'short');
+        if (xcLegsOffText()) {
+            // the raw path takes about a second and can still refuse after the click: toast what it did, not what was asked
+            for (let i = 0; i < 100 && XCR.n === n0; i++) await sleep(50);
+            if (XCR.n === n0) { mcToast(k, '· no answer from the ticket. Check Vest before you trade again.', 'warn', true); return 1800; }
+            if (!XCR.sent) { mcToast(k, '· ' + XCR.msg.replace(/\.? ?Nothing sent\.$/, '') + '. Nothing sent.', 'bad', true); return 0; }
+        }
+        mcToast(k, '· ' + (side === 'buy' ? 'Long ' : 'Short ') + mcSizeTxt() + ' @ market' + xcLegsOffText(), side === 'buy' ? 'long' : 'short');
         return 1800; // the strip runs for about half a second after the click: no second order meanwhile
     }
 
@@ -6186,7 +6397,9 @@
             if (!mcSameNum(mcReadNum(qTicket('[data-testid="size-input"]') || sizeEl), size)) return refuse('the ticket did not take size ' + mcSizeTxt());
             // TP/SL: off unless the macro setting asks for the Exec strip's stop and target
             const tpBtn = tpSlButton();
-            const bracket = !!(S.macros && S.macros.limitBracket);
+            // with the Exec stop and target both switched off there is nothing to carry: the ticket's TP/SL stays off
+            const legSl = xcSlOn(), legTp = xcTpOn();
+            const bracket = !!(S.macros && S.macros.limitBracket) && (legSl || legTp);
             if (tpBtn) {
                 if (!bracket && isTpSlOn(tpBtn)) {
                     tpWasOn = true;
@@ -6199,8 +6412,15 @@
                     const tpPts = parseFloat(document.getElementById('ax4p-tp-pts')?.value) || 30;
                     const sl = snapToTick(side === 'buy' ? first.plan.price - slPts : first.plan.price + slPts, first.plan.tick, first.plan.dec);
                     const tp = snapToTick(side === 'buy' ? first.plan.price + tpPts : first.plan.price - tpPts, first.plan.tick, first.plan.dec);
-                    if (!sl || !tp) return refuse('could not work out the stop and target');
-                    const filled = await fillTpSlPrices(sl.s, tp.s, findOrderPanel());
+                    if ((legSl && !sl) || (legTp && !tp)) return refuse('could not work out the stop and target');
+                    let filled;
+                    if (legSl && legTp) filled = await fillTpSlPrices(sl.s, tp.s, findOrderPanel());
+                    else {
+                        // only the legs that are on: the other field is cleared, so nothing from the last order rides along
+                        ensureTpSlChecked();
+                        await sleep(160);
+                        filled = xcFillLegs(findOrderPanel(), legSl ? sl.s : null, legTp ? tp.s : null);
+                    }
                     if (!filled.okSl || !filled.okTp) return refuse('could not fill the stop and target');
                 }
             }
@@ -6254,13 +6474,14 @@
         const tag = '· [DEMO] ';
         const size = mcSizeTxt();
         if (id === 'be') { mcBe(k, true); return; }
-        if (id === 'long' || id === 'short') { mcToast(k, tag + (id === 'long' ? 'Long ' : 'Short ') + size + ' @ market (nothing sent)', id, true); return; }
+        if (id === 'long' || id === 'short') { mcToast(k, tag + (id === 'long' ? 'Long ' : 'Short ') + size + ' @ market' + xcLegsOffText() + ' (nothing sent)', id, true); return; }
         if (id === 'flat') { mcToast(k, tag + 'Flat (nothing sent)', 'warn', true); return; }
         const q = mcBookQuote(book, now(), MC_BOOK_MAX_AGE_MS);
         const plan = mcLimitPlan(id, q);
         const px = plan ? mcPriceText(plan.price, tpInfoFor(apiSymbol()).dec) : null;
         const nm = id === 'limitBuy' ? 'Limit buy ' : 'Limit sell ';
-        mcToast(k, tag + nm + size + (px ? ' @ ' + px + ' (' + plan.ref + ')' : ' (no fresh book)') + ' (nothing sent)', id === 'limitBuy' ? 'long' : 'short', true);
+        const bracket = S.macros && S.macros.limitBracket ? (xcSlOn() ? ', with the stop' : ', no stop') + (xcTpOn() ? ' and target' : ', no target') : '';
+        mcToast(k, tag + nm + size + (px ? ' @ ' + px + ' (' + plan.ref + ')' : ' (no fresh book)') + bracket + ' (nothing sent)', id === 'limitBuy' ? 'long' : 'short', true);
     }
 
     async function mcRun(id, k) {
@@ -6301,7 +6522,7 @@
                     <label class="ax4p-row"><span><b>Macros on</b> (same as the dock button)</span><input type="checkbox" id="ax4p-mc-master"></label>
                     ${rows}
                     <label class="ax4p-row"><span>Toast on every macro</span><input type="checkbox" id="ax4p-mc-toast"></label>
-                    <label class="ax4p-row"><span>Limit orders carry the Exec SL / TP</span><input type="checkbox" id="ax4p-mc-bracket"></label>
+                    <label class="ax4p-row"><span>Limit orders carry the Exec SL / TP (the legs that are on)</span><input type="checkbox" id="ax4p-mc-bracket"></label>
                     <div class="ax4p-btnrow"><button id="ax4p-mc-reset" class="ax4p-btn">Reset keys</button></div>
                     <div class="ax4p-hint" id="ax4p-mc-msg">Click a key, then press the new one. Backspace unbinds, Esc cancels.</div>
                     <div class="ax4p-hint">W and S click the Exec strip's LONG and SHORT with its size. E and Q open Vest's Limit ticket at the best bid / ask (a stale or crossed book is refused), then put the ticket back on Market. H moves the stop to breakeven. The keys are ignored while you type, with a dialog open, or with Ctrl / Alt / Cmd / Shift held, and they do not open TradingView's symbol search. While the demo position is on, macros only show a toast.</div>
@@ -6614,7 +6835,8 @@
         const names = pos.isLong ? ['LONG', 'SHORT'] : ['SHORT', 'LONG'];
         const pts = xcPts();
         if (xcDemoOn()) {
-            xcSay(`[DEMO] REV would close ${names[0]} ${fmtSize(pos.qty)}, then open ${names[1]} ${fmtSize(pos.qty)} with stop ${fmtSize(pts.sl)} pt / target ${fmtSize(pts.tp)} pt. Nothing sent.`);
+            const legs = [xcSlOn() ? `stop ${fmtSize(pts.sl)} pt` : 'no stop', xcTpOn() ? `target ${fmtSize(pts.tp)} pt` : 'no target'];
+            xcSay(`[DEMO] REV would close ${names[0]} ${fmtSize(pos.qty)}, then open ${names[1]} ${fmtSize(pos.qty)} with ${legs.join(' / ')}. Nothing sent.`);
             return;
         }
         XC.busy = true;
@@ -6625,7 +6847,7 @@
             // every check for the new side runs BEFORE anything is closed
             const why = mcGate(want);
             if (why) { xcSay('REV: ' + why + '. Nothing sent.', 'bad'); return; }
-            if (!(pts.sl > 0) || !(pts.tp > 0)) { xcSay('REV needs a stop and a target in points. Nothing sent.', 'bad'); return; }
+            if ((xcSlOn() && !(pts.sl > 0)) || (xcTpOn() && !(pts.tp > 0))) { xcSay('REV needs a ' + (xcSlOn() && xcTpOn() ? 'stop and a target' : xcSlOn() ? 'stop' : 'target') + ' in points. Nothing sent.', 'bad'); return; }
             const tw = xcTicketWhy(side);
             if (tw) { xcSay('REV: ' + tw + '. Nothing sent.', 'bad'); return; }
             const acc0 = tpActiveAccount(), sym0 = tpSymbol(), api0 = apiSymbol();
@@ -6664,7 +6886,7 @@
             if (XC.abort) { stop('you pressed FLAT'); return; }
             const keep = activeSelectedSize;
             activeSelectedSize = qty;
-            try { await triggerExecution(side); } finally { activeSelectedSize = keep; lastRiskHtml = ''; updateExecutionRiskCalc(); }
+            try { await xcExecute(side); } finally { activeSelectedSize = keep; lastRiskHtml = ''; updateExecutionRiskCalc(); }
             // the order code writes its own result line, "SELL 2 @ ..." once it has pressed Vest's button
             const said = ((document.getElementById('ax4p-exec-flash') || {}).textContent || '').trim();
             if (said.indexOf(side.toUpperCase() + ' ') !== 0) { stop(said ? 'the ticket did not take it (' + said + ')' : 'the ticket did not take it'); return; }
@@ -6689,7 +6911,7 @@
         }
     }
 
-    // ---------- Partials: two take-profits, set in Vest's own Edit TP/SL window ----------
+    // ---------- Partials: up to four take-profits and the runner, set in Vest's own Edit TP/SL window ----------
     // After a LONG or SHORT with Partials on, the order's own take-profit (all of the position, at the card's target) is
     // split the way a trader does it by hand: in Vest's Edit TP/SL window the existing target keeps the rest, "Add Another
     // Target" adds TP1 at the TP1 distance from the entry with the TP1 share, then Vest's own Apply Changes. Vest builds
@@ -6965,6 +7187,249 @@
         return !!p && p.id === a.id && a.demo === xcDemoOn();
     };
 
+    // ---------- Daily loss limit (7.7): a soft lockout for new trades ----------
+    // Today's P&L is the account's Account Value now minus the first Account Value seen after the last reset, kept per
+    // account in localStorage (ax4p_dll). Nothing is requested: the value is read from Vest's own screen. At 75% of the
+    // limit the card turns amber; at 100% new trades are locked until the reset hour. The lock is remembered, so a
+    // reload or a rally back above the line does not undo it. Reducing risk is never locked: FLAT, 50%, BE, the chart
+    // TP/SL and Vest's own close buttons all keep working. It guards this browser's screen, not the account.
+    const DLL_KEY = 'ax4p_dll';
+    const DLL_WARN = 0.75;
+    const DLL_SETTLE_MS = 3000; // after an account switch, Vest's Account Value may still show the old account
+    const dllPad = (n) => String(n).padStart(2, '0');
+    const dllHm = (hour) => dllPad(hour) + ':00';
+
+    // The trading day a moment belongs to: its local date, where the day starts at the reset hour (before it, it is still yesterday)
+    function dllDayKey(ms, hour) {
+        const d = new Date(ms);
+        let y = d.getFullYear(), m = d.getMonth(), day = d.getDate();
+        if (d.getHours() < hour) { const p = new Date(y, m, day - 1); y = p.getFullYear(); m = p.getMonth(); day = p.getDate(); }
+        return y + '-' + dllPad(m + 1) + '-' + dllPad(day);
+    }
+    // When the current day ends: the next time the local clock reads the reset hour
+    function dllNextReset(ms, hour) {
+        const d = new Date(ms);
+        const at = new Date(d.getFullYear(), d.getMonth(), d.getDate(), hour, 0, 0, 0);
+        return at.getTime() > ms ? at.getTime() : new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1, hour, 0, 0, 0).getTime();
+    }
+    // 'ok' below 75% of the limit, 'warn' from 75%, 'lock' from 100% (loss is a positive number of dollars)
+    function dllLevel(loss, limit) {
+        if (!(limit > 0)) return 'ok';
+        if (loss >= limit) return 'lock';
+        return loss >= limit * DLL_WARN ? 'warn' : 'ok';
+    }
+    // The Account Value out of the text of Vest's "Account Value $25,000.00 ..." row
+    function dllParseAccountValue(text) {
+        const m = String(text || '').replace(/\s+/g, '').match(/AccountValue\$?([\d,]+(?:\.\d+)?)/);
+        const v = m ? parseFloat(m[1].replace(/,/g, '')) : NaN;
+        return Number.isFinite(v) ? v : null;
+    }
+    // One step for one account. rec is what is stored for it ({ key, base, locked, lockPnl }), key the current day, av the
+    // Account Value read now (null: not readable). A new lock needs two readings in a row (sure), so one odd read, say
+    // from an account switch, never locks anyone. Returns the record to store, today's P&L and the level.
+    function dllUpdate(rec, key, av, limit, sure) {
+        let r = rec && rec.key === key ? Object.assign({}, rec) : null; // a record of an earlier day is gone: that is the reset
+        // an Account Value of 0 is Vest's page still loading, not a blown account: it is never read as a loss
+        const have = typeof av === 'number' && Number.isFinite(av) && av > 0;
+        if (!r) {
+            if (!have) return { rec: null, pnl: null, level: null, pending: false };
+            r = { key, base: av, locked: false };
+        }
+        if (!have) return { rec: r, pnl: null, level: r.locked ? 'lock' : null, pending: false };
+        const pnl = av - r.base;
+        let level = dllLevel(Math.max(0, -pnl), limit);
+        let pending = false;
+        if (level === 'lock' && !r.locked) {
+            if (sure) { r.locked = true; r.lockPnl = pnl; }
+            else { level = 'warn'; pending = true; }
+        }
+        if (r.locked) level = 'lock';
+        return { rec: r, pnl, level, pending };
+    }
+    const dllLocked = (rec, key) => !!rec && rec.key === key && rec.locked === true;
+    // A record keeps the reset hour it was made with, so changing the setting later cannot move or end today's day
+    // (which would otherwise start a fresh baseline and zero the loss, or lift a lock).
+    const dllRecHour = (rec, fallback) => (rec && Number.isInteger(rec.hour) ? rec.hour : fallback);
+    const dllRecLocked = (rec, ms, hour) => !!rec && dllLocked(rec, dllDayKey(ms, dllRecHour(rec, hour)));
+    const DLL_SURE_MS = 1500; // a new lock needs a second reading at least this long after the first
+
+    const DLL = { acc: null, accSince: 0, el: null, pnl: null, level: null, pending: false, pendingAt: 0 };
+
+    // Vest's "Account Value" row (its number has data-testid="account-value"; the label is a button). It stays on the page
+    // when Focus mode moves the ticket off-screen. The testid is tried first; failing that the row is found from its label
+    // once and kept, and a full search only runs when it is gone.
+    function dllReadAccountValue() {
+        const num = document.querySelector('[data-testid="account-value"]');
+        const direct = num && !num.closest('[id^="ax4p"]') ? dllParseAccountValue('Account Value' + num.textContent) : null;
+        if (direct != null) return direct;
+        let el = DLL.el;
+        if (!el || !el.isConnected || (el.textContent || '').trim() !== 'Account Value') {
+            el = null;
+            for (const n of document.querySelectorAll('button, span, div, p, dt, dd, label')) {
+                if (n.children.length || (n.textContent || '').trim() !== 'Account Value' || n.closest('[id^="ax4p"]')) continue;
+                el = n;
+                break;
+            }
+            DLL.el = el;
+        }
+        const row = el && el.parentElement && el.parentElement.parentElement;
+        return row ? dllParseAccountValue(row.textContent) : null;
+    }
+
+    function dllStore() {
+        const all = readStore(DLL_KEY, {});
+        return all && typeof all === 'object' && !Array.isArray(all) ? all : {};
+    }
+
+    function dllTick() {
+        try {
+            const cfg = S.dll;
+            if (cfg.on) {
+                const t = now();
+                // nothing is read when logged out (no account) or in Demo
+                const acc = xcDemoOn() ? null : tpActiveAccount();
+                if (acc !== DLL.acc) { DLL.acc = acc; DLL.accSince = t; DLL.pending = false; DLL.pnl = null; DLL.level = null; }
+                const av = acc && t - DLL.accSince >= DLL_SETTLE_MS ? dllReadAccountValue() : null;
+                if (av == null) { DLL.pnl = null; DLL.pending = false; }
+                else {
+                    const all = dllStore();
+                    const prev = all[acc];
+                    // today keeps the reset hour its record started with, a changed setting applies from the next day
+                    const hour = prev && Number.isInteger(prev.hour) && prev.key === dllDayKey(t, prev.hour) ? prev.hour : cfg.hour;
+                    const key = dllDayKey(t, hour);
+                    // by time, not by call: apply() and the first timer also call this, and two reads a few ms apart prove nothing
+                    const r = dllUpdate(prev, key, av, cfg.limit, DLL.pending && t - DLL.pendingAt >= DLL_SURE_MS);
+                    if (r.pending && !DLL.pending) DLL.pendingAt = t;
+                    DLL.pending = r.pending;
+                    DLL.pnl = r.pnl;
+                    DLL.level = r.level;
+                    if (r.rec) {
+                        if (r.rec.hour == null) r.rec.hour = hour;
+                        if (r.rec.locked && r.rec.vest == null) r.rec.vest = !!cfg.vest; // the lock keeps the option it was set with
+                    }
+                    if (r.rec && JSON.stringify(r.rec) !== JSON.stringify(prev)) {
+                        // earlier days are over, each by its own reset hour; another account's lock of today stays
+                        for (const k of Object.keys(all)) if (!all[k] || all[k].key !== dllDayKey(t, dllRecHour(all[k], cfg.hour))) delete all[k];
+                        all[acc] = r.rec;
+                        writeStore(DLL_KEY, all);
+                    }
+                }
+            }
+        } catch (e) {}
+        try { xcPaintDll(); dllPaintSettings(); } catch (e) {}
+    }
+
+    // { text, short, until, vest } while this account is locked, else null. Used by every gate, so it reads the stored
+    // record itself: a lock set in another tab, or before a reload, counts at once, and it does not depend on the
+    // settings in memory (a reset, an import or a stale tab cannot lift it). While the account cannot be read, any lock
+    // of today counts: an unreadable id must not open the gate. Logged-out Demo has no account and is never locked.
+    function dllActiveLock() {
+        const all = dllStore(), t = now(), acc = tpActiveAccount();
+        if (acc) return dllRecLocked(all[acc], t, S.dll.hour) ? all[acc] : null;
+        if (xcDemoOn()) return null;
+        return Object.keys(all).map((k) => all[k]).find((r) => dllRecLocked(r, t, S.dll.hour)) || null;
+    }
+    xcHooks.locked = () => {
+        try {
+            const rec = dllActiveLock();
+            if (!rec) return null;
+            const until = dllHm(dllRecHour(rec, S.dll.hour));
+            return {
+                text: `Daily loss limit hit (-${xcUsd(rec.lockPnl)}). New trades are locked until ${until}.`,
+                short: 'new trades are locked until ' + until, until, vest: rec.vest !== false
+            };
+        } catch (e) { return null; }
+    };
+    // any account's lock of today: the settings stay read-only, and a reset or import of them is refused, so switching
+    // to an unlocked account cannot loosen a lock that is still running
+    xcHooks.lockedAny = () => {
+        try {
+            const all = dllStore(), t = now();
+            return Object.keys(all).some((k) => dllRecLocked(all[k], t, S.dll.hour));
+        } catch (e) { return false; }
+    };
+    // The card's line: { line, level } or null when the limit is off
+    xcHooks.dll = () => {
+        if (!S.dll.on) return null;
+        if (DLL.pnl == null) return { line: DLL.acc ? 'Account Value not read, limit not active' : 'Account not found, limit not active', level: 'wait' };
+        const loss = Math.max(0, -DLL.pnl);
+        const line = DLL.pnl < 0 ? `Today -${xcUsd(loss)} of ${xcUsd(S.dll.limit)}` : `Today +${xcUsd(DLL.pnl)}, limit ${xcUsd(S.dll.limit)}`;
+        return { line, level: DLL.level === 'ok' ? 'ok' : 'warn' };
+    };
+
+    function dllSettingsHtml() {
+        return `
+                <div class="ax4p-sec" id="ax4p-dll-sec">
+                    <div class="ax4p-sec-t">Daily loss limit</div>
+                    <label class="ax4p-row"><span>Lock new trades at the limit</span><input type="checkbox" id="ax4p-dll-on"></label>
+                    <div class="ax4p-row"><span>Limit ($ a day)</span><input type="number" id="ax4p-dll-limit" class="ax4p-in" min="1" step="10" style="width:72px;"></div>
+                    <div class="ax4p-row"><span>Card turns amber at</span><b>75%</b></div>
+                    <div class="ax4p-row"><span>Day resets at (your clock, 0 to 23)</span><input type="number" id="ax4p-dll-hour" class="ax4p-in" min="0" max="23" step="1" style="width:56px;"></div>
+                    <label class="ax4p-row"><span>Also block Vest's own Buy and Sell</span><input type="checkbox" id="ax4p-dll-vest"></label>
+                    <div class="ax4p-hint" id="ax4p-dll-msg"></div>
+                    <div class="ax4p-hint">Today is your Account Value now minus the first one Better Vest saw after the reset, kept for each account. At the limit, LONG, SHORT, REV, the pill, the W S E Q keys and Partials lock until the reset hour. FLAT, 50%, BE, the chart TP/SL and Vest's close buttons always work. With the last option on, Vest's own Sell button is locked too, even when it would reduce a long: use FLAT or 50% then. It is your own limit, separate from any rule Vest has. A deposit, withdrawal or transfer moves the Account Value, so it counts as profit or loss. A lock stays until the reset hour, even through a reset or import of these settings. It is a lock on this screen, so it cannot stop an order sent from somewhere else. It needs the Account Value to be on Vest's page, and nothing is protected while the card says it is not reading it.</div>
+                </div>`;
+    }
+
+    // values, read-only while locked, and the one-line status
+    function dllPaintSettings() {
+        const q = (id) => document.getElementById(id);
+        if (!q('ax4p-dll-on')) return;
+        const lk = xcHooks.locked();
+        const any = xcHooks.lockedAny();
+        const set = (id, v) => { const el = q(id); if (el && document.activeElement !== el) el.value = v; };
+        q('ax4p-dll-on').checked = !!S.dll.on;
+        q('ax4p-dll-vest').checked = !!S.dll.vest;
+        set('ax4p-dll-limit', S.dll.limit);
+        set('ax4p-dll-hour', S.dll.hour);
+        ['ax4p-dll-on', 'ax4p-dll-limit', 'ax4p-dll-hour', 'ax4p-dll-vest'].forEach((id) => { q(id).disabled = any; });
+        const info = xcHooks.dll();
+        const msg = q('ax4p-dll-msg');
+        const text = lk ? `Locked until ${lk.until}. These settings are read-only until then.` : any ? 'Another account is locked. These settings are read-only until its reset.' : info ? info.line : 'Off.';
+        if (msg && msg.textContent !== text) msg.textContent = text;
+    }
+
+    function dllWireSettings() {
+        const q = (id) => document.getElementById(id);
+        if (!q('ax4p-dll-on')) return;
+        const apply = () => { persist(); dllTick(); };
+        q('ax4p-dll-on').onchange = (e) => { if (xcHooks.lockedAny()) return; S.dll.on = e.target.checked; apply(); };
+        q('ax4p-dll-vest').onchange = (e) => { if (xcHooks.lockedAny()) return; S.dll.vest = e.target.checked; apply(); };
+        q('ax4p-dll-limit').onchange = (e) => {
+            if (xcHooks.lockedAny()) return;
+            const v = parseFloat(e.target.value);
+            S.dll.limit = v > 0 ? v : DEFAULTS.dll.limit;
+            e.target.value = S.dll.limit;
+            apply();
+        };
+        q('ax4p-dll-hour').onchange = (e) => {
+            if (xcHooks.lockedAny()) return;
+            const v = parseInt(e.target.value, 10);
+            S.dll.hour = v >= 0 && v <= 23 ? v : 0;
+            e.target.value = S.dll.hour;
+            apply();
+        };
+        dllPaintSettings();
+    }
+
+    // While locked: LONG, SHORT and REV on the card (the pill presses the card's buttons) and turning Partials on are
+    // refused, and with the option on so are Vest's own Buy and Sell. Everything else keeps working.
+    function dllGuard(e) {
+        const t = e.target && e.target.closest ? e.target : null;
+        if (!t) return;
+        const lk = xcHooks.locked();
+        if (!lk) return;
+        const ours = t.closest('#ax4p-buy-btn, #ax4p-sell-btn, #ax4p-rev-btn, #ax4p-xc-partials');
+        const vest = !ours && lk.vest && t.closest('[data-testid="submit-long"], [data-testid="submit-short"]');
+        if (!ours && !vest) return;
+        if (ours && ours.id === 'ax4p-xc-partials' && S.xc.partials) return; // switching Partials off is fine
+        e.stopImmediatePropagation();
+        e.preventDefault();
+        xcSay(lk.text + ' Nothing sent.', 'bad');
+    }
+    // registered before the Demo guard below, so a locked account hears about the lock first
+    document.addEventListener('click', dllGuard, true);
+
     // While 50% or REV runs: FLAT goes through and stops them before they do anything more; LONG and SHORT wait.
     // In Demo: LONG, SHORT and FLAT on the card (and the pill, which presses them) only say what they would do.
     document.addEventListener('click', (e) => {
@@ -6983,10 +7448,11 @@
         e.preventDefault();
         const pts = xcPts();
         const why = xcPartialsOn() ? xcPlan(activeSelectedSize, pts.tp).why : '';
-        const plan = !xcPartialsOn() ? `target ${fmtSize(pts.tp)} pt`
+        const plan = S.xc.tpOn === false ? 'no target' : !xcPartialsOn() ? `target ${fmtSize(pts.tp)} pt`
             : why ? `target ${fmtSize(pts.tp)} pt (Partials would not be set: ${why})` : `${xcTargetsText()}, the rest at ${fmtSize(pts.tp)} pt`;
+        const stop = S.xc.slOn === false ? 'no stop' : `stop ${fmtSize(pts.sl)} pt`;
         if (b.id === 'ax4p-flatten-btn') xcSay('[DEMO] FLAT would close the whole position. Nothing sent.');
-        else xcSay(`[DEMO] ${b.id === 'ax4p-buy-btn' ? 'LONG' : 'SHORT'} ${fmtSize(activeSelectedSize)} at market, stop ${fmtSize(pts.sl)} pt, ${plan}. Nothing sent.`);
+        else xcSay(`[DEMO] ${b.id === 'ax4p-buy-btn' ? 'LONG' : 'SHORT'} ${fmtSize(activeSelectedSize)} at market, ${stop}, ${plan}. Nothing sent.`);
     }, true);
 
     // --- Better Vest extension bridge: popup/background talk to the page via window messages.
@@ -7474,6 +7940,8 @@
         setTimeout(fitDock, 400);
         tpslStart();
         mcBoot();
+        setInterval(dllTick, 2000);
+        setTimeout(dllTick, 1200);
         syncCertButton();
         setInterval(syncCertButton, 1500);
         setTimeout(warnSecondCopy, 6000);
