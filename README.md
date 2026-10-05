@@ -37,8 +37,8 @@ By default it copies every market the leader trades. Switch that off and pick th
 It doesn't send orders of its own. It calls Vest's own order code, the same code Vest's order ticket and TP/SL windows run, with each follower's account, and Vest does the rest. It never touches your login token.
 
 Two speeds:
-- **Turbo** (the default) keeps one hidden Vest tab per follower, grouped and collapsed, each set to its own account. Every copy is a single trip to Vest.
-- **Light** runs everything from your own tab, with no extra tabs. A little slower, easier on a laptop.
+- **Light** (the default) runs everything from your own tab, with no extra tabs.
+- **Turbo** keeps one hidden Vest tab per follower, grouped and collapsed, each set to its own account, so every copy is a single trip to Vest. It's switched off in 8.0.4 while I make it more stable.
 
 You stay in charge:
 - The first time, it tells you plainly that it places real orders.
@@ -167,7 +167,7 @@ One leader and up to ten followers, each with its own ratio.
 That's up to Vest's rules for your account type. Check them before you switch it on.
 
 **Does the copy trader need the tab open?**
-Yes. Copying runs in the Vest tab that's on the leader account, so keep it open on the trade page. It keeps that tab awake while copying is on. In Turbo it also keeps one hidden tab per follower, and closes them when you switch copying off.
+Yes. Copying runs in the Vest tab that's on the leader account, so keep it open on the trade page. It keeps that tab awake while copying is on.
 
 **Does it work on trade.vestmarkets.com?**
 No, only on next.vestmarkets.com.
