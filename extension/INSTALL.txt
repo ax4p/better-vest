@@ -1,7 +1,7 @@
 Better Vest by Astral - how to install (2 minutes, Chrome / Brave / Edge / Arc)
 
-1. Download better-vest-7.7.1.zip and double-click it.
-   You now have a folder called "better-vest-7.7.1". Keep it somewhere safe
+1. Download better-vest-8.0.0.zip and double-click it.
+   You now have a folder called "better-vest-8.0.0". Keep it somewhere safe
    (Documents is fine). Chrome loads the extension from this folder, so don't delete it.
 
 2. Open Chrome and type in the address bar:  chrome://extensions
@@ -9,7 +9,7 @@ Better Vest by Astral - how to install (2 minutes, Chrome / Brave / Edge / Arc)
 
 3. Top-right corner: turn ON "Developer mode".
 
-4. Click "Load unpacked" (top-left) and pick the "better-vest-7.7.1" folder.
+4. Click "Load unpacked" (top-left) and pick the "better-vest-8.0.0" folder.
    "Better Vest by Astral" appears in the list. Done.
 
 5. Pin it: click the puzzle icon in Chrome's toolbar and pin Better Vest.
@@ -26,11 +26,13 @@ WHAT YOU GET
   The BE button moves the stop to breakeven (entry + a small share of the open profit; every part is a setting).
 - Macros (hotkeys): W = long, S = short, E = limit buy at the best bid, Q = limit sell at the best ask, H = breakeven.
   They use Vest's own ticket, ignore the keys while you type, and stop TradingView's type-to-search from opening.
-  The dock button "Macros" is the master switch; Settings > Exec > Macros remaps every key.
+  The dock button "Macros" is the master switch; Settings > Hotkeys remaps every key.
   Order keys (W S E Q) work on NQ and MNQ with the Exec strip showing; E and Q also need Chart TP/SL on, to see your position.
   Standard installs start with Macros OFF (and E / Q unarmed): switch them on in the dock / Settings when you want them.
+- Copy trader: the Copy button in the dock. Pick a leader account and the accounts that follow it, and every order,
+  stop, target, reduce, reverse and flatten on the leader is repeated on them at each one's ratio. It starts off, asks
+  you to read a short risk note first and never switches itself on after a reload. Alt+Shift+K stops it.
 - Focus mode, themes (Dark is the default), Calendar (PnL per day, risk, RR, payouts; Alt+J).
-- Demo position for practice: Alt+Shift+D shows a fake position. Macros never place orders while it is on.
 
 Using the Tampermonkey version, or the other edition of this extension, too? Keep only ONE on:
 turn the others OFF, otherwise the dock and the overlay show twice (the suite also refuses to start a second copy). Your settings carry over automatically.

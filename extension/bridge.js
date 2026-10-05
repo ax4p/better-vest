@@ -17,6 +17,75 @@
     let lastOpen = 0;
     let tellTimer = 0;
 
+    // ---- copy trader relay: page <-> service worker (WICKED and Standard) ----
+    // The page asks the service worker to open and drive the follower tabs; the service worker drives this tab's page when it is a
+    // follower. Requests carry an `rid`: the answer goes back to whoever asked (the page gets {op, rid, reply: true, ...}; the
+    // service worker's sendResponse gets the page's {op: 'reply', rid, ...}). The copy log rides the same way.
+    const COPY_PAGE_OPS = new Set(['tabs-open', 'tabs-close', 'tabs-exec', 'tabs-status', 'follower-ready', 'follower-snap', 'reply', 'log-save', 'log-load']);
+    const COPY_SW_OPS = new Set(['exec', 'follower-ready', 'follower-lost', 'follower-failed', 'follower-snap']);
+    const COPY_RID_RE = /^[\w.:-]{1,64}$/;
+    const COPY_MAX_BYTES = 512 * 1024;
+    const COPY_REPLY_MS = 65000; // the worker gives up on a page before this (its own limit scales with the actions); this only frees the entry
+    const copyPending = new Map(); // rid -> { respond, timer } for requests from the service worker waiting on the page
+
+    function copyToPage(fields) {
+        try { window.postMessage(Object.assign({}, fields, { bv: 1, dir: 'toPage', type: 'copy' }), location.origin); } catch (e) {}
+    }
+
+    function copyBody(msg) {
+        const out = {};
+        for (const k of Object.keys(msg)) if (k !== 'bv' && k !== 'dir' && k !== 'type') out[k] = msg[k];
+        return out;
+    }
+
+    function copyFromPage(d) {
+        if (typeof d.op !== 'string' || !COPY_PAGE_OPS.has(d.op)) return;
+        const hasRid = d.rid !== undefined && d.rid !== null;
+        if (hasRid && !(typeof d.rid === 'string' && COPY_RID_RE.test(d.rid)) && !Number.isInteger(d.rid)) return;
+        try { if (JSON.stringify(d).length > COPY_MAX_BYTES) return; } catch (e) { return; }
+        if (d.op === 'reply') {
+            // the page answering a request that came from the service worker
+            const p = hasRid ? copyPending.get(String(d.rid)) : null;
+            if (!p) return;
+            copyPending.delete(String(d.rid));
+            clearTimeout(p.timer);
+            const body = copyBody(d);
+            delete body.op;
+            p.respond(body);
+            return;
+        }
+        const body = Object.assign({ type: 'copy' }, copyBody(d));
+        chrome.runtime.sendMessage(body).then((resp) => {
+            // the copy log comes back as its own message (the page asks once at load, without an rid)
+            if (d.op === 'log-load' && resp && Array.isArray(resp.entries)) copyToPage({ op: 'log-loaded', entries: resp.entries });
+            if (hasRid) copyToPage(Object.assign({}, resp && typeof resp === 'object' ? resp : { ok: false, error: 'no-answer' }, { op: d.op, rid: d.rid, reply: true }));
+        }).catch((e) => {
+            if (hasRid) copyToPage({ op: d.op, rid: d.rid, reply: true, ok: false, error: 'sw-unreachable' });
+        });
+    }
+
+    // returns true when sendResponse will be called later
+    function copyFromSw(msg, sendResponse) {
+        if (typeof msg.op !== 'string') { sendResponse({ ok: false, error: 'shape' }); return false; }
+        if (msg.op === 'ping') { sendResponse({ ok: true }); return false; }
+        if (!COPY_SW_OPS.has(msg.op)) { sendResponse({ ok: false, error: 'op' }); return false; }
+        const body = copyBody(msg);
+        const rid = body.rid;
+        if (rid === undefined || rid === null) {
+            copyToPage(body);
+            sendResponse({ ok: true });
+            return false;
+        }
+        const key = String(rid);
+        if (!COPY_RID_RE.test(key) || copyPending.has(key)) { sendResponse({ ok: false, error: 'rid' }); return false; }
+        const timer = setTimeout(() => {
+            if (copyPending.delete(key)) sendResponse({ ok: false, error: 'timeout' });
+        }, COPY_REPLY_MS);
+        copyPending.set(key, { respond: sendResponse, timer });
+        copyToPage(body);
+        return true;
+    }
+
     // After the extension reloads (an update or a manual reload), this copy keeps running in tabs that were already
     // open, but it is cut off: chrome.runtime and chrome.storage are gone and every call throws. Go quiet instead.
     function alive() {
@@ -108,11 +177,18 @@
             lastOpen = t;
             chrome.runtime.sendMessage({ type: 'update-open' }).catch(() => {});
         }
+        if (d.type === 'copy') copyFromPage(d);
     }
     window.addEventListener('message', onWindowMessage);
 
     chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         if (!msg) return;
+        if (msg.type === 'copy') {
+            // only the service worker (no tab) drives this page
+            if (sender && sender.id === chrome.runtime.id && !sender.tab) return copyFromSw(msg, sendResponse);
+            sendResponse({ ok: false, error: 'sender' });
+            return false;
+        }
         if (msg.type === 'getState') {
             sendResponse({ state: lastState });
             return;

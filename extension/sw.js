@@ -581,8 +581,9 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
 // ---------- updates ----------
 // Only the Standard build loaded unpacked from the GitHub zip updates from GitHub: the WICKED build is rebuilt from
-// its own source (the line below stays a comment there), and Web Store copies are updated by Chrome. The check is a
-// plain GET to GitHub's API with nothing from the user in it; nothing is downloaded until Update is clicked.
+// its own source, and the private Copier build must never take a public Standard release (it would lose the copy
+// trader), so the line below stays a comment in both. Web Store copies are updated by Chrome. The check is a plain GET
+// to GitHub's API with nothing from the user in it; nothing is downloaded until Update is clicked.
 let UPDATER = false;
 UPDATER = true;
 const UPDATE_ALARM = 'bv-update-check';
@@ -679,3 +680,447 @@ afterSelfUpdate().catch(() => {});
 
 // Whenever the worker starts, bring the last user's stored trades up to the current derivation rules.
 lastUserId().then((uid) => { if (uid) dbFor(uid).catch(() => {}); }).catch(() => {});
+
+// ---------- copy trader: follower tabs and the copy log (WICKED and Standard) ----------
+// The Tabs engine: the leader's page asks for one background tab per switched-on follower account
+// (/trade/<market>?bvCopy=<accountId>), grouped as "Copy" and collapsed. Each follower tab pins its own account and announces
+// 'follower-ready'. Orders never pass through here as requests of ours: 'tabs-exec' only hands the leader's actions to the
+// follower pages, whose own code calls Vest's own functions. The worker sleeps, so all state lives in chrome.storage.session
+// and every handler reloads it. Only this block uses the tabGroups permission.
+
+const COPY_KEY = 'copy:tabs';
+const COPY_WATCH_ALARM = 'bv-copy-watch';
+const COPY_MAX_FOLLOWERS = 10;
+const COPY_MAX_ACTIONS = 256;
+const COPY_SNAP_BYTES = 200 * 1024; // a follower tab's snapshot of its own account (positions, orders, events) is small; anything bigger is not one
+const COPY_MARKET_RE = /^[A-Za-z0-9._-]{1,40}$/;
+const COPY_ID_RE = /^[\w.:-]{1,128}$/;
+const COPY_EXEC_BASE_MS = 4000;   // an exec message gets this plus COPY_EXEC_PER_MS for each of its actions (the page's own limit is 5 s per action)
+const COPY_EXEC_PER_MS = 6000;
+const COPY_EXEC_MAX_MS = 60000;
+const COPY_PING_MS = 3000;
+const COPY_STAGGER_MS = 250;      // tabs are opened this far apart: nine tabs refreshing a login at one instant could log each other out
+const COPY_REOPEN_MAX = 5;
+const COPY_REOPEN_WINDOW_MS = 2 * 60 * 1000;
+const COPY_ORIGIN = 'https://next.vestmarkets.com/';
+const COPY_LOG_KEY = 'copy:log';
+const COPY_LOG_MAX = 1000;
+const COPY_LOG_BYTES = 400 * 1024;
+
+const copyBlank = () => ({ on: false, market: null, leaderTabId: null, windowId: null, groupId: null, followers: {}, specs: {} });
+let copyState = null;
+let copyLoading = null;
+let copyChain = Promise.resolve();
+let copySeq = 0;
+
+function copyLoad() {
+    if (copyState) return Promise.resolve(copyState);
+    if (!copyLoading) {
+        copyLoading = chrome.storage.session.get(COPY_KEY).then((r) => {
+            const v = r && r[COPY_KEY];
+            copyState = isObj(v) ? Object.assign(copyBlank(), v) : copyBlank();
+            if (!isObj(copyState.followers)) copyState.followers = {};
+            return copyState;
+        }, () => (copyState = copyBlank()));
+    }
+    return copyLoading;
+}
+const copySave = () => chrome.storage.session.set({ [COPY_KEY]: copyState }).catch(() => {});
+// state changes run one at a time; reads (tabs-exec, tabs-status) do not wait for them
+function copyLock(fn) {
+    const run = copyChain.then(fn);
+    copyChain = run.then(() => {}, () => {});
+    return run;
+}
+function copyTimeout(p, ms) {
+    return new Promise((resolve, reject) => {
+        const t = setTimeout(() => reject(new Error('timeout')), ms);
+        Promise.resolve(p).then((v) => { clearTimeout(t); resolve(v); }, (e) => { clearTimeout(t); reject(e); });
+    });
+}
+const copySleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const copyErr = (e) => String((e && e.message) || e || 'error').slice(0, 200);
+// ids become object keys: own keys only, so a name like "toString" is never mistaken for a follower
+const copyFollower = (st, id) => (typeof id === 'string' && Object.prototype.hasOwnProperty.call(st.followers, id) ? st.followers[id] : null);
+const copyUrl = (market, accountId) => `${COPY_ORIGIN}trade/${encodeURIComponent(market)}?bvCopy=${encodeURIComponent(accountId)}`;
+const copyIdOf = (st, tabId) => Object.keys(st.followers).find((k) => st.followers[k].tabId === tabId);
+const copyTabAlive = (tabId) => (tabId == null ? Promise.resolve(false) : chrome.tabs.get(tabId).then(() => true, () => false));
+
+function copyNotifyLeader(st, payload) {
+    if (st.leaderTabId == null) return;
+    chrome.tabs.sendMessage(st.leaderTabId, Object.assign({ type: 'copy' }, payload)).catch(() => {});
+}
+
+async function copyArmWatch(on) {
+    if (on) {
+        const a = await chrome.alarms.get(COPY_WATCH_ALARM);
+        if (!a) chrome.alarms.create(COPY_WATCH_ALARM, { delayInMinutes: 0.5, periodInMinutes: 0.5 });
+    } else {
+        await chrome.alarms.clear(COPY_WATCH_ALARM).catch(() => {});
+    }
+}
+
+// Creates a background tab per account (staggered, in parallel), then groups them together: "Copy", blue, collapsed.
+async function copyCreateTabs(st, accountIds) {
+    const open = async (id, i) => {
+        if (i) await copySleep(i * COPY_STAGGER_MS);
+        const opts = { url: copyUrl(st.market, id), active: false };
+        if (st.windowId != null && st.windowId >= 0) opts.windowId = st.windowId;
+        try {
+            return await chrome.tabs.create(opts);
+        } catch (e) {
+            // the window is gone: fall back to wherever the leader is now
+            const lead = await chrome.tabs.get(st.leaderTabId).catch(() => null);
+            if (!lead) throw e;
+            st.windowId = lead.windowId;
+            opts.windowId = lead.windowId;
+            return chrome.tabs.create(opts);
+        }
+    };
+    const tabs = await Promise.all(accountIds.map((id, i) => open(id, i).catch(() => null)));
+    const made = [];
+    accountIds.forEach((id, i) => {
+        const f = copyFollower(st, id);
+        if (!f) return;
+        f.ready = false;
+        f.readyAt = 0;
+        f.tabId = tabs[i] ? tabs[i].id : null;
+        if (tabs[i]) made.push(tabs[i]);
+    });
+    // a discarded tab would stop answering: keep Chrome from freeing these
+    for (const t of made) chrome.tabs.update(t.id, { autoDiscardable: false }).catch(() => {});
+    if (!made.length) return;
+    const winId = made[0].windowId;
+    let gid = st.groupId;
+    if (gid != null) {
+        const g = await chrome.tabGroups.get(gid).catch(() => null);
+        if (!g || g.windowId !== winId) gid = null;
+    }
+    try {
+        gid = await chrome.tabs.group(gid != null ? { groupId: gid, tabIds: made.map((t) => t.id) } : { tabIds: made.map((t) => t.id), createProperties: { windowId: winId } });
+        st.groupId = gid;
+        await chrome.tabGroups.update(gid, { title: 'Copy', color: 'blue', collapsed: true });
+    } catch (e) { /* the tabs work ungrouped too */ }
+}
+
+async function copyShutdown(st) {
+    const ids = Object.keys(st.followers).map((k) => st.followers[k].tabId).filter((t) => t != null);
+    st.on = false;
+    st.followers = {};
+    st.groupId = null;
+    st.market = null;
+    st.leaderTabId = null;
+    await copySave();
+    await copyArmWatch(false);
+    // state is cleared first, so the removals below are not mistaken for crashes
+    if (ids.length) await chrome.tabs.remove(ids).catch(() => {});
+}
+
+// The size and price decimals of the markets the copier manages, by Vest's API spelling: the leader tab sends them (a follower tab has no GET
+// bridge to learn them from) and they go to the follower tabs with their ready answer and with every exec message.
+function copySpecsOf(v) {
+    const out = {};
+    if (!isObj(v)) return out;
+    for (const k of Object.keys(v).slice(0, 64)) {
+        const s = v[k];
+        if (!COPY_MARKET_RE.test(k) || !isObj(s)) continue;
+        const sizeDec = Number(s.sizeDec), priceDec = Number(s.priceDec), tick = Number(s.tick);
+        if (!Number.isInteger(sizeDec) || sizeDec < 0 || sizeDec > 18 || !Number.isInteger(priceDec) || priceDec < 0 || priceDec > 18) continue;
+        out[k] = { sizeDec, priceDec, tick: Number.isFinite(tick) && tick > 0 ? tick : null };
+    }
+    return out;
+}
+
+function copyValidOpen(msg) {
+    if (typeof msg.market !== 'string' || !COPY_MARKET_RE.test(msg.market)) return null;
+    if (!Array.isArray(msg.followers) || msg.followers.length > COPY_MAX_FOLLOWERS) return null;
+    const out = [];
+    const seen = new Set();
+    for (const f of msg.followers) {
+        if (!isObj(f) || !isId(f.accountId) || !COPY_ID_RE.test(f.accountId) || seen.has(f.accountId)) return null;
+        seen.add(f.accountId);
+        out.push({ accountId: f.accountId, label: typeof f.label === 'string' ? f.label.slice(0, 64) : '' });
+    }
+    return { market: msg.market, followers: out, specs: copySpecsOf(msg.specs) };
+}
+
+const copyIsFollowerPage = (st, sender) => !!sender.tab && copyIdOf(st, sender.tab.id) !== undefined;
+
+function copyOpen(sender, msg) {
+    return copyLock(async () => {
+        const st = await copyLoad();
+        const req = copyValidOpen(msg);
+        if (!req) return { ok: false, error: 'shape' };
+        // a follower tab is never a leader
+        if (copyIsFollowerPage(st, sender) || /[?&]bvCopy=/.test(String(sender.url || ''))) return { ok: false, error: 'follower' };
+        const leader = sender.tab;
+        const wanted = new Map(req.followers.map((f) => [f.accountId, f]));
+        // followers that are no longer wanted
+        const drop = [];
+        for (const id of Object.keys(st.followers)) {
+            if (wanted.has(id)) continue;
+            if (st.followers[id].tabId != null) drop.push(st.followers[id].tabId);
+            delete st.followers[id];
+        }
+        // adopt the asking tab as the leader; the followers stay in the window they have unless none is left alive
+        let anyAlive = false;
+        for (const id of Object.keys(st.followers)) if (await copyTabAlive(st.followers[id].tabId)) anyAlive = true;
+        st.leaderTabId = leader.id;
+        if (!st.on || !anyAlive || st.windowId == null) st.windowId = leader.windowId;
+        const marketChanged = st.market !== req.market;
+        st.market = req.market;
+        st.specs = Object.assign(isObj(st.specs) ? st.specs : {}, req.specs);
+        st.on = true;
+        const create = [];
+        for (const [id, f] of wanted) {
+            let cur = copyFollower(st, id);
+            if (!cur) cur = st.followers[id] = { label: f.label, tabId: null, ready: false, readyAt: 0, reopens: [], failed: false };
+            cur.label = f.label;
+            cur.failed = false;
+            if (await copyTabAlive(cur.tabId)) {
+                if (marketChanged) {
+                    cur.ready = false;
+                    chrome.tabs.update(cur.tabId, { url: copyUrl(st.market, id) }).catch(() => {});
+                }
+            } else {
+                create.push(id);
+            }
+        }
+        if (drop.length) chrome.tabs.remove(drop).catch(() => {});
+        if (create.length) await copyCreateTabs(st, create);
+        await copySave();
+        await copyArmWatch(true);
+        return copyStatusOf(st);
+    });
+}
+
+function copyClose(sender) {
+    return copyLock(async () => {
+        const st = await copyLoad();
+        if (st.leaderTabId != null && sender.tab && sender.tab.id !== st.leaderTabId) return { ok: false, error: 'not-leader' };
+        await copyShutdown(st);
+        return { ok: true };
+    });
+}
+
+function copyStatusOf(st) {
+    return {
+        ok: true,
+        on: st.on,
+        market: st.market,
+        leaderTabId: st.leaderTabId,
+        windowId: st.windowId,
+        groupId: st.groupId,
+        followers: Object.keys(st.followers).map((id) => {
+            const f = st.followers[id];
+            return { accountId: id, label: f.label, tabId: f.tabId, ready: !!f.ready, failed: !!f.failed, reopens: (f.reopens || []).length };
+        })
+    };
+}
+
+// Hands each action to the tab of the follower it names, all tabs at once, and returns every result with its timings.
+// Nothing waits for a tab that is not ready: that action fails fast and the reconciler fixes it later.
+async function copyExec(sender, msg) {
+    const st = await copyLoad();
+    if (!st.on) return { ok: false, error: 'off' };
+    if (!sender.tab || sender.tab.id !== st.leaderTabId) return { ok: false, error: 'not-leader' };
+    const actions = msg.actions;
+    if (!Array.isArray(actions) || !actions.length || actions.length > COPY_MAX_ACTIONS) return { ok: false, error: 'shape' };
+    const groups = new Map();
+    for (let i = 0; i < actions.length; i++) {
+        const a = actions[i];
+        if (!isObj(a) || typeof a.accountId !== 'string') return { ok: false, error: 'shape' };
+        if (!groups.has(a.accountId)) groups.set(a.accountId, []);
+        groups.get(a.accountId).push(i);
+    }
+    const specs = copySpecsOf(msg.specs);
+    if (Object.keys(specs).length) st.specs = Object.assign(isObj(st.specs) ? st.specs : {}, specs); // kept in memory, saved with the next save
+    const startedAt = Date.now();
+    const t0 = performance.now();
+    const results = new Array(actions.length);
+    const followers = {};
+    const snaps = {}; // each follower tab's own account as it saw it after its actions (the leader trusts it over its own reads)
+    const fail = (idxs, error) => idxs.forEach((i) => { results[i] = { action: actions[i], ok: false, ms: 0, error }; });
+    await Promise.all([...groups].map(async ([id, idxs]) => {
+        const f = copyFollower(st, id);
+        if (!f) return fail(idxs, 'unknown-follower');
+        if (f.tabId == null || !f.ready || f.failed) return fail(idxs, 'follower-not-ready');
+        const sent = performance.now();
+        try {
+            const resp = await copyTimeout(chrome.tabs.sendMessage(f.tabId, {
+                type: 'copy', op: 'exec', rid: 'x' + (++copySeq) + '-' + startedAt.toString(36), sentAt: Date.now(), actions: idxs.map((i) => actions[i]), specs
+            }), Math.min(COPY_EXEC_MAX_MS, COPY_EXEC_BASE_MS + COPY_EXEC_PER_MS * idxs.length));
+            const back = performance.now();
+            const arr = resp && Array.isArray(resp.results) ? resp.results : null;
+            idxs.forEach((i, n) => {
+                const r = arr && isObj(arr[n]) ? arr[n] : { ok: false, error: (resp && typeof resp.error === 'string' && resp.error) || 'bad-reply' };
+                results[i] = Object.assign({ action: actions[i] }, r);
+            });
+            followers[id] = { sendMs: Math.round((sent - t0) * 10) / 10, rtMs: Math.round((back - sent) * 10) / 10 };
+            if (resp && copySnapOk(resp.snap)) snaps[id] = resp.snap;
+        } catch (e) {
+            // no receiver means the tab is reloading or gone: stop sending until it announces itself again
+            if (!/timeout/.test(copyErr(e))) f.ready = false;
+            fail(idxs, copyErr(e));
+            followers[id] = { sendMs: Math.round((sent - t0) * 10) / 10, rtMs: Math.round((performance.now() - sent) * 10) / 10, error: copyErr(e) };
+        }
+    }));
+    return { ok: true, results, snaps, timings: { startedAt, totalMs: Math.round((performance.now() - t0) * 10) / 10, followers } };
+}
+
+function copyReady(sender, msg) {
+    return copyLock(async () => {
+        const st = await copyLoad();
+        const f = copyFollower(st, msg.accountId);
+        // only the tab this follower was opened in may announce it
+        if (!st.on || !f || !sender.tab || f.tabId !== sender.tab.id) return { ok: false, error: 'unknown-tab' };
+        f.ready = true;
+        f.readyAt = Date.now();
+        f.failed = false;
+        await copySave();
+        copyNotifyLeader(st, { op: 'follower-ready', accountId: msg.accountId, label: f.label, tabId: f.tabId });
+        return { ok: true, specs: isObj(st.specs) ? st.specs : {} };
+    });
+}
+
+function copySnapOk(snap) {
+    if (!isObj(snap) || !Array.isArray(snap.positions)) return false;
+    try { return JSON.stringify(snap).length <= COPY_SNAP_BYTES; } catch (e) { return false; }
+}
+
+// A follower tab's own account, passed on to the leader tab as it came. Four a second from each of ten tabs: nothing is saved and nothing
+// waits for the lock (the saved state is read from memory, and only the tab this follower was opened in may speak for it).
+async function copySnap(sender, msg) {
+    const st = await copyLoad();
+    const f = st.on ? copyFollower(st, msg.accountId) : null;
+    if (!f || !sender.tab || f.tabId !== sender.tab.id) return { ok: false, error: 'unknown-tab' };
+    if (!copySnapOk(msg.snap)) return { ok: false, error: 'shape' };
+    copyNotifyLeader(st, { op: 'follower-snap', accountId: msg.accountId, snap: msg.snap });
+    return { ok: true };
+}
+
+// A follower tab that closed or crashed gets opened again (at most COPY_REOPEN_MAX times in two minutes).
+async function copyReopen(st, accountId) {
+    const f = copyFollower(st, accountId);
+    if (!st.on || !f || f.failed) return;
+    if (await copyTabAlive(f.tabId)) return;
+    const t = Date.now();
+    f.reopens = (f.reopens || []).filter((x) => t - x < COPY_REOPEN_WINDOW_MS);
+    f.tabId = null;
+    f.ready = false;
+    if (f.reopens.length >= COPY_REOPEN_MAX) {
+        f.failed = true;
+        await copySave();
+        copyNotifyLeader(st, { op: 'follower-failed', accountId, reason: 'reopen-limit' });
+        return;
+    }
+    f.reopens.push(t);
+    await copyCreateTabs(st, [accountId]);
+    await copySave();
+}
+
+function copyWatch() {
+    return copyLock(async () => {
+        const st = await copyLoad();
+        if (!st.on) { await copyArmWatch(false); return; }
+        if (!(await copyTabAlive(st.leaderTabId))) { await copyShutdown(st); return; }
+        for (const id of Object.keys(st.followers)) {
+            const f = st.followers[id];
+            if (f.failed) continue;
+            const tab = f.tabId == null ? null : await chrome.tabs.get(f.tabId).catch(() => null);
+            if (!tab) { await copyReopen(st, id); continue; }
+            if (tab.discarded) { f.ready = false; chrome.tabs.reload(tab.id).catch(() => {}); continue; }
+            if (tab.status !== 'complete') continue;
+            // the bridge answers a ping without the page: no answer on a finished tab means a crashed or error page
+            try {
+                await copyTimeout(chrome.tabs.sendMessage(tab.id, { type: 'copy', op: 'ping' }), COPY_PING_MS);
+            } catch (e) {
+                f.ready = false;
+                chrome.tabs.reload(tab.id).catch(() => {});
+            }
+        }
+        await copySave();
+    });
+}
+
+// Follower tabs this worker has no record of (the extension was reloaded or updated, the browser restored the tabs): nobody drives
+// them, so they are closed. Runs when the worker starts, after the saved state is back.
+function copySweep() {
+    return copyLock(async () => {
+        const st = await copyLoad();
+        let tabs = [];
+        try { tabs = await chrome.tabs.query({ url: COPY_ORIGIN + '*' }); } catch (e) { return; }
+        const known = new Set(Object.keys(st.followers).map((k) => st.followers[k].tabId));
+        const stray = tabs.filter((t) => /[?&]bvCopy=/.test(String(t.url || '')) && !known.has(t.id)).map((t) => t.id);
+        if (stray.length) await chrome.tabs.remove(stray).catch(() => {});
+    });
+}
+
+// The copy trader's log (what it sent): the last 500 entries survive a reload of the page.
+// Entries are plain data the page already scrubbed of anything token-like; only the shape and size are checked here.
+function copyLogSave(msg) {
+    if (!Array.isArray(msg.entries)) return Promise.resolve({ ok: false, error: 'shape' });
+    let out = msg.entries.slice(-COPY_LOG_MAX).filter((e) => isObj(e) && Number.isFinite(e.t) && typeof e.type === 'string');
+    if (JSON.stringify(out).length > COPY_LOG_BYTES) out = out.slice(-Math.floor(out.length / 2));
+    return chrome.storage.local.set({ [COPY_LOG_KEY]: out }).then(() => ({ ok: true }));
+}
+function copyLogLoad() {
+    return chrome.storage.local.get(COPY_LOG_KEY).then((r) => {
+        const v = r && r[COPY_LOG_KEY];
+        return { ok: true, entries: Array.isArray(v) ? v.slice(-COPY_LOG_MAX) : [] };
+    });
+}
+
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+    if (!isObj(msg) || msg.type !== 'copy' || typeof msg.op !== 'string') return;
+    const answer = (p) => { p.then(sendResponse, (e) => sendResponse({ ok: false, error: copyErr(e) })); return true; };
+    const vest = fromVestScript(sender);
+    switch (msg.op) {
+        case 'tabs-open': return vest ? answer(copyOpen(sender, msg)) : (sendResponse({ ok: false, error: 'sender' }), false);
+        case 'tabs-close': return vest || fromExtensionPage(sender) ? answer(copyClose(sender)) : (sendResponse({ ok: false, error: 'sender' }), false);
+        case 'tabs-exec': return vest ? answer(copyExec(sender, msg)) : (sendResponse({ ok: false, error: 'sender' }), false);
+        case 'tabs-status': return vest || fromExtensionPage(sender) ? answer(copyLoad().then(copyStatusOf)) : (sendResponse({ ok: false, error: 'sender' }), false);
+        case 'log-save': return vest ? answer(copyLogSave(msg)) : (sendResponse({ ok: false, error: 'sender' }), false);
+        case 'log-load': return vest ? answer(copyLogLoad()) : (sendResponse({ ok: false, error: 'sender' }), false);
+        case 'follower-ready': return vest && isId(msg.accountId) ? answer(copyReady(sender, msg)) : (sendResponse({ ok: false, error: 'sender' }), false);
+        case 'follower-snap': return vest && isId(msg.accountId) ? answer(copySnap(sender, msg)) : (sendResponse({ ok: false, error: 'sender' }), false);
+        default: return;
+    }
+});
+
+chrome.tabs.onRemoved.addListener((tabId, info) => {
+    copyLock(async () => {
+        const st = await copyLoad();
+        if (!st.on) return;
+        if (tabId === st.leaderTabId) { await copyShutdown(st); return; }
+        const id = copyIdOf(st, tabId);
+        if (id === undefined) return;
+        const f = st.followers[id];
+        f.tabId = null;
+        f.ready = false;
+        await copySave();
+        // a closing window takes the leader with it, and that removal shuts everything down
+        if (info && info.isWindowClosing) return;
+        copyNotifyLeader(st, { op: 'follower-lost', accountId: id });
+        // quick path; if the worker sleeps first, the watch alarm reopens it
+        setTimeout(() => copyLock(async () => { await copyReopen(await copyLoad(), id); }).catch(() => {}), 800);
+    }).catch(() => {});
+});
+
+// A follower tab that starts loading cannot take actions until its page pins the account and announces itself again. The leader tab
+// loading (a reload) ends copying: a reload never resumes it, so the follower tabs have no one to serve.
+chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
+    if (changeInfo.status !== 'loading') return;
+    copyLock(async () => {
+        const st = await copyLoad();
+        if (!st.on) return;
+        if (tabId === st.leaderTabId) { await copyShutdown(st); return; }
+        const id = copyIdOf(st, tabId);
+        if (id === undefined || !st.followers[id].ready) return;
+        st.followers[id].ready = false;
+        await copySave();
+    }).catch(() => {});
+}); // no filter argument: Chrome's tabs.onUpdated takes none (a filter throws and the whole worker fails to register)
+
+chrome.alarms.onAlarm.addListener((a) => { if (a.name === COPY_WATCH_ALARM) copyWatch().catch(() => {}); });
+copySweep().catch(() => {});
