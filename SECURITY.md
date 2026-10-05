@@ -114,9 +114,9 @@ If anything is off, nothing changes. If writing fails halfway, the old files go 
 
    - On Mac: `shasum -a 256 better-vest-8.0.4.zip`
    - On Windows: `certutil -hashfile better-vest-8.0.4.zip SHA256`
-3. **Scan it.** VirusTotal checks a file with more than 60 antivirus engines. Upload the zip at [virustotal.com](https://www.virustotal.com) and you get the result for that exact file. The last version I scanned there, 7.5.2, came back with 0 of 65 engines flagging it ([report](https://www.virustotal.com/gui/file/ac21bdf8646485810fa89758a58297e0290bcb0f7e305050ba7a52c558ae9ceb)).
+3. **Scan it.** VirusTotal checks a file with more than 60 antivirus engines. Upload the zip at [virustotal.com](https://www.virustotal.com) and you get the result for that exact file. The last version I scanned there, 8.0.4, came back with 0 of 64 engines flagging it ([report](https://www.virustotal.com/gui/file/688672587534d531ae81f904ed35a51bf488706e9c1fefa634c39f748ccc45de)).
 
-   The report also has an AI summary, "Code insights", which marks two things as suspicious. Both are on this page: the WICK code switch ([The WICK code](#the-wick-code)) and the updater writing its own files ([Updates are signed](#updates-are-signed)).
+   Reports for earlier versions also had an AI summary, "Code insights", which marked two things as suspicious. Both are on this page: the WICK code switch ([The WICK code](#the-wick-code)) and the updater writing its own files ([Updates are signed](#updates-are-signed)).
 4. **Watch it work.** Open Chrome's DevTools on the Vest tab (F12), go to Network, and use Better Vest. You'll only see the addresses listed above.
 
 ## Who makes it
