@@ -4,14 +4,14 @@ About two minutes. Works in Chrome, Brave, Edge and Arc on a computer (not on ph
 
 ## Install
 
-1. Download **better-vest-7.7.1.zip** from the [latest release](https://github.com/ax4p/better-vest/releases/latest).
+1. Download **better-vest-8.0.0.zip** from the [latest release](https://github.com/ax4p/better-vest/releases/latest).
 2. Unzip it.
    - **Mac:** double-click the zip.
    - **Windows:** right-click the zip and choose **Extract All**.
 
    Keep the folder somewhere it can stay, like Documents. Chrome runs the extension from that folder, so don't delete it afterwards.
 3. Go to `chrome://extensions` (Brave: `brave://extensions`, Edge: `edge://extensions`).
-4. Turn on **Developer mode** in the top right corner, then click **Load unpacked** and pick the `better-vest-7.7.1` folder.
+4. Turn on **Developer mode** in the top right corner, then click **Load unpacked** and pick the `better-vest-8.0.0` folder.
 5. Pin it: click the puzzle piece in the toolbar, then the pin next to Better Vest.
 6. Open [next.vestmarkets.com](https://next.vestmarkets.com). The dock appears at the top of the page.
 
@@ -56,6 +56,7 @@ Your settings and your Calendar stay as they are.
   2. Reload the Vest tab.
   3. If you have another copy installed too (a userscript or a second version of the extension), keep just one on.
 - **Better Vest was switched off after an update.** Developer mode is off. Turn it on, then switch Better Vest back on.
+- **A group of tabs called "Copy" opened.** That's the copy trader's Turbo mode: one hidden Vest tab per follower account. Leave them open while copying; they close when you switch copying off. Light mode, in the copy trader, works without them.
 - **The card shows no position line.** Check that chart TP/SL is on in Settings > Chart, then reload the Vest tab. If the card asks you to pick your account, choose it once in Vest's account menu.
 
 ## Removing it

@@ -4,7 +4,7 @@
 
 # Better Vest
 
-A Chrome extension for [Vest Markets](https://next.vestmarkets.com) that puts your take profit and stop loss on the chart, adds a one-click order card with partial take-profits, hotkeys, a focus mode, seven themes and a P&L calendar.
+A Chrome extension for [Vest Markets](https://next.vestmarkets.com) with a copy trader for up to ten accounts, your take profit and stop loss on the chart, a one-click order card with partial take-profits, hotkeys, a focus mode, seven themes and a P&L calendar.
 
 Made by **Astral** · Discord **@ax4p**
 
@@ -17,6 +17,38 @@ I trade NQ on Vest every day. The platform is fast and the funded program is goo
 It all runs in your browser, on the Vest tab you already have open. There's no server, no sign-up and nothing to pay.
 
 ## What it does
+
+### Copy trader
+
+Trade one account and up to ten of your other Vest accounts follow it, live. Open it with **Copy** in the dock, pick the leader (the account you trade), switch on the accounts that should follow and give each one a ratio: 1 copies the same size, 0.5 copies half. Then switch copying on.
+
+Everything you do on the leader is copied:
+- opening and adding, from the order card, Vest's own ticket or the hotkeys;
+- closing part or all of it, FLAT, 50%, REV and Vest's own close buttons;
+- every TP and SL, partial targets included. Drag a TP on the chart and the followers' TPs move with it;
+- limit orders you leave resting: placed, moved and cancelled the same way on the followers.
+
+It copies the moment Vest accepts your order, and it keeps checking every second, so a follower that drifts (a close on Vest's side, a stop that filled, a trade from your phone) is brought back in line.
+
+All your accounts show up by themselves, with their balance and today's P&L: switch on the ones that should follow. Each follower shows its position and live P&L, with the total next to it. A slim bar under the dock shows every account at a glance: in sync, catching up, or paused with the reason.
+
+By default it copies every market the leader trades. Switch that off and pick the markets yourself. A follower's position on a market that isn't copied is left alone, so you can still trade something by hand on a follower.
+
+It doesn't send orders of its own. It calls Vest's own order code, the same code Vest's order ticket and TP/SL windows run, with each follower's account, and Vest does the rest. It never touches your login token.
+
+Two speeds:
+- **Turbo** (the default) keeps one hidden Vest tab per follower, grouped and collapsed, each set to its own account. Every copy is a single trip to Vest.
+- **Light** runs everything from your own tab, with no extra tabs. A little slower, easier on a laptop.
+
+You stay in charge:
+- The first time, it tells you plainly that it places real orders.
+- Every time you switch it on, it shows what it's about to do first, like "Open NQ-PERP long 2 on 9 followers", and waits for your OK.
+- **Alt+Shift+K** stops copying at once. Press it again within five seconds to close the followers' positions. The leader stays as it is.
+- After a reload, copying only comes back by itself when copied positions are still open, and it tells you so. Otherwise it stays off.
+
+Keep the leader's tab open on the trade page. Copy trading may not be allowed on every account, so check Vest's rules for yours before you switch it on, and start small.
+
+<p align="center"><img src="docs/media/copier.jpg" alt="The copy trader under the dock: every account with its value, today's P&L, ratio and status, Turbo or Light, the markets, the log and KILL" width="100%"></p>
 
 ### TP and SL on the chart
 
@@ -94,6 +126,7 @@ When your payouts add up, open the Portfolio page and make a certificate of your
 | H | Stop to breakeven |
 | Alt+F | Focus mode on or off |
 | Alt+J | Open the Calendar |
+| Alt+Shift+K | Stop the copy trader. Twice within 5 seconds: also close the followers' positions |
 
 The order keys work on NQ and MNQ while the Execute card is showing. E and Q start switched off: turn them on in Settings > Hotkeys. They also need chart TP/SL to be on.
 
@@ -101,7 +134,7 @@ The order keys work on NQ and MNQ while the Execute card is showing. E and Q sta
 
 Better Vest is a Chrome extension. It only runs on next.vestmarkets.com, and when you open Vest it adds its tools to the page you already use: the dock at the top, the Execute card and the labels on the chart.
 
-It doesn't have its own way to trade. When you press LONG, it fills in Vest's own order ticket and presses Vest's own Buy button, the way you would. Moving a TP or SL on the chart goes through Vest's own TP/SL handler, and FLAT, 50%, REV and Partials use Vest's own windows. Prices come from Vest's public market feed. The Calendar reads your trade history from Vest with read-only requests and keeps it on your computer.
+It doesn't have its own way to trade. When you press LONG, it fills in Vest's own order ticket and presses Vest's own Buy button, the way you would. Moving a TP or SL on the chart goes through Vest's own TP/SL handler, and FLAT, 50%, REV and Partials use Vest's own windows. The copy trader calls the same order code Vest's ticket and windows run, with each follower's account, so Vest's own code sends every copied order. Prices come from Vest's public market feed. The Calendar reads your trade history from Vest with read-only requests and keeps it on your computer.
 
 There's no server behind it and nothing about you goes to me. Updates come from this repo and are signed, so a changed file can't slip in. The [Security](SECURITY.md) page lists every address it talks to and shows how to check all of it yourself, including an antivirus scan of the zip.
 
@@ -125,7 +158,16 @@ No. It's an independent project and has no connection to Vest Markets.
 No.
 
 **Is it safe?**
-It only runs on Vest and asks Chrome for two permissions. It places orders through Vest's own buttons and never touches your password, your wallet or your withdrawals. Everything is explained, with ways to check it yourself, on the [Security](SECURITY.md) page.
+It only runs on Vest and asks Chrome for three permissions. It places orders through Vest's own buttons and Vest's own order code, and never touches your password, your wallet or your withdrawals. Everything is explained, with ways to check it yourself, on the [Security](SECURITY.md) page.
+
+**How many accounts can the copy trader follow?**
+One leader and up to ten followers, each with its own ratio.
+
+**Is copy trading allowed on my accounts?**
+That's up to Vest's rules for your account type. Check them before you switch it on.
+
+**Does the copy trader need the tab open?**
+Yes. Copying runs in the Vest tab that's on the leader account, so keep it open on the trade page. It keeps that tab awake while copying is on. In Turbo it also keeps one hidden tab per follower, and closes them when you switch copying off.
 
 **Does it work on trade.vestmarkets.com?**
 No, only on next.vestmarkets.com.
@@ -141,6 +183,8 @@ Please share the link to this page instead, so people always get the current ver
 Better Vest is free. If you're buying a Vest evaluation or instant account, use the code **WICK** at checkout. It doesn't cost you anything extra, and it helps keep this going.
 
 On the purchase screens the extension shows a small card with a **Use WICK** button that puts the code in for you. When Vest has filled in its own default code VEST, Better Vest switches it to WICK by itself, where you can see it, and only keeps WICK if it gives the same discount or more. Any other code is never touched. Undo on the card puts VEST back and stops the switch, and Settings > More turns it on or off.
+
+If you'd rather tip, my EVM address is `0x9F308B10780f9b8FD65C6B94071529b75a3A9dA4`. It's in the copy trader too, with a Copy button.
 
 ## Credits and rights
 
