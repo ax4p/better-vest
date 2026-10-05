@@ -19,7 +19,7 @@
 (function () {
     'use strict';
 
-    const VERSION = '8.0.0';
+    const VERSION = '8.0.4';
     // true only in the Chrome extension build (tools/build.py defines BV_EXT there)
     const IS_EXT = typeof BV_EXT !== 'undefined' && !!BV_EXT;
     // 'standard' = the shareable build; anything else = WICKED, the author's own full build.
@@ -9621,7 +9621,8 @@ const CP_FAST_SNAP_MS = 15000; // the fast path trusts a follower read this old 
 const CP_KILL_WINDOW = 5000;   // second Alt+Shift+K within this flattens the followers
 const CP_EXEC_TIMEOUT = 20000; // the least a batch may take before it is given up on; a longer batch gets more (cpExecLimit)
 const CP_EXEC_ROUND_MS = 6000; // per action of one account (they run one after another): the engine's own limit for one action is 5 s
-const CP_ENGINES = ['tabs', 'direct']; // c.engine: 'tabs' (the default: one background tab per follower, fastest) or 'direct' (everything from this tab)
+const CP_ENGINES = ['tabs', 'direct']; // c.engine: 'direct' (the default: everything from this tab) or 'tabs' (one background tab per follower; off while CP.turboOff)
+const CP_TURBO_OFF_WHY = 'Turbo is off for now while I make it more stable. Light copies from this tab.';
 const CP_FAST_FLOOR_MS = 4500; // after a click-time send the reconciler may not undo it for this long (the leader's own order is slower than the click)
 const CP_AUTH_COOL = 10000;    // Vest logs every tab out after two terminal auth failures within 10 s: after one, nothing is sent for this long
 const CP_REST_IDLE_MS = 3000;  // an idle follower read through the GET is reused for this long
@@ -9651,6 +9652,9 @@ const CP = {
     log: [], logLoaded: false, saveT: null, lastLogged: new Map(),
     localCfg: null,                       // used only when the suite API is missing (tests)
     running: false, killed: false, killAt: 0, flattening: false, engineUp: false, engineId: '', runAt: 0,
+    // 8.0.4: Turbo (the Tabs engine) is switched off for now. The owner's live test with 10 followers paused and glitched on Turbo, so every
+    // copy runs on Direct (Light) until it is stable. The engine and its tests stay; the tests switch it back on (turboOff = false).
+    turboOff: true,
     timer: null, looping: false, again: false, reading: false, execBusy: 0, chain: Promise.resolve(),
     snap: { leader: null, followers: {} },
     drift: new Map(),                     // 'account|symbol' -> {sig, first, attempts, lastSent, alerted}
@@ -9695,7 +9699,7 @@ function cpNewFollower(accountId) {
 // markets: the ones the copier manages (filled by itself, see cpManage, unless autoMarkets is off); ack: the version of the risk note the user agreed to;
 // resume: { at, leaderId, accounts, markets } while copying runs and followers hold copied positions (see cpResumeTrack), else null
 function cpDefaults() {
-    return { on: false, leaderId: '', followers: [], markets: [], ack: 0, autoMarkets: true, engine: 'tabs', resume: null, mirrorLimits: true };
+    return { on: false, leaderId: '', followers: [], markets: [], ack: 0, autoMarkets: true, engine: 'direct', resume: null, mirrorLimits: true };
 }
 
 // The live settings object: missing fields are filled in place, so an older saved S.copy keeps working. Fields that v8 dropped
@@ -9709,7 +9713,8 @@ function cpCfg() {
     const d = cpDefaults();
     for (const k of Object.keys(d)) if (c[k] === undefined) c[k] = d[k];
     delete c.dryRun;
-    if (c.engine !== 'direct') c.engine = 'tabs'; // the engine choice (cpSetEngine); anything else is the default
+    // the engine choice (cpSetEngine); anything else is the default, Direct. While Turbo is off a saved 'tabs' (8.0.0's default) becomes Direct too.
+    if (CP.turboOff || c.engine !== 'tabs') c.engine = 'direct';
     delete c.keepAwake;
     if (c.resume && (typeof c.resume !== 'object' || !Array.isArray(c.resume.accounts))) c.resume = null;
     if (!Array.isArray(c.followers)) c.followers = [];
@@ -9760,10 +9765,10 @@ function cpRemoveFollower(accountId) {
 
 // ---------- the engine choice ----------
 
-// The engine the settings name, if it is registered (the Tabs engine is the default; without it, say a build that lost it, the Direct engine
-// is used rather than none). The engine of a running copier is CP.engineId: that one is stopped and used until copying is off.
+// The engine the settings name, if it is registered (Direct is the default; Tabs only when chosen and Turbo is not switched off; a build without
+// the chosen one uses Direct rather than none). The engine of a running copier is CP.engineId: that one is stopped and used until copying is off.
 function cpEngineId(c) {
-    const want = (c || cpCfg()).engine === 'direct' ? 'direct' : 'tabs';
+    const want = (c || cpCfg()).engine === 'tabs' && !CP.turboOff ? 'tabs' : 'direct';
     return cpEngines[want] ? want : cpEngines.direct ? 'direct' : want;
 }
 
@@ -9777,6 +9782,7 @@ function cpSetEngine(id) {
     const want = String(id);
     if (CP_ENGINES.indexOf(want) < 0) return { ok: false, why: 'unknown engine' };
     if (!cpEngines[want]) return { ok: false, why: 'that engine is not available in this build' };
+    if (want === 'tabs' && CP.turboOff) return { ok: false, why: CP_TURBO_OFF_WHY };
     if (CP.running || CP.engineUp || CP.flattening) return { ok: false, why: 'Switch copying off before you change the engine.' };
     const c = cpCfg();
     if (c.engine === want) return { ok: true, why: '' };
@@ -15772,10 +15778,10 @@ function cuOverall() {
     // every market the leader trades is copied unless the user switched that off
     let auto = o.autoMarkets;
     if (auto == null) { const cfg = cuCfg(); auto = cfg ? cfg.autoMarkets : null; }
-    // Turbo (tabs) is the default until the core says otherwise
+    // Light (direct) is the default until the core says otherwise
     let engine = o.engine;
     if (engine == null) { const cfg = cuCfg(); engine = cfg ? cfg.engine : null; }
-    engine = CU_MODES[engine] ? engine : 'tabs';
+    engine = CU_MODES[engine] ? engine : 'direct';
     return {
         state: CU_STATE_WORD[o.state] ? o.state : 'off', running: !!o.running, killed: !!o.killed, leaderId: o.leaderId || '', leaderName: o.leaderName || '', engine,
         total: Number(o.total) || 0, on: Number(o.on) || 0, inSync: Number(o.inSync) || 0, issues: Number(o.issues) || 0,
@@ -16000,6 +16006,7 @@ function cuInjectCss() {
         #ax4p-copy .cu-seg button.on { background: linear-gradient(180deg, color-mix(in srgb, var(--ax-accent) 18%, var(--ax-btn)), var(--ax-btn)); color: var(--ax-text); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ax-accent) 45%, var(--ax-line)); }
         #ax4p-copy .cu-seg.locked button { cursor: not-allowed; }
         #ax4p-copy .cu-seg.locked button:not(.on) { opacity: .5; }
+        #ax4p-copy .cu-seg button.off { opacity: .4; cursor: not-allowed; }
         #ax4p-copy .cu-eng .cu-mkhint { margin-top: 5px; }
         #ax4p-copy .cu-mkbox { flex: 1 1 auto; min-height: 84px; display: flex; flex-direction: column; gap: 5px; }
         #ax4p-copy .cu-mkhead { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
@@ -16560,15 +16567,19 @@ function cuPaintEngine(m) {
     const box = cuById('ax4p-copy-eng');
     box.hidden = !m.caps.engine;
     const ov = m.overall;
+    // 8.0.4: Turbo is switched off for now (CP.turboOff in the core): its button stays, dimmed, and says why
+    const turboOff = typeof CP !== 'undefined' && !!CP.turboOff;
     Object.keys(CU_MODES).forEach((id) => {
         const b = cuById('ax4p-copy-eng-' + id);
         const on = ov.engine === id;
-        b.className = on ? 'on' : '';
+        const off = id === 'tabs' && turboOff;
+        b.className = (on ? 'on' : '') + (off ? ' off' : '');
+        b.title = off ? CP_TURBO_OFF_WHY : CU_MODES[id].word + ': ' + CU_MODES[id].hint;
         b.setAttribute('aria-pressed', on ? 'true' : 'false');
-        b.setAttribute('aria-disabled', ov.running ? 'true' : 'false');
+        b.setAttribute('aria-disabled', ov.running || off ? 'true' : 'false');
     });
     cuById('ax4p-copy-eng-seg').className = 'cu-seg' + (ov.running ? ' locked' : '');
-    cuText(cuById('ax4p-copy-eng-hint'), CU_MODES[ov.engine].hint);
+    cuText(cuById('ax4p-copy-eng-hint'), CU_MODES[ov.engine].hint + (turboOff && ov.engine === 'direct' ? ' Turbo is off for now.' : ''));
 }
 function cuOnEngine(id) {
     const m = cuCurrent();
