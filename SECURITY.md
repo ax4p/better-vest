@@ -34,7 +34,7 @@ Every address in the code, and when each one is used:
 | `api-gateway.hz.vestmarkets.com` | Your trade history for the Calendar, read-only (GET requests). It uses the login your Vest tab already has and keeps it in memory only, never on disk. | When the Calendar syncs. |
 | `api.github.com` | "Which version is the latest?" Nothing about you is in that request. | Every 30 minutes, and when Chrome starts. You can turn it off in the toolbar popup. |
 | `raw.githubusercontent.com` | The files of a new version, from this repo. | Only when you click Update. |
-| `fonts.googleapis.com` | A font. | Only if you pick one of the Google fonts in Settings > Theme. The default is Vest's own font, which loads nothing. |
+| `fonts.googleapis.com` | A font. | Only if you pick one of the Google fonts in Settings > Look. The default is Vest's own font, which loads nothing. |
 
 There's no other address in the code. No analytics, no tracking, no ads.
 
@@ -43,15 +43,15 @@ There's no other address in the code. No analytics, no tracking, no ads.
 It doesn't have its own way to trade. It works the page the way you would:
 
 - **LONG / SHORT:** fills in Vest's own order ticket (size, stop, target) and presses Vest's own Buy or Sell button. With STOP or TARGET switched off on the card it leaves that leg out and empties its field. With both off it switches Vest's own TP/SL box off, and it sends nothing if the box won't go off.
-- **FLAT, 50%, REV:** use Vest's own close window, the one its Close button opens.
+- **FLAT, 50%, REV:** use Vest's own close window, the one its Close button opens. If another tab of Vest's bottom panel is showing, they switch it to Active Positions first. When Vest asks one more question after a close (slippage, your account limits, or close orders already waiting), FLAT presses Vest's own confirm button, because FLAT is the panic button. 50% and REV leave that to you.
 - **Dragging TP or SL on the chart, and BE:** go through Vest's own TP/SL handler, the code Vest itself uses to change a take-profit or a stop.
 - **Partials:** done in Vest's own Edit TP/SL window. It sets the shares, adds the targets and presses Apply, and checks every field before it does.
 
 Better Vest never builds a trading request of its own. Vest's code sends everything, exactly as if you'd clicked.
 
-One more thing it does to your clicks: with the daily loss limit on and hit, it can swallow a click on Vest's own Buy and Sell on your screen, until the reset hour. You can turn that option off in Settings > Exec. It never blocks a close.
+One more thing it does to your clicks: with the daily loss limit on and hit, it can swallow a click on Vest's own Buy and Sell on your screen, until the reset hour. You can turn that option off in Settings > Risk. It never blocks a close.
 
-With the demo position on (Alt+Shift+D), every button on the card only tells you what it would do. Nothing is sent.
+And one thing it does to the chart by itself: while you hold a position, it widens TradingView's right margin just enough for the TP/SL labels, and puts it back when you're flat. Settings > TP/SL turns that off.
 
 ## The WICK code
 
@@ -89,12 +89,12 @@ If anything is off, nothing changes. If writing fails halfway, the old files go 
 ## Check it yourself
 
 1. **Read the code.** The [`extension`](extension) folder in this repo is the zip, file for file. It isn't minified or obfuscated, so you can read it in your browser.
-2. **Check the zip is that code.** The SHA-256 of `better-vest-7.7.0.zip` is:
+2. **Check the zip is that code.** The SHA-256 of `better-vest-7.7.1.zip` is:
 
-   `2349e1444caa8f7e461d536c669b9c295d644cef4e38923d4567f414f3687ea8`
+   `fa7d460bc6173e42d719fad4302e96377acc8ff9b46883779ab8a4dff2d68416`
 
-   - On Mac: `shasum -a 256 better-vest-7.7.0.zip`
-   - On Windows: `certutil -hashfile better-vest-7.7.0.zip SHA256`
+   - On Mac: `shasum -a 256 better-vest-7.7.1.zip`
+   - On Windows: `certutil -hashfile better-vest-7.7.1.zip SHA256`
 3. **Scan it.** VirusTotal checks a file with more than 60 antivirus engines. Upload the zip at [virustotal.com](https://www.virustotal.com) and you get the result for that exact file. The last version I scanned there, 7.5.2, came back with 0 of 65 engines flagging it ([report](https://www.virustotal.com/gui/file/ac21bdf8646485810fa89758a58297e0290bcb0f7e305050ba7a52c558ae9ceb)).
 
    The report also has an AI summary, "Code insights", which marks two things as suspicious. Both are on this page: the WICK code switch ([The WICK code](#the-wick-code)) and the updater writing its own files ([Updates are signed](#updates-are-signed)).

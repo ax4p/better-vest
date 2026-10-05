@@ -4,14 +4,14 @@ About two minutes. Works in Chrome, Brave, Edge and Arc on a computer (not on ph
 
 ## Install
 
-1. Download **better-vest-7.7.0.zip** from the [latest release](https://github.com/ax4p/better-vest/releases/latest).
+1. Download **better-vest-7.7.1.zip** from the [latest release](https://github.com/ax4p/better-vest/releases/latest).
 2. Unzip it.
    - **Mac:** double-click the zip.
    - **Windows:** right-click the zip and choose **Extract All**.
 
    Keep the folder somewhere it can stay, like Documents. Chrome runs the extension from that folder, so don't delete it afterwards.
 3. Go to `chrome://extensions` (Brave: `brave://extensions`, Edge: `edge://extensions`).
-4. Turn on **Developer mode** in the top right corner, then click **Load unpacked** and pick the `better-vest-7.7.0` folder.
+4. Turn on **Developer mode** in the top right corner, then click **Load unpacked** and pick the `better-vest-7.7.1` folder.
 5. Pin it: click the puzzle piece in the toolbar, then the pin next to Better Vest.
 6. Open [next.vestmarkets.com](https://next.vestmarkets.com). The dock appears at the top of the page.
 
@@ -21,14 +21,9 @@ When Chrome starts, it may warn you about extensions in developer mode. That's n
 
 Leave Developer mode on afterwards. With it off, Chrome switches the extension off the next time it reloads, and an update reloads it.
 
-## Try it first on the demo position
+## Your first trades
 
-On the trade page, press **Alt+Shift+D**. A demo position appears on the chart.
-
-- You can drag its TP and SL, press BE, try the hotkeys and press any button on the card. None of that is sent to Vest while the demo is on: the card just tells you what it would do.
-- Vest's own buttons are still real, so leave those alone while you practice.
-
-Press Alt+Shift+D again to remove the demo.
+Start with your smallest size. Watch the first few orders in Vest's Positions tab, the way you would with any new setup.
 
 ## Updating
 
