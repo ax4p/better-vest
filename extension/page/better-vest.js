@@ -12,7 +12,7 @@
 (function () {
     'use strict';
 
-    const VERSION = '7.7.0';
+    const VERSION = '7.7.1';
     // true only in the Chrome extension build (tools/build.py defines BV_EXT there)
     const IS_EXT = typeof BV_EXT !== 'undefined' && !!BV_EXT;
     // 'standard' = the shareable build; anything else = WICKED, the author's own full build.
@@ -152,6 +152,20 @@
 
     const ACCOUNT_PRESETS = { '5k': [0.5, 1, 2, 4], '10k': [1, 2, 4, 8], '25k': [4, 8, 10, 20], custom: [3, 5, 10, 15] };
     const ACCOUNT_LABELS = { '5k': '5K', '10k': '10K', '25k': '25K', custom: 'Custom' };
+    // Settings navigation icons: 16 px stroke icons drawn with currentColor, like the dock's
+    const SET_SVG = (d) => `<svg viewBox="0 0 16 16" aria-hidden="true">${d}</svg>`;
+    const SET_ICON = {
+        look: SET_SVG('<path d="M8 2.2C8 2.2 3.6 6.9 3.6 9.9a4.4 4.4 0 0 0 8.8 0C12.4 6.9 8 2.2 8 2.2z"/>'),
+        chart: SET_SVG('<path d="M4 3.5v9M4 5.5h-1.4v5H4M4 5.5h1.4v5H4M11.5 2.5v11M11.5 4.5h-1.4v6h1.4M11.5 4.5h1.4v6h-1.4"/>'),
+        tpsl: SET_SVG('<circle cx="8" cy="8" r="4.6"/><circle cx="8" cy="8" r="1.4"/><path d="M8 1.6v2M8 12.4v2M1.6 8h2M12.4 8h2"/>'),
+        sizes: SET_SVG('<path d="M2.2 5.6L8 2.8l5.8 2.8L8 8.4z"/><path d="M2.2 8.4L8 11.2l5.8-2.8"/><path d="M2.2 11.2L8 14l5.8-2.8"/>'),
+        risk: SET_SVG('<path d="M8 1.8l5 1.9v3.7c0 3.1-2.1 5.5-5 6.8-2.9-1.3-5-3.7-5-6.8V3.7z"/><path d="M8 5.4v3.4M8 10.9v.2"/>'),
+        keys: SET_SVG('<rect x="1.8" y="4" width="12.4" height="8" rx="1.8"/><path d="M4.6 6.8h.1M7.2 6.8h.1M9.8 6.8h.1M12.2 6.8h-.6M5 9.4h6"/>'),
+        focus: SET_SVG('<path d="M2.2 5.4V2.2h3.2M10.6 2.2h3.2v3.2M13.8 10.6v3.2h-3.2M5.4 13.8H2.2v-3.2"/><rect x="5.4" y="5.4" width="5.2" height="5.2" rx="1"/>'),
+        market: SET_SVG('<path d="M1.6 9.4h2.8l1.8-4.6 3 8 1.9-4.6h3.3"/>'),
+        more: SET_SVG('<circle cx="3.6" cy="8" r="1.1"/><circle cx="8" cy="8" r="1.1"/><circle cx="12.4" cy="8" r="1.1"/>')
+    };
+
     const FOCUS_ITEMS = [
         ['nav', 'Top navigation bar'],
         ['banner', 'Market status banner'],
@@ -184,7 +198,7 @@
         xc: { partials: false, tp1Pts: 20, tp1Pct: 50, targets: null, collapsed: false, slOn: true, tpOn: true },
         // Daily loss limit (7.7, extension): a soft lockout for new trades. limit in dollars, reset hour in local time.
         dll: { on: false, limit: 200, hour: 0, vest: true },
-        tpsl: { enabled: true, showR: true, demo: false, followBars: true, be: { show: true, pct: 5, mode: 'pctProfit', ticks: 1, points: 0, minProfitTicks: 2, allowAtEntry: false } }
+        tpsl: { enabled: true, showR: true, demo: false, followBars: true, makeRoom: true, labelScale: 1.15, be: { show: true, pct: 5, mode: 'pctProfit', ticks: 1, points: 0, minProfitTicks: 2, allowAtEntry: false } }
     };
 
     function readStore(key, fallback) {
@@ -766,8 +780,40 @@
             #ax4p-exec-note[hidden] { display: none; }
 
 
-            #ax4p-settings { width: 332px; max-height: 84vh; overflow-y: auto; padding: 12px; z-index: 1000000; }
-            #ax4p-settings-handle { cursor: move; }
+            /* Settings (7.7.1): a navigation column and the sections of the chosen page; only the page scrolls */
+            #ax4p-settings { width: 604px; max-width: calc(100vw - 16px); height: min(640px, 86vh); padding: 0; overflow: hidden; display: flex; flex-direction: column; z-index: 1000000; }
+            #ax4p-settings-handle { cursor: move; margin: 0; padding: 12px 14px 11px 16px; border-bottom: 1px solid color-mix(in srgb, var(--ax-line) 70%, transparent); }
+            #ax4p-settings .ax4p-title { font-size: 13px; letter-spacing: .01em; }
+            #ax4p-settings .ax4p-sub { font-size: 9.5px; margin-top: 2px; }
+            .ax4p-set-body { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: 146px minmax(0, 1fr); }
+            #ax4p-set-tabs.ax4p-set-nav { display: flex; flex-direction: column; gap: 2px; padding: 10px 8px; overflow-y: auto;
+                background: color-mix(in srgb, var(--ax-inset) 55%, transparent); border-right: 1px solid color-mix(in srgb, var(--ax-line) 70%, transparent); }
+            .ax4p-set-nav button { position: relative; display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px; border: none; border-radius: 8px;
+                background: transparent; color: var(--ax-muted); font: 700 11.5px/1.2 var(--ax-font, system-ui, sans-serif); text-align: left; cursor: pointer;
+                transition: background-color .15s, color .15s; }
+            .ax4p-set-nav button svg { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; opacity: .85; }
+            .ax4p-set-nav button:hover { color: var(--ax-text); background: color-mix(in srgb, var(--ax-btn) 70%, transparent); }
+            .ax4p-set-nav button.on { color: var(--ax-text); background: linear-gradient(90deg, color-mix(in srgb, var(--ax-accent) 16%, var(--ax-btn)), var(--ax-btn)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ax-line) 80%, transparent); }
+            .ax4p-set-nav button.on::before { content: ""; position: absolute; left: -8px; top: 8px; bottom: 8px; width: 3px; border-radius: 0 3px 3px 0; background: var(--ax-accent); }
+            .ax4p-set-nav button.on svg { color: var(--ax-accent); opacity: 1; }
+            .ax4p-set-main { min-height: 0; overflow-y: auto; padding: 4px 16px 16px; }
+            .ax4p-pane-h { padding: 14px 2px 6px; }
+            .ax4p-pane-t { color: var(--ax-text); font-size: 16px; font-weight: 800; letter-spacing: .01em; }
+            .ax4p-pane-d { color: var(--ax-dim); font-size: 10.5px; line-height: 1.45; margin-top: 3px; }
+            .ax4p-set-main .ax4p-sec { margin: 10px 0 0; padding: 11px 12px 10px; }
+            .ax4p-set-main .ax4p-sec-t { margin-bottom: 4px; }
+            .ax4p-set-main .ax4p-row { min-height: 30px; margin: 0; font-size: 11.5px; }
+            .ax4p-set-main .ax4p-row + .ax4p-row { border-top: 1px solid color-mix(in srgb, var(--ax-line) 40%, transparent); }
+            .ax4p-set-main .ax4p-hint { font-size: 10px; line-height: 1.5; }
+            .ax4p-set-main select.ax4p-in { min-width: 120px; height: 26px; font-size: 11px; }
+            .ax4p-set-main .ax4p-row > .ax4p-in[type="number"] { height: 26px; font-size: 11px; text-align: right; padding: 0 8px; }
+            .ax4p-more { margin-top: 8px; }
+            .ax4p-more > summary { display: inline-flex; align-items: center; gap: 7px; cursor: pointer; list-style: none; color: var(--ax-muted); font-size: 10.5px; font-weight: 700; user-select: none; }
+            .ax4p-more > summary::-webkit-details-marker { display: none; }
+            .ax4p-more > summary::before { content: ""; width: 5px; height: 5px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; transform: rotate(-45deg); transition: transform .15s; }
+            .ax4p-more[open] > summary::before { transform: rotate(45deg); }
+            .ax4p-more > summary:hover { color: var(--ax-text); }
+            .ax4p-more > .ax4p-hint { margin-top: 6px; }
             .ax4p-tabs {
                 display: flex; gap: 3px; margin: 2px 0 6px; padding: 3px;
                 background: var(--ax-inset); border: 1px solid var(--ax-line); border-radius: 8px;
@@ -1395,7 +1441,7 @@
     }
 
     // --- TradingView chart sync: theme colors, candles, background, volume ---
-    const tv = { widget: null, iframe: null, nextScan: 0, syncedWidget: null, syncedSig: '', syncing: false, again: false, hookedWidget: null, toolbarHidden: false, sessionsHidden: false };
+    const tv = { widget: null, iframe: null, nextScan: 0, scanFrame: null, fastUntil: 0, syncedWidget: null, syncedSig: '', syncing: false, again: false, hookedWidget: null, toolbarHidden: false, sessionsHidden: false };
 
     function isTvWidget(o) {
         try {
@@ -1412,9 +1458,11 @@
             if (alive) return tv.widget;
             tv.widget = null;
         }
+        // a new chart frame (page load, a layout change, a chart reload): looked for every 250 ms for a few seconds, else every second
+        if (iframe !== tv.scanFrame) { tv.scanFrame = iframe; tv.fastUntil = now() + 8000; tv.nextScan = 0; }
         tv.iframe = iframe;
         if (now() < tv.nextScan) return null;
-        tv.nextScan = now() + 3000;
+        tv.nextScan = now() + (now() < tv.fastUntil ? 250 : 1000);
         try {
             const candidates = document.querySelectorAll('iframe[id*="tradingview"], [class*="chart"], [id*="chart"], [class*="tv"]');
             for (const el of candidates) {
@@ -2719,6 +2767,7 @@
         setWidgetVis(document.getElementById('ax4p-exec-deck'), S.widgets.exec !== false);
         setWidgetVis(document.getElementById('ax4p-dislocation-pill'), S.widgets.basis === true);
         setWidgetVis(document.getElementById('ax4p-settings'), S.widgets.settings === true);
+        if (S.widgets.settings === true) fitSettings();
         const on = {
             exec: S.widgets.exec !== false,
             settings: S.widgets.settings === true
@@ -2735,6 +2784,21 @@
 
     // a position saved on a bigger screen can leave a widget unreachable; pull it back into view
     // (the saved position is untouched, so it returns on the big screen)
+    // The settings panel is wide: when it shows, it moves just enough to sit fully inside the window
+    function fitSettings() {
+        const el = document.getElementById('ax4p-settings');
+        if (!el || el.style.display === 'none') return;
+        const r = el.getBoundingClientRect();
+        if (!r.width) return;
+        const left = Math.max(8, Math.min(r.left, window.innerWidth - 8 - r.width));
+        const top = Math.max(8, Math.min(r.top, window.innerHeight - 8 - r.height));
+        if (Math.abs(left - r.left) < 1 && Math.abs(top - r.top) < 1) return;
+        el.style.left = left + 'px';
+        el.style.top = top + 'px';
+        el.style.right = 'auto';
+        el.style.bottom = 'auto';
+    }
+
     function clampWidgets() {
         ['ax4p-exec-deck', 'ax4p-settings', 'ax4p-dislocation-pill'].forEach((id) => {
             const el = document.getElementById(id);
@@ -2837,7 +2901,7 @@
     // The extension fills xcHooks (positions, Demo, hotkey labels, 50% and REV). The userscript keeps these stubs, so there
     // the card trades exactly like the old strip and 50% / REV stay off.
     // known() is false when the card cannot see your position: then it shows no position line instead of "Flat".
-    const xcHooks = { known: () => false, unknownWhy: () => '', position: () => null, demo: () => false, keyFor: () => '', half: null, rev: null, busy: () => false, armed: () => false,
+    const xcHooks = { known: () => false, unknownWhy: () => '', position: () => null, demo: () => false, keyFor: () => '', half: null, rev: null, flat: null, busy: () => false, armed: () => false,
         partials: () => 'Partials need the Better Vest extension.', assetOf: () => null, applyPartials: null,
         // the daily loss limit (extension): locked() is { text } while new trades are locked, dll() is what the card shows
         // lockedAny(): true while any account's lock is on, which also freezes the settings and a reset / import of them
@@ -3146,7 +3210,6 @@
         chk('ax4p-ch-sess', S.chart.hideSessions);
         chk('ax4p-tp-on', S.tpsl.enabled !== false);
         chk('ax4p-tp-r', S.tpsl.showR !== false);
-        chk('ax4p-tp-demo', S.tpsl.demo);
         tpPaintSettings();
     }
 
@@ -3355,7 +3418,8 @@
         document.getElementById('ax4p-tp-pts').addEventListener('input', (e) => { S.tp = parseFloat(e.target.value) || 30; persist(); updateExecutionRiskCalc(); });
         document.getElementById('ax4p-buy-btn').onclick = () => xcExecute('buy');
         document.getElementById('ax4p-sell-btn').onclick = () => xcExecute('sell');
-        document.getElementById('ax4p-flatten-btn').onclick = triggerCloseAll;
+        // the extension's FLAT (xcFlat) wraps the protected close code; without it, that code alone, as always
+        document.getElementById('ax4p-flatten-btn').onclick = () => (xcHooks.flat ? xcHooks.flat() : triggerCloseAll());
         xcWire(execBox);
         updateExecutionRiskCalc();
         updateExecNote();
@@ -3371,15 +3435,21 @@
                 </div>
                 <span id="ax4p-settings-close" class="ax4p-x" title="close">×</span>
             </div>
-            <div class="ax4p-tabs" id="ax4p-set-tabs">
-                <button data-tab="look">Theme</button>
-                <button data-tab="chart">Chart</button>
-                <button data-tab="exec">Exec</button>
-                <button data-tab="market">Market</button>
-                <button data-tab="focus">Focus</button>
-                <button data-tab="more">More</button>
-            </div>
+            <div class="ax4p-set-body">
+            <nav class="ax4p-set-nav" id="ax4p-set-tabs">
+                <button data-tab="look">${SET_ICON.look}<span>Look</span></button>
+                <button data-tab="chart">${SET_ICON.chart}<span>Chart</span></button>
+                <button data-tab="tpsl">${SET_ICON.tpsl}<span>TP/SL</span></button>
+                <button data-tab="exec">${SET_ICON.sizes}<span>Sizes</span></button>
+                <button data-tab="risk">${SET_ICON.risk}<span>Risk</span></button>
+                <button data-tab="keys">${SET_ICON.keys}<span>Hotkeys</span></button>
+                <button data-tab="focus">${SET_ICON.focus}<span>Layout</span></button>
+                <button data-tab="market">${SET_ICON.market}<span>Market</span></button>
+                <button data-tab="more">${SET_ICON.more}<span>More</span></button>
+            </nav>
+            <div class="ax4p-set-main">
             <div class="ax4p-tabpane" data-pane="look">
+                <div class="ax4p-pane-h"><div class="ax4p-pane-t">Look</div><div class="ax4p-pane-d">Colors, interface and font for Better Vest and Vest's page.</div></div>
                 <div class="ax4p-sec">
                     <div class="ax4p-sec-t">Theme</div>
                     <div class="ax4p-swatches" id="ax4p-theme-grid"></div>
@@ -3399,24 +3469,47 @@
                 </div>
             </div>
             <div class="ax4p-tabpane" data-pane="chart">
+                <div class="ax4p-pane-h"><div class="ax4p-pane-t">Chart</div><div class="ax4p-pane-d">TradingView's colors, and what it shows.</div></div>
                 <div class="ax4p-sec">
-                    <div class="ax4p-sec-t">TradingView chart</div>
+                    <div class="ax4p-sec-t">Colors</div>
                     <label class="ax4p-row"><span>Apply colors at launch</span><input type="checkbox" id="ax4p-ch-sync"></label>
                     <div class="ax4p-row"><span>Candles up / down</span><span class="ax4p-inline"><input type="color" id="ax4p-ch-up" title="up candles"><input type="color" id="ax4p-ch-down" title="down candles"></span></div>
                     <div class="ax4p-row"><span>Background</span><input type="color" id="ax4p-ch-bg"></div>
+                    <div class="ax4p-btnrow">
+                        <button id="ax4p-ch-reset" class="ax4p-btn">Use theme colors</button>
+                        <button id="ax4p-ch-apply" class="ax4p-btn primary">Apply now</button>
+                    </div>
+                    <div class="ax4p-hint" id="ax4p-ch-status">Looking for the chart…</div>
+                </div>
+                <div class="ax4p-sec">
+                    <div class="ax4p-sec-t">Clean up</div>
                     <label class="ax4p-row"><span>Hide grid lines</span><input type="checkbox" id="ax4p-ch-grid"></label>
                     <label class="ax4p-row"><span>Remove volume indicator</span><input type="checkbox" id="ax4p-ch-vol"></label>
                     <label class="ax4p-row"><span>Hide extended-hours shading</span><input type="checkbox" id="ax4p-ch-sess"></label>
                 </div>
+            </div>
+            <div class="ax4p-tabpane" data-pane="tpsl">
+                <div class="ax4p-pane-h"><div class="ax4p-pane-t">TP/SL</div><div class="ax4p-pane-d">Your stop and target on the chart: drag them, or move the stop to breakeven.</div></div>
+                ${IS_EXT ? `
                 <div class="ax4p-sec">
-                    <div class="ax4p-sec-t">Chart TP/SL</div>
-                    ${IS_EXT ? `
+                    <div class="ax4p-sec-t">On the chart</div>
                     <label class="ax4p-row"><span>Draggable TP/SL on the chart</span><input type="checkbox" id="ax4p-tp-on"></label>
                     <label class="ax4p-row"><span>Show R multiple on hover</span><input type="checkbox" id="ax4p-tp-r"></label>
+                    <details class="ax4p-more"><summary>How dragging works</summary>
+                        <div class="ax4p-hint">Drag the TP or SL button next to your position, or a TP / SL label, to set it with the dollar value live. Let go and it is sent, with no confirmation window. Esc cancels a drag, and Undo on the label puts it back.</div>
+                    </details>
+                </div>
+                <div class="ax4p-sec">
+                    <div class="ax4p-sec-t">Labels</div>
+                    <div class="ax4p-row"><span>Label size</span>
+                        <select id="ax4p-tp-scale" class="ax4p-in"><option value="1">Small</option><option value="1.15">Medium</option><option value="1.3">Large</option><option value="1.5">Extra large</option></select>
+                    </div>
                     <label class="ax4p-row"><span>Labels follow the latest bar</span><input type="checkbox" id="ax4p-tp-follow"></label>
-                    <label class="ax4p-row"><span>Demo position (Alt+Shift+D)</span><input type="checkbox" id="ax4p-tp-demo"></label>
-                    <div class="ax4p-hint">Drag the TP or SL button next to your position, or a TP/SL label, to set it with the dollar value live. No confirmation dialog. Esc cancels a drag. Scroll into history and the labels fade out until the latest bar is back in view.</div>
-                    <div class="ax4p-sec-t" style="margin-top:8px;">Breakeven (BE)</div>
+                    <label class="ax4p-row"><span>Make room for the labels</span><input type="checkbox" id="ax4p-tp-room"></label>
+                    <div class="ax4p-hint">While you hold a position, the chart keeps just enough space right of the latest bar for the labels, and gives it back when you are flat. Without that space, or scrolled into history, they wait at the right edge.</div>
+                </div>
+                <div class="ax4p-sec">
+                    <div class="ax4p-sec-t">Breakeven (BE)</div>
                     <label class="ax4p-row"><span>Show the BE button</span><input type="checkbox" id="ax4p-be-show"></label>
                     <div class="ax4p-row"><span>Stop goes to</span>
                         <select id="ax4p-be-mode" class="ax4p-in" style="width:150px;">
@@ -3430,31 +3523,45 @@
                     <div class="ax4p-row" id="ax4p-be-row-points"><span>Points above entry</span><input type="number" id="ax4p-be-points" class="ax4p-in" min="0" step="0.25" style="width:64px;"></div>
                     <div class="ax4p-row"><span>Needs this much profit (ticks)</span><input type="number" id="ax4p-be-min" class="ax4p-in" min="0" step="1" style="width:64px;"></div>
                     <label class="ax4p-row"><span>Otherwise put the stop exactly at entry</span><input type="checkbox" id="ax4p-be-entry"></label>
-                    <div class="ax4p-hint">Example: long, up 1 pt, 5% of profit puts the stop at entry + 0.05, rounded to the next tick away from entry. Not in profit enough: nothing moves, unless the last option is on. The stop never moves backwards, and Undo works.</div>` : `
-                    <div class="ax4p-hint">Chart TP/SL needs the extension.</div>`}
-                </div>
-                <div class="ax4p-sec">
-                    <div class="ax4p-sec-t">Apply to the chart</div>
-                    <div class="ax4p-btnrow">
-                        <button id="ax4p-ch-reset" class="ax4p-btn">Use theme colors</button>
-                        <button id="ax4p-ch-apply" class="ax4p-btn primary">Apply now</button>
-                    </div>
-                    <div class="ax4p-hint" id="ax4p-ch-status">Looking for the chart…</div>
-                </div>
+                    <details class="ax4p-more"><summary>Example</summary>
+                        <div class="ax4p-hint">Long, up 1 pt, 5% of profit puts the stop at entry + 0.05, rounded to the next tick away from entry. Not in profit enough: nothing moves, unless the last option is on. The stop never moves backwards, and Undo works.</div>
+                    </details>
+                </div>` : `
+                <div class="ax4p-sec"><div class="ax4p-hint" style="margin:0;">Chart TP/SL needs the Better Vest extension.</div></div>`}
             </div>
             <div class="ax4p-tabpane" data-pane="exec">
+                <div class="ax4p-pane-h"><div class="ax4p-pane-t">Sizes</div><div class="ax4p-pane-d">The four size buttons on the Execute card, kept for each account size.</div></div>
                 <div class="ax4p-sec">
                     <div class="ax4p-sec-t">Account size</div>
                     <div class="ax4p-seg" id="ax4p-acct-seg">${Object.keys(ACCOUNT_PRESETS).map((k) => `<button data-acct="${k}">${ACCOUNT_LABELS[k]}</button>`).join('')}</div>
-                    <div class="ax4p-sec-t" style="margin-top:10px;">Size buttons</div>
+                </div>
+                <div class="ax4p-sec">
+                    <div class="ax4p-sec-t">Size buttons</div>
                     <div class="ax4p-presets" id="ax4p-preset-inputs">${[0, 1, 2, 3].map((i) => `<input type="number" class="ax4p-in" data-pi="${i}" min="0" step="0.1">`).join('')}</div>
                     <div class="ax4p-btnrow"><button id="ax4p-preset-reset" class="ax4p-btn">Reset this account to default</button></div>
-                    <div class="ax4p-hint">Each account keeps its own four sizes. Sizes are NQ units (MNQ = size ÷ 2). Switching account selects its smallest size.</div>
+                    <div class="ax4p-hint">Sizes are NQ units (MNQ = size ÷ 2). Switching the account size selects its smallest size.</div>
                 </div>
-                ${IS_EXT ? dllSettingsHtml() : ''}
-                ${IS_EXT ? mcSettingsHtml() : ''}
+            </div>
+            <div class="ax4p-tabpane" data-pane="risk">
+                <div class="ax4p-pane-h"><div class="ax4p-pane-t">Risk</div><div class="ax4p-pane-d">Your own daily loss limit: new trades lock for the rest of the day.</div></div>
+                ${IS_EXT ? dllSettingsHtml() : `
+                <div class="ax4p-sec"><div class="ax4p-hint" style="margin:0;">The daily loss limit needs the Better Vest extension.</div></div>`}
+            </div>
+            <div class="ax4p-tabpane" data-pane="keys">
+                <div class="ax4p-pane-h"><div class="ax4p-pane-t">Hotkeys</div><div class="ax4p-pane-d">One key for each action on the trade page.</div></div>
+                ${IS_EXT ? mcSettingsHtml() : `
+                <div class="ax4p-sec"><div class="ax4p-hint" style="margin:0;">Hotkeys need the Better Vest extension.</div></div>`}
+            </div>
+            <div class="ax4p-tabpane" data-pane="focus">
+                <div class="ax4p-pane-h"><div class="ax4p-pane-t">Layout</div><div class="ax4p-pane-d">Hide parts of Vest's page so the chart gets the room.</div></div>
+                <div class="ax4p-sec">
+                    <div class="ax4p-sec-t">Hide on Vest's page</div>
+                    ${FOCUS_ITEMS.map(([k, label]) => `<label class="ax4p-row"><span>${label}</span><input type="checkbox" data-hide="${k}"></label>`).join('')}
+                    <div class="ax4p-hint"><b>Alt+F</b> switches your whole Focus setup off and back on. The order ticket stays loaded off-screen, so LONG, SHORT and FLAT keep working. Uncheck to restore.</div>
+                </div>
             </div>
             <div class="ax4p-tabpane" data-pane="market">
+                <div class="ax4p-pane-h"><div class="ax4p-pane-t">Market</div><div class="ax4p-pane-d">The gap between Vest's mid price and the index.</div></div>
                 <div class="ax4p-sec">
                     <div class="ax4p-sec-t">Spread · mid vs index</div>
                     <div class="ax4p-row"><span id="ax4p-set-spread" class="ax4p-big-num">Δ —</span><span id="ax4p-set-px" class="ax4p-hint" style="margin:0;">waiting for prices</span></div>
@@ -3462,6 +3569,7 @@
                 </div>
             </div>
             <div class="ax4p-tabpane" data-pane="more">
+                <div class="ax4p-pane-h"><div class="ax4p-pane-t">More</div><div class="ax4p-pane-d">Calendar, backup, reset, and about Better Vest.</div></div>
                 <div class="ax4p-sec">
                     <div class="ax4p-sec-t">Calendar</div>
                     ${IS_EXT ? `<div class="ax4p-btnrow"><button id="ax4p-cal-open" class="ax4p-btn">Open Calendar</button></div>
@@ -3491,12 +3599,7 @@
                     <div class="ax4p-hint">Made by @ax4p. Orders are only ever placed through Vest's own ticket.</div>
                 </div>
             </div>
-            <div class="ax4p-tabpane" data-pane="focus">
-                <div class="ax4p-sec">
-                    <div class="ax4p-sec-t">Focus · remove to enlarge chart</div>
-                    ${FOCUS_ITEMS.map(([k, label]) => `<label class="ax4p-row"><span>${label}</span><input type="checkbox" data-hide="${k}"></label>`).join('')}
-                    <div class="ax4p-hint"><b>Alt+F</b> switches your whole Focus setup off and back on. Order ticket removes its whole column so the chart takes the space. The ticket stays loaded off-screen, so Exec LONG / SHORT / FLAT keep working. Uncheck to restore.</div>
-                </div>
+            </div>
             </div>
         `;
         document.body.appendChild(settings);
@@ -3714,13 +3817,22 @@
         return snapToTick(oldLimit + (newTrigger - oldTrigger), tick, dec);
     }
 
-    // chart geometry: visible price range {from, to} over a pane of `height` px (y = 0 at the top)
+    // chart geometry: visible price range {from, to} over a pane of `height` px (y = 0 at the top). vr.log: TradingView's
+    // Log price scale, where equal ratios take equal heights (its own coordinateToPrice agrees to within a pixel).
     function tpPriceToY(price, vr, height) {
+        if (vr.log) return ((Math.log(vr.to) - Math.log(price)) / (Math.log(vr.to) - Math.log(vr.from))) * height;
         return ((vr.to - price) / (vr.to - vr.from)) * height;
     }
 
     function tpYToPrice(y, vr, height) {
+        if (vr.log) return Math.exp(Math.log(vr.to) - (y / height) * (Math.log(vr.to) - Math.log(vr.from)));
         return vr.to - (y / height) * (vr.to - vr.from);
+    }
+
+    // the price `dy` px below p0 on the same scale (a drag: the press-time price plus the pointer's travel)
+    function tpShiftPrice(p0, dy, vr, height) {
+        if (vr.log) return p0 * Math.exp(-(dy / height) * (Math.log(vr.to) - Math.log(vr.from)));
+        return p0 - (dy / height) * (vr.to - vr.from);
     }
 
     // Vertical stacking of the label column. items[i] = { y: wanted centre, sy: sort key (true y), w: weight, up/dn: px the box reaches above /
@@ -3912,23 +4024,25 @@
         info: new Map(), infoAt: 0,
         recs: new Set(), recByLine: new WeakMap(), wrapFail: false,
         ghostOn: false, badSince: 0, fiberAt: 0,
-        prevVr: null, canvas: null, geom: null, health: 'init', themeSig: '',
+        prevVr: null, canvas: null, geom: null, health: 'init', themeSig: '', scaleWhy: '', scaleHinted: '',
         drag: null, pending: new Map(), flash: new Map(), shake: new Map(), undo: null, inflight: new Map(),
         blockUntil: 0, demo: null, hot: '', stamp: 0, rowsStart: 0,
         dead: false, chartSym: '', chartSymAt: 0, lastCommit: new Map(), legPx: [], rescan: 0, geomErr: '',
-        popup: false, evalAt: 0, legTol: 0.01, lastBarAt: 0, lastBarT: null, prevLx: null, away: false, tight: false, lastX: null, xMethod: '', gcAt: 0, loadingInfo: false
+        popup: false, evalAt: 0, legTol: 0.01, lastBarAt: 0, lastBarT: null, prevLx: null, away: false, tight: false, lastX: null, xMethod: '', gcAt: 0, loadingInfo: false,
+        colW: 0, colSig: '', colAt: 0, measure: null, lx: null, lxGlide: false, room: null, roomAt: 0, roomFlatAt: 0, chartDown: false, chartTouchAt: 0,
+        deadUntil: 0, quick: 0
     };
-    // Label column geometry (px). The column starts just right of the last bar.
+    // Label column geometry (px). The column sits just right of the last bar, or docked at the pane's right edge.
     const TP_GAP = 10;        // from the last bar to the label column
-    const TP_W = 132;         // a chip (position / TP / SL), and its card, when there is room right of the last bar
-    const TP_MINI_W = 68;     // the value-only chip used when there is little room (its card is TP_W wide)
-    const TP_STUB_W = 16;     // with no room even for that: a small coloured stub on the pane edge whose card opens on hover
+    const TP_W = 132;         // the narrowest a chip (position / TP / SL) and its card get; wider when their text needs it
     const TP_ROW = 18;        // chip height
     const TP_CARD_H = 18;     // the card's detail row
-    const TP_HDR_H = 17;      // the extra card row that repeats what a mini chip / stub hides
     const TP_UNDO_H = 19;     // the Undo row of a card
     const TP_DEMO_UP = 7;     // the DEMO tag sits this far above the position chip
     const TP_GAP_Y = 2;       // clear px between stacked chips
+    // Label size (Settings > Chart TP/SL): every chip, its card and the drag ghost are drawn at this scale. 1.15 since 7.7.1.
+    const TP_SCALES = [1, 1.15, 1.3, 1.5];
+    const tpK = () => { const k = Number(S.tpsl.labelScale); return TP_SCALES.includes(k) ? k : 1.15; };
     const TP_OBSTACLES = ['ax4p-exec-deck', 'ax4p-settings', 'ax4p-dislocation-pill'];
 
     function tpLog() {
@@ -4061,8 +4175,10 @@
             });
     }
 
+    // Open = no close date (the Calendar reads it the same way). Not closePrice: Vest fills it in on open positions too
+    // (seen live 2026-10-05), and reading it as "closed" hid every open position from the card and the chart.
     function tpIsOpen(r) {
-        return !!r && !(tpNum(r.closeDate) > 0) && !(tpNum(r.closePrice) > 0) && tpNum(r.quantity) > 0;
+        return !!r && !(tpNum(r.closeDate) > 0) && tpNum(r.quantity) > 0;
     }
 
     async function tpRefresh() {
@@ -4411,7 +4527,7 @@
         .tp-pane { --tp-w: 132px; --tp-cw: 132px; }
         .k-tp, .k-long { --c: var(--tp-up); }
         .k-sl, .k-short { --c: var(--tp-down); }
-        .tp-n { position: absolute; left: 0; top: 0; width: var(--tp-w); height: 18px; pointer-events: auto; will-change: transform; user-select: none; -webkit-user-select: none; transition: opacity .15s ease; }
+        .tp-n { position: absolute; left: 0; top: 0; width: var(--tp-w); height: 18px; pointer-events: auto; will-change: transform; transform-origin: 0 50%; user-select: none; -webkit-user-select: none; transition: opacity .15s ease; }
         .tp-n.open { z-index: 4; }
         .tp-n::before { content: ""; position: absolute; right: 100%; top: 9px; width: 6px; height: 1px; background: color-mix(in srgb, var(--c) 60%, transparent); pointer-events: none; }
         .tp-ln { position: absolute; left: 0; top: 0; height: 1px; pointer-events: none; will-change: transform; transition: opacity .15s ease, filter .12s;
@@ -4456,7 +4572,6 @@
         .tp-n.open .tp-card { opacity: 1; pointer-events: auto; transform: none; }
         .tp-ch, .tp-cr { display: flex; align-items: center; height: 17px; font: 600 10px/16px var(--ax-font, ui-sans-serif, system-ui, sans-serif); font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--ax-muted); }
         .tp-ch { display: none; color: var(--ax-text); border-bottom: 1px solid color-mix(in srgb, var(--ax-text) 10%, transparent); }
-        .tp-pane.mini .tp-ch, .tp-pane.tight .tp-ch { display: flex; }
         .tp-ch > span { padding: 0 5px; }
         .tp-ch .tp-hk { font-weight: 800; font-size: 9.5px; letter-spacing: .06em; color: var(--c); }
         .tp-ch .tp-hu { margin-left: auto; font-weight: 700; color: var(--c); }
@@ -4494,7 +4609,6 @@
             letter-spacing: .1em; color: var(--ax-base, #000); background: var(--ax-warn); pointer-events: none; display: none; }
         .tp-n.demo .tp-demo { display: block; }
         .tp-n.demo.cu.open .tp-demo { display: none; }
-        .tp-pane.tight .tp-demo { left: auto; right: 0; }
         .tp-was { position: absolute; right: 100%; margin-right: 12px; top: 0; height: 18px; font: 600 10.5px/18px var(--ax-font, ui-sans-serif, system-ui, sans-serif);
             color: var(--ax-muted); white-space: nowrap; display: none; font-variant-numeric: tabular-nums; }
         .tp-n.drag-src .tp-was { display: block; }
@@ -4514,22 +4628,16 @@
         .tp-at.entry { --c: var(--ax-text); }
         .tp-at.bad { --c: var(--ax-warn); }
         .tp-at.gh { font-weight: 800; }
-        .tp-pane.away .tp-n:not(.gh), .tp-pane.away .tp-cn:not(.gh) { opacity: 0; pointer-events: none; }
+        /* scrolled into history: the labels wait at the right edge, dimmed until the pointer is on them */
+        .tp-pane.away .tp-n:not(.gh):not(:hover):not(.open), .tp-pane.away .tp-cn:not(.gh) { opacity: .55; }
         .tp-pane.away .tp-ln:not(.gh):not(.src) { opacity: .28; }
         .tp-axis.away .tp-at:not(.gh) { opacity: .55; }
         .tp-pane.pop > *, .tp-axis.pop > * { opacity: 0 !important; pointer-events: none !important; }
-        /* little room right of the last bar: a value-only chip (the rest is in its card), then a 16px stub on the pane edge */
-        .tp-pane.mini { --tp-w: 68px; --tp-cw: 132px; }
-        .tp-pane.tight { --tp-w: 16px; --tp-cw: 132px; }
-        .tp-pane.mini .tp-n:not(.gh) .tp-k, .tp-pane.mini .tp-n:not(.gh) .tp-sz { display: none; }
-        .tp-pane.mini .tp-n:not(.gh) .tp-usd, .tp-pane.mini .tp-n:not(.gh) .tp-pnl { text-align: center !important; padding: 0 4px; }
-        .tp-pane.mini .tp-n.off:not(.gh) .tp-usd::before { content: "\\2191 "; }
-        .tp-pane.mini .tp-n.off.dn:not(.gh) .tp-usd::before { content: "\\2193 "; }
-        .tp-pane.tight .tp-n:not(.gh) .tp-lbl { opacity: .85; }
-        .tp-pane.tight .tp-n:not(.gh) .tp-lbl > * { display: none; }
-        .tp-pane.tight .tp-n:not(.gh) .tp-lbl::after { content: ""; position: absolute; left: 50%; top: 50%; width: 6px; height: 6px; margin: -3px 0 0 -3px; border-radius: 50%; background: var(--c); }
-        .tp-pane.tight .tp-n.off:not(.gh) .tp-lbl::after { content: "\\2191"; width: auto; height: auto; margin: 0; transform: translate(-50%, -50%); background: none; color: var(--c); font: 800 11px/1 var(--ax-font, ui-sans-serif, sans-serif); border-radius: 0; }
-        .tp-pane.tight .tp-n.off.dn:not(.gh) .tp-lbl::after { content: "\\2193"; }
+        /* tpFitCol lays a chip and its card out here at their natural width to size the column (never seen) */
+        .tp-n.tp-measure { left: -10000px; width: max-content; height: auto; visibility: hidden; pointer-events: none; }
+        .tp-n.tp-measure::before { display: none; }
+        .tp-measure .tp-lbl, .tp-measure .tp-cr { display: inline-flex; width: max-content; }
+        .tp-measure .tp-lbl > span, .tp-measure .tp-cr > span { flex: none; overflow: visible; }
         html.ax4p-tp-drag, html.ax4p-tp-drag * { cursor: grabbing !important; user-select: none !important; -webkit-user-select: none !important; }
         #ax4p-tp-toasts { position: fixed; left: 50%; bottom: 30px; transform: translateX(-50%); z-index: 1000002; display: flex; flex-direction: column; gap: 5px; align-items: center; pointer-events: none; }
         .ax4p-tp-toast { padding: 5px 10px; border-radius: 6px; font: 600 11px/1.3 var(--ax-font, ui-sans-serif, system-ui, sans-serif); color: var(--ax-text); background: var(--ax-raised);
@@ -4669,8 +4777,10 @@
             vr = sc.getVisiblePriceRange();
             paneH = pane.getHeight ? pane.getHeight() : 0;
         } catch (e) { return null; }
-        if (mode !== 0) { TP.health = 'scale-mode'; return null; }
-        if (inverted) { TP.health = 'inverted'; return null; }
+        // Regular (0) and Log (1) price scales are drawn. Percent (2), Indexed to 100 (3) and an inverted scale are not:
+        // tpScaleHint says so once instead of the overlay staying away in silence.
+        TP.scaleWhy = mode !== 0 && mode !== 1 ? 'mode' : inverted ? 'inverted' : '';
+        if (TP.scaleWhy) { TP.health = TP.scaleWhy === 'mode' ? 'scale-mode' : 'inverted'; return null; }
         // the main pane's canvas: the widest one whose height matches the pane (a resized pane or an extra indicator pane changes the largest)
         if (!TP.canvas || !TP.canvas.isConnected || TP.frame % 120 === 0) {
             let best = null, bw = 0, any = null, aw = 0;
@@ -4685,13 +4795,13 @@
             TP.canvas = best || any;
         }
         if (!TP.canvas) return null;
-        if (!vr || !(vr.to > vr.from) || !Number.isFinite(vr.from) || !Number.isFinite(vr.to)) return null;
+        if (!vr || !(vr.to > vr.from) || !Number.isFinite(vr.from) || !Number.isFinite(vr.to) || (mode === 1 && !(vr.from > 0))) return null;
         const ir = ifr.getBoundingClientRect();
         const cr = TP.canvas.getBoundingClientRect();
         const left = ir.left + cr.left, top = ir.top + cr.top, width = cr.width, height = cr.height;
         if (width < 320 || height < 120) return null;
         const lb = tpLastBar(chart, width);
-        const cur = { from: vr.from, to: vr.to };
+        const cur = { from: vr.from, to: vr.to, log: mode === 1 };
         const use = TP.prevVr || cur;
         TP.prevVr = cur;
         const lx = lb ? lb.x : null;
@@ -4734,6 +4844,13 @@
         if (el._sig === sig) return;
         el._sig = sig;
         el.style.left = l + 'px'; el.style.top = t + 'px'; el.style.width = w + 'px'; el.style.height = h + 'px';
+    }
+
+    function tpMoveChip(el, x, y, k) {
+        const sig = x + '|' + y + '|' + k;
+        if (el._m === sig) return;
+        el._m = sig;
+        el.style.transform = 'translate3d(' + x + 'px,' + y + 'px,0)' + (k !== 1 ? ' scale(' + k + ')' : '');
     }
 
     function tpMove(el, x, y) {
@@ -4878,6 +4995,16 @@
         return r;
     }
 
+    // A price scale the overlay can't draw on: said once per page and reason, while there is a position to show
+    function tpScaleHint() {
+        const why = TP.scaleWhy;
+        if (!why || TP.scaleHinted === why || !tpPositions().length) return;
+        TP.scaleHinted = why;
+        tpToast(why === 'inverted'
+            ? 'Chart TP/SL is hidden while the price scale is inverted. Right-click the price scale and turn off Invert scale.'
+            : 'Chart TP/SL is hidden on a percent or indexed price scale. Right-click the price scale and pick Regular or Logarithmic.', 'warn', 8000);
+    }
+
     function tpFmtR(r) {
         return (r >= 10 ? r.toFixed(0) : r.toFixed(1)) + 'R';
     }
@@ -4890,8 +5017,9 @@
         const positions = g ? tpPositions() : [];
         const live = tpLivePrice();
         if (!g || (!positions.length && !TP.drag)) {
+            if (!g) tpScaleHint();
             tpHideDom();
-            tpGhostWant(false);
+            tpGhostWant(false, !g && tpPositions().length ? 3000 : 800);
             return;
         }
         if (!tpEnsureDom()) return;
@@ -4915,35 +5043,35 @@
         tpClassIf(TP.pane, 'pop', !!TP.popup);
         tpClassIf(TP.axis, 'pop', !!TP.popup);
 
-        // Where the label column goes: just right of the last bar. Scrolled into history (last bar off screen) it fades away.
-        const follow = S.tpsl.followBars !== false && g.lastX != null;
+        // Where the label column goes: right of the latest bar when the whole column fits there (tpRoomTick makes that room
+        // while a position is open), otherwise docked at the right edge of the pane, and docked (dimmed) while scrolled into
+        // history. Chips and cards are always full size and as wide as their text needs (tpFitCol): nothing shrinks to a stub.
+        const colW = TP.colW || TP_W;
+        const lk = tpK();
+        const colVis = colW * lk;                                  // the column as drawn (chips are scaled from their left edge)
+        const dockX = Math.max(10, Math.round(Wd - 4 - colVis));
         let away = false;
-        if (follow) away = TP.away ? !(g.lastX > 8 && g.lastX < Wd - 8) : (g.lastX < -2 || g.lastX > Wd + 2);
+        if (g.lastX != null) away = TP.away ? !(g.lastX > 8 && g.lastX < Wd - 8) : (g.lastX < -2 || g.lastX > Wd + 2);
         TP.away = away;
         const showAway = away && !d;
-        // Room right of the last bar decides the chip size: full, then a value-only chip, and only when even that does not fit
-        // it shrinks to a 16px stub on the pane edge (covers a candle or two at most). The details are in the card either way.
-        let Lx, mini = false, tight = false;
-        if (follow) {
-            const want = g.lastX + TP_GAP;
-            const room = Wd - 4 - want;
-            if (room >= TP_W) Lx = want;
-            else if (room >= TP_MINI_W) { Lx = want; mini = true; }
-            else { Lx = Wd - TP_STUB_W - 2; mini = true; tight = !away; }
-            Lx = Math.max(10, Lx);
-        } else {
-            Lx = Math.max(10, Wd - 12 - TP_W);
+        let target = dockX;
+        if (S.tpsl.followBars !== false && g.lastX != null && !away) {
+            const want = Math.max(10, Math.round(g.lastX + TP_GAP));
+            if (want <= dockX) target = want;
         }
+        // docking and undocking glide over a few frames; following the bars and scrolling track exactly
+        if (TP.lx == null || d) TP.lxGlide = false;
+        else if (Math.abs(target - TP.lx) > 24) TP.lxGlide = true;
+        let Lx = TP.lxGlide ? TP.lx + (target - TP.lx) * 0.3 : target;
+        if (Math.abs(target - Lx) < 1) { Lx = target; TP.lxGlide = false; }
+        TP.lx = Lx;
         Lx = Math.round(Lx);
         tpClassIf(TP.pane, 'away', showAway);
         tpClassIf(TP.axis, 'away', showAway);
-        tpClassIf(TP.pane, 'mini', mini);
-        tpClassIf(TP.pane, 'tight', tight);
-        const chipW = tight ? TP_STUB_W : mini ? TP_MINI_W : TP_W;
-        const cardW = Math.max(chipW, TP_W);
-        const cardShift = Math.max(0, Lx + cardW - (Wd - 2));     // a card wider than its chip slides left to stay inside the pane
-        const extraH = mini ? TP_HDR_H : 0;
-        const lineW = showAway ? Wd : Lx - 5;                      // the level lines end on the connector spine
+        const chipW = colW, cardW = colW;
+        const cardShift = Math.max(0, Lx + colVis - (Wd - 2)) / lk; // only mid-glide can a card reach past the pane: it slides left
+        const extraH = 0;
+        const lineW = Lx - 5;                                      // the level lines end on the connector spine
         const spine = Lx - 6;                                      // the vertical connector
         const yOf = (p) => tpPriceToY(p, g.vr, H);
         const clampY = (y) => Math.max(10, Math.min(H - 10, y));
@@ -4973,7 +5101,7 @@
             const row = { pos, info, e, y0, off0, all, needTp, needSl, slPrimary: tpTightSl(pos), legs: [] };
             row.slU = row.slPrimary ? tpUsd(row.slPrimary.price, pos.entry, row.slPrimary.qty, pos.isLong) : null;
             row.item = {
-                y: y0, sy: y0, w: 8, up: TP_ROW / 2 + (TP.demo ? TP_DEMO_UP : 0), dn: TP_ROW / 2, ord: 1, ch: TP_CARD_H + extraH,
+                y: y0, sy: y0, w: 8, up: (TP_ROW / 2 + (TP.demo ? TP_DEMO_UP : 0)) * lk, dn: TP_ROW / 2 * lk, ord: 1, ch: (TP_CARD_H + extraH) * lk,
                 persist: needTp || needSl, pref: 1, hot: hotKey === 'e:' + pos.id, row
             };
             items.push(row.item);
@@ -4987,7 +5115,7 @@
                 L.undo = !!u && u.key === L.key && t < u.until;
                 L.nd = tpNode(TP.nodes, 'l:' + L.key, () => tpMkLeg(L.key, pos.id, L.kind, L.leg ? L.leg.id : null));
                 L.item = {
-                    y: L.y, sy, w: 1, up: TP_ROW / 2, dn: TP_ROW / 2, ord: 1 + side, ch: TP_CARD_H + extraH + (L.undo ? TP_UNDO_H : 0),
+                    y: L.y, sy, w: 1, up: TP_ROW / 2 * lk, dn: TP_ROW / 2 * lk, ord: 1 + side, ch: (TP_CARD_H + extraH + (L.undo ? TP_UNDO_H : 0)) * lk,
                     persist: L.undo, pref: sy < y0 ? -1 : 1, hot: hotKey === 'l:' + L.key, row, L
                 };
                 items.push(L.item);
@@ -4997,8 +5125,8 @@
         }
         // anything else of ours that sits over the label column (the Execute strip...) is an obstacle the chips stack around
         const nPos = items.length;
-        if (nPos && !showAway) {
-            tpObstacles(g, Lx, cardW).forEach((o) => items.push({ y: o.y, sy: o.y, w: 1e6, up: o.up, dn: o.dn, ord: 1, ch: 0, obs: true }));
+        if (nPos) {
+            tpObstacles(g, Lx, colVis).forEach((o) => items.push({ y: o.y, sy: o.y, w: 1e6, up: o.up, dn: o.dn, ord: 1, ch: 0, obs: true }));
         }
         const hotIdx = items.findIndex((it) => it.hot);
         const lay = nPos ? tpLayout(items, hotIdx, 1, H - 1, TP_GAP_Y) : null;
@@ -5015,7 +5143,7 @@
             tpShow(e.ln, !off0);
             tpMove(e.ln, 0, Math.round(y0));
             if (e.ln._w !== lineW) { e.ln._w = lineW; e.ln.style.width = lineW + 'px'; }
-            tpMove(e.n, Lx, Math.round(pit.cy - TP_ROW / 2));
+            tpMoveChip(e.n, Lx, Math.round(pit.cy - TP_ROW / 2), lk);
             tpClassIf(e.n, 'off', !!off0);
             tpClassIf(e.n, 'dn', off0 === 2);
             tpClassIf(e.n, 'demo', !!TP.demo);
@@ -5065,7 +5193,7 @@
                 tpMove(nd.cn, spine, Math.round(top));
                 const hgt = Math.round(bot - top);
                 if (nd.cn._h !== hgt) { nd.cn._h = hgt; nd.cn.style.height = hgt + 'px'; }
-                tpMove(nd.n, Lx, Math.round(it.cy - TP_ROW / 2));
+                tpMoveChip(nd.n, Lx, Math.round(it.cy - TP_ROW / 2), lk);
                 tpClassIf(nd.n, 'off', !!off);
                 tpClassIf(nd.n, 'dn', off === 2);
                 tpClassIf(nd.n, 'drag-src', isSrc);
@@ -5078,20 +5206,17 @@
                 tpText(nd.hk, kt);
                 tpText(nd.hs, tpFmtQty(L.qty));
                 tpText(nd.hu, tpFmtUsd(usd, true));
-                // the card's details: R, points, price (only worked out for a chip that is open, or about to be)
-                if (it.open || it.hot || nd._wasOpen) {
-                    let rtxt = '-';
-                    if (L.kind === 'tp' && S.tpsl.showR !== false && slU != null && slU < 0) {
-                        const r = tpR(usd, slU);
-                        if (r != null) rtxt = tpFmtR(r);
-                    } else if (L.kind === 'sl' && slPrimary && L.key === slPrimary.key) {
-                        rtxt = usd >= 0 ? 'locked' : 'risk';
-                    }
-                    tpText(nd.r, rtxt);
-                    tpText(nd.pt, tpPoints(L.price, pos.entry).toFixed(Math.min(info.dec, 2)) + ' pt');
-                    tpText(nd.px, L.price.toFixed(info.dec));
+                // the card's details: R, points, price (always filled in, so the column is already wide enough when it opens)
+                let rtxt = '-';
+                if (L.kind === 'tp' && S.tpsl.showR !== false && slU != null && slU < 0) {
+                    const r = tpR(usd, slU);
+                    if (r != null) rtxt = tpFmtR(r);
+                } else if (L.kind === 'sl' && slPrimary && L.key === slPrimary.key) {
+                    rtxt = usd >= 0 ? 'locked' : 'risk';
                 }
-                nd._wasOpen = it.open || it.hot;
+                tpText(nd.r, rtxt);
+                tpText(nd.pt, tpPoints(L.price, pos.entry).toFixed(Math.min(info.dec, 2)) + ' pt');
+                tpText(nd.px, L.price.toFixed(info.dec));
                 if (isSrc) tpText(nd.was, 'was ' + tpFmtUsd(usd, true));
                 tpShow(nd.ax, !off);
                 if (!off) axisItems.push({ el: nd.ax, y: L.y });
@@ -5145,8 +5270,8 @@
                 tpMove(gh.ln, 0, Math.round(y));
                 if (gh.ln._w !== lineW) { gh.ln._w = lineW; gh.ln.style.width = lineW + 'px'; }
                 // the ghost is wider than a label: keep it inside the pane (read the width only while dragging)
-                const gx = Math.max(2, Math.min(Lx, Wd - (gh.n.offsetWidth || 160) - 2));
-                tpMove(gh.n, gx, Math.round(yl - 10));
+                const gx = Math.max(2, Math.min(Lx, Wd - (gh.n.offsetWidth || 160) * lk - 2));
+                tpMoveChip(gh.n, gx, Math.round(yl - 10), lk);
                 tpMove(gh.cn, spine, Math.round(Math.min(yl, yc0)));
                 const hgt = Math.round(Math.abs(yl - yc0));
                 if (gh.cn._h !== hgt) { gh.cn._h = hgt; gh.cn.style.height = hgt + 'px'; }
@@ -5172,13 +5297,96 @@
             TP.shake.forEach((v, k) => { if (t > v + 2000) TP.shake.delete(k); });
         }
         tpGhostWant(drewReal && !TP.demo);
+        if (drewReal) tpFitCol();
+        tpRoomTick(drewReal, g);
     }
 
-    // ghost at once when we draw; un-ghost only after the overlay was unhealthy for a moment
-    function tpGhostWant(want) {
+    // Ghost at once when we draw; un-ghost only after the overlay was unhealthy for a moment. hold: how long that moment is
+    // (longer while a position is known but the chart can't be read for a beat: a resize, a reload, a menu over the chart).
+    function tpGhostWant(want, hold) {
         if (want) { TP.badSince = 0; tpSetGhost(true); return; }
         if (!TP.badSince) TP.badSince = now();
-        if (now() - TP.badSince > 800) tpSetGhost(false);
+        if (now() - TP.badSince > (hold || 800)) tpSetGhost(false);
+    }
+
+    // How wide the column has to be so that no chip and no card is cut off: each laid out at its natural width in a hidden copy.
+    // Redone only when a text changed length, at most every 250 ms (the live P&L changes every frame, its width hardly ever).
+    function tpFitCol() {
+        const t = now();
+        if (t - TP.colAt < 250) return;
+        let sig = '';
+        TP.nodes.forEach((nd) => { sig += (nd.n.textContent || '').length + '|'; });
+        if (sig === TP.colSig) return;
+        TP.colSig = sig;
+        TP.colAt = t;
+        const m = TP.measure || (TP.measure = tpEl('div', 'tp-n tp-measure'));
+        if (m.parentNode !== TP.pane) TP.pane.appendChild(m);
+        let w = 0;
+        TP.nodes.forEach((nd) => {
+            [nd.lbl, nd.n.querySelector('.tp-cr')].forEach((src) => {
+                if (!src) return;
+                const c = src.cloneNode(true);
+                m.appendChild(c);
+                w = Math.max(w, c.offsetWidth);
+                m.removeChild(c);
+            });
+        });
+        TP.colW = Math.max(TP_W, Math.min(260, Math.ceil(w) + 2));
+    }
+
+    // ---------- room for the labels ----------
+    // TradingView keeps 10 bars of 6 px right of the latest bar by default, too narrow for the labels: they had to shrink to
+    // dots over the newest candles. While a position is drawn and the latest bar is on screen, the chart's right margin is raised
+    // just enough for the column (TradingView's own setRightOffset: the margin you get by dragging the chart left). Never while
+    // the chart is being dragged, scrolled or zoomed. Flat again, the margin goes back to what it was, unless it was changed since.
+    const TP_ROOM_IDLE = 1200; // ms after the last pointer, wheel or key in the chart
+    function tpRoomTick(drawing, g) {
+        const t = now();
+        if (!TP.chart || t - TP.roomAt < 400) return;
+        TP.roomAt = t;
+        let ts = null, ro = NaN, bs = NaN;
+        try {
+            ts = TP.chart.getTimeScale();
+            if (!ts || typeof ts.setRightOffset !== 'function') return;
+            ro = Number(ts.rightOffset());
+            bs = Number(ts.barSpacing());
+        } catch (e) { return; }
+        if (!Number.isFinite(ro) || !(bs > 0)) return;
+        const idle = !TP.chartDown && !TP.drag && t - TP.chartTouchAt > TP_ROOM_IDLE;
+        if (drawing && S.tpsl.makeRoom !== false && S.tpsl.followBars !== false) {
+            TP.roomFlatAt = 0;
+            // only with the latest bar on screen (ro >= 0): scrolled into history, the chart is yours. The margin is counted in
+            // TradingView's own bars (the latest bar's middle sits ro + 0.5 bars from the edge), never from a frame-old position.
+            if (!idle || ro < 0) return;
+            const want = Math.ceil((TP_GAP + (TP.colW || TP_W) * tpK() + 6) / bs) + 1;
+            if (ro >= want - 0.01) return;
+            if (!TP.room) TP.room = { orig: ro, set: want };
+            TP.room.set = want;
+            try { ts.setRightOffset(want); } catch (e) {}
+        } else if (TP.room) {
+            // flat, or the option is off: the margin goes back once, if it is still the one set here
+            if (!TP.roomFlatAt) TP.roomFlatAt = t;
+            if (t - TP.roomFlatAt < 1500 || !idle) return;
+            if (Math.abs(ro - TP.room.set) < 0.5) { try { ts.setRightOffset(TP.room.orig); } catch (e) {} }
+            TP.room = null;
+        }
+    }
+
+    // A pointer, wheel or key in the chart frame: the margin is never moved under a hand that is using the chart
+    const tpInputWins = new WeakSet();
+    function tpHookChartInput() {
+        let w = null;
+        try { w = tv.iframe && tv.iframe.contentWindow; if (!w || tpInputWins.has(w)) return; void w.document; } catch (e) { return; }
+        tpInputWins.add(w);
+        const touch = () => { TP.chartTouchAt = now(); };
+        const opt = { capture: true, passive: true };
+        try {
+            w.addEventListener('pointerdown', () => { TP.chartDown = true; touch(); }, opt);
+            w.addEventListener('pointerup', () => { TP.chartDown = false; touch(); }, opt);
+            w.addEventListener('pointercancel', () => { TP.chartDown = false; touch(); }, opt);
+            w.addEventListener('wheel', touch, opt);
+            w.addEventListener('keydown', touch, opt);
+        } catch (e) {}
     }
 
     function tpFrame() {
@@ -5189,7 +5397,7 @@
             TP.errs = 0;
         } catch (e) {
             if (++TP.errs === 1) tpLog('draw error', e && e.stack || e);
-            if (TP.errs > 30) { tpLog('too many draw errors: overlay off'); TP.dead = true; tpStop(); return; }
+            if (TP.errs > 30) { tpLog('too many draw errors: overlay rests 5 s'); TP.deadUntil = now() + 5000; TP.errs = 0; tpStop(); return; }
         }
         TP.raf = requestAnimationFrame(tpFrame);
     }
@@ -5220,7 +5428,7 @@
         if (!pos) { d.s = null; return; }
         const info = tpInfoFor(pos.symbol);
         let raw;
-        if (d.p0 != null) raw = d.p0 - ((d.cy - d.y0) / g.height) * (g.vr.to - g.vr.from);
+        if (d.p0 != null) raw = tpShiftPrice(d.p0, d.cy - d.y0, g.vr, g.height);
         else raw = tpYToPrice(Math.max(0, Math.min(g.height, d.cy - g.top)), g.vr, g.height);
         const sn = snapToTick(raw, info.tick, info.dec);
         if (!sn) { d.s = null; return; }
@@ -5675,6 +5883,10 @@
         if (TP.raf) { cancelAnimationFrame(TP.raf); TP.raf = 0; }
         tpEndDrag();
         try { tpSetGhost(false); } catch (e) {}
+        // the chart's right margin goes back if it is still the one set for the labels
+        try { if (TP.room && TP.chart) { const ts = TP.chart.getTimeScale(); if (Math.abs(Number(ts.rightOffset()) - TP.room.set) < 0.5) ts.setRightOffset(TP.room.orig); } } catch (e) {}
+        TP.room = null;
+        TP.lx = null;
         TP.nodes.forEach(tpDropNode);
         TP.nodes.clear();
         if (TP.root && TP.root.parentNode) TP.root.parentNode.removeChild(TP.root);
@@ -5684,7 +5896,8 @@
     function tpWatch() {
         if (!IS_EXT) return;
         if (S.tpsl.enabled === false) { if (TP.on) tpStop(); return; }
-        if (TP.dead) return; // the draw loop failed 30 times: stay off until the page is reloaded or the switch is flipped
+        if (TP.deadUntil && now() < TP.deadUntil) return; // the draw loop failed 30 times in a row: it rests, then starts again
+        TP.deadUntil = 0;
         TP.on = true;
         detectSymbol(true);
         const w = findTvWidget();
@@ -5700,8 +5913,13 @@
             TP.prevLx = null;
             TP.canvas = null;
             TP.chartSymAt = 0;
+            TP.lx = null;
+            TP.room = null; // a new chart has its own margin
             if (chart) tpWrapChart(chart);
         }
+        if (chart) tpHookChartInput();
+        // no chart yet (page load, a layout change, a chart reload): look again in 250 ms while a new frame is fresh
+        if (!chart && !TP.quick && now() < (tv.fastUntil || 0)) TP.quick = setTimeout(() => { TP.quick = 0; tpWatch(); }, 250);
         const key = (tpActiveAccount() || '') + '|' + tpSymbol();
         if (key !== TP.lastKey) { TP.lastKey = key; TP.pollAt = 0; }
         if (chart && !TP.demo && !document.hidden && now() - TP.pollAt >= 5000) {
@@ -5716,6 +5934,7 @@
             tpHideDom();
             tpSetGhost(false);
         }
+        if (!need) tpRoomTick(false, null);
     }
 
     function tpPaintSettings() {
@@ -5725,7 +5944,8 @@
         set('ax4p-tp-on', S.tpsl.enabled !== false);
         set('ax4p-tp-r', S.tpsl.showR !== false);
         set('ax4p-tp-follow', S.tpsl.followBars !== false);
-        set('ax4p-tp-demo', !!S.tpsl.demo);
+        set('ax4p-tp-room', S.tpsl.makeRoom !== false);
+        val('ax4p-tp-scale', String(tpK()));
         set('ax4p-be-show', be.show !== false);
         set('ax4p-be-entry', be.allowAtEntry);
         val('ax4p-be-mode', be.mode);
@@ -5744,13 +5964,14 @@
         if (!on) return;
         on.onchange = (e) => {
             S.tpsl.enabled = e.target.checked;
-            if (e.target.checked) TP.dead = false;
+            if (e.target.checked) TP.deadUntil = 0;
             if (!e.target.checked && S.tpsl.demo) { S.tpsl.demo = false; TP.demo = null; }
             persist(); tpWatch();
         };
         document.getElementById('ax4p-tp-r').onchange = (e) => { S.tpsl.showR = e.target.checked; persist(); };
         document.getElementById('ax4p-tp-follow').onchange = (e) => { S.tpsl.followBars = e.target.checked; persist(); };
-        document.getElementById('ax4p-tp-demo').onchange = (e) => { tpToggleDemo(e.target.checked); };
+        document.getElementById('ax4p-tp-room').onchange = (e) => { S.tpsl.makeRoom = e.target.checked; persist(); };
+        document.getElementById('ax4p-tp-scale').onchange = (e) => { S.tpsl.labelScale = Number(e.target.value); TP.colSig = ''; persist(); tpPaintSettings(); };
         const be = S.tpsl.be;
         const num = (id, key, lo, hi, int) => {
             const el = document.getElementById(id);
@@ -5781,6 +6002,8 @@
         tpPaintSettings();
     }
 
+    const tpDevOn = () => { try { return localStorage.getItem('ax4p-dev') === '1'; } catch (e) { return false; } };
+
     function tpslStart() {
         if (!IS_EXT || TP.started) return;
         TP.started = true;
@@ -5793,9 +6016,10 @@
             } catch (err) {}
         };
         ['pointerdown', 'click', 'keydown'].forEach((t) => document.addEventListener(t, execGuard, true));
-        // Alt+Shift+D: demo position on/off
+        // Alt+Shift+D: the demo position, a test tool for the smoke tests and screenshots (not in any menu). It only answers
+        // with localStorage 'ax4p-dev' set to '1' on the trade page.
         document.addEventListener('keydown', (e) => {
-            if (!e.altKey || !e.shiftKey || e.ctrlKey || e.metaKey || e.code !== 'KeyD') return;
+            if (!e.altKey || !e.shiftKey || e.ctrlKey || e.metaKey || e.code !== 'KeyD' || !tpDevOn()) return;
             const t = e.target;
             if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
             e.preventDefault();
@@ -6518,14 +6742,16 @@
                     </div>`).join('');
         return `
                 <div class="ax4p-sec" id="ax4p-mc-sec">
-                    <div class="ax4p-sec-t">Macros (hotkeys)</div>
+                    <div class="ax4p-sec-t">Keys</div>
                     <label class="ax4p-row"><span><b>Macros on</b> (same as the dock button)</span><input type="checkbox" id="ax4p-mc-master"></label>
                     ${rows}
                     <label class="ax4p-row"><span>Toast on every macro</span><input type="checkbox" id="ax4p-mc-toast"></label>
-                    <label class="ax4p-row"><span>Limit orders carry the Exec SL / TP (the legs that are on)</span><input type="checkbox" id="ax4p-mc-bracket"></label>
+                    <label class="ax4p-row"><span>Limit orders carry the card's stop and target (the ones that are on)</span><input type="checkbox" id="ax4p-mc-bracket"></label>
                     <div class="ax4p-btnrow"><button id="ax4p-mc-reset" class="ax4p-btn">Reset keys</button></div>
                     <div class="ax4p-hint" id="ax4p-mc-msg">Click a key, then press the new one. Backspace unbinds, Esc cancels.</div>
-                    <div class="ax4p-hint">W and S click the Exec strip's LONG and SHORT with its size. E and Q open Vest's Limit ticket at the best bid / ask (a stale or crossed book is refused), then put the ticket back on Market. H moves the stop to breakeven. The keys are ignored while you type, with a dialog open, or with Ctrl / Alt / Cmd / Shift held, and they do not open TradingView's symbol search. While the demo position is on, macros only show a toast.</div>
+                    <details class="ax4p-more"><summary>What each key does</summary>
+                        <div class="ax4p-hint">W and S press the Execute card's LONG and SHORT with its size. E and Q open Vest's Limit ticket at the best bid / ask (a stale or crossed book is refused), then put the ticket back on Market. H moves the stop to breakeven. The keys are ignored while you type, with a dialog open, or with Ctrl / Alt / Cmd / Shift held, and they do not open TradingView's symbol search.</div>
+                    </details>
                 </div>`;
     }
 
@@ -6749,6 +6975,89 @@
         return false;
     }
 
+    // Vest's Active Positions tab, brought up when a Close or TP/SL button that FLAT, 50%, REV or Partials needs is not on
+    // screen because another tab of Vest's bottom panel is open. Radix tabs switch on mousedown (mcPress). True once it is up.
+    async function xcShowPositions() {
+        const tab = () => document.querySelector('[data-testid="account-tab-active-positions"]');
+        if (!tab()) return false;
+        if (!mcTabOn(tab())) mcPress(tab());
+        return !!(await xcWait(() => mcTabOn(tab()), 1200));
+    }
+
+    // A button on a position's row, as it is, or once the Active Positions tab is up
+    async function xcRowShown(find) {
+        const el = find();
+        if (el) return el;
+        if (!(await xcShowPositions())) return null;
+        return xcWait(find, 1500);
+    }
+
+    // ---------- FLAT (7.7.1): the panic button ----------
+    // The closing itself is the protected close code (triggerCloseAll and confirmCloseDialog: Vest's own close window at 100%
+    // and its own Close button). Around it, FLAT now: brings up Vest's Active Positions tab when the Close button isn't on
+    // screen; closes this market's position when the card knows it (the protected code alone takes the first row of the table,
+    // which can be another market) and never another market's instead; and when Vest asks once more after the close
+    // (slippage, the account's limits, resting close orders to cancel first), confirms, because that is what a panic button is
+    // for. Only Vest windows that opened after this press are confirmed, never one that was already up.
+    const XC_CONFIRMS = { 'order-confirm-skip': "Vest's slippage check", 'limits-breach-confirm-skip': "Vest's account-limits check",
+        'existing-close-confirm-skip': "Vest's resting close orders" };
+    function xcVestConfirms() {
+        const out = [];
+        for (const d of document.querySelectorAll('[role="dialog"],[role="alertdialog"]')) {
+            if (isOurs(d) || !d.getClientRects().length) continue;
+            const id = Object.keys(XC_CONFIRMS).find((k) => d.querySelector('#' + k));
+            if (id) out.push({ d, what: XC_CONFIRMS[id] });
+        }
+        return out;
+    }
+    // its confirm button: Vest's test id where it has one, else the first footer button that does not close the window
+    function xcConfirmBtn(d) {
+        const tid = d.querySelector('[data-testid="confirm-order-submit"]');
+        if (tid) return tid;
+        const foot = d.querySelector('[data-slot="dialog-footer"]');
+        const btns = foot ? [...foot.querySelectorAll('button')] : [];
+        return btns.find((b) => b.getAttribute('data-slot') !== 'dialog-close' && !b.closest('[data-slot="dialog-close"]')) || null;
+    }
+
+    async function xcFlat() {
+        const before = new Set(xcVestConfirms().map((c) => c.d));
+        if (!document.querySelector('[data-testid="close-dialog"]')) {
+            const pos = xcPositionNow();
+            if (pos) {
+                // this market's position: its own row, or nothing (another market's position is never closed in its place)
+                const row = await xcRowShown(() => xcRowFor(pos));
+                if (!row) {
+                    xcSay("FLAT: Vest's Close button for this position is not on screen, so nothing was closed. Close it in Vest's Positions tab.", 'bad');
+                    return;
+                }
+                if (!document.querySelector('[data-testid="close-dialog"]')) {
+                    invokeReactClick(row);
+                    const open = await xcWait(() => document.querySelector('[data-testid="close-dialog"]'), 1500);
+                    // with no window open, the protected code clicks the FIRST row: only right when that row is this position's
+                    if (!open && positionCloseTrigger() !== xcRowFor(pos)) {
+                        xcSay("FLAT: Vest's close window did not open, so nothing was closed. Press FLAT again.", 'bad');
+                        return;
+                    }
+                }
+            } else {
+                // not known here: the first row Vest shows, as FLAT always did, with the tab brought up first if need be
+                await xcRowShown(positionCloseTrigger);
+            }
+        }
+        await triggerCloseAll();
+        // Vest's own questions after the close, one after the other (at most three)
+        for (let i = 0; i < 3; i++) {
+            const c = await xcWait(() => xcVestConfirms().find((x) => !before.has(x.d)), i ? 1000 : 1500);
+            if (!c) break;
+            before.add(c.d);
+            const b = await xcWait(() => { const x = xcConfirmBtn(c.d); return x && !x.disabled ? x : null; }, 1500);
+            if (!b) { xcSay('FLAT: ' + c.what + ' is asking you to confirm. Confirm it in its window.', 'bad'); break; }
+            invokeReactClick(b);
+            flashExec('FLAT sent · confirmed ' + c.what);
+            await xcWait(() => !c.d.isConnected || !c.d.getClientRects().length, 1500);
+        }
+    }
+
     async function xcHalf() {
         if (XC.busy) return;
         const pos = xcPositionNow();
@@ -6767,8 +7076,9 @@
             if (!fresh || fresh.length !== 1) { xcSay('Could not confirm the position just now. Nothing sent.', 'bad'); return; }
             const qty = fresh[0].qty;
             if (document.querySelector('[data-testid="close-dialog"]')) { xcSay('A close window is already open. Nothing sent.', 'bad'); return; }
-            const row = xcRowFor(pos);
-            if (!row) { xcSay("Open Vest's Positions tab first, so its Close button for this position is on screen. Nothing sent.", 'bad'); return; }
+            const row = await xcRowShown(() => xcRowFor(pos));
+            if (flatPressed()) return;
+            if (!row) { xcSay("Vest's Close button for this position is not on screen, even in the Positions tab. Nothing sent.", 'bad'); return; }
             invokeReactClick(row);
             const dlg = await xcWait(() => XC.abort || document.querySelector('[data-testid="close-dialog"]'), 2500);
             if (flatPressed()) return;
@@ -6855,8 +7165,9 @@
             if (!fresh || fresh.length !== 1 || fresh[0].isLong !== pos.isLong) { xcSay('Could not confirm the position just now. Nothing sent.', 'bad'); return; }
             const qty = fresh[0].qty;
             if (document.querySelector('[data-testid="close-dialog"]')) { xcSay('A close window is already open. Nothing sent.', 'bad'); return; }
-            const row = xcRowFor(pos);
-            if (!row) { xcSay("Open Vest's Positions tab first, so its Close button for this position is on screen. Nothing sent.", 'bad'); return; }
+            const row = await xcRowShown(() => xcRowFor(pos));
+            if (XC.abort) { xcSay('REV stopped: you pressed FLAT.', 'warn'); return; }
+            if (!row) { xcSay("REV: Vest's Close button for this position is not on screen, even in the Positions tab. Nothing sent.", 'bad'); return; }
             if (!(await mcEnsureTab('market'))) { xcSay('Could not switch the ticket to Market. Nothing sent.', 'bad'); return; }
             if (XC.abort) { xcSay('REV stopped: you pressed FLAT.', 'warn'); return; }
             // 1. close all of it through Vest's own window, the same steps FLAT takes
@@ -6966,8 +7277,9 @@
     // what Vest worked out for each target, in order), or { why } with the window closed again and nothing changed.
     async function xcSplitTp(pos, plan, acc0, sym0) {
         const id = String(pos.id).replace(/["\\]/g, '');
-        const open = document.querySelector(`button[data-testid="tpsl-edit-open-${id}"]`);
-        if (!open) return { why: "open Vest's Positions tab first, so this position's TP/SL button is on screen" };
+        const open = await xcRowShown(() => document.querySelector(`button[data-testid="tpsl-edit-open-${id}"]`));
+        if (XC.abort) return { why: 'you pressed FLAT' };
+        if (!open) return { why: "this position's TP/SL button is not on screen, even in Vest's Positions tab" };
         if (xcTpslDialog() || document.querySelector('[data-testid="close-dialog"]') || xcOtherDialog()) return { why: 'a Vest window is already open' };
         invokeReactClick(open);
         const dlg = await xcWait(() => XC.abort || xcTpslDialog(), 2500);
@@ -7169,6 +7481,7 @@
         return S.macros && S.macros.on && a && a.on && a.key && mcMarketOk(detectedSymbol) ? mcKeyLabel(a.key) : '';
     };
     xcHooks.half = () => { xcHalf().catch(() => { XC.busy = false; xcPaint(); }); };
+    xcHooks.flat = () => xcFlat().catch(() => {});
     xcHooks.rev = () => {
         xcRev().catch(() => { XC.busy = false; xcPaint(); }).then(() => {
             const o = XC.revOpened;
@@ -7367,7 +7680,10 @@
                     <div class="ax4p-row"><span>Day resets at (your clock, 0 to 23)</span><input type="number" id="ax4p-dll-hour" class="ax4p-in" min="0" max="23" step="1" style="width:56px;"></div>
                     <label class="ax4p-row"><span>Also block Vest's own Buy and Sell</span><input type="checkbox" id="ax4p-dll-vest"></label>
                     <div class="ax4p-hint" id="ax4p-dll-msg"></div>
-                    <div class="ax4p-hint">Today is your Account Value now minus the first one Better Vest saw after the reset, kept for each account. At the limit, LONG, SHORT, REV, the pill, the W S E Q keys and Partials lock until the reset hour. FLAT, 50%, BE, the chart TP/SL and Vest's close buttons always work. With the last option on, Vest's own Sell button is locked too, even when it would reduce a long: use FLAT or 50% then. It is your own limit, separate from any rule Vest has. A deposit, withdrawal or transfer moves the Account Value, so it counts as profit or loss. A lock stays until the reset hour, even through a reset or import of these settings. It is a lock on this screen, so it cannot stop an order sent from somewhere else. It needs the Account Value to be on Vest's page, and nothing is protected while the card says it is not reading it.</div>
+                    <div class="ax4p-hint">At the limit, new trades lock until the reset hour. Getting out never locks: FLAT, 50%, BE, the chart TP/SL and Vest's close buttons always work.</div>
+                    <details class="ax4p-more"><summary>How the lock works</summary>
+                        <div class="ax4p-hint">Today is your Account Value now minus the first one Better Vest saw after the reset, kept for each account. At the limit, LONG, SHORT, REV, the pill, the W S E Q keys and Partials lock until the reset hour. With the last option on, Vest's own Sell button is locked too, even when it would reduce a long: use FLAT or 50% then. It is your own limit, separate from any rule Vest has. A deposit, withdrawal or transfer moves the Account Value, so it counts as profit or loss. A lock stays until the reset hour, even through a reset or import of these settings. It is a lock on this screen, so it cannot stop an order sent from somewhere else. It needs the Account Value to be on Vest's page, and nothing is protected while the card says it is not reading it.</div>
+                    </details>
                 </div>`;
     }
 
@@ -7512,7 +7828,7 @@
         openCalendar();
     }, true);
 
-    // Alt+J (Calendar) and Alt+Shift+D (demo position) also work while the chart has the keyboard focus: the chart is a
+    // Alt+J (Calendar) and Alt+Shift+D (the test-only demo position) also work while the chart has the keyboard focus: the chart is a
     // same-origin iframe, so its key events never reach the listeners on this document. Alt+F is left alone there,
     // because TradingView uses it for the Fib tool.
     const keyRelayWins = new WeakSet();
@@ -7527,7 +7843,7 @@
             try {
                 w.addEventListener('keydown', (e) => {
                     if (!e.isTrusted || !e.altKey || e.ctrlKey || e.metaKey) return;
-                    const demo = e.shiftKey && e.code === 'KeyD', cal = !e.shiftKey && e.code === 'KeyJ';
+                    const demo = e.shiftKey && e.code === 'KeyD' && tpDevOn(), cal = !e.shiftKey && e.code === 'KeyJ';
                     if (!demo && !cal) return;
                     const t = e.target;
                     if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
