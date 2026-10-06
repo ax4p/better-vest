@@ -7,7 +7,8 @@ import { fmtDate } from '../journal/time.js';
 
 export const CARD_W = 415.5;
 export const CARD_H = 587.25;
-export const PROVENANCE = 'Generated with Better Vest from your Vest payout history · Not an official Vest document';
+// the only credit on an image the extension makes (the owner, 2026-10-06)
+export const PROVENANCE = 'Made with Better Vest by Astral';
 export const DEFAULT_NAME = 'Trader';
 export const NAME_MAX = 28;
 

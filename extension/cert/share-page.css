@@ -1,0 +1,104 @@
+/* Better Vest share poster: the page around the card (cert/share.html). The card itself is styled by cert/share-card.css only.
+ * The owner, 2026-10-06: the controls in two bars on top, the card big below, comfortable. */
+* { box-sizing: border-box; }
+:root { --pg: #070707; --bar: rgba(14, 14, 14, .9); --ctl: #161616; --ctl-h: #1d1d1d; --line: rgba(255, 255, 255, .08); --line2: rgba(255, 255, 255, .14);
+    --text: #FAFAFA; --mut: #A3A3A3; --dim: #737373; --up: #22C55E; --down: #FF3B5C; }
+html, body { margin: 0; height: 100%; background: var(--pg); color: var(--text); font: 13px/1.4 Inter, ui-sans-serif, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+body { display: flex; flex-direction: column; overflow: hidden; }
+button { font: inherit; color: inherit; }
+
+/* ---------- the top bar: what the card is about, and the two actions ---------- */
+.bar { display: flex; align-items: center; gap: 12px; padding: 14px 22px; background: var(--bar); border-bottom: 1px solid var(--line); position: relative; z-index: 3; }
+.brand { display: flex; align-items: center; gap: 11px; margin-right: 10px; }
+.brand .mark { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; background: rgba(34, 197, 94, .1); box-shadow: inset 0 0 0 1px rgba(34, 197, 94, .25); color: var(--up); }
+.brand .mark svg { display: block; width: 19px; height: 19px; }
+.brand b { display: block; font-size: 15px; letter-spacing: -.2px; }
+.brand span#sub { display: block; font-size: 11.5px; color: var(--dim); }
+.grow { flex: 1; }
+.seg { display: inline-flex; padding: 3px; gap: 2px; border-radius: 10px; background: var(--ctl); box-shadow: inset 0 0 0 1px var(--line); }
+.seg button { height: 30px; padding: 0 14px; border: 0; border-radius: 7px; background: none; color: var(--mut); font-weight: 600; cursor: pointer; white-space: nowrap; transition: background .12s, color .12s; }
+.seg button:hover:not(:disabled):not(.on) { color: var(--text); }
+.seg button.on { background: #2b2b2b; color: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, .4); }
+.seg button:disabled { opacity: .35; cursor: not-allowed; }
+.seg.sm button { height: 26px; padding: 0 10px; font-size: 12px; }
+.ctl { display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 12px; border-radius: 10px; border: 0; background: var(--ctl); box-shadow: inset 0 0 0 1px var(--line); color: var(--text); font-weight: 600; cursor: pointer; white-space: nowrap; }
+.ctl:hover, .ctl[aria-expanded="true"] { background: var(--ctl-h); box-shadow: inset 0 0 0 1px var(--line2); }
+.ctl b { padding: 1px 7px; border-radius: 6px; background: rgba(255, 255, 255, .08); color: var(--mut); font-size: 11.5px; font-weight: 600; }
+.ctl.sm { height: 32px; font-size: 12px; }
+.chev { display: block; width: 12px; height: 12px; fill: none; stroke: var(--dim); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.btn { display: inline-flex; align-items: center; gap: 8px; height: 38px; padding: 0 16px; border-radius: 10px; border: 0; background: var(--ctl); box-shadow: inset 0 0 0 1px var(--line2); color: var(--text); font-weight: 600; cursor: pointer; white-space: nowrap; transition: background .12s, transform .06s; }
+.btn svg { display: block; width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.btn:hover:not(:disabled) { background: var(--ctl-h); }
+.btn:active:not(:disabled) { transform: translateY(1px); }
+.btn.primary { background: #16A34A; box-shadow: none; color: #fff; }
+.btn.primary:hover:not(:disabled) { background: #15b14f; }
+.btn:disabled { opacity: .4; cursor: not-allowed; }
+
+/* ---------- the second bar: how it looks ---------- */
+.opts { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 18px; padding: 10px 22px; background: rgba(10, 10, 10, .85); border-bottom: 1px solid var(--line); position: relative; z-index: 2; }
+.grp { display: flex; align-items: center; gap: 8px; }
+.grp .k { font-size: 10.5px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--dim); }
+.vsep { width: 1px; height: 22px; background: var(--line2); }
+.toggles { display: flex; gap: 6px; }
+.chip { display: inline-flex; align-items: center; gap: 7px; height: 32px; padding: 0 12px 0 10px; border-radius: 999px; border: 0; background: var(--ctl); box-shadow: inset 0 0 0 1px var(--line); color: var(--mut); font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.chip i { width: 14px; height: 14px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px var(--dim); display: grid; place-items: center; }
+.chip.on { color: var(--text); background: rgba(34, 197, 94, .1); box-shadow: inset 0 0 0 1px rgba(34, 197, 94, .35); }
+.chip.on i { background: var(--up); box-shadow: none; }
+.chip.on i::after { content: ""; width: 6px; height: 3px; margin-top: -1px; border-left: 1.6px solid #04160a; border-bottom: 1.6px solid #04160a; transform: rotate(-45deg); }
+.chip:disabled { opacity: .4; cursor: not-allowed; }
+.txt { height: 34px; width: 100%; padding: 0 12px; border-radius: 10px; border: 0; background: var(--ctl); box-shadow: inset 0 0 0 1px var(--line); color: var(--text); font: 500 12.5px Inter, sans-serif; outline: none; }
+.txt:focus { box-shadow: inset 0 0 0 1px rgba(34, 197, 94, .5); }
+.txt::placeholder { color: var(--dim); }
+
+/* ---------- drop-downs ---------- */
+.pop { position: relative; }
+.dd { position: absolute; top: calc(100% + 8px); left: 0; min-width: 300px; max-width: 380px; padding: 8px; border-radius: 14px; background: #121212; box-shadow: 0 0 0 1px var(--line2), 0 18px 50px rgba(0, 0, 0, .65); z-index: 10; }
+.dd.right { left: auto; right: 0; min-width: 260px; }
+.dd .ddh { display: flex; align-items: center; justify-content: space-between; padding: 6px 8px 8px; font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--dim); }
+.dd .links button { border: 0; background: none; color: var(--mut); font-size: 11.5px; font-weight: 600; cursor: pointer; padding: 2px 6px; border-radius: 6px; text-transform: none; letter-spacing: 0; }
+.dd .links button:hover { color: var(--text); background: rgba(255, 255, 255, .06); }
+.dd .list { max-height: min(60vh, 420px); overflow: auto; }
+.dd .row { display: flex; align-items: center; gap: 10px; min-height: 36px; padding: 0 8px; border-radius: 8px; cursor: pointer; }
+.dd .row:hover { background: rgba(255, 255, 255, .04); }
+.dd .row input[type="checkbox"] { width: 16px; height: 16px; margin: 0; accent-color: #22C55E; flex: none; }
+.dd .row .nm { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #e5e5e5; }
+.dd .row .tag { font-size: 9.5px; font-weight: 800; letter-spacing: .08em; padding: 1px 5px; border-radius: 4px; color: var(--up); background: rgba(34, 197, 94, .12); }
+.dd .row .pv { margin-left: auto; font-size: 12.5px; font-variant-numeric: tabular-nums; color: var(--mut); }
+.dd .row .pv.up { color: var(--up); } .dd .row .pv.dn { color: var(--down); }
+.dd .row.off { opacity: .45; cursor: default; }
+.dd .note { padding: 6px 8px 2px; font-size: 11.5px; line-height: 16px; color: var(--dim); }
+.dd .note:empty { display: none; }
+/* the Summary's and the Replay's own controls swap places */
+#mode[hidden], .pop[hidden] { display: none; }
+/* Replay: the trades list and the time range */
+.ctl .ic { width: 15px; height: 15px; fill: none; stroke: var(--mut); stroke-width: 2; stroke-linecap: round; }
+.dd .row .sd { font-size: 10px; font-weight: 800; letter-spacing: .06em; padding: 1px 5px; border-radius: 4px; }
+.dd .row .sd.l { color: var(--up); background: rgba(34, 197, 94, .12); }
+.dd .row .sd.s { color: var(--down); background: rgba(255, 59, 92, .12); }
+.dd .row .tm { font-variant-numeric: tabular-nums; color: #e5e5e5; }
+.dd .row .qt { color: var(--dim); font-size: 12px; }
+.dd .row.out .tm::after { content: " · outside the time"; color: var(--dim); font-size: 11px; }
+.dd.tlp { width: 420px; max-width: 420px; }
+.tl { position: relative; height: 74px; margin: 4px 8px 0; }
+.tl .spark { position: absolute; inset: 0 0 14px; border-radius: 8px; background: #0b0b0b; box-shadow: inset 0 0 0 1px var(--line); overflow: hidden; }
+.tl .spark svg { display: block; width: 100%; height: 100%; }
+.tl input[type="range"] { position: absolute; left: 0; right: 0; bottom: 0; width: 100%; margin: 0; height: 74px; background: none; pointer-events: none; -webkit-appearance: none; appearance: none; }
+.tl input[type="range"]::-webkit-slider-runnable-track { height: 74px; background: none; }
+.tl input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; pointer-events: auto; width: 14px; height: 74px; margin-top: 0; border-radius: 5px; background: rgba(34, 197, 94, .25); box-shadow: inset 0 0 0 2px #22C55E; cursor: ew-resize; }
+.tlv { display: flex; justify-content: space-between; align-items: center; padding: 8px 8px 4px; font-size: 12px; color: var(--mut); font-variant-numeric: tabular-nums; }
+.tlv b { color: var(--text); font-weight: 600; }
+.dd .field { padding: 8px 8px 4px; border-top: 1px solid var(--line); margin-top: 6px; }
+.dd .field label { display: block; margin-bottom: 6px; font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--dim); }
+
+/* ---------- the card, big ---------- */
+.stage { position: relative; flex: 1; min-height: 0; display: grid; place-items: center; overflow: hidden;
+    background: radial-gradient(60% 70% at 50% 45%, #151515 0%, #080808 70%), var(--pg); }
+.stage::before { content: ""; position: absolute; inset: 0; background-image: radial-gradient(rgba(255, 255, 255, .045) 1px, transparent 1px); background-size: 22px 22px; mask-image: radial-gradient(70% 70% at 50% 50%, #000, transparent); pointer-events: none; }
+.stage .fit { position: relative; transform-origin: center; }
+.stage .cap { position: absolute; left: 0; right: 0; bottom: 14px; text-align: center; font-size: 11.5px; color: var(--dim); }
+.stage .empty { max-width: 440px; padding: 28px; border-radius: 16px; background: #101010; box-shadow: 0 0 0 1px var(--line); text-align: center; font-size: 14px; line-height: 21px; color: var(--mut); }
+/* the note after Copy or Download: the stage's top-right corner, under those buttons, never over a control */
+.toast { position: absolute; right: 22px; top: 16px; transform: translateY(-6px); opacity: 0; padding: 10px 16px; border-radius: 10px; background: #1a1a1a; box-shadow: 0 0 0 1px var(--line2), 0 12px 30px rgba(0, 0, 0, .6); font-weight: 600; pointer-events: none; transition: opacity .18s, transform .18s; z-index: 1; }
+.toast.on { opacity: 1; transform: translateY(0); }
+.toast.bad { color: #ff8da1; }
+@media (max-width: 980px) { .brand span#sub { display: none; } .bar { flex-wrap: wrap; } }

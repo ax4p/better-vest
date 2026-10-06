@@ -1,0 +1,129 @@
+/* Better Vest share poster: the card (cert/share-card.js builds it). Self-contained on purpose, like cert/card.css: this exact sheet is
+ * inlined into the SVG foreignObject the PNG is drawn from (cert/raster.js), so nothing here may depend on the page around it. */
+@font-face { font-family: Inter; src: url(assets/inter.woff2) format('woff2'); font-weight: 100 900; font-display: block; }
+.card, .card * { box-sizing: border-box; }
+/* ---------------------------------------------------------------- the card: every colour is a variable, so light is one class away.
+ * Its own base font size and line height: the PNG gets the browser's defaults (16px, normal), the preview would inherit the page's. */
+.card {
+    --k-bg: #0A0A0A; --k-text: #FAFAFA; --k-mut: #A3A3A3; --k-dim: #737373; --k-line: rgba(255, 255, 255, .08); --k-row: rgba(255, 255, 255, .05);
+    --k-panel: rgba(255, 255, 255, .035); --k-panel-line: rgba(255, 255, 255, .09); --k-head: rgba(255, 255, 255, .04); --k-up: #22C55E; --k-down: #FF3B5C;
+    --k-glow: 0, 241, 91; --k-logo: #F5F5F5; --k-badge: rgba(245, 245, 245, .14); --k-badge-text: #fff; --k-neon: #00F15B;
+    position: relative; overflow: hidden; isolation: isolate; color: var(--k-text); background: var(--k-bg); border-radius: 22px; font-family: Inter, sans-serif; font-size: 16px; line-height: normal;
+    font-variant-numeric: tabular-nums; box-shadow: 0 0 0 1px var(--k-line), 0 30px 80px rgba(0, 0, 0, .6);
+}
+.card.red { --k-glow: 255, 59, 92; }
+.card.light {
+    --k-bg: #F6F6F4; --k-text: #0A0A0A; --k-mut: #525252; --k-dim: #8A8A8A; --k-line: rgba(10, 10, 10, .08); --k-row: rgba(10, 10, 10, .06);
+    --k-panel: rgba(255, 255, 255, .78); --k-panel-line: rgba(10, 10, 10, .08); --k-head: rgba(10, 10, 10, .035); --k-up: #15A34A; --k-down: #E11D48;
+    --k-glow: 22, 163, 74; --k-logo: #0A0A0A; --k-badge: rgba(10, 10, 10, .06); --k-badge-text: #0A0A0A; --k-neon: #16A34A;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, .2), 0 30px 80px rgba(0, 0, 0, .5);
+}
+.card.light.red { --k-glow: 225, 29, 72; }
+.card.feed { width: 540px; height: 675px; } .card.square { width: 540px; height: 540px; } .card.wide { width: 960px; height: 540px; } .card.story { width: 540px; height: 960px; }
+.card .bgx { position: absolute; inset: 0; z-index: -1; }
+.card .in { position: absolute; inset: 0; display: flex; flex-direction: column; padding: 32px 34px 26px; }
+.card.wide .in { padding: 32px 40px 26px; }
+.card.story .in { padding: 50px 38px 38px; }
+.card .hd { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex: none; }
+.card .vest { display: block; color: var(--k-logo); line-height: 0; }
+.card .vest svg { width: 100%; height: auto; display: block; }
+.card .badge { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px; border-radius: 6px; background: var(--k-badge); color: var(--k-badge-text); font-size: 12px; font-weight: 600; white-space: nowrap; }
+.card .badge.sample { background: transparent; box-shadow: inset 0 0 0 1px var(--k-panel-line); color: var(--k-mut); font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.card .badge i { width: 6px; height: 6px; border-radius: 50%; background: rgb(var(--k-glow)); box-shadow: 0 0 8px rgb(var(--k-glow)); }
+.card .chips { display: flex; align-items: center; gap: 10px; }
+.card .date { font-size: 13px; color: var(--k-mut); white-space: nowrap; }
+.card .body { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.card.wide .body.split { flex-direction: row; gap: 36px; align-items: flex-start; margin-top: 20px; min-height: 0; }
+.card.wide .body.split .panel { max-height: 100%; }
+.card .hero { margin-top: auto; flex: none; }
+.card .body.listed .hero { margin-top: 26px; }
+.card.wide .body.split .hero { flex: 1; margin-top: auto; margin-bottom: auto; }
+.card .lbl { font-size: 14px; font-weight: 500; color: var(--k-mut); }
+.card .amt { margin-top: 6px; font-weight: 700; letter-spacing: -.035em; line-height: 1; white-space: nowrap; }
+.card .amt small { font-size: .5em; letter-spacing: -.02em; opacity: .85; }
+.card .sec { margin-top: 10px; font-size: 20px; font-weight: 600; letter-spacing: -.3px; }
+.card .sub { margin-top: 10px; font-size: 15px; color: var(--k-mut); line-height: 21px; }
+.card .sub b { color: var(--k-text); font-weight: 700; }
+.card .up { color: var(--k-up); } .card .dn { color: var(--k-down); }
+.card .rule { display: none; margin-top: 22px; height: 3px; width: 96px; background: var(--k-neon); box-shadow: 0 0 18px rgba(var(--k-glow), .6); }
+/* the accounts: a panel inside the card, one row per account (Tradesyncer's idea, our look) */
+.card .panel { margin-top: 22px; flex: 0 1 auto; min-height: 0; display: flex; flex-direction: column; border-radius: 14px; background: var(--k-panel); box-shadow: inset 0 0 0 1px var(--k-panel-line); overflow: hidden; }
+.card.wide .body.split .panel { margin-top: 0; width: 420px; flex: none; }
+.card .panel .ph { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px 12px; }
+.card .panel .ph b { font-size: 14px; font-weight: 600; }
+.card .panel .mkt { display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 8px 0 3px; border-radius: 999px; background: var(--k-badge); font-size: 11px; font-weight: 700; }
+.card .panel .mkt span { display: inline-grid; place-items: center; width: 16px; height: 16px; border-radius: 50%; background: #1d4ed8; color: #fff; font-size: 6px; font-weight: 800; }
+.card .panel .th { display: flex; justify-content: space-between; padding: 8px 16px; background: var(--k-head); font-size: 10px; font-weight: 700; letter-spacing: .12em; color: var(--k-dim); }
+.card .panel .rows { padding: 4px 16px; }
+.card .panel .r { display: flex; justify-content: space-between; align-items: center; height: 31px; border-bottom: 1px solid var(--k-row); font-size: 14px; }
+.card .panel .r:last-child { border-bottom: 0; }
+.card .panel .r .nm { display: flex; align-items: center; gap: 8px; font-weight: 600; letter-spacing: .02em; }
+.card .panel .r .lead { font-size: 9px; font-weight: 800; letter-spacing: .1em; padding: 2px 5px; border-radius: 4px; color: var(--k-neon); background: rgba(var(--k-glow), .12); }
+.card .panel .r b { font-weight: 700; }
+.card .panel .more { padding: 10px 16px 12px; text-align: center; font-size: 12px; color: var(--k-mut); border-top: 1px solid var(--k-row); }
+.card .ft { margin-top: 20px; display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex: none; }
+.card .handle { font-size: 15px; font-weight: 600; }
+.card .credit { font-size: 10px; color: var(--k-dim); letter-spacing: .02em; text-align: right; }
+
+/* style: Vest (Vest's share card: a texture of diagonal streaks in the P&L's colour) */
+.card.s-vest .bgx { background:
+    radial-gradient(70% 55% at 85% 105%, rgba(var(--k-glow), .30), rgba(var(--k-glow), 0) 70%),
+    radial-gradient(45% 40% at 10% 0%, rgba(255, 255, 255, .07), rgba(255, 255, 255, 0) 70%),
+    repeating-linear-gradient(118deg, rgba(var(--k-glow), .055) 0 2px, rgba(var(--k-glow), 0) 2px 26px), var(--k-bg); }
+.card.s-vest.light .bgx { background:
+    radial-gradient(70% 55% at 85% 105%, rgba(var(--k-glow), .20), rgba(var(--k-glow), 0) 70%),
+    repeating-linear-gradient(118deg, rgba(var(--k-glow), .07) 0 2px, rgba(var(--k-glow), 0) 2px 26px), var(--k-bg); }
+/* style: Silver (the payout certificate) */
+.card.s-silver .bgx { background: radial-gradient(70% 45% at 50% 108%, rgba(var(--k-glow), .34), rgba(var(--k-glow), 0) 70%), radial-gradient(60% 40% at 50% -5%, rgba(255, 255, 255, .12), rgba(255, 255, 255, 0) 70%), linear-gradient(to top, #2A2A2A, #0F0F0F); }
+.card.s-silver.light .bgx { background: radial-gradient(70% 45% at 50% 108%, rgba(var(--k-glow), .22), rgba(var(--k-glow), 0) 70%), linear-gradient(to top, #E4E4E2, #FAFAF9); }
+.card.s-silver .amt { background: linear-gradient(to bottom, #fff 26%, #8f8f8f 125%); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 0 22px rgba(255, 255, 255, .16)); }
+.card.s-silver.light .amt { background: linear-gradient(to bottom, #0A0A0A 30%, #6b6b6b 125%); -webkit-background-clip: text; background-clip: text; filter: none; }
+/* style: OLED (black, or paper white in light; one neon rule) */
+.card.s-oled { --k-bg: #000; border-radius: 18px; }
+.card.s-oled.light { --k-bg: #FFFFFF; }
+.card.s-oled .amt { color: var(--k-text); }
+.card.s-oled .rule { display: block; }
+/* style: Neon (the number glows) */
+.card.s-neon .bgx { background: radial-gradient(80% 60% at 30% 60%, rgba(var(--k-glow), .16), rgba(var(--k-glow), 0) 70%), var(--k-bg); }
+.card.s-neon .amt { background: linear-gradient(180deg, #E8FFF0 0%, #7DF5AB 38%, #00F15B 100%); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 0 26px rgba(0, 241, 91, .4)); }
+.card.s-neon.red .amt { background: linear-gradient(180deg, #FFE8EC 0%, #FF8DA1 38%, #FF3B5C 100%); -webkit-background-clip: text; background-clip: text; filter: drop-shadow(0 0 26px rgba(255, 59, 92, .38)); }
+.card.s-neon.light .amt { background: linear-gradient(180deg, #22C55E 0%, #15803D 100%); -webkit-background-clip: text; background-clip: text; filter: drop-shadow(0 0 18px rgba(22, 163, 74, .35)); }
+.card.s-neon.light.red .amt { background: linear-gradient(180deg, #FB7185 0%, #BE123C 100%); -webkit-background-clip: text; background-clip: text; filter: drop-shadow(0 0 18px rgba(225, 29, 72, .3)); }
+
+/* ---------------------------------------------------------------- Replay: the day's trades on Vest's own candles (share-card.js, replayHtml) */
+.card.rp { --k-cu: #00D68F; --k-cd: #FF3B5C; --k-grid: rgba(255, 255, 255, .05); }
+.card.rp.light { --k-cu: #16A34A; --k-cd: #E11D48; --k-grid: rgba(10, 10, 10, .07); }
+.card .rp-hero { margin-top: 18px; flex: none; display: flex; flex-direction: column; }
+.card.wide .rp-hero { flex-direction: row; align-items: flex-end; justify-content: space-between; gap: 24px; margin-top: 16px; }
+.card.wide .rp-hero .rp-meta { text-align: right; padding-bottom: 4px; }
+.card .rp-hero .sec { margin-top: 8px; font-size: 18px; }
+.card.wide .rp-hero .sec { margin-top: 0; }
+.card .rp-hero .sub { margin-top: 6px; font-size: 14px; line-height: 20px; }
+.card .rp-chart { margin-top: auto; flex: none; position: relative; }
+.card .rp-svg { display: block; overflow: visible; font-family: Inter, sans-serif; }
+.rp-svg .gl { stroke: var(--k-grid); stroke-width: 1; }
+.rp-svg .ax { fill: var(--k-dim); font-size: 10px; }
+.rp-svg .wu { stroke: var(--k-cu); stroke-width: 1; }
+.rp-svg .wd { stroke: var(--k-cd); stroke-width: 1; }
+.rp-svg .cu { fill: var(--k-cu); }
+.rp-svg .cd { fill: var(--k-cd); }
+.rp-svg .zw { fill: var(--k-up); fill-opacity: .11; }
+.rp-svg .zl { fill: var(--k-down); fill-opacity: .11; }
+.rp-svg .zo { fill: var(--k-mut); fill-opacity: .08; }
+.rp-svg .cw, .rp-svg .cl, .rp-svg .co { fill: none; stroke-width: 1.5; stroke-dasharray: 3 3; }
+.rp-svg .cw { stroke: var(--k-up); }
+.rp-svg .cl { stroke: var(--k-down); }
+.rp-svg .co { stroke: var(--k-mut); }
+.rp-svg .ab { fill: var(--k-up); }
+.rp-svg .as { fill: var(--k-down); }
+.rp-svg .ex { fill: var(--k-bg); stroke: var(--k-text); stroke-width: 1.6; }
+.rp-svg .pl { font-size: 11px; font-weight: 700; paint-order: stroke; stroke: var(--k-bg); stroke-width: 4px; stroke-linejoin: round; }
+.rp-svg .pw { fill: var(--k-up); }
+.rp-svg .pd { fill: var(--k-down); }
+.rp-svg .po { fill: var(--k-mut); }
+.rp-svg .lp { fill: #000; font-size: 10px; font-weight: 700; }
+.card.rp .ft { margin-top: 14px; }
+.card .rp-left { display: flex; flex-direction: column; gap: 4px; }
+.card .rp-legend { font-size: 10px; color: var(--k-dim); white-space: nowrap; }
+.card .rp-legend .ia { color: var(--k-up); }
+.card .rp-legend .ie { color: var(--k-text); }
