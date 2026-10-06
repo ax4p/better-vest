@@ -10,7 +10,8 @@ People keep asking, and they should. Anything that sits next to your trading acc
 - It never sees your password or your wallet's keys, and never stores your Vest login. (Read-only requests, like the Calendar reading your trade history, borrow the login your Vest tab already has, in memory. The copy trader's own code never touches it.)
 - It never withdraws, never changes account settings, never creates or claims anything.
 - The copy trader is off until you switch it on. Then it copies your leader account's trades to your other Vest accounts through Vest's own order code. See [The copy trader](#the-copy-trader).
-- The one thing it does by itself: at checkout it switches Vest's default discount code VEST to my code WICK, and only keeps it when you get the same discount or more. You can turn that off. See [The WICK code](#the-wick-code).
+- Some tools act on their own once you switch them on: the copy trader, a trailing stop or auto breakeven moving your stop (only ever tighter), and a stop order you armed sending its order when the price gets there. See [How it places orders](#how-it-places-orders).
+- The one thing it does without you switching anything on: at checkout it switches Vest's default discount code VEST to my code WICK, and only keeps it when you get the same discount or more. You can turn that off. See [The WICK code](#the-wick-code).
 - Orders go through Vest's own buttons, the same ones you click.
 - The code is all in this repo, readable, exactly what's in the zip.
 
@@ -33,7 +34,7 @@ Every address in the code, and when each one is used:
 |---|---|---|
 | `next.vestmarkets.com` | The page it adds its tools to. | While you have Vest open. |
 | `ws.hz.vestmarkets.com` | Vest's public market feed: live trades, prices and the order book. | While you have Vest open. |
-| `api-gateway.hz.vestmarkets.com` | Read-only (GET) requests: your trade history for the Calendar, open positions for the chart TP/SL and the copy trader, and your accounts' resting orders for the copy trader's limit-order mirror. They use the login your Vest tab already has and keep it in memory only, never on disk. The chart and the copy trader can only ask for positions, resting orders and market info. The copy trader's orders go here too, but Vest's own code sends them, the same way it sends yours. | When the Calendar syncs, while you hold a position with chart TP/SL on, and while copying is on. |
+| `api-gateway.hz.vestmarkets.com` | Read-only (GET) requests: your trade history for the Calendar, open positions for the chart TP/SL and the copy trader, today's positions for the P&L card, and your accounts' resting orders for the copy trader's limit-order mirror. They use the login your Vest tab already has and keep it in memory only, never on disk. The chart and the copy trader can only ask for positions, resting orders and market info. The copy trader's orders go here too, but Vest's own code sends them, the same way it sends yours. | When the Calendar syncs, while you hold a position with chart TP/SL on, while copying is on, and when you press P&L. |
 | `api.github.com` | "Which version is the latest?" Nothing about you is in that request. | Every 30 minutes, and when Chrome starts. You can turn it off in the toolbar popup. |
 | `raw.githubusercontent.com` | The files of a new version, from this repo. | Only when you click Update. |
 | `fonts.googleapis.com` | A font. | Only if you pick one of the Google fonts in Settings > Look. The default is Vest's own font, which loads nothing. |
@@ -48,12 +49,16 @@ It doesn't have its own way to trade. It works the page the way you would:
 - **FLAT, 50%, REV:** use Vest's own close window, the one its Close button opens. If another tab of Vest's bottom panel is showing, they switch it to Active Positions first. When Vest asks one more question after a close (slippage, your account limits, or close orders already waiting), FLAT presses Vest's own confirm button, because FLAT is the panic button. 50% and REV leave that to you.
 - **Dragging TP or SL on the chart, and BE:** go through Vest's own TP/SL handler, the code Vest itself uses to change a take-profit or a stop.
 - **Partials:** done in Vest's own Edit TP/SL window. It sets the shares, adds the targets and presses Apply, and checks every field before it does.
+- **Trailing stop and auto breakeven:** once you switch them on, they move your stop through the same Vest TP/SL handler as dragging it, one change at a time, and only ever tighter. Drag the stop back yourself and trailing turns off for that position.
+- **Stop orders:** a stop you arm on the chart stays in your tab. Vest doesn't see it until the price touches it; then it places a market order the same way LONG or SHORT does, with the card's stop and target, once. If the price went past it while the tab was reloading or offline, it's marked PASSED and nothing is sent.
 
 - **The copy trader:** calls Vest's own order code with each follower's account. See the next section.
 
 Better Vest never builds a trading request of its own. Vest's code sends everything, exactly as if you'd clicked.
 
 One more thing it does to your clicks: with the daily loss limit on and hit, it can swallow a click on Vest's own Buy and Sell on your screen, until the reset hour. You can turn that option off in Settings > Risk. It never blocks a close.
+
+The P&L card makes its image in your browser. For Replay it takes the candles from Vest's own chart, and for an older day it asks Vest's own chart code for them, the way the chart does when you scroll back. The image only leaves your computer if you post it.
 
 And one thing it does to the chart by itself: while you hold a position, it widens TradingView's right margin just enough for the TP/SL labels, and puts it back when you're flat. Settings > TP/SL turns that off.
 
@@ -87,6 +92,8 @@ With WICK you pay the same or less, and the purchase supports me.
 - Your settings, in Chrome's storage for the extension and in the Vest page's own storage.
 - Your Calendar history, in the browser's database on this computer.
 - If you turn on the daily loss limit, the Account Value it first saw each day, per account (`ax4p_dll` in the Vest page's storage). It reads the number from the page you're looking at and never asks Vest for it.
+- Stop orders you've armed, with your other settings, so a reload doesn't lose them.
+- The P&L card's look (theme, style, size, what shows) in its own page's storage, and the numbers for the card you opened in Chrome's session storage, which Chrome clears when it closes.
 - If you use the copy trader: its settings (leader, followers, ratios, the markets it copies, the ids of limit orders it placed) with your other settings, and its log in Chrome's storage for the extension.
 - For one-click updates: a link to the folder you picked, so Chrome can write the new files there.
 
@@ -108,13 +115,13 @@ If anything is off, nothing changes. If writing fails halfway, the old files go 
 ## Check it yourself
 
 1. **Read the code.** The [`extension`](extension) folder in this repo is the zip, file for file. It isn't minified or obfuscated, so you can read it in your browser.
-2. **Check the zip is that code.** The SHA-256 of `better-vest-8.0.5.zip` is:
+2. **Check the zip is that code.** The SHA-256 of `better-vest-8.1.0.zip` is:
 
-   `9a053c88f0117554e8967bf496c193baf456f686b0c5846d601b82d69ae0cd45`
+   `372fea04af2da9aafc744806affa9546bcfff6555b1fe3f348b14990c9fc0a12`
 
-   - On Mac: `shasum -a 256 better-vest-8.0.5.zip`
-   - On Windows: `certutil -hashfile better-vest-8.0.5.zip SHA256`
-3. **Scan it.** VirusTotal checks a file with more than 60 antivirus engines. Upload the zip at [virustotal.com](https://www.virustotal.com) and you get the result for that exact file. The last version I scanned there, 8.0.5, came back with 0 of 65 engines flagging it ([report](https://www.virustotal.com/gui/file/9a053c88f0117554e8967bf496c193baf456f686b0c5846d601b82d69ae0cd45)).
+   - On Mac: `shasum -a 256 better-vest-8.1.0.zip`
+   - On Windows: `certutil -hashfile better-vest-8.1.0.zip SHA256`
+3. **Scan it.** VirusTotal checks a file with more than 60 antivirus engines. Upload the zip at [virustotal.com](https://www.virustotal.com) and you get the result for that exact file. The last version I scanned there, 8.1.0, came back with 0 of 65 engines flagging it ([report](https://www.virustotal.com/gui/file/372fea04af2da9aafc744806affa9546bcfff6555b1fe3f348b14990c9fc0a12)), and its "Code insights" summary found nothing malicious.
 
    Reports for earlier versions also had an AI summary, "Code insights", which marked two things as suspicious. Both are on this page: the WICK code switch ([The WICK code](#the-wick-code)) and the updater writing its own files ([Updates are signed](#updates-are-signed)).
 4. **Watch it work.** Open Chrome's DevTools on the Vest tab (F12), go to Network, and use Better Vest. You'll only see the addresses listed above.
