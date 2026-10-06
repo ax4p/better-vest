@@ -4,7 +4,7 @@
 
 # Better Vest
 
-A Chrome extension for [Vest Markets](https://next.vestmarkets.com) with a copy trader for up to ten accounts, your take profit and stop loss on the chart, a one-click order card with partial take-profits, stop orders, a trailing stop, risk in dollars, hotkeys, a focus mode, seven themes, a P&L calendar and a P&L card to share your day.
+A Chrome extension for [Vest Markets](https://next.vestmarkets.com) with a copy trader for up to ten accounts, your take profit and stop loss on the chart, a one-click order card with partial take-profits, stop and limit orders you place on the chart, a trailing stop, risk in dollars, hotkeys, a focus mode, seven themes, a P&L calendar and a P&L card to share your day.
 
 Made by **Astral** · Discord **@ax4p**
 
@@ -62,6 +62,8 @@ Hover your position on the chart and three small buttons appear under it: BE, TP
 
 BE moves your stop to entry plus 5% of the open profit, so a breakeven stop still locks in a little. You can change that in Settings. It never moves a stop backwards.
 
+The labels show up as soon as Vest has your position, and when you get in with the card they're there the moment you press, marked SENDING, at the stop and target being sent. Change a level twice in a row and the second change goes straight to Vest, without waiting for the first to show.
+
 The labels sit just right of the latest candle. While you're in a position, the chart keeps enough room there for them, and gives it back when you're flat. Scroll back into history and they wait at the right edge. Settings > TP/SL has four label sizes, and it works on a regular or a log price scale.
 
 <p align="center"><img src="docs/media/tpsl.gif" alt="Dragging the take profit on the chart, with the dollar amount updating live, then Undo" width="760"></p>
@@ -74,6 +76,8 @@ When you're in a position, it sits at the top of the card with its live P&L, and
 
 FLAT is the panic button. It closes the position on the chart you're looking at, and if Vest asks one more question after the close (slippage, your account limits, or close orders already waiting), FLAT confirms it for you.
 
+Hover FLAT and a **Cancel all orders** button shows above it. It cancels every order you have waiting on that account, on every market: your stop orders and your limit orders. Your TP and SL stay, and so do your positions. It uses Vest's own Cancel buttons in its Open Orders tab and puts back the tab you had open.
+
 Sometimes you want a raw order. Click **STOP** or **TARGET** above its field to switch it off. The dot goes hollow and the field dims. Switch both off and LONG or SHORT sends just the size, no stop and no target, and the card shows "No stop" and "-" for the R:R. With one off, the order gets only the other one. It remembers your choice, the folded bar shows it too, and the hotkeys and REV follow the same switches. Partials need a target, so they switch off with it.
 
 The stop and the target can be set in points or in dollars. Each has a **PT | $** switch above it. In dollars, the points follow your size: a $45 stop is 15 points at size 3 and 4.5 points at size 10. The stop rounds down so you never risk more than you set, the target rounds up, and RISK shows the real dollars.
@@ -84,9 +88,13 @@ When you need the room, fold the card into a slim bar. Drag it anywhere.
 
 Turn on **Partials** to scale out. TP1 closes part of the position (half at 20 points, say), **+** adds more targets (up to four), and the rest rides to your target. Every target shows what it's worth in dollars while you type. Right after the fill, Better Vest sets them all in Vest's own Edit TP/SL window, the same one you'd use by hand, and your stop stays as it is. **Set on position** does the same for a position you already have. Like 50% and REV, it works through Vest's Positions tab, and brings that tab up if it isn't showing.
 
-### Stop orders
+### Stop and limit orders
 
-Vest's ticket has market, limit and scale orders, but no stop order to get in on a break, so the card has one. Press **STOP** next to REV, then click the chart where it goes: above the price it's a buy stop, below a sell stop, for the size on the card. When the price touches it, it sends a market order through the card, with your stop and target, once.
+Vest's ticket has market, limit and scale orders, but no stop order to get in on a break, so the card has one. Press **STOP** next to REV, then click the chart where it goes: above the price it's a buy stop, below a sell stop, for the size on the card. When the price touches it, it sends a market order through the card, once.
+
+**LIMIT** works the same way, but the order is a real limit order on Vest. Press it, then click the chart: below the price it's a buy limit, above a sell limit. One click places it through Vest's own ticket, like the E and Q hotkeys, and a price the market already reached is refused. The price snaps to the tick as you aim.
+
+Above the two sits a switch, **SL/TP on Stop & Limit**. On, STOP and LIMIT orders carry the card's stop and target. Off, which is the default, they go in plain. The E and Q hotkeys follow the same switch.
 
 Better Vest holds the stop in your tab, so Vest never sees it until it fires, and it only works while the tab is open with a live price. It shows on the chart as a dashed line with its price on the scale. Drag it to move it, and the x removes it. It never fires on a gap: if the price went past it during a reload or an outage, it's marked PASSED and nothing is sent. Click it to arm it again.
 
@@ -104,7 +112,7 @@ If you think in micros, Settings > Market > MNQ view shows NQ as MNQ: the sizes 
 
 ### Daily loss limit
 
-A soft lock for the days that go wrong. Turn it on in Settings > Risk, set a dollar limit (200 to start), and the card shows a small line like "Today -$120 of $200". It turns amber at 75%. At 100% new trades are locked until the reset hour (midnight unless you change it): LONG, SHORT, REV, the folded bar, the W S E Q hotkeys and Partials. FLAT, 50%, BE, dragging TP and SL on the chart and Vest's own close buttons always keep working, because cutting risk should never be locked. There's an option to lock Vest's own Buy and Sell too. Today's number is your Account Value now minus the first one it saw after the reset, kept for each account, read from the page you're looking at. Nothing is requested from Vest. It's your own limit, separate from any rule Vest has. A deposit, withdrawal or transfer moves the Account Value, so it counts as profit or loss. A lock stays until the reset hour, even if you reset or import your settings. Until the card is reading your Account Value it says "limit not active", and nothing is locked. It's a lock on your screen, so it can't stop an order that comes from somewhere else.
+A soft lock for the days that go wrong. Turn it on in Settings > Risk, set a dollar limit (200 to start), and the card shows a small line like "Today -$120 of $200". It turns amber at 75%. At 100% new trades are locked until the reset hour (midnight unless you change it): LONG, SHORT, REV, LIMIT, the folded bar, the W S E Q hotkeys and Partials. With **Close my positions at the limit** on, which is the default, it also closes every open position of that account, on every market, one by one through Vest's own Close button, the way FLAT does, and until the reset it closes any position that opens on that account. FLAT, 50%, BE, dragging TP and SL on the chart and Vest's own close buttons always keep working, because cutting risk should never be locked. There's an option to lock Vest's own Buy and Sell too. Today's number is your Account Value now minus the first one it saw after the reset, kept for each account, read from the page you're looking at. Nothing is requested from Vest. It's your own limit, separate from any rule Vest has. A deposit, withdrawal or transfer moves the Account Value, so it counts as profit or loss. A lock stays until the reset hour, even if you reset or import your settings. Until the card is reading your Account Value it says "limit not active", and nothing is locked. It's a lock on your screen, so it can't stop an order that comes from somewhere else.
 
 ### Hotkeys
 
@@ -175,7 +183,7 @@ The order keys work on NQ and MNQ while the Execute card is showing. E and Q sta
 
 Better Vest is a Chrome extension. It only runs on next.vestmarkets.com, and when you open Vest it adds its tools to the page you already use: the dock at the top, the Execute card and the labels on the chart.
 
-It doesn't have its own way to trade. When you press LONG, it fills in Vest's own order ticket and presses Vest's own Buy button, the way you would. Moving a TP or SL on the chart goes through Vest's own TP/SL handler, and FLAT, 50%, REV and Partials use Vest's own windows. The copy trader calls the same order code Vest's ticket and windows run, with each follower's account, so Vest's own code sends every copied order. A stop order, when it fires, goes through the card the same way. Prices come from Vest's public market feed. The Calendar reads your trade history from Vest with read-only requests and keeps it on your computer, and the P&L card reads today's positions the same way and makes the image in your browser.
+It doesn't have its own way to trade. When you press LONG, it fills in Vest's own order ticket and presses Vest's own Buy button, the way you would. A limit order from the chart goes through the same ticket. Moving a TP or SL on the chart goes through Vest's own TP/SL handler, FLAT, 50%, REV and Partials use Vest's own windows, and Cancel all orders presses Vest's own Cancel buttons. The copy trader calls the same order code Vest's ticket and windows run, with each follower's account, so Vest's own code sends every copied order. A stop order, when it fires, goes through the card the same way. Prices come from Vest's public market feed. The Calendar reads your trade history from Vest with read-only requests and keeps it on your computer, and the P&L card reads today's positions the same way and makes the image in your browser.
 
 There's no server behind it and nothing about you goes to me. Updates come from this repo and are signed, so a changed file can't slip in. The [Security](SECURITY.md) page lists every address it talks to and shows how to check all of it yourself, including an antivirus scan of the zip.
 

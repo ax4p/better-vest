@@ -50,13 +50,16 @@ It doesn't have its own way to trade. It works the page the way you would:
 - **Dragging TP or SL on the chart, and BE:** go through Vest's own TP/SL handler, the code Vest itself uses to change a take-profit or a stop.
 - **Partials:** done in Vest's own Edit TP/SL window. It sets the shares, adds the targets and presses Apply, and checks every field before it does.
 - **Trailing stop and auto breakeven:** once you switch them on, they move your stop through the same Vest TP/SL handler as dragging it, one change at a time, and only ever tighter. Drag the stop back yourself and trailing turns off for that position.
-- **Stop orders:** a stop you arm on the chart stays in your tab. Vest doesn't see it until the price touches it; then it places a market order the same way LONG or SHORT does, with the card's stop and target, once. If the price went past it while the tab was reloading or offline, it's marked PASSED and nothing is sent.
+- **Stop orders:** a stop you arm on the chart stays in your tab. Vest doesn't see it until the price touches it; then it places a market order the same way LONG or SHORT does, once: with the card's stop and target if **SL/TP on Stop & Limit** is on, plain if it's off. If the price went past it while the tab was reloading or offline, it's marked PASSED and nothing is sent.
+
+- **Limit orders from the chart (LIMIT):** fill in Vest's own order ticket on its Limit tab (size and the price you clicked) and press Vest's own Buy or Sell button, the way the E and Q hotkeys do, then put the ticket back on Market. A price the market already reached is refused.
+- **Cancel all orders:** presses Vest's own Cancel button on each row of its Open Orders tab, and removes the stop orders it holds in your tab. It never presses the cancel button of a TP or SL, and never closes a position.
 
 - **The copy trader:** calls Vest's own order code with each follower's account. See the next section.
 
 Better Vest never builds a trading request of its own. Vest's code sends everything, exactly as if you'd clicked.
 
-One more thing it does to your clicks: with the daily loss limit on and hit, it can swallow a click on Vest's own Buy and Sell on your screen, until the reset hour. You can turn that option off in Settings > Risk. It never blocks a close.
+One more thing it does to your clicks: with the daily loss limit on and hit, it can swallow a click on Vest's own Buy and Sell on your screen, until the reset hour. You can turn that option off in Settings > Risk. It never blocks a close. With **Close my positions at the limit** on (the default), hitting the limit also closes every position of that account, one by one through Vest's own Close button and close window, the way FLAT does, and any position that opens on that account until the reset hour.
 
 The P&L card makes its image in your browser. For Replay it takes the candles from Vest's own chart, and for an older day it asks Vest's own chart code for them, the way the chart does when you scroll back. The image only leaves your computer if you post it.
 
@@ -115,13 +118,13 @@ If anything is off, nothing changes. If writing fails halfway, the old files go 
 ## Check it yourself
 
 1. **Read the code.** The [`extension`](extension) folder in this repo is the zip, file for file. It isn't minified or obfuscated, so you can read it in your browser.
-2. **Check the zip is that code.** The SHA-256 of `better-vest-8.1.0.zip` is:
+2. **Check the zip is that code.** The SHA-256 of `better-vest-8.1.5.zip` is:
 
-   `372fea04af2da9aafc744806affa9546bcfff6555b1fe3f348b14990c9fc0a12`
+   `2fc074e74f942cf09cbd6ec7a615eb7318f2820f8a6b2b0b94d2c72b49067bc9`
 
-   - On Mac: `shasum -a 256 better-vest-8.1.0.zip`
-   - On Windows: `certutil -hashfile better-vest-8.1.0.zip SHA256`
-3. **Scan it.** VirusTotal checks a file with more than 60 antivirus engines. Upload the zip at [virustotal.com](https://www.virustotal.com) and you get the result for that exact file. The last version I scanned there, 8.1.0, came back with 0 of 65 engines flagging it ([report](https://www.virustotal.com/gui/file/372fea04af2da9aafc744806affa9546bcfff6555b1fe3f348b14990c9fc0a12)), and its "Code insights" summary found nothing malicious.
+   - On Mac: `shasum -a 256 better-vest-8.1.5.zip`
+   - On Windows: `certutil -hashfile better-vest-8.1.5.zip SHA256`
+3. **Scan it.** VirusTotal checks a file with more than 60 antivirus engines. Upload the zip at [virustotal.com](https://www.virustotal.com) and you get the result for that exact file. The last version I scanned there, 8.1.5, came back with 0 of 66 engines flagging it ([report](https://www.virustotal.com/gui/file/2fc074e74f942cf09cbd6ec7a615eb7318f2820f8a6b2b0b94d2c72b49067bc9)). The one before, 8.1.0, was 0 of 65, and its "Code insights" summary found nothing malicious.
 
    Reports for earlier versions also had an AI summary, "Code insights", which marked two things as suspicious. Both are on this page: the WICK code switch ([The WICK code](#the-wick-code)) and the updater writing its own files ([Updates are signed](#updates-are-signed)).
 4. **Watch it work.** Open Chrome's DevTools on the Vest tab (F12), go to Network, and use Better Vest. You'll only see the addresses listed above.
