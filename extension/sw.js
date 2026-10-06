@@ -11,6 +11,7 @@ import {
 } from './journal/model.js';
 import { filterTrades, reconcile, summary } from './journal/stats.js';
 import { LATEST_URL, compareVersions, parseLatest } from './update/core.js';
+import { cleanSnap } from './cert/share-model.js';
 
 const stateKey = (tabId) => 'tab:' + tabId;
 
@@ -536,6 +537,14 @@ async function openExtPage(file, sender) {
 
 const journalOpen = (sender) => openExtPage('journal.html', sender);
 const certOpen = (sender) => openExtPage('certificate.html', sender);
+// the share poster: the trade page's snapshot of today's P&L, cleaned, kept for this browser session only, then the page (an open one
+// re-reads it: it listens to the change). It lives in cert/ because the 8.0.5 self-updater only installs files in folders it knows.
+async function shareOpen(snap, sender) {
+    const clean = cleanSnap(snap);
+    if (!clean) return { ok: false, reason: 'bad' };
+    await chrome.storage.session.set({ shareSnap: clean });
+    return openExtPage('cert/share.html', sender);
+}
 
 const EXT_BASE = chrome.runtime.getURL('');
 const fromExtensionPage = (sender) => !!sender && sender.id === chrome.runtime.id && typeof sender.url === 'string' && sender.url.startsWith(EXT_BASE);
@@ -558,6 +567,11 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     // the total-payouts certificate page (certificate.html); same rules as journal-open
     if (msg.type === 'cert-open' && (fromExtensionPage(sender) || fromVestScript(sender))) {
         certOpen(sender).then(sendResponse, () => sendResponse({ ok: false, reason: 'error' }));
+        return true;
+    }
+    // the dock's Share button: only Vest's own trade page sends the snapshot
+    if (msg.type === 'share-open' && fromVestScript(sender)) {
+        shareOpen(msg.snap, sender).then(sendResponse, () => sendResponse({ ok: false, reason: 'error' }));
         return true;
     }
     // updates: the dock and the popup ask; only extension pages may check, switch or open

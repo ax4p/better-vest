@@ -170,6 +170,16 @@
             if (t - lastOpen < 1000) return;
             lastOpen = t;
             chrome.runtime.sendMessage({ type: 'cert-open' }).catch(() => {});
+        } else if (d.type === 'sopen') {
+            // the dock's P&L button: today's P&L per account, for the P&L card (cert/share.html); same once-a-second limit. The worker
+            // cleans the snapshot (cert/share-model.js); here only its size is bounded (256 KB: the Replay's candles and today's fills fit).
+            const t = Date.now();
+            if (t - lastOpen < 1000) return;
+            let snap = null;
+            try { snap = d.snap && typeof d.snap === 'object' && JSON.stringify(d.snap).length <= 256 * 1024 ? d.snap : null; } catch (e) {}
+            if (!snap) return;
+            lastOpen = t;
+            chrome.runtime.sendMessage({ type: 'share-open', snap }).catch(() => {});
         } else if (d.type === 'uopen') {
             // the dock's Update button; same once-a-second limit
             const t = Date.now();

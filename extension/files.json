@@ -1,7 +1,7 @@
 {
  "edition": "standard",
  "files": {
-  "bridge.js": "5b37c728027b94df2eb69f21832f1fa036cd2fae9037c556d1b6bb69b1c0f147",
+  "bridge.js": "72ea5ed5f53ce3ed167daef31cb95664a294cd6c956227cd6e16732082b633eb",
   "cert/assets/bottom-glow.svg": "102b8d6705faa2d3abf42e4905d72802dc8b70a4db3d857bd2784a816b5c9749",
   "cert/assets/edge-shadow.svg": "ffe946ddd553a866df6a9eca1fb1438e1fd5216200c03226be170e0735501211",
   "cert/assets/green-glow.svg": "9f37a33066466454f697d584cf22fec9b5f2722ab1a7d68df7e110df11a5dfb0",
@@ -10,10 +10,17 @@
   "cert/assets/laurel-right.svg": "5a16277e56ed337175abd0a4b5ebbb172828d922b109f7c3b3f4629487192bc7",
   "cert/assets/shadow.svg": "e78f7c2897e9c453457dbd06a73a8227628376c54a9c29f47b09aabc60e3c7df",
   "cert/card.css": "f575b7a186208603a294b5c6bfd459778b91490101bced75b6f395fc5a48c803",
-  "cert/card.js": "30f49d93969082877aa0582ce68a9f801b64da6473500111c2cc21c4b7fbcc71",
+  "cert/card.js": "30a052fa3f7c9db28fcdae993ade3ee251d499907a0a88e9577d3508676e948e",
   "cert/page.css": "c17a1a2e85d4611ba9b2b6ebb349e56c7721be89f2be5e6d7f5e478d4d3f87f6",
   "cert/page.js": "4432e9b82386288642bed66bce6074e8ba910f10b02319a8a4ed72775ba35737",
   "cert/raster.js": "eac3999679314a2d486c13f242467251553e27c45d9fa6d5f92b181dad5aacf7",
+  "cert/share-card.css": "177b9cc5190c9ede07f3a870699be9d2db3860a0fb5f93b62988ac586a7dc281",
+  "cert/share-card.js": "f19c45d6a835a06084542a6f6d9a431b0380496cca2fc9b9f75ba775d10c871e",
+  "cert/share-model.js": "8076bb5c977114837736872de7428d0b926ff3bdeac6c975e02786bf2eb595af",
+  "cert/share-page.css": "de5c9d81b8ab62b04f120691649460b29cf29b73d7e85b053248e785070e77e1",
+  "cert/share-page.js": "94c75c7fdabf892f74071281dd0208c386609a286567385d9a94a9723f327121",
+  "cert/share-replay.js": "d9adf65cb0bce73f7d20ed64bf7ada5f93acae3c4a59f47207be982780da3c3c",
+  "cert/share.html": "830b391b0041e4b2ec508bd4c8f6840f5ba12b25524e96ebdb573dfed70aed15",
   "cert/stats.js": "7f460c647d43cc51d59f794d814974adefadfc2f5d9e503e649d4db58dfbb0c3",
   "certificate.html": "5d606e6ccb697a03c5487fd952c98d2ba11f2ad884dc092fb78e2ee44914cc58",
   "icons/icon128.png": "4954e41f73cd83bc853c2f0dafcfbffde2e1459ae53b3c26b40fb9162c59e8cb",
@@ -39,12 +46,12 @@
   "journal/views/shared.js": "30b1c9b67dd07d7f61ca6e86ed06805b3800b31c8aeeb03de1ce952c199a68aa",
   "journal/views/stats.js": "1bddadc7bd33f9d42854320fe3c9fc68e68cc9102787db5b7d5e215bbcbdcd3f",
   "journal/views/trades.js": "c266b799a68e14b68d912efdcbc81ba541671cc8b99e394eec719c7443404e83",
-  "manifest.json": "7a05ccd089f9f508383a46b8c7007bbb8e1c5b64e4ed5dc5190d0c03cb39c1a2",
-  "page/better-vest.js": "09620757b121ab7e8be856b104d4d4b56d0874d390d1386066a4fdf77e22a1d9",
+  "manifest.json": "7ae551fb87440f5fb19bb4e8dddcb33bdcf7eb64ffdd36794ea3b9475f080cc9",
+  "page/better-vest.js": "7c52f23681861976467dcf5ab019f10997a61790c7d741901f61b7d0f5b911d6",
   "popup.css": "0153bf508f4bfdb53158ce4b51cd189b21e745ed07a00f1051b5e8d10b3cd231",
   "popup.html": "de23e9701c459ab80096aac695ba89dd0c7bf069810745b6aaaed41ea883ce42",
   "popup.js": "05cd059e1e3502d101d0fae41597302d7d13db15d36a2a64abe121cffac5f49f",
-  "sw.js": "ebd1991b47592ee7b1e36c5110ed642ea80d497a89f807efcfb5dbd76ac0a978",
+  "sw.js": "a98747739f9b44cb0b4773dd9422bbf8b0e330c8ad24484ccc21555c0ac56624",
   "update.html": "18cf2bb253387723c49885c9c7c57339278a2ecc0b70374173a0ca70fc1d7797",
   "update/core.js": "3ac2ebbec7a1575237bcce8c6f76b21fdeb007e8aa7ca51276d87bb6bbec200c",
   "update/key.js": "8669c2e8d9b8937ad5ecde2060a44b0758fc69e88dd3d491f794431893e83f7c",
@@ -52,5 +59,5 @@
   "update/update.css": "1266c1d8451787f7a58055e04b7a0def2252cbb3200dd7f4862176b1ca0cbf1a"
  },
  "name": "Better Vest by Astral",
- "version": "8.0.5"
+ "version": "8.1.0"
 }
