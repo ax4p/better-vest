@@ -20,7 +20,7 @@
 (function () {
     'use strict';
 
-    const VERSION = '8.0.5';
+    const VERSION = '8.1.0';
     // true only in the Chrome extension build (tools/build.py defines BV_EXT there)
     const IS_EXT = typeof BV_EXT !== 'undefined' && !!BV_EXT;
     // 'standard' = the shareable build; anything else = WICKED, the author's own full build.
@@ -215,10 +215,23 @@
         chart: { sync: true, upColor: '', downColor: '', bgColor: '', hideVolume: true, hideGrid: true, volRemoved: false, hideSessions: true },
         ui: { compactDock: false, glass: 88, dockCalendar: true, wickAuto: true },
         // Execute card: partial take-profit plan and the collapsed pill
-        xc: { partials: false, tp1Pts: 20, tp1Pct: 50, targets: null, collapsed: false, slOn: true, tpOn: true },
+        xc: { partials: false, tp1Pts: 20, tp1Pct: 50, targets: null, collapsed: false, slOn: true, tpOn: true,
+            // 8.1: the stop and the target in points ('pt') or dollars ('usd'); in dollars the card keeps slUsd / tpUsd and works out the points
+            slUnit: 'pt', tpUnit: 'pt', slUsd: null, tpUsd: null },
+        // MNQ view (8.1): on NQ, sizes and the market name read as MNQ contracts (Vest's size ÷ 2). Display only; Settings > Market.
+        mnqView: false,
         // Daily loss limit (7.7, extension): a soft lockout for new trades. limit in dollars, reset hour in local time.
         dll: { on: false, limit: 200, hour: 0, vest: true },
-        tpsl: { enabled: true, showR: true, demo: false, followBars: true, makeRoom: true, labelScale: 1.15, be: { show: true, pct: 5, mode: 'pctProfit', ticks: 1, points: 0, minProfitTicks: 2, allowAtEntry: false } }
+        tpsl: { enabled: true, showR: true, demo: false, followBars: true, makeRoom: true, labelScale: 1.15, be: { show: true, pct: 5, mode: 'pctProfit', ticks: 1, points: 0, minProfitTicks: 2, allowAtEntry: false },
+            // Auto trailing SL (8.1, set on the Execute card): starts once `start` in profit (pt, or startUsd with unit 'usd'), or at once with
+            // `now`; trails `dist` (pt, or distUsd) behind the best price, moves of at least `step` pt. `auto` (the card's TRAIL switch) arms the
+            // open position and every new one; `armed` = { positionId: { acc, at, active, best } }
+            trail: { show: true, start: 10, dist: 8, step: 1, auto: false, armed: {}, unit: 'pt', startUsd: null, distUsd: null, now: false },
+            // Auto breakeven (8.1, the card's AUTO BE switch): the stop goes to breakeven (the BE button's rule) once `at` pt (or atUsd) in
+            // profit, once per position (`done` = { positionId: time })
+            autoBe: { on: false, at: 10, unit: 'pt', atUsd: null, done: {} },
+            // Client-side stops (8.1): the STOP tile on the Execute card; list = [{ id, side, price, size, sym, acc, state, at, why, doneAt }]
+            stops: { show: true, list: [] } }
     };
 
     function readStore(key, fallback) {
@@ -243,9 +256,48 @@
     S.hide = Object.assign({}, DEFAULTS.hide, S.hide || {});
     S.pos = S.pos || {};
     S.chart = Object.assign({}, DEFAULTS.chart, S.chart || {});
+    S.mnqView = S.mnqView === true;
     S.tpsl = Object.assign({}, DEFAULTS.tpsl, S.tpsl || {});
     S.tpsl.be = Object.assign({}, DEFAULTS.tpsl.be, S.tpsl.be || {});
     S.tpsl.demo = false; // the recording demo never survives a reload
+    S.tpsl.trail = Object.assign({}, DEFAULTS.tpsl.trail, S.tpsl.trail || {});
+    // trailing settings come from storage: in range, and the armed list a fresh object (never the DEFAULTS one)
+    (function sanitizeTrail(t) {
+        const num = (v, lo, hi, d) => { const n = Number(v); return Number.isFinite(n) ? Math.max(lo, Math.min(hi, n)) : d; };
+        const D = DEFAULTS.tpsl.trail;
+        t.show = t.show !== false;
+        t.auto = t.auto === true;
+        t.start = num(t.start, 0, 1e6, D.start);
+        t.dist = num(t.dist, 0.01, 1e6, D.dist);
+        t.step = num(t.step, 0.01, 1e6, D.step);
+        t.unit = t.unit === 'usd' ? 'usd' : 'pt';
+        t.now = t.now === true;
+        t.startUsd = Number(t.startUsd) >= 0 && Number.isFinite(Number(t.startUsd)) && t.startUsd !== null ? Math.min(Number(t.startUsd), 1e7) : null;
+        t.distUsd = Number(t.distUsd) > 0 ? Math.min(Number(t.distUsd), 1e7) : null;
+        const a = t.armed && typeof t.armed === 'object' && !Array.isArray(t.armed) ? t.armed : {};
+        t.armed = {};
+        Object.keys(a).forEach((id) => { if (id !== 'demo' && a[id] && typeof a[id] === 'object') t.armed[id] = a[id]; });
+    })(S.tpsl.trail);
+    // auto breakeven from storage: in range; the positions it already did, newest 200 only
+    (function sanitizeAutoBe() {
+        const D = DEFAULTS.tpsl.autoBe;
+        const b = Object.assign({}, D, S.tpsl.autoBe && typeof S.tpsl.autoBe === 'object' ? S.tpsl.autoBe : {});
+        b.on = b.on === true;
+        b.unit = b.unit === 'usd' ? 'usd' : 'pt';
+        b.at = Number.isFinite(Number(b.at)) && Number(b.at) > 0 ? Math.min(Number(b.at), 1e6) : D.at;
+        b.atUsd = Number(b.atUsd) > 0 ? Math.min(Number(b.atUsd), 1e7) : null;
+        const d = b.done && typeof b.done === 'object' && !Array.isArray(b.done) ? b.done : {};
+        b.done = {};
+        Object.keys(d).filter((id) => id !== 'demo' && Number(d[id]) > 0).sort((x, y) => d[y] - d[x]).slice(0, 200).forEach((id) => { b.done[id] = Number(d[id]); });
+        S.tpsl.autoBe = b;
+    })();
+    // client-side stops from storage: well-formed rows only; one left "sending" by a reload was disarmed before it was sent: it is shown as
+    // not sent (never sent again), and finished ones are dropped
+    S.tpsl.stops = Object.assign({}, DEFAULTS.tpsl.stops, S.tpsl.stops || {});
+    S.tpsl.stops.show = S.tpsl.stops.show !== false;
+    S.tpsl.stops.list = (Array.isArray(S.tpsl.stops.list) ? S.tpsl.stops.list : []).filter((x) => x && typeof x === 'object' && (x.side === 'buy' || x.side === 'sell')
+        && Number(x.price) > 0 && Number(x.size) > 0 && typeof x.sym === 'string' && x.acc && x.acc !== 'demo' && x.state !== 'fired').slice(0, 20)
+        .map((x) => Object.assign({}, x, x.state === 'firing' ? { state: 'failed', why: 'the page reloaded while it was being sent: check Vest' } : {}));
     // breakeven settings come from storage: keep them in range whatever was saved
     (function sanitizeBe(b) {
         const num = (v, lo, hi, d) => { const n = Number(v); return Number.isFinite(n) ? Math.max(lo, Math.min(hi, n)) : d; };
@@ -287,6 +339,12 @@
     }
     S.ui = Object.assign({}, DEFAULTS.ui, S.ui || {});
     S.xc = Object.assign({}, DEFAULTS.xc, S.xc || {});
+    // the stop / target units from storage (8.1): 'pt' or 'usd', and the dollar amounts above 0 or null
+    ['sl', 'tp'].forEach((k) => {
+        S.xc[k + 'Unit'] = S.xc[k + 'Unit'] === 'usd' ? 'usd' : 'pt';
+        const u = Number(S.xc[k + 'Usd']);
+        S.xc[k + 'Usd'] = Number.isFinite(u) && u > 0 ? Math.min(u, 1e7) : null;
+    });
     // 7.7: the stop and the target can be switched off (raw orders). Anything but an explicit false is on.
     S.xc.slOn = S.xc.slOn !== false;
     S.xc.tpOn = S.xc.tpOn !== false;
@@ -582,6 +640,9 @@
             }
             .ax4p-shell * { box-sizing: border-box; }
             .ax4p-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; }
+            /* the Astral logo: in the Settings header (Vest's own logo stays in Vest's top bar) */
+            .ax4p-set-brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
+            .ax4p-set-logo { width: 38px; height: 38px; flex: none; border-radius: 50%; object-fit: cover; border: 2px solid #38BDF8; box-shadow: 0 0 12px rgba(56, 189, 248, .45); user-select: none; -webkit-user-drag: none; }
             .ax4p-title { color: var(--ax-accent); font-weight: 800; font-size: 12px; }
             .ax4p-sub { color: var(--ax-dim); font-size: 9px; font-weight: 600; margin-top: 1px; }
             .ax4p-x { cursor: pointer; color: var(--ax-muted); font-size: 16px; line-height: 1; padding: 0 4px; }
@@ -627,7 +688,7 @@
                Every colour is a theme token, so the card follows all seven themes. */
             #ax4p-exec-deck {
                 --xc-on-btn: #ffffff; --xc-kbd: rgba(255, 255, 255, .2);
-                width: 672px; max-width: calc(100vw - 24px); padding: 0 16px; z-index: 999992;
+                width: 704px; max-width: calc(100vw - 24px); padding: 0 16px; z-index: 999992;
                 background: var(--ax-raised); color: var(--ax-text);
                 border: 1px solid var(--ax-line); border-radius: 12px; box-shadow: 0 16px 48px var(--ax-shadow);
                 font: 12px/16px var(--ax-font, system-ui, -apple-system, "Inter", "Segoe UI", sans-serif);
@@ -646,6 +707,8 @@
             #ax4p-exec-deck .xc-hd { display: flex; align-items: center; gap: 8px; height: 28px; margin: 0 -4px; }
             #ax4p-exec-deck .xc-grip { display: grid; place-items: center; width: 16px; height: 16px; color: var(--ax-dim); cursor: grab; }
             #ax4p-exec-deck .xc-mk { font-weight: 700; font-size: 12px; letter-spacing: .06em; color: var(--ax-accent); }
+            #ax4p-exec-deck .xc-mnqv { margin-left: -4px; font-size: 8px; font-weight: 800; letter-spacing: .1em; color: var(--ax-warn); border: 1px solid color-mix(in srgb, var(--ax-warn) 45%, transparent); border-radius: 3px; padding: 0 3px; line-height: 12px; }
+            #ax4p-mnq-badge { position: fixed; z-index: 40; pointer-events: auto; cursor: help; font: 800 9px/14px var(--ax-font, ui-sans-serif, system-ui, sans-serif); letter-spacing: .1em; color: var(--ax-warn); background: var(--ax-raised, #111); border: 1px solid color-mix(in srgb, var(--ax-warn) 55%, transparent); border-radius: 4px; padding: 0 5px; white-space: nowrap; }
             #ax4p-exec-deck .xc-pos { flex: 1; display: flex; align-items: baseline; gap: 8px; margin-left: 4px; padding-left: 12px; border-left: 1px solid var(--ax-line); line-height: 16px; color: var(--ax-muted); white-space: nowrap; overflow: hidden; }
             #ax4p-exec-deck .xc-pos b { font-weight: 600; color: var(--ax-text); }
             #ax4p-exec-deck .xc-pos.flat { color: var(--ax-dim); }
@@ -700,6 +763,16 @@
             #ax4p-exec-deck .xc-stepv { flex: 1; display: flex; align-items: baseline; justify-content: center; gap: 2px; min-width: 0; }
             #ax4p-exec-deck .xc-stepv input { width: 34px; padding: 0; border: 0; background: none; text-align: right; font-weight: 600; color: var(--ax-text); outline: none; -moz-appearance: textfield; }
             #ax4p-exec-deck .xc-stepv i, #ax4p-exec-deck .xc-field i { color: var(--ax-dim); font-size: 11px; }
+            #ax4p-exec-deck .xc-stepv .xc-pre { display: none; margin-right: 1px; }
+            #ax4p-exec-deck .xc-stepv.usd .xc-pre { display: inline; }
+            #ax4p-exec-deck .xc-stepv.usd .xc-suf { display: none; }
+            #ax4p-exec-deck .xc-stepv.usd input { text-align: left; width: 44px; }
+            #ax4p-exec-deck .xc-labrow { display: flex; align-items: center; justify-content: space-between; height: 12px; }
+            #ax4p-exec-deck .xc-unitsw { display: flex; height: 14px; padding: 0; border: 1px solid var(--ax-line); border-radius: 4px; overflow: hidden; background: none; cursor: pointer; }
+            #ax4p-exec-deck .xc-unitsw b { padding: 0 4px; font-size: 8px; line-height: 12px; font-weight: 700; letter-spacing: .06em; color: var(--ax-dim); }
+            #ax4p-exec-deck .xc-unitsw b.on { background: var(--ax-sel); color: #fff; }
+            #ax4p-exec-deck .xc-unitsw:hover b:not(.on) { color: var(--ax-text); }
+            #ax4p-exec-deck .xc-g.off .xc-unitsw { opacity: .4; pointer-events: none; }
             #ax4p-exec-deck .xc-sw { position: relative; width: 40px; height: 24px; margin: 4px 0; border-radius: 12px; background: var(--ax-btn); border: 1px solid var(--ax-line); transition: background .15s; }
             #ax4p-exec-deck .xc-sw span { position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: var(--ax-dim); transition: transform .15s, background .15s; }
             #ax4p-exec-deck .xc-sw.on { background: var(--ax-sel); border-color: var(--ax-dim); }
@@ -728,6 +801,28 @@
             #ax4p-exec-deck .xc-tool--add { border: 1px dashed var(--ax-line); color: var(--ax-text); }
             #ax4p-exec-deck .xc-tool--add:hover { border-style: solid; border-color: var(--ax-dim); }
             #ax4p-exec-deck .xc-swrow { display: flex; align-items: center; gap: 8px; }
+            /* TRAIL and AUTO BE beside Partials: two dot switches (filled = on); their numbers in one row under the steppers */
+            #ax4p-exec-deck .xc-g4 { display: flex; align-items: flex-end; justify-content: flex-end; gap: 18px; min-width: 0; }
+            #ax4p-exec-deck .xc-opts { display: grid; gap: 12px; padding-bottom: 6px; }
+            #ax4p-exec-deck .xc-lab--tg.ac { color: var(--ax-accent); }
+            #ax4p-exec-deck .xc-exits { display: flex; align-items: center; gap: 22px; margin: -2px 0 10px; }
+            #ax4p-exec-deck .xc-ex { display: flex; align-items: center; gap: 8px; }
+            #ax4p-exec-deck .xc-ex + .xc-ex { padding-left: 22px; border-left: 1px solid var(--ax-line); }
+            #ax4p-exec-deck .xc-ex .xc-tag { color: var(--ax-accent); }
+            #ax4p-exec-deck .xc-exf { width: auto; gap: 5px; padding: 0 10px; }
+            #ax4p-exec-deck .xc-exf .xc-k { font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: var(--ax-dim); margin-right: 2px; }
+            #ax4p-exec-deck .xc-exf input { width: 40px; padding: 0; border: 0; background: none; text-align: right; font-weight: 600; color: var(--ax-text); outline: none; -moz-appearance: textfield; }
+            #ax4p-exec-deck .xc-exf .xc-pre { display: none; }
+            #ax4p-exec-deck .xc-exf.usd .xc-pre { display: inline; }
+            #ax4p-exec-deck .xc-exf.usd .xc-u { display: none; }
+            #ax4p-exec-deck .xc-exf.usd input { text-align: left; }
+            #ax4p-exec-deck .xc-exf.dis { opacity: .4; }
+            #ax4p-exec-deck .xc-now { height: 24px; padding: 0 10px; border: 1px solid var(--ax-line); border-radius: 6px; background: var(--ax-btn); color: var(--ax-dim); font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+            #ax4p-exec-deck .xc-now:hover { color: var(--ax-text); }
+            #ax4p-exec-deck .xc-now[aria-pressed="true"] { background: color-mix(in srgb, var(--ax-accent) 20%, transparent); border-color: var(--ax-accent); color: var(--ax-text); }
+            #ax4p-exec-deck .xc-papply { display: flex; justify-content: flex-end; }
+            #ax4p-exec-deck .xc-papply:has(> [hidden]) { display: none; }
+            #ax4p-exec-deck .xc-papply .xc-apply { margin: -4px 0 10px; }
             #ax4p-exec-deck .xc-field--ro { background: transparent; }
             #ax4p-exec-deck .xc-field--ro b { color: var(--ax-muted); font-weight: 500; }
             #ax4p-exec-deck .xc-usd { min-width: 40px; font-weight: 600; }
@@ -760,6 +855,8 @@
             #ax4p-exec-deck .xc-m--rev { --t: var(--ax-warn); }
             #ax4p-exec-deck .xc-m--flat svg { color: var(--ax-down); }
             #ax4p-exec-deck .xc-m--rev svg { color: var(--ax-warn); }
+            #ax4p-exec-deck .xc-m--stop { --t: var(--ax-accent); }
+            #ax4p-exec-deck .xc-m--stop svg { color: var(--ax-accent); }
             #ax4p-exec-deck .xc-m + .xc-m::before { content: ""; position: absolute; left: -2px; top: 8px; bottom: 8px; width: 1px; background: linear-gradient(to bottom, transparent, var(--ax-line) 25%, var(--ax-line) 75%, transparent); transition: opacity .12s; }
             #ax4p-exec-deck .xc-m:hover:not(:disabled) { background: color-mix(in srgb, var(--t) 9%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--t) 40%, transparent); color: var(--ax-accent); }
             #ax4p-exec-deck .xc-m:hover:not(:disabled) svg { color: var(--t); }
@@ -995,24 +1092,11 @@
         applySavedAvatar();
     }
 
+    // Vest's own logo (top left) stays as Vest made it: the owner, 2026-10-06, so screenshots taken with the suite on still show Vest.
+    // Only an avatar an older copy of the suite put there in this page is taken away. The Astral logo is in the Settings header.
     function applySavedAvatar() {
-        if (!document.querySelector) return;
-        const logoTarget = document.querySelector('header a svg, nav a svg, a[href="/"] svg, header img, nav img');
-        const host = document.querySelector('header a, nav a, a[href="/"]') || (logoTarget && logoTarget.parentElement);
-        if (!host) return;
-        if (logoTarget && logoTarget.id !== 'ax4p-user-avatar') logoTarget.style.display = 'none';
-        let img = document.getElementById('ax4p-user-avatar');
-        if (!img) {
-            img = document.createElement('img');
-            img.id = 'ax4p-user-avatar';
-            img.alt = 'Astral';
-            Object.assign(img.style, {
-                width: '32px', height: '32px', borderRadius: '50%', objectFit: 'cover',
-                border: '2px solid #38BDF8', boxShadow: '0 0 10px rgba(56,189,248,0.4)', display: 'block'
-            });
-            host.prepend(img);
-        }
-        if (img.src !== ASTRAL_LOGO) img.src = ASTRAL_LOGO;
+        const old = document.getElementById && document.getElementById('ax4p-user-avatar');
+        if (old) old.remove();
     }
 
     function findPanelByTitles(titles, minW, minH, maxW) {
@@ -1864,6 +1948,8 @@
     let lastTradePx = null;
     let lastTradeSide = null;
     const book = { bids: new Map(), asks: new Map(), bid: null, ask: null, ts: 0, src: '' }; // src: which socket built it ('own' / 'page')
+    // the extension's client-side stops look at every new best bid / ask the moment it lands (set in tpslStart)
+    let bookHook = null;
     // true while the extension's own socket holds the depth subscription the hotkey macros read (see Macros): the page's depth frames
     // (other tick sizes) must not mix into the book then
     let ownDepth = false;
@@ -1964,6 +2050,7 @@
             book.ask = ask;
             book.ts = now();
             book.src = source || '';
+            if (bookHook) { try { bookHook(); } catch (e) {} }
         }
     }
 
@@ -2104,14 +2191,17 @@
         el.textContent = text;
         el.title = tip;
         el.hidden = !text;
-        xcText('ax4p-xc-mk', xcMarket());
-        xcText('ax4p-xc-pill-mk', xcMarket());
+        xcText('ax4p-xc-mk', xcMarketShown());
+        xcText('ax4p-xc-pill-mk', xcMarketShown());
+        const mv = document.getElementById('ax4p-xc-mnqv');
+        if (mv) mv.hidden = !mnqExecOn();
         if (typeof updateExecutionRiskCalc === 'function') { lastRiskHtml = ''; updateExecutionRiskCalc(); }
     }
 
     function onSymbolChange() {
         lastKnownMidAt = 0;
         updateExecNote();
+        mnqSync();
         chartFxReset();
         resetBook();
         lastTradePx = null;
@@ -2440,6 +2530,7 @@
         return { legs, runPct, runUsd, total: legs.reduce((s, l) => s + l.usd, 0) + runUsd, why, code };
     }
     function updateExecutionRiskCalc() {
+        xcSyncUsd();
         const slPts = parseFloat(document.getElementById('ax4p-sl-pts')?.value) || S.sl || 15;
         const tpPts = parseFloat(document.getElementById('ax4p-tp-pts')?.value) || S.tp || 30;
         const size = activeSelectedSize;
@@ -2451,7 +2542,7 @@
         const rr = risk > 0 ? target / risk : 0;
         // no stop means no risk figure and no share of the account; either leg off means no R:R
         const pct = slOn ? acctPct(risk) : null;
-        const key = [slPts, tpPts, size, S.account, slOn, tpOn, plan ? JSON.stringify(S.xc.targets) : ''].join('|');
+        const key = [slPts, tpPts, size, S.account, slOn, tpOn, plan ? JSON.stringify(S.xc.targets) : '', S.xc.slUnit, S.xc.tpUnit].join('|');
         if (key !== lastRiskHtml) {
             lastRiskHtml = key;
             xcText('ax4p-xc-risk', slOn ? xcUsd(risk) : 'No stop');
@@ -2483,9 +2574,9 @@
                 const run = document.querySelector('#ax4p-xc-parts .xc-run');
                 if (run) run.title = plan.why ? 'Partials not set: ' + plan.why + '.' : 'The rest of the position, at the main target';
             }
-            xcText('ax4p-xc-pill-size', fmtSize(size));
-            xcText('ax4p-xc-pill-sl', slOn ? fmtSize(slPts) : 'off');
-            xcText('ax4p-xc-pill-tp', tpOn ? fmtSize(tpPts) : 'off');
+            xcText('ax4p-xc-pill-size', xcSizeShown(size));
+            xcText('ax4p-xc-pill-sl', slOn ? (xcLegUsd('sl') ? xcUsd(risk) : fmtSize(slPts)) : 'off');
+            xcText('ax4p-xc-pill-tp', tpOn ? (xcLegUsd('tp') ? xcUsd(tpPts * size) : fmtSize(tpPts)) : 'off');
             [['ax4p-xc-pill-sl', slOn], ['ax4p-xc-pill-tp', tpOn]].forEach(([id, on]) => {
                 const el = document.getElementById(id);
                 if (el) el.classList.toggle('off', !on);
@@ -2530,9 +2621,147 @@
         if (!el) return;
         let ticketUnit = '';
         try { ticketUnit = unitText(qTicket('[data-testid="size-unit-toggle"]')); } catch (e) {}
-        const u = xcSizeUnit(detectedSymbol, activeSelectedSize, ticketUnit, xcHooks.assetOf(detectedSymbol));
+        // in MNQ view the buttons already read MNQ: the readout says what Vest gets
+        const u = mnqExecOn() ? (activeSelectedSize > 0 ? { n: fmtSize(activeSelectedSize), unit: 'NQ' } : null) : xcSizeUnit(detectedSymbol, activeSelectedSize, ticketUnit, xcHooks.assetOf(detectedSymbol));
         const html = u ? `<b>= ${escHtml(u.n)}</b>${u.unit ? ' ' + escHtml(u.unit) : ''}` : '';
         if (el.innerHTML !== html) el.innerHTML = html;
+    }
+
+    // ---------- MNQ view (8.1) ----------
+    // A display setting, off by default (Settings > Market). On NQ the Execute card, the chart's TP/SL labels and Vest's own market name,
+    // positions and orders read as MNQ. MNQ trades at NQ's price, and Vest's NQ size moves $1 a point while MNQ moves $2, so MNQ contracts =
+    // Vest's size ÷ 2 (XC_MICRO). Prices and dollars never change. Nothing typed changes meaning: Vest's ticket (its "NQ" unit button is
+    // what the executor reads), its Close and Edit TP/SL windows and our Custom field keep Vest's NQ size. A "MNQ VIEW" badge stays on the
+    // market name, so it is never taken for a real MNQ market.
+    const MNQ_DIV = XC_MICRO.NQ[1];
+    // NQ as Vest, the chart or the API spell it: NQ, NQ-PERP, NDX-USD-PERP
+    function mnqIsNq(sym) {
+        const s = String(sym || '').toUpperCase().replace(/-USD-PERP$|-PERP$/, '');
+        return s === 'NQ' || s === 'NDX';
+    }
+    // a size as Vest wrote it ("0.0003", "1,250.5"), divided by MNQ_DIV without losing a digit (whole numbers, one more decimal at most,
+    // trailing zeros of the fraction dropped, thousands separators kept when it had them); null for anything that is not a plain number
+    function mnqHalf(numText) {
+        const raw = String(numText).replace(/,/g, '');
+        if (!/^\d+(?:\.\d+)?$/.test(raw)) return null;
+        const d = (raw.split('.')[1] || '').length + 1;
+        const k = Math.pow(10, d);
+        const v = Math.round(Number(raw) * k) / MNQ_DIV / k;
+        let t = v.toFixed(d);
+        if (t.includes('.')) t = t.replace(/0+$/, '').replace(/\.$/, '');
+        if (/,/.test(numText)) t = t.replace(/^(\d+)/, (i) => i.replace(/\B(?=(\d{3})+(?!\d))/g, ','));
+        return t;
+    }
+    // Vest's text with every "<size> NQ" as "<size ÷ 2> MNQ", and (whole) a bare "NQ" market name as "MNQ". null when nothing changes.
+    // Never matches its own output ("MNQ" is not "<number> NQ"), so a second pass changes nothing.
+    function mnqRelabel(text, whole) {
+        const t = String(text == null ? '' : text);
+        if (whole && t.trim() === 'NQ') return t.replace('NQ', 'MNQ');
+        let hit = false;
+        const out = t.replace(/(^|[^\w.,])(\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?)(\s?)NQ\b/g, (m, pre, num, sp) => {
+            const h = mnqHalf(num);
+            if (h == null) return m;
+            hit = true;
+            return pre + h + sp + 'MNQ';
+        });
+        return hit ? out : null;
+    }
+    // our own sizes (the Execute card, the chart labels) read as MNQ on NQ while the view is on
+    function mnqExecOn() { return !!S.mnqView && mnqIsNq(detectedSymbol); }
+    function xcMarketShown() { return mnqExecOn() ? 'MNQ' : xcMarket(); }
+    function xcSizeShown(v) { return mnqExecOn() ? fmtSize(Number(v) / MNQ_DIV) : fmtSize(v); }
+
+    // Vest's own text. Only the text of Vest's text nodes is written, never a node added or removed, so React keeps its tree: when it next
+    // writes a size it overwrites ours and the next frame converts it again (a MutationObserver, one pass per animation frame, before paint).
+    // Scope: position rows and cells, order rows, table cells, the TP/SL rows' "Size:" lines, the Close window's text; a bare "NQ" only as
+    // the market name (the market header, a position's symbol, a table cell). Never the order ticket.
+    const MNQ_SIZES = '[data-testid^="position-"], [data-testid^="order-row-"], [data-testid^="td-"], [data-testid*="-size-equiv-"], [data-testid^="tpsl-row-"], [data-testid="close-dialog"]';
+    const MNQ_WHOLE = '[data-testid^="position-symbol-"], [data-testid="market-info"], [data-testid^="td-"]';
+    const MNQ = { obs: null, raf: 0, orig: new Map(), badge: null, tick: 0 };
+
+    function mnqPass() {
+        MNQ.raf = 0;
+        MNQ.orig.forEach((v, n) => { if (!n.isConnected) MNQ.orig.delete(n); });
+        if (!S.mnqView) { mnqRestore(); mnqBadge(); return; }
+        let roots = [];
+        try { roots = document.querySelectorAll(MNQ_SIZES + ', ' + MNQ_WHOLE); } catch (e) {}
+        const seen = new Set();
+        roots.forEach((r) => {
+            if (r.closest('[id^="ax4p-"]') || r.closest('[data-testid="order-form"]')) return;
+            const w = document.createTreeWalker(r, NodeFilter.SHOW_TEXT);
+            let n;
+            while ((n = w.nextNode())) {
+                if (seen.has(n)) continue;
+                seen.add(n);
+                const cur = n.nodeValue;
+                const rec = MNQ.orig.get(n);
+                if (rec && cur === rec[1]) continue;
+                const par = n.parentElement;
+                const nv = mnqRelabel(cur, !!par && !!par.closest(MNQ_WHOLE));
+                if (nv == null) { if (rec) MNQ.orig.delete(n); continue; }
+                MNQ.orig.set(n, [cur, nv]);
+                n.nodeValue = nv;
+            }
+        });
+        mnqBadge();
+    }
+
+    // Vest's own words back, where they are still ours
+    function mnqRestore() {
+        MNQ.orig.forEach((v, n) => { if (n.isConnected && n.nodeValue === v[1]) n.nodeValue = v[0]; });
+        MNQ.orig.clear();
+    }
+
+    // the "MNQ VIEW" badge on the corner of Vest's market name (our own element, fixed, under Vest's dialogs)
+    function mnqBadge() {
+        let b = MNQ.badge;
+        const show = !!S.mnqView && mnqIsNq(detectedSymbol);
+        let r = null;
+        if (show) {
+            const a = document.querySelector('[data-testid="market-info"] [data-slot="popover-anchor"]') || document.querySelector('[data-testid="market-info"]');
+            r = a ? a.getBoundingClientRect() : null;
+            if (r && !(r.width > 0 && r.bottom > 0)) r = null;
+        }
+        if (!r) { if (b) b.style.display = 'none'; return; }
+        if (!b) {
+            b = MNQ.badge = document.createElement('div');
+            b.id = 'ax4p-mnq-badge';
+            b.textContent = 'MNQ VIEW';
+            b.title = "MNQ view (Better Vest): Vest's NQ shown as MNQ, sizes ÷ 2. Prices and dollars are Vest's. Orders still go in Vest's NQ size. Settings > Market.";
+            document.body.appendChild(b);
+        }
+        b.style.display = 'block';
+        const w = b.offsetWidth || 70;
+        const left = Math.round(r.right - w - 8), top = Math.round(r.top - 7);
+        if (b._l !== left || b._t !== top) { b._l = left; b._t = top; b.style.left = left + 'px'; b.style.top = top + 'px'; }
+    }
+
+    function mnqSchedule() { if (!MNQ.raf) MNQ.raf = requestAnimationFrame(mnqPass); }
+
+    // the view switched, the market changed, or the UI was built: watch Vest's page only while the view is on
+    function mnqSync() {
+        try {
+            if (S.mnqView && !MNQ.obs && document.body) {
+                MNQ.obs = new MutationObserver(mnqSchedule);
+                MNQ.obs.observe(document.body, { subtree: true, childList: true, characterData: true });
+            } else if (!S.mnqView && MNQ.obs) {
+                MNQ.obs.disconnect();
+                MNQ.obs = null;
+            }
+            // the badge follows layout changes (Focus mode, a resize) that write no text
+            if (!MNQ.tick) MNQ.tick = setInterval(() => { if (S.mnqView || (MNQ.badge && MNQ.badge.style.display !== 'none')) mnqBadge(); }, 1000);
+            mnqPass();
+            const custom = document.getElementById('ax4p-custom-sz');
+            if (custom) { custom.placeholder = mnqExecOn() ? 'NQ size' : 'Custom'; custom.title = mnqExecOn() ? 'custom size, in Vest\'s NQ size (MNQ view shows the buttons in MNQ)' : 'custom size'; }
+            const mv = document.getElementById('ax4p-xc-mnqv');
+            if (mv) mv.hidden = !mnqExecOn();
+            xcText('ax4p-xc-mk', xcMarketShown());
+            xcText('ax4p-xc-pill-mk', xcMarketShown());
+            renderSizeButtons();
+            lastRiskHtml = '';
+            updateExecutionRiskCalc();
+            xcPaint();
+        } catch (e) {}
     }
 
     function flashExec(msg) {
@@ -2798,6 +3027,8 @@
         });
         const wb = document.getElementById('ax4p-w-basis');
         if (wb) wb.checked = S.widgets.basis === true;
+        const mq = document.getElementById('ax4p-mnq-view');
+        if (mq) mq.checked = S.mnqView === true;
         renderTape();
         clampWidgets();
     }
@@ -2851,7 +3082,7 @@
     function renderSizeButtons() {
         const wrap = document.getElementById('ax4p-sz-wrap');
         if (!wrap) return;
-        wrap.innerHTML = presetList().map((v, i) => `<button class="ax4p-sz-btn" data-i="${i}">${fmtSize(v)}</button>`).join('');
+        wrap.innerHTML = presetList().map((v, i) => `<button class="ax4p-sz-btn" data-i="${i}">${xcSizeShown(v)}</button>`).join('');
         wrap.querySelectorAll('.ax4p-sz-btn').forEach((btn) => {
             btn.addEventListener('click', () => selectPreset(Number(btn.getAttribute('data-i'))));
         });
@@ -2921,7 +3152,8 @@
     // The extension fills xcHooks (positions, Demo, hotkey labels, 50% and REV). The userscript keeps these stubs, so there
     // the card trades exactly like the old strip and 50% / REV stay off.
     // known() is false when the card cannot see your position: then it shows no position line instead of "Flat".
-    const xcHooks = { known: () => false, unknownWhy: () => '', position: () => null, demo: () => false, keyFor: () => '', half: null, rev: null, flat: null, busy: () => false, armed: () => false,
+    const xcHooks = { known: () => false, unknownWhy: () => '', position: () => null, demo: () => false, keyFor: () => '', half: null, rev: null, flat: null, stop: null,
+        exits: false, trailSet: null, autoBeSet: null, trailDesc: null, busy: () => false, armed: () => false,
         partials: () => 'Partials need the Better Vest extension.', assetOf: () => null, applyPartials: null,
         // the daily loss limit (extension): locked() is { text } while new trades are locked, dll() is what the card shows
         // lockedAny(): true while any account's lock is on, which also freezes the settings and a reset / import of them
@@ -2936,6 +3168,7 @@
         flat: '<svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><rect x="2.5" y="2.5" width="11" height="11" rx="3" stroke="currentColor" stroke-width="1.6"/><path d="M5.9 5.9l4.2 4.2M10.1 5.9l-4.2 4.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>',
         half: '<svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="5.75" stroke="currentColor" stroke-width="1.5"/><path d="M8 2.25a5.75 5.75 0 0 0 0 11.5z" fill="currentColor"/></svg>',
         rev: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 5.25h10.25M10.25 2.75l2.5 2.5-2.5 2.5M13.5 10.75H3.25M5.75 8.25l-2.5 2.5 2.5 2.5"/></svg>',
+        stop: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1.5 8h3.25M11.25 8h3.25" stroke-dasharray="1.6 1.6"/><path d="M8 3v10M5.5 5.5L8 3l2.5 2.5"/></svg>',
         lock: '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="7.25" width="9" height="6.25" rx="1.75"/><path d="M5.5 7.25V5.5a2.5 2.5 0 0 1 5 0v1.75"/></svg>'
     };
     function xcMarket() { return String(detectedSymbol || '').replace(/-PERP$/, '') || 'NQ'; }
@@ -2969,7 +3202,178 @@
     }
 
     // − / + beside the stop and target: 1 point a step, Shift for 5, Alt for a quarter
+    // ---------- stop and target in dollars (8.1) ----------
+    // Each stepper takes points or dollars (the PT | $ switch on its label). The order code, the hotkeys, REV and the risk line read points
+    // from #ax4p-sl-pts / #ax4p-tp-pts, so those stay the truth: in dollars they are hidden and follow the dollars for the size the order
+    // goes in with (Vest's size moves $1 a point, so points = dollars ÷ size). The stop rounds down (never more risk than set), the target
+    // up (never less), to the 0.25 step, one step at least. Returns { pts, usd } (usd: what that really is), or null.
+    function xcPtsFromUsd(usd, size, kind) {
+        const u = Number(usd), z = Number(size);
+        if (!(u > 0) || !(z > 0)) return null;
+        const q = Number(((u / z) * 4).toPrecision(12));
+        const n = Math.max(1, kind === 'tp' ? Math.ceil(q) : Math.floor(q));
+        const pts = n / 4;
+        return { pts, usd: Number((pts * z).toPrecision(12)) };
+    }
+    function xcLegUsd(k) { return S.xc[k + 'Unit'] === 'usd'; }
+    // the hidden points follow the dollars for the size the card holds now (pinned to another size during REV, a client stop or execute())
+    function xcSyncUsd() {
+        ['sl', 'tp'].forEach((k) => {
+            if (!xcLegUsd(k)) return;
+            const r = xcPtsFromUsd(S.xc[k + 'Usd'], activeSelectedSize, k);
+            const inp = document.getElementById('ax4p-' + k + '-pts');
+            if (r && inp && parseFloat(inp.value) !== r.pts) inp.value = String(r.pts);
+        });
+    }
+    // points <-> dollars for one leg: the value carries over at the card's size (15 pt at size 3 = $45)
+    function xcSetUnit(k, unit) {
+        const usd = unit === 'usd';
+        if (xcLegUsd(k) === usd) return;
+        const inp = document.getElementById('ax4p-' + k + '-pts');
+        const pts = parseFloat(inp && inp.value) || S[k] || (k === 'sl' ? 15 : 30);
+        if (usd) S.xc[k + 'Usd'] = Number((pts * (activeSelectedSize > 0 ? activeSelectedSize : 1)).toPrecision(12));
+        else S[k] = pts;
+        S.xc[k + 'Unit'] = usd ? 'usd' : 'pt';
+        persist();
+        xcPaintUnits();
+        lastRiskHtml = '';
+        updateExecutionRiskCalc();
+    }
+    function xcPaintUnits() {
+        ['sl', 'tp'].forEach((k) => {
+            const usd = xcLegUsd(k);
+            const pts = document.getElementById('ax4p-' + k + '-pts');
+            const us = document.getElementById('ax4p-' + k + '-usd');
+            const sw = document.getElementById('ax4p-xc-' + k + '-unit');
+            if (pts) pts.hidden = usd;
+            if (us) {
+                us.hidden = !usd;
+                if (usd && document.activeElement !== us) us.value = S.xc[k + 'Usd'] != null ? String(S.xc[k + 'Usd']) : '';
+            }
+            const box = pts && pts.closest('.xc-stepv');
+            if (box) box.classList.toggle('usd', usd);
+            if (sw) {
+                sw.setAttribute('aria-checked', String(usd));
+                sw.querySelectorAll('b').forEach((b) => b.classList.toggle('on', (b.getAttribute('data-u') === 'usd') === usd));
+            }
+        });
+    }
+
+    // ---------- TRAIL and AUTO BE on the card (8.1) ----------
+    // The switches and their numbers live on the card; what they do lives in the extension (xcHooks.trailSet / autoBeSet: the chart TP/SL
+    // code). The userscript has no chart TP/SL, so it shows neither.
+    function xcExitSize() {
+        const p = xcHooks.position();
+        return p && p.qty > 0 ? p.qty : activeSelectedSize > 0 ? activeSelectedSize : 1;
+    }
+    function xcPaintExits() {
+        const has = !!xcHooks.exits;
+        const tr = S.tpsl.trail, be = S.tpsl.autoBe;
+        const trOn = has && tr.auto === true, beOn = has && be.on === true;
+        const el = (id) => document.getElementById(id);
+        if (el('ax4p-xc-opts')) el('ax4p-xc-opts').hidden = !has;
+        if (el('ax4p-xc-trail-tg')) el('ax4p-xc-trail-tg').setAttribute('aria-checked', String(trOn));
+        if (el('ax4p-xc-be-tg')) el('ax4p-xc-be-tg').setAttribute('aria-checked', String(beOn));
+        if (el('ax4p-xc-exits')) el('ax4p-xc-exits').hidden = !(trOn || beOn);
+        if (el('ax4p-xc-ex-trail')) el('ax4p-xc-ex-trail').hidden = !trOn;
+        if (el('ax4p-xc-ex-be')) el('ax4p-xc-ex-be').hidden = !beOn;
+        const field = (id, v, usd) => {
+            const inp = el(id);
+            if (!inp) return;
+            if (document.activeElement !== inp) inp.value = v == null ? '' : String(v);
+            const f = inp.closest('.xc-exf');
+            if (f) f.classList.toggle('usd', !!usd);
+        };
+        const tu = tr.unit === 'usd', bu = be.unit === 'usd';
+        field('ax4p-xc-tr-start', tu ? (tr.startUsd != null ? tr.startUsd : '') : tr.start, tu);
+        field('ax4p-xc-tr-dist', tu ? (tr.distUsd != null ? tr.distUsd : '') : tr.dist, tu);
+        field('ax4p-xc-be-at', bu ? (be.atUsd != null ? be.atUsd : '') : be.at, bu);
+        const sf = el('ax4p-xc-tr-start-f');
+        if (sf) sf.classList.toggle('dis', tr.now === true);
+        if (el('ax4p-xc-tr-start')) el('ax4p-xc-tr-start').disabled = tr.now === true;
+        if (el('ax4p-xc-tr-now')) el('ax4p-xc-tr-now').setAttribute('aria-pressed', String(tr.now === true));
+        [['ax4p-xc-tr-unit', tu], ['ax4p-xc-be-unit', bu]].forEach(([id, usd]) => {
+            const sw = el(id);
+            if (!sw) return;
+            sw.setAttribute('aria-checked', String(usd));
+            sw.querySelectorAll('b').forEach((b) => b.classList.toggle('on', (b.getAttribute('data-u') === 'usd') === usd));
+        });
+    }
+    // points <-> dollars for the trail row or the BE row: the numbers carry over at the open position's size (else the card's)
+    function xcExitUnit(which) {
+        const z = xcExitSize();
+        if (which === 'trail') {
+            const c = S.tpsl.trail;
+            if (c.unit === 'usd') {
+                if (c.startUsd != null) c.start = +(c.startUsd / z).toFixed(2);
+                if (c.distUsd > 0) c.dist = Math.max(0.25, +(c.distUsd / z).toFixed(2));
+                c.unit = 'pt';
+            } else {
+                c.startUsd = +(c.start * z).toFixed(2);
+                c.distUsd = +(c.dist * z).toFixed(2);
+                c.unit = 'usd';
+            }
+        } else {
+            const b = S.tpsl.autoBe;
+            if (b.unit === 'usd') { if (b.atUsd > 0) b.at = Math.max(0.25, +(b.atUsd / z).toFixed(2)); b.unit = 'pt'; }
+            else { b.atUsd = +(b.at * z).toFixed(2); b.unit = 'usd'; }
+        }
+        persist();
+        xcPaintExits();
+    }
+    // a number typed: points, or dollars when its row is in dollars (start 0 = at once; the distance and BE need more than 0)
+    function xcExitInput(id, v) {
+        const c = S.tpsl.trail, b = S.tpsl.autoBe;
+        if (!Number.isFinite(v)) return false;
+        if (id === 'ax4p-xc-tr-start') { if (v < 0) return false; if (c.unit === 'usd') c.startUsd = Math.min(v, 1e7); else c.start = Math.min(v, 1e6); }
+        else if (id === 'ax4p-xc-tr-dist') { if (!(v > 0)) return false; if (c.unit === 'usd') c.distUsd = Math.min(v, 1e7); else c.dist = Math.max(0.01, Math.min(v, 1e6)); }
+        else if (id === 'ax4p-xc-be-at') { if (!(v > 0)) return false; if (b.unit === 'usd') b.atUsd = Math.min(v, 1e7); else b.at = Math.min(v, 1e6); }
+        else return false;
+        persist();
+        return true;
+    }
+    // NOW: trailing starts at once (no wait for profit); with TRAIL off it turns it on, "start trailing now" means now
+    function xcTrailNow() {
+        const c = S.tpsl.trail;
+        c.now = !c.now;
+        persist();
+        if (c.now && c.auto !== true && xcHooks.trailSet) xcHooks.trailSet(true);
+        xcPaintExits();
+    }
+    function xcWireExits() {
+        const el = (id) => document.getElementById(id);
+        const sw = (id, fn) => {
+            const t = el(id);
+            if (!t) return;
+            t.addEventListener('click', fn);
+            t.addEventListener('keydown', (e) => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); fn(); } });
+        };
+        sw('ax4p-xc-trail-tg', () => { if (xcHooks.trailSet) xcHooks.trailSet(S.tpsl.trail.auto !== true); xcPaintExits(); });
+        sw('ax4p-xc-be-tg', () => { if (xcHooks.autoBeSet) xcHooks.autoBeSet(S.tpsl.autoBe.on !== true); xcPaintExits(); });
+        ['ax4p-xc-tr-start', 'ax4p-xc-tr-dist', 'ax4p-xc-be-at'].forEach((id) => {
+            const inp = el(id);
+            if (!inp) return;
+            inp.addEventListener('input', () => xcExitInput(id, parseFloat(inp.value)));
+            inp.addEventListener('blur', xcPaintExits);
+        });
+        if (el('ax4p-xc-tr-unit')) el('ax4p-xc-tr-unit').addEventListener('click', () => xcExitUnit('trail'));
+        if (el('ax4p-xc-be-unit')) el('ax4p-xc-be-unit').addEventListener('click', () => xcExitUnit('be'));
+        if (el('ax4p-xc-tr-now')) el('ax4p-xc-tr-now').addEventListener('click', xcTrailNow);
+        xcPaintExits();
+    }
+
     function xcStep(id, dir, ev) {
+        // a leg in dollars steps its dollars: $5 a click, $25 with Shift, $1 with Alt
+        const k = id === 'ax4p-sl-pts' ? 'sl' : id === 'ax4p-tp-pts' ? 'tp' : '';
+        if (k && xcLegUsd(k)) {
+            const us = document.getElementById('ax4p-' + k + '-usd');
+            if (!us) return;
+            const by = ev && ev.shiftKey ? 25 : ev && ev.altKey ? 1 : 5;
+            const cur = parseFloat(us.value) || 0;
+            us.value = String(Math.max(1, Math.round(cur + dir * by)));
+            us.dispatchEvent(new Event('input', { bubbles: true }));
+            return;
+        }
         const input = document.getElementById(id);
         if (!input) return;
         const by = ev && ev.shiftKey ? 5 : ev && ev.altKey ? 0.25 : 1;
@@ -3094,7 +3498,7 @@
             else if (!pos) html = 'Flat';
             else {
                 const pnl = pos.pnl;
-                html = `<span class="xc-side ${pos.isLong ? 'up' : 'dn'}">${pos.isLong ? 'LONG' : 'SHORT'}</span><b>${escHtml(fmtSize(pos.qty))}</b><span>@ ${escHtml(pos.entryText)}</span>` +
+                html = `<span class="xc-side ${pos.isLong ? 'up' : 'dn'}">${pos.isLong ? 'LONG' : 'SHORT'}</span><b>${escHtml(xcSizeShown(pos.qty))}</b><span>@ ${escHtml(pos.entryText)}</span>` +
                     (pnl == null ? '' : `<b class="xc-pnl ${pnl >= 0 ? 'up' : 'dn'}">${pnl >= 0 ? '+' : '−'}${xcUsd(pnl)}</b>`) +
                     (pos.demo ? '<span class="xc-demo">DEMO</span>' : '');
             }
@@ -3118,6 +3522,13 @@
         if (flat) flat.classList.toggle('idle', known && !pos);
         const half = document.getElementById('ax4p-half-btn');
         if (half) half.disabled = !pos || !xcHooks.half;
+        xcPaintExits();
+        // STOP: entries need no position, so it is never dimmed; only the extension has it (it watches the book and draws on the chart)
+        const stp = document.getElementById('ax4p-stop-btn');
+        if (stp) {
+            stp.hidden = !xcHooks.stop || S.tpsl.stops.show === false || S.tpsl.enabled === false;
+            stp.classList.toggle('armed', !!(xcHooks.placing && xcHooks.placing()));
+        }
         const rev = document.getElementById('ax4p-rev-btn');
         if (rev) {
             rev.disabled = !pos || !xcHooks.rev;
@@ -3200,6 +3611,7 @@
         document.getElementById('ax4p-xc-p-apply').addEventListener('click', () => { if (xcHooks.applyPartials) xcHooks.applyPartials(); });
         document.getElementById('ax4p-half-btn').addEventListener('click', () => { if (xcHooks.half) xcHooks.half(); });
         document.getElementById('ax4p-rev-btn').addEventListener('click', () => { if (xcHooks.rev) xcHooks.rev(); });
+        document.getElementById('ax4p-stop-btn').addEventListener('click', () => { if (xcHooks.stop) xcHooks.stop(); });
         xcPaint();
         setInterval(xcPaint, 1000);
     }
@@ -3363,12 +3775,14 @@
         const execBox = document.createElement('div');
         execBox.id = 'ax4p-exec-deck';
         execBox.className = 'ax4p-shell';
-        const xcStepper = (id, val, cls, label) => `<div class="xc-step ${cls}"><button type="button" data-step="${id}" data-dir="-1" aria-label="${label} down">${XC_ICON.minus}</button><span class="xc-stepv"><input id="${id}" type="number" value="${escHtml(val)}" step="0.25" min="0.25" aria-label="${label} in points"><i>pt</i></span><button type="button" data-step="${id}" data-dir="1" aria-label="${label} up">${XC_ICON.plus}</button></div>`;
+        const xcStepper = (id, val, cls, label) => `<div class="xc-step ${cls}"><button type="button" data-step="${id}" data-dir="-1" aria-label="${label} down">${XC_ICON.minus}</button><span class="xc-stepv"><i class="xc-pre">$</i><input id="${id}" type="number" value="${escHtml(val)}" step="0.25" min="0.25" aria-label="${label} in points"><input id="${id.replace('-pts', '-usd')}" type="number" step="1" min="1" aria-label="${label} in dollars" hidden><i class="xc-suf">pt</i></span><button type="button" data-step="${id}" data-dir="1" aria-label="${label} up">${XC_ICON.plus}</button></div>`;
+        // the PT | $ switch on a stepper's label
+        const xcUnitSw = (k, label) => `<button type="button" class="xc-unitsw" id="ax4p-xc-${k}-unit" role="switch" aria-checked="false" aria-label="${label} in dollars" title="${label} in points or in dollars (dollars: the points follow your size)"><b data-u="pt" class="on">PT</b><b data-u="usd">$</b></button>`;
         execBox.innerHTML = `
             <div class="xc-full">
                 <div class="xc-hd">
                     <span class="xc-grip" title="drag to move">${XC_ICON.grip}</span>
-                    <span class="xc-mk" id="ax4p-xc-mk">NQ</span>
+                    <span class="xc-mk" id="ax4p-xc-mk">NQ</span><span class="xc-mnqv" id="ax4p-xc-mnqv" hidden title="MNQ view: sizes shown as MNQ contracts (Vest's NQ size ÷ 2). Vest still gets its NQ size. Settings > Market.">VIEW</span>
                     <span class="xc-pos" id="ax4p-xc-pos"></span>
                     <div class="xc-tabs" id="ax4p-acct-tabs" role="tablist" aria-label="Account size presets">${['5k', '10k', '25k', 'custom'].map((a) => `<button type="button" data-acct="${a}">${ACCOUNT_LABELS[a]}</button>`).join('')}</div>
                     <button type="button" class="xc-ico" id="ax4p-xc-collapse" title="collapse" aria-label="Collapse">${XC_ICON.collapse}</button>
@@ -3377,11 +3791,27 @@
                 <div class="xc-lock-banner" id="ax4p-xc-lock" role="alert" hidden></div>
                 <div class="xc-in">
                     <div class="xc-g"><span class="xc-lab">Size<em id="ax4p-mnq-readout"></em></span><div class="xc-sizes"><div class="xc-seg" id="ax4p-sz-wrap"></div><input id="ax4p-custom-sz" class="xc-field" type="number" placeholder="Custom" min="0" step="0.1" value="${escHtml(S.customSz || '')}" title="custom size"></div></div>
-                    <div class="xc-g" id="ax4p-xc-sl-g"><span class="xc-lab xc-lab--tg dn" id="ax4p-xc-sl-tg" role="switch" aria-checked="true" aria-label="Stop" tabindex="0"><span class="xc-dot"></span><span class="xc-lt">Stop</span></span>${xcStepper('ax4p-sl-pts', S.sl, 'xc-step--sl', 'Stop')}</div>
-                    <div class="xc-g" id="ax4p-xc-tp-g"><span class="xc-lab xc-lab--tg up" id="ax4p-xc-tp-tg" role="switch" aria-checked="true" aria-label="Target" tabindex="0"><span class="xc-dot"></span><span class="xc-lt">Target</span></span>${xcStepper('ax4p-tp-pts', S.tp, 'xc-step--tp', 'Target')}</div>
-                    <div class="xc-g xc-g--sw"><span class="xc-lab">Partials</span><div class="xc-swrow"><button type="button" class="xc-apply" id="ax4p-xc-p-apply" title="Split this position's take-profit the same way, in Vest's Edit TP/SL window" hidden>Set on position</button><button type="button" class="xc-sw" id="ax4p-xc-partials" role="switch" aria-checked="false"><span></span></button></div></div>
+                    <div class="xc-g" id="ax4p-xc-sl-g"><div class="xc-labrow"><span class="xc-lab xc-lab--tg dn" id="ax4p-xc-sl-tg" role="switch" aria-checked="true" aria-label="Stop" tabindex="0"><span class="xc-dot"></span><span class="xc-lt">Stop</span></span>${xcUnitSw('sl', 'Stop')}</div>${xcStepper('ax4p-sl-pts', S.sl, 'xc-step--sl', 'Stop')}</div>
+                    <div class="xc-g" id="ax4p-xc-tp-g"><div class="xc-labrow"><span class="xc-lab xc-lab--tg up" id="ax4p-xc-tp-tg" role="switch" aria-checked="true" aria-label="Target" tabindex="0"><span class="xc-dot"></span><span class="xc-lt">Target</span></span>${xcUnitSw('tp', 'Target')}</div>${xcStepper('ax4p-tp-pts', S.tp, 'xc-step--tp', 'Target')}</div>
+                    <div class="xc-g4"><div class="xc-opts" id="ax4p-xc-opts" hidden>
+                        <span class="xc-lab xc-lab--tg ac" id="ax4p-xc-trail-tg" role="switch" aria-checked="false" aria-label="Trailing stop" tabindex="0" title="Trailing stop: the position's stop follows price (this one now, and every new one)"><span class="xc-dot"></span><span class="xc-lt">Trail</span></span>
+                        <span class="xc-lab xc-lab--tg ac" id="ax4p-xc-be-tg" role="switch" aria-checked="false" aria-label="Auto breakeven" tabindex="0" title="Auto breakeven: the stop goes to breakeven once a position is far enough in profit"><span class="xc-dot"></span><span class="xc-lt">Auto BE</span></span>
+                    </div><div class="xc-g xc-g--sw"><span class="xc-lab">Partials</span><div class="xc-swrow"><button type="button" class="xc-sw" id="ax4p-xc-partials" role="switch" aria-checked="false"><span></span></button></div></div></div>
+                </div>
+                <div class="xc-exits" id="ax4p-xc-exits" hidden>
+                    <div class="xc-ex" id="ax4p-xc-ex-trail" hidden><span class="xc-tag">Trail</span>
+                        <label class="xc-field xc-exf" id="ax4p-xc-tr-start-f" title="Trailing starts once the position is this far in profit"><span class="xc-k">Start</span><i class="xc-pre">$</i><input id="ax4p-xc-tr-start" type="number" min="0" step="0.25" aria-label="Trailing starts at this profit"><i class="xc-u">pt</i></label>
+                        <button type="button" class="xc-now" id="ax4p-xc-tr-now" aria-pressed="false" title="Start trailing now, without waiting for profit">Now</button>
+                        <label class="xc-field xc-exf" title="The stop stays this far behind the best price"><span class="xc-k">By</span><i class="xc-pre">$</i><input id="ax4p-xc-tr-dist" type="number" min="0.25" step="0.25" aria-label="Trailing distance"><i class="xc-u">pt</i></label>
+                        <button type="button" class="xc-unitsw" id="ax4p-xc-tr-unit" role="switch" aria-checked="false" aria-label="Trailing in dollars" title="Points or dollars (dollars: the points follow the position's size)"><b data-u="pt" class="on">PT</b><b data-u="usd">$</b></button>
+                    </div>
+                    <div class="xc-ex" id="ax4p-xc-ex-be" hidden><span class="xc-tag">Auto BE</span>
+                        <label class="xc-field xc-exf" title="The stop goes to breakeven once the position is this far in profit"><span class="xc-k">At</span><i class="xc-pre">$</i><input id="ax4p-xc-be-at" type="number" min="0.25" step="0.25" aria-label="Auto breakeven at this profit"><i class="xc-u">pt</i></label>
+                        <button type="button" class="xc-unitsw" id="ax4p-xc-be-unit" role="switch" aria-checked="false" aria-label="Auto breakeven in dollars" title="Points or dollars (dollars: the points follow the position's size)"><b data-u="pt" class="on">PT</b><b data-u="usd">$</b></button>
+                    </div>
                 </div>
                 <div class="xc-parts" id="ax4p-xc-parts" hidden></div>
+                <div class="xc-papply"><button type="button" class="xc-apply" id="ax4p-xc-p-apply" title="Split this position's take-profit the same way, in Vest's Edit TP/SL window" hidden>Set on position</button></div>
                 <div class="xc-dc">
                     <dl class="xc-risk" id="ax4p-exec-risk-display">
                         <div><dt>Risk</dt><dd id="ax4p-xc-risk"></dd></div>
@@ -3396,6 +3826,7 @@
                             <button type="button" id="ax4p-flatten-btn" class="xc-m xc-m--flat idle" title="Flat: close the whole position">${XC_ICON.flat}<span>Flat</span></button>
                             <button type="button" id="ax4p-half-btn" class="xc-m xc-m--half" title="Close 50% of the position" disabled>${XC_ICON.half}<span>50<small>%</small></span></button>
                             <button type="button" id="ax4p-rev-btn" class="xc-m xc-m--rev" title="Reverse: close the position, then open the other side (click twice)" disabled>${XC_ICON.rev}<span>Rev</span></button>
+                            <button type="button" id="ax4p-stop-btn" class="xc-m xc-m--stop" title="Stop entry: then click the chart where it goes. Above the price a buy stop, below a sell stop, for this size. Held by Better Vest: it sends a market order when the mid touches it, while this tab is open." hidden>${XC_ICON.stop}<span>Stop</span></button>
                         </div>
                     </div>
                 </div>
@@ -3436,6 +3867,18 @@
         });
         document.getElementById('ax4p-sl-pts').addEventListener('input', (e) => { S.sl = parseFloat(e.target.value) || 15; persist(); updateExecutionRiskCalc(); });
         document.getElementById('ax4p-tp-pts').addEventListener('input', (e) => { S.tp = parseFloat(e.target.value) || 30; persist(); updateExecutionRiskCalc(); });
+        // the dollar fields and the PT | $ switches (8.1)
+        ['sl', 'tp'].forEach((k) => {
+            document.getElementById('ax4p-' + k + '-usd').addEventListener('input', (e) => {
+                const v = parseFloat(e.target.value);
+                S.xc[k + 'Usd'] = v > 0 ? Math.min(v, 1e7) : null;
+                persist();
+                updateExecutionRiskCalc();
+            });
+            document.getElementById('ax4p-xc-' + k + '-unit').addEventListener('click', () => xcSetUnit(k, xcLegUsd(k) ? 'pt' : 'usd'));
+        });
+        xcPaintUnits();
+        xcWireExits();
         document.getElementById('ax4p-buy-btn').onclick = () => xcExecute('buy');
         document.getElementById('ax4p-sell-btn').onclick = () => xcExecute('sell');
         // the extension's FLAT (xcFlat) wraps the protected close code; without it, that code alone, as always
@@ -3449,9 +3892,12 @@
         settings.className = 'ax4p-shell';
         settings.innerHTML = `
             <div id="ax4p-settings-handle" class="ax4p-head">
-                <div>
-                    <div class="ax4p-title">Settings</div>
-                    <div class="ax4p-sub">Better Vest by Astral v${VERSION} · saved automatically</div>
+                <div class="ax4p-set-brand">
+                    <img class="ax4p-set-logo" src="${ASTRAL_LOGO}" alt="Astral" draggable="false">
+                    <div>
+                        <div class="ax4p-title">Settings</div>
+                        <div class="ax4p-sub">Better Vest by Astral v${VERSION} · saved automatically</div>
+                    </div>
                 </div>
                 <span id="ax4p-settings-close" class="ax4p-x" title="close">×</span>
             </div>
@@ -3546,6 +3992,13 @@
                     <details class="ax4p-more"><summary>Example</summary>
                         <div class="ax4p-hint">Long, up 1 pt, 5% of profit puts the stop at entry + 0.05, rounded to the next tick away from entry. Not in profit enough: nothing moves, unless the last option is on. The stop never moves backwards, and Undo works.</div>
                     </details>
+                </div>
+                <div class="ax4p-sec">
+                    <div class="ax4p-sec-t">Client-side stops</div>
+                    <label class="ax4p-row"><span>Show the STOP button on the Execute card</span><input type="checkbox" id="ax4p-cs-show"></label>
+                    <details class="ax4p-more"><summary>How it works</summary>
+                        <div class="ax4p-hint">Press STOP, then click the chart: above the price it is a buy stop, below a sell stop, for the size selected on the Execute card. Better Vest holds it (Vest never sees it) and sends a market order with the card's stop and target the moment the mid touches it, once. Drag it to move it, the x removes it. It only works while this tab is open and the price is live: a stop that price went past while it could not watch (a reload, no price) is shown as PASSED and never sent. Click it to arm it again.</div>
+                    </details>
                 </div>` : `
                 <div class="ax4p-sec"><div class="ax4p-hint" style="margin:0;">Chart TP/SL needs the Better Vest extension.</div></div>`}
             </div>
@@ -3586,6 +4039,11 @@
                     <div class="ax4p-sec-t">Spread · mid vs index</div>
                     <div class="ax4p-row"><span id="ax4p-set-spread" class="ax4p-big-num">Δ —</span><span id="ax4p-set-px" class="ax4p-hint" style="margin:0;">waiting for prices</span></div>
                     <label class="ax4p-row"><span>Floating spread pill</span><input type="checkbox" id="ax4p-w-basis"></label>
+                </div>
+                <div class="ax4p-sec">
+                    <div class="ax4p-sec-t">MNQ view</div>
+                    <label class="ax4p-row"><span>Show NQ as MNQ contracts</span><input type="checkbox" id="ax4p-mnq-view"></label>
+                    <div class="ax4p-hint">On NQ, sizes read as MNQ (Vest's NQ size ÷ 2) on the Execute card, the chart labels and Vest's own positions and orders, and the market name reads MNQ with a MNQ VIEW badge. Prices and dollars stay the same. Display only: Vest's ticket, its Close and Edit TP/SL windows and the Custom size still take Vest's NQ size.</div>
                 </div>
             </div>
             <div class="ax4p-tabpane" data-pane="more">
@@ -3705,6 +4163,7 @@
         paintAccount();
 
         document.getElementById('ax4p-w-basis').onchange = (e) => { S.widgets.basis = e.target.checked; persist(); syncToggles(); };
+        document.getElementById('ax4p-mnq-view').onchange = (e) => { S.mnqView = e.target.checked; persist(); mnqSync(); };
         const io = document.getElementById('ax4p-io');
         const ioMsg = (t) => { document.getElementById('ax4p-io-msg').textContent = t; };
         document.getElementById('ax4p-export').onclick = () => {
@@ -4057,6 +4516,53 @@
         return out(sl, sl === eg, Math.abs(sl - e) / k);
     }
 
+    // Auto trailing SL, one step. o = { isLong, entry, mid, tick, dec, sls: [stop prices as drawn], best, active, start, dist, step, prevMid }
+    // (start / dist / step in price points). Whole numbers (price * 10^dec) like tpBePrice. best = the most favourable mid since the position was
+    // armed; trailing starts (and stays on) once best is `start` in profit (start 0: at once); the level is best -/+ dist, rounded away from price,
+    // never closer than one tick inside the mid; a stop row moves to it only when that is at least `step` tighter. Never loosens. A mid more than
+    // 80 ticks or 0.1% from the previous sample is a bad tick and changes nothing (the caller always keeps the newest mid as the previous one,
+    // so a real move is taken one sample later and a one-sample spike never is).
+    // Returns { best, active, level, s, startPx, startS, moves: [{ i, price, s }], create, skip }.
+    function tpTrailStep(o) {
+        const entry = Number(o.entry), mid = Number(o.mid), tick = Number(o.tick);
+        const keep = (skip) => ({ best: o.best == null ? null : Number(o.best), active: !!o.active, level: null, s: null, startPx: null, startS: null, moves: [], create: false, skip });
+        if (!(entry > 0) || !(mid > 0) || !(tick > 0)) return keep('no-price');
+        const prev = Number(o.prevMid);
+        if (prev > 0 && Math.abs(mid - prev) > Math.max(80 * tick, prev * 0.001)) return keep('jump');
+        const d = Math.max((o.dec | 0), tpDecimals(tick), tpDecimals(entry));
+        const k = Math.pow(10, d);
+        const ti = Math.round(tick * k);
+        if (ti <= 0) return keep('no-price');
+        const dir = o.isLong ? 1 : -1;
+        const I = (x) => Math.round(Number((Number(x) * k).toPrecision(15)));
+        const e = I(entry);
+        // the mid rounded against the position (as tpBePrice does): the stop never ends up closer to the market than it looks
+        const mf = Number((mid * k).toPrecision(15));
+        const m = dir > 0 ? Math.floor(mf + 1e-9) : Math.ceil(mf - 1e-9);
+        const b0 = o.best == null || !Number.isFinite(Number(o.best)) ? null : I(o.best);
+        const b = b0 == null ? m : dir > 0 ? Math.max(b0, m) : Math.min(b0, m);
+        const startI = Math.max(0, I(Math.max(0, Number(o.start) || 0)));
+        const active = !!o.active || startI === 0 || dir * (b - e) >= startI;
+        const startPx = (e + dir * startI) / k;
+        const out = { best: b / k, active, level: null, s: null, startPx, startS: startPx.toFixed(d), moves: [], create: false, skip: '' };
+        if (!active) return out;
+        const distI = Math.max(ti, I(Math.max(0, Number(o.dist) || 0)));
+        const stepI = Math.max(1, I(Math.max(0, Number(o.step) || 0)));
+        const raw = b - dir * distI;
+        let lv = dir > 0 ? Math.floor(raw / ti + 1e-9) * ti : Math.ceil(raw / ti - 1e-9) * ti;
+        const maxSl = dir > 0 ? Math.floor((m - ti) / ti) * ti : Math.ceil((m + ti) / ti) * ti;
+        if (dir * lv > dir * maxSl) lv = maxSl;
+        out.level = lv / k;
+        out.s = out.level.toFixed(d);
+        const sls = Array.isArray(o.sls) ? o.sls : [];
+        if (!sls.length) { out.create = true; return out; }
+        sls.forEach((p, i) => {
+            const pi = I(p);
+            if (Number.isFinite(pi) && dir * (lv - pi) >= stepI) out.moves.push({ i, price: out.level, s: out.s });
+        });
+        return out;
+    }
+
     // Which of Vest's mutation observers is it? key = observer.options.mutationKey, src = mutationFn.toString().
     // Only the two TP/SL writers qualify. A close/flatten/reverse/cancel POST on the same fibers must be rejected.
     //   'upd': the update-TP/SL observer, key ['PUT/v3/positions/tpsl'] and a PUT of {takeProfitId|stopLossId}
@@ -4072,6 +4578,32 @@
         const sig = /^\(\{\s*type\s*:\s*\w+\s*,\s*silent\s*:\s*\w+\s*,\s*\.\.\.\w+\s*\}\)\s*=>/.test(t.trim());
         const post = /\.post\(`\/v3\/positions\/\$\{\s*\w+\[\w+\]\s*\}`\s*,/.test(t);
         return sig && post ? 'add' : null;
+    }
+    // Client-side stop (8.1), one book sample. o = { side: 'buy' | 'sell', price, mid, prev, tick }. prev = the last trusted mid this stop
+    // saw; null when it has seen none since a reload, a gap in the feed, a drop or a market switch. A buy stop fires when the mid touches
+    // its price from below (mid >= price), a sell stop from above (mid <= price). With no prev, a mid already at or past the price means
+    // it was crossed while nobody watched: `passed`, never fired. A mid more than 80 ticks or 0.1% from prev is taken one sample later
+    // (a one-sample spike never fires). Returns { fire, passed, prev, skip }.
+    function csStep(o) {
+        const price = Number(o.price), mid = Number(o.mid);
+        const tick = Number(o.tick) > 0 ? Number(o.tick) : 0.25;
+        if (!(price > 0)) return { fire: false, passed: false, prev: null, skip: 'no-price' };
+        if (!(mid > 0)) return { fire: false, passed: false, prev: null, skip: 'stale' };
+        const dir = o.side === 'sell' ? -1 : 1;
+        const through = dir * (mid - price) >= -1e-9;
+        const prev = o.prev == null || !(Number(o.prev) > 0) ? null : Number(o.prev);
+        if (prev == null) return through ? { fire: false, passed: true, prev: null, skip: '' } : { fire: false, passed: false, prev: mid, skip: '' };
+        if (Math.abs(mid - prev) > Math.max(80 * tick, prev * 0.001)) return { fire: false, passed: false, prev: mid, skip: 'jump' };
+        return { fire: through, passed: false, prev: mid, skip: '' };
+    }
+
+    // Which stop a price makes: above the mid a buy stop, below a sell stop; '' within a tick of the mid (too close to place).
+    function csSideFor(price, mid, tick) {
+        const p = Number(price), m = Number(mid), t = Number(tick) > 0 ? Number(tick) : 0.25;
+        if (!(p > 0) || !(m > 0)) return '';
+        if (p - m >= t - 1e-9) return 'buy';
+        if (m - p >= t - 1e-9) return 'sell';
+        return '';
     }
     // @@BV-TPSL-MATH-END
 
@@ -4089,7 +4621,7 @@
         dead: false, chartSym: '', chartSymAt: 0, lastCommit: new Map(), legPx: [], rescan: 0, geomErr: '',
         popup: false, evalAt: 0, legTol: 0.01, lastBarAt: 0, lastBarT: null, prevLx: null, away: false, tight: false, lastX: null, xMethod: '', gcAt: 0, loadingInfo: false,
         colW: 0, colSig: '', colAt: 0, measure: null, lx: null, lxGlide: false, room: null, roomAt: 0, roomFlatAt: 0, chartDown: false, chartTouchAt: 0,
-        deadUntil: 0, quick: 0
+        deadUntil: 0, quick: 0, trail: new Map(), trailSeen: null, trailGone: new Map(), autoBe: new Map()
     };
     // Label column geometry (px). The column sits just right of the last bar, or docked at the pane's right edge.
     const TP_GAP = 10;        // from the last bar to the label column
@@ -4580,6 +5112,34 @@
 
     const TP_CSS = `
         #ax4p-tp-root { position: fixed; left: 0; top: 0; width: 0; height: 0; z-index: 40; pointer-events: none; }
+        #ax4p-cs-root { position: fixed; left: 0; top: 0; width: 0; height: 0; z-index: 41; pointer-events: none; font-family: var(--ax-font, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Inter, sans-serif); -webkit-font-smoothing: antialiased; }
+        #ax4p-cs-root * { box-sizing: border-box; }
+        .cs-pane { position: fixed; overflow: hidden; pointer-events: none; }
+        .cs-ln { --c: var(--tp-up, #22c55e); position: absolute; left: 0; top: 0; height: 0; border-top: 1px dashed var(--c); will-change: transform; }
+        .cs-ln.sell, .cs-n.sell { --c: var(--tp-down, #ef4444); }
+        .cs-ln.wait { border-top-color: var(--ax-warn); }
+        .cs-ln.done { opacity: .35; }
+        .cs-n { --c: var(--tp-up, #22c55e); position: absolute; left: 0; top: 0; display: flex; align-items: center; gap: 6px; height: 20px; padding: 0 3px 0 7px; border-radius: 4px; pointer-events: auto; cursor: ns-resize; white-space: nowrap; will-change: transform;
+            font: 700 10px/18px var(--ax-font, ui-sans-serif, system-ui, sans-serif); letter-spacing: .04em; font-variant-numeric: tabular-nums; color: var(--ax-text, #e5e7eb);
+            background: color-mix(in srgb, var(--ax-raised, #111) 92%, transparent); border: 1px solid color-mix(in srgb, var(--c) 70%, transparent); box-shadow: 0 2px 8px rgba(0, 0, 0, .35); user-select: none; }
+        .cs-n .cs-k { color: var(--c); }
+        .cs-n .cs-sz { font-weight: 800; }
+        .cs-n .cs-px { font-weight: 600; }
+        .cs-n .cs-st { font-size: 9px; letter-spacing: .08em; padding: 0 4px; line-height: 14px; border-radius: 3px; color: var(--c); background: color-mix(in srgb, var(--c) 20%, transparent); }
+        .cs-n.wait .cs-st { color: var(--ax-warn); background: color-mix(in srgb, var(--ax-warn) 20%, transparent); }
+        .cs-n.wait { border-color: color-mix(in srgb, var(--ax-warn) 70%, transparent); }
+        .cs-n.done { opacity: .8; cursor: pointer; }
+        .cs-n.off { opacity: .7; }
+        .cs-n.drag { box-shadow: 0 0 0 2px color-mix(in srgb, var(--c) 45%, transparent), 0 4px 14px rgba(0, 0, 0, .45); }
+        .cs-n.gh { pointer-events: none; opacity: .9; border-style: dashed; }
+        .cs-n .cs-x { display: grid; place-items: center; width: 16px; height: 16px; border-radius: 3px; color: var(--ax-dim, #888); cursor: pointer; }
+        .cs-n .cs-x:hover { color: var(--ax-text, #fff); background: var(--ax-sel, #333); }
+        .cs-n .cs-x svg { width: 9px; height: 9px; }
+        .cs-axis { position: fixed; overflow: hidden; pointer-events: none; }
+        .cs-ax { --c: var(--tp-up, #22c55e); position: absolute; left: 0; top: 0; height: 16px; padding: 0 4px; border-radius: 3px; will-change: transform; white-space: nowrap;
+            font: 700 10px/16px var(--ax-font, ui-sans-serif, system-ui, sans-serif); font-variant-numeric: tabular-nums; color: #fff; background: var(--c); }
+        .cs-ax.sell { --c: var(--tp-down, #ef4444); }
+        .cs-ax.done { opacity: .45; }
         #ax4p-tp-root, .ax4p-tp-toast { font-family: var(--ax-font, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Inter, sans-serif); -webkit-font-smoothing: antialiased; }
         #ax4p-tp-root *, .ax4p-tp-toast * { box-sizing: border-box; }
         .tp-pane, .tp-axis { position: fixed; overflow: hidden; pointer-events: none; }
@@ -4650,6 +5210,12 @@
         .tp-n .tp-btn:hover { background: color-mix(in srgb, var(--c) 24%, transparent); }
         .tp-n .tp-btn:active { cursor: grabbing; transform: scale(.94); }
         .tp-n .tp-btn.tp-be:active { cursor: pointer; }
+        .tp-ln.tp-trail { --c: var(--tp-down); background: repeating-linear-gradient(90deg, color-mix(in srgb, var(--c) 60%, transparent) 0 2px, transparent 2px 6px); }
+        .tp-ln.tp-trail.run { background: repeating-linear-gradient(90deg, var(--c) 0 7px, transparent 7px 11px); }
+        .tp-trail-tag { --c: var(--tp-down); position: absolute; left: 0; top: 0; height: 13px; padding: 0 5px; border-radius: 3px; white-space: nowrap; pointer-events: none; will-change: transform;
+            font: 800 9px/11px var(--ax-font, ui-sans-serif, system-ui, sans-serif); letter-spacing: .04em; font-variant-numeric: tabular-nums; color: var(--c);
+            background: color-mix(in srgb, var(--ax-raised) 88%, transparent); border: 1px solid color-mix(in srgb, var(--c) 55%, transparent); }
+        .tp-trail-tag.wait { color: var(--ax-warn); border-color: color-mix(in srgb, var(--ax-warn) 55%, transparent); }
         .tp-undo { all: unset; box-sizing: border-box; display: none; height: 19px; width: 100%; text-align: center; cursor: pointer; border-top: 1px solid color-mix(in srgb, var(--ax-text) 10%, transparent);
             font: 700 10px/19px var(--ax-font, ui-sans-serif, system-ui, sans-serif); color: var(--ax-text); }
         .tp-undo:hover { color: var(--c); background: color-mix(in srgb, var(--c) 14%, transparent); }
@@ -5222,9 +5788,12 @@
             tpClassIf(e.n, 'cu', pit.side < 0);
             tpClassIf(e.ln, 'hot', pit.hot);
             tpText(e.k, pos.isLong ? 'LONG' : 'SHORT');
-            tpText(e.sz, tpFmtQty(pos.qty));
+            // MNQ view: the position's size as MNQ contracts, named; its TP / SL rows show the number
+            const mnqPos = !!S.mnqView && mnqIsNq(pos.symbol);
+            const posQty = mnqPos ? tpFmtQty(pos.qty / MNQ_DIV) + ' MNQ' : tpFmtQty(pos.qty);
+            tpText(e.sz, posQty);
             tpText(e.hk, pos.isLong ? 'LONG' : 'SHORT');
-            tpText(e.hs, tpFmtQty(pos.qty));
+            tpText(e.hs, posQty);
             tpText(e.ep, pos.entry.toFixed(info.dec));
             const pnl = live ? tpUsd(live, pos.entry, pos.qty, pos.isLong) : null;
             tpText(e.pnl, pnl == null ? '-' : tpFmtUsd(pnl, true));
@@ -5272,10 +5841,11 @@
                 tpClassIf(nd.n, 'cu', it.side < 0);
                 const kt = L.kind === 'tp' ? 'TP' : 'SL';
                 tpText(nd.k, kt);
-                tpText(nd.sz, tpFmtQty(L.qty));
+                const legQty = !!S.mnqView && mnqIsNq(pos.symbol) ? tpFmtQty(L.qty / MNQ_DIV) : tpFmtQty(L.qty);
+                tpText(nd.sz, legQty);
                 tpText(nd.usd, tpFmtUsd(usd, true));
                 tpText(nd.hk, kt);
-                tpText(nd.hs, tpFmtQty(L.qty));
+                tpText(nd.hs, legQty);
                 tpText(nd.hu, tpFmtUsd(usd, true));
                 // the card's details: R, points, price (always filled in, so the column is already wide enough when it opens)
                 let rtxt = '-';
@@ -5304,6 +5874,7 @@
                 if ((!sk || t >= sk) && nd._sk) { nd._sk = false; nd.lbl.classList.remove('err'); }
                 tpClassIf(nd.n, 'has-undo', L.undo);
             });
+            tpTrailDraw(row, yOf, lineW, H);
         }
         // the price tags on the axis stack too, so two close levels never print over each other
         if (axisItems.length) {
@@ -5473,6 +6044,7 @@
         if (!TP.on) return;
         try {
             tpDraw();
+            csDraw();
             TP.errs = 0;
         } catch (e) {
             if (++TP.errs === 1) tpLog('draw error', e && e.stack || e);
@@ -5820,7 +6392,8 @@
         const fail = (msg, level, quiet) => {
             TP.pending.delete(key);
             TP.shake.set(key, now() + 420);
-            if (!quiet) tpToast(msg, level || 'bad');
+            // an automatic move (the trailing SL) says why to its caller instead of a toast on every refusal
+            if (j.auto) { try { if (j.onFail) j.onFail(msg); } catch (e) {} } else if (!quiet) tpToast(msg, level || 'bad');
         };
         tpSetPending(j, 'pend');
         const label = j.kind === 'tp' ? 'Take profit' : 'Stop loss';
@@ -5886,7 +6459,7 @@
             tpSetPending(Object.assign({}, j, { price: sn.n, s: sn.s }), 'ok', key);
             TP.flash.set(key, now() + 700);
             if (j.okMsg) tpToast(j.okMsg, 'good');
-            if (was != null && !j.isUndo) {
+            if (was != null && !j.isUndo && !j.auto) {
                 TP.undo = { key, posId: j.posId, kind: j.kind, legId: j.legId, price: was, s: was.toFixed(info.dec), until: now() + 5000, accountId: j.accountId };
             } else if (j.isUndo) {
                 TP.undo = null;
@@ -5920,7 +6493,7 @@
         const o = opts || {};
         try {
             if (S.tpsl.demo && !TP.demo) return { ok: false, reason: 'demo-pending' }; // Demo asked for, position not up yet: never fall through to the real path
-            if (!IS_EXT || !TP.on || S.tpsl.enabled === false || S.tpsl.be.show === false && o.source !== 'hotkey') {
+            if (!IS_EXT || !TP.on || S.tpsl.enabled === false || S.tpsl.be.show === false && o.source !== 'hotkey' && o.source !== 'auto') {
                 if (o.source === 'hotkey') tpToast('Chart TP/SL is off.', 'warn');
                 return { ok: false, reason: 'off' };
             }
@@ -5939,7 +6512,7 @@
             const shown = r.atEntry ? 'at entry' : '+' + r.offsetPts.toFixed(Math.min(r.info.dec, 2)) + ' pt';
             tpCommit({
                 posId: pos.id, kind: 'sl', legId: sl && sl.leg ? sl.leg.id : null, price: r.n, s: r.s,
-                accountId: TP.demo ? 'demo' : tpActiveAccount(), isBE: true, okMsg: 'Stop to breakeven ' + r.s + ' (' + shown + ')'
+                accountId: TP.demo ? 'demo' : tpActiveAccount(), isBE: true, okMsg: (o.source === 'auto' ? 'Auto BE: stop to breakeven ' : 'Stop to breakeven ') + r.s + ' (' + shown + ')'
             });
             return { ok: true, price: r.n };
         } catch (e) {
@@ -5947,6 +6520,722 @@
             return { ok: false, reason: 'error' };
         }
     }
+
+    // ---------- auto trailing SL (8.1) ----------
+    // The position's real stop at Vest follows price (docs/superpowers/specs/2026-10-06-trailing-sl-design.md). tpTrailStep decides; tpCommit
+    // sends it the way a drag or BE does (validation, Vest's own observers, the confirmation poll). One write at a time, 1.5 s apart, 3 s while
+    // copying with followers (the copier syncs the latest stop after its settle, so it never sees every step). Armed per position id.
+    const TP_TRAIL_MS = 1500, TP_TRAIL_COPY_MS = 3000, TP_TRAIL_FRESH_MS = 2000, TP_TRAIL_FAILS = 3, TP_TRAIL_GONE_MS = 20000;
+
+    // the card's trail settings for one position, in points: dollars are worked out with that position's own size; NOW starts at once
+    function tpTrailPts(pos) {
+        const c = S.tpsl.trail;
+        const q = Number(pos && pos.qty) > 0 ? Number(pos.qty) : 0;
+        const usd = c.unit === 'usd' && q > 0;
+        const start = c.now ? 0 : usd && c.startUsd != null ? c.startUsd / q : c.start;
+        const dist = usd && c.distUsd > 0 ? c.distUsd / q : c.dist;
+        return { start: Math.max(0, start), dist: Math.max(0, dist) };
+    }
+    // the card's trail settings in words: "starts once 10 pt in profit, trails 8 pt behind price" (dollars: "$30", "$24")
+    function tpTrailDesc() {
+        const c = S.tpsl.trail;
+        const usd = c.unit === 'usd';
+        const v = (pts, d) => (usd && d != null ? '$' + fmtSize(d) : fmtSize(pts) + ' pt');
+        return (c.now ? 'starts now' : c.start > 0 || (usd && c.startUsd > 0) ? 'starts once ' + v(c.start, c.startUsd) + ' in profit' : 'starts now') + ', trails ' + v(c.dist, c.distUsd) + ' behind price';
+    }
+
+    function tpTrailArmed(id) {
+        const a = S.tpsl.trail.armed;
+        return !!(a && a[id]);
+    }
+
+    function tpTrailToggle(posId, on, why) {
+        const t = S.tpsl.trail;
+        const want = on == null ? !tpTrailArmed(posId) : !!on;
+        if (want) t.armed[posId] = { acc: TP.demo ? 'demo' : tpActiveAccount(), at: now(), active: false, best: null };
+        else delete t.armed[posId];
+        TP.trail.delete(posId);
+        persist();
+        mcDepthSync(); // the book's mid now (or no longer) needed: subscribe at once rather than on the next second
+        if (why === 'quiet') return;
+        if (want) tpToast('Trailing SL on: ' + tpTrailDesc() + '.', 'good');
+        else tpToast(why || 'Trailing SL off.', why ? 'warn' : '');
+    }
+
+    // a position on this chart is armed, or a client-side stop: mcDepthSync keeps the depth book subscribed for its mid
+    function tpBookWanted() {
+        if (csWanted()) return true;
+        if (!TP.on || S.tpsl.enabled === false) return false;
+        const a = S.tpsl.trail.armed;
+        const ps = tpPositions();
+        return ps.some((p) => !!a[p.id]) || (S.tpsl.autoBe.on && ps.length > 0);
+    }
+
+    // the book's mid, only while it is fresh: a stop is never moved on an old price
+    function tpTrailMid() {
+        return book.bid != null && book.ask != null && now() - book.ts < TP_TRAIL_FRESH_MS ? (book.bid + book.ask) / 2 : null;
+    }
+
+    function tpTrailCopying() {
+        const c = S.copy;
+        return !!(c && c.on && Array.isArray(c.followers) && c.followers.some((f) => f && f.on));
+    }
+
+    // armed positions that are gone are forgotten: the demo once it is removed, a real one once its account's positions load without it for 20 s
+    function tpTrailPrune(t) {
+        const a = S.tpsl.trail.armed;
+        let changed = false;
+        const acc = tpActiveAccount();
+        const loaded = !!acc && TP.model.accountId === acc && TP.rowsAt > 0 && t - TP.rowsAt < 15000;
+        Object.keys(a).forEach((id) => {
+            if (id === 'demo') { if (!TP.demo) { delete a[id]; changed = true; } return; }
+            if (!loaded || a[id].acc !== acc) return;
+            if (TP.model.positions.some((p) => p.id === id)) { TP.trailGone.delete(id); return; }
+            const since = TP.trailGone.get(id) || t;
+            TP.trailGone.set(id, since);
+            if (t - since >= TP_TRAIL_GONE_MS) { delete a[id]; TP.trailGone.delete(id); TP.trail.delete(id); changed = true; }
+        });
+        if (changed) persist();
+    }
+
+    function tpTrailTick() {
+        if (!IS_EXT || !TP.on || S.tpsl.enabled === false) return;
+        const cfg = S.tpsl.trail;
+        const t = now();
+        tpTrailPrune(t);
+        const positions = tpPositions();
+        // Arm every new position: only positions that appear after the first load of this account (or the demo), never those already open
+        const ready = !!TP.demo || (TP.rowsAt > 0 && !!TP.model.accountId);
+        if (ready) {
+            if (!TP.trailSeen) TP.trailSeen = new Set(positions.map((p) => p.id));
+            positions.forEach((p) => {
+                if (TP.trailSeen.has(p.id)) return;
+                TP.trailSeen.add(p.id);
+                if (cfg.auto && !tpTrailArmed(p.id)) tpTrailToggle(p.id, true);
+            });
+        }
+        TP.trail.forEach((st, id) => { if (!positions.some((p) => p.id === id)) TP.trail.delete(id); });
+        const mid = tpTrailMid();
+        for (const pos of positions) {
+            const armed = cfg.armed[pos.id];
+            if (!armed) continue;
+            let st = TP.trail.get(pos.id);
+            if (!st) {
+                st = { best: armed.best != null ? Number(armed.best) : null, active: !!armed.active, prevMid: null, lastAt: 0, busy: false, fails: 0, seen: new Map(), sent: null, why: '', savedAt: t, level: null, startPx: null };
+                TP.trail.set(pos.id, st);
+            }
+            if (!mid) { st.why = 'no fresh price'; continue; }
+            if (TP.drag && TP.drag.posId === pos.id) { st.why = 'you are dragging'; st.prevMid = mid; continue; }
+            // a mid that is not this market's (two feeds mixed up around a market switch) never moves the stop or its best price
+            if (!tpNearChart(pos.entry, mid, 0.5)) { st.why = 'no price'; st.prevMid = null; continue; }
+            const info = tpInfoFor(pos.symbol);
+            const tol = info.tick / 2;
+            const dir = pos.isLong ? 1 : -1;
+            // A stop moved back by hand turns trailing off for this position (it never fights you); one moved tighter (BE, a drag) is kept
+            let loosened = false;
+            pos.legs.sl.forEach((leg) => {
+                const prev = st.seen.get(leg.id);
+                if (prev != null && Math.abs(leg.trigger - prev) > tol) {
+                    const ours = st.sent != null && Math.abs(leg.trigger - st.sent) <= tol;
+                    if (!ours && dir * (leg.trigger - prev) < 0) loosened = true;
+                }
+                st.seen.set(leg.id, leg.trigger);
+            });
+            if (loosened) { tpTrailToggle(pos.id, false, 'Trailing SL off: the stop was moved back by hand.'); continue; }
+            const legs = tpLegsFor(pos, 'sl');
+            const tp = tpTrailPts(pos);
+            st.distPts = tp.dist;
+            const r = tpTrailStep({ isLong: pos.isLong, entry: pos.entry, mid, tick: info.tick, dec: info.dec, sls: legs.map((L) => L.price),
+                best: st.best, active: st.active, start: tp.start, dist: tp.dist, step: cfg.step, prevMid: st.prevMid });
+            st.prevMid = mid;
+            if (r.skip) { st.why = r.skip === 'jump' ? 'price jump ignored' : 'no price'; continue; }
+            st.why = '';
+            if (r.active && !st.active) tpToast('Trailing SL started: the stop follows price, ' + fmtSize(tp.dist) + ' pt behind.', 'good');
+            st.best = r.best; st.active = r.active; st.level = r.level; st.startPx = r.startPx;
+            // the trail state survives a reload: saved when it starts, then at most every 5 s while the best price moves
+            if (armed.active !== st.active || (armed.best !== st.best && t - st.savedAt > 5000)) { armed.active = st.active; armed.best = st.best; st.savedAt = t; persist(); }
+            if (!r.active || (!r.moves.length && !r.create)) continue;
+            // one write at a time: not while one is in flight or unconfirmed, not right after the executor, and spaced out
+            if (st.busy || t < TP.blockUntil || tpUnsettled(pos.id, 'sl')) continue;
+            if (TP.inflight.has(tpLegKey(pos.id, 'sl', null)) || legs.some((L) => TP.inflight.has(L.key))) continue;
+            if (t - st.lastAt < (tpTrailCopying() ? TP_TRAIL_COPY_MS : TP_TRAIL_MS)) continue;
+            let legId = null;
+            if (!r.create) {
+                const L = legs[r.moves[0].i];
+                if (!L || !L.leg) continue; // a stop still being created: wait until Vest shows it
+                legId = L.leg.id;
+            }
+            st.busy = true; st.lastAt = t; st.sent = r.level;
+            let failed = false;
+            Promise.resolve(tpCommit({
+                posId: pos.id, kind: 'sl', legId, price: r.level, s: r.s, accountId: TP.demo ? 'demo' : tpActiveAccount(), auto: true,
+                onFail: (msg) => {
+                    failed = true;
+                    st.lastErr = msg;
+                    // "try again" refusals (the executor was just used, the copier is switching, the last write is not confirmed yet) are not failures
+                    if (/try again/i.test(msg)) return;
+                    if (++st.fails >= TP_TRAIL_FAILS) tpTrailToggle(pos.id, false, 'Trailing SL off after ' + TP_TRAIL_FAILS + ' failed moves: ' + msg);
+                }
+            })).then(() => { if (!failed) st.fails = 0; }, () => {}).then(() => { st.busy = false; });
+        }
+    }
+
+    // On the chart: a dotted line at the start price while armed, a dashed one at the trail level once it runs, each with a tag
+    function tpTrailDraw(row, yOf, lineW, H) {
+        const pos = row.pos;
+        if (!tpTrailArmed(pos.id)) return;
+        const cfg = S.tpsl.trail;
+        const st = TP.trail.get(pos.id);
+        const run = !!(st && st.active && st.level != null);
+        const px = run ? st.level : st && st.startPx != null ? st.startPx : pos.entry + (pos.isLong ? 1 : -1) * tpTrailPts(pos).start;
+        const nd = tpNode(TP.nodes, 't:' + pos.id, () => {
+            const ln = tpEl('div', 'tp-ln tp-trail');
+            const n = tpEl('div', 'tp-trail-tag');
+            TP.pane.appendChild(ln); TP.pane.appendChild(n);
+            return { n, ln };
+        });
+        const y = yOf(px);
+        const vis = y > -2 && y < H + 2;
+        tpShow(nd.ln, vis);
+        tpShow(nd.n, vis);
+        if (!vis) return;
+        tpClassIf(nd.ln, 'run', run);
+        tpMove(nd.ln, 0, Math.round(y));
+        if (nd.ln._w !== lineW) { nd.ln._w = lineW; nd.ln.style.width = lineW + 'px'; }
+        const why = st && st.why;
+        const txt = why ? 'TRAIL · ' + why : run ? 'TRAIL ' + fmtSize(st.distPts != null ? st.distPts : tpTrailPts(pos).dist) + ' pt' : 'TRAIL from ' + px.toFixed(row.info.dec);
+        tpText(nd.n, txt);
+        tpClassIf(nd.n, 'wait', !!why);
+        if (nd._tw !== txt.length) { nd._tw = txt.length; nd._w = nd.n.offsetWidth || 90; }
+        tpMove(nd.n, Math.max(4, Math.round(lineW - nd._w - 10)), Math.round(y - 15));
+    }
+
+    // ---------- auto breakeven (8.1) ----------
+    // The card's AUTO BE switch: once a position is `at` in profit (points, or dollars with its own size), its stop goes to breakeven the
+    // BE button's way (tpBreakeven: the BE settings, validation, Vest's own observers). Once per position: done when it is sent, or when the
+    // stop already is at or past breakeven. "Not in profit yet" / "too close" just wait (no toast); a price only from a fresh book.
+    function tpAutoBeTick() {
+        const be = S.tpsl.autoBe;
+        if (!IS_EXT || !TP.on || S.tpsl.enabled === false || !be.on) return;
+        const mid = tpTrailMid();
+        if (!mid) return;
+        const t = now();
+        for (const pos of tpPositions()) {
+            if (be.done[pos.id]) continue;
+            if (!tpNearChart(pos.entry, mid, 0.5)) continue;
+            const q = Number(pos.qty);
+            const at = be.unit === 'usd' ? (q > 0 && be.atUsd > 0 ? be.atUsd / q : null) : be.at;
+            if (!(at > 0)) continue;
+            if ((pos.isLong ? 1 : -1) * (mid - pos.entry) + 1e-9 < at) continue;
+            const st = TP.autoBe.get(pos.id) || { busy: false, at: 0 };
+            TP.autoBe.set(pos.id, st);
+            if (st.busy || t - st.at < 2000 || t < TP.blockUntil || tpUnsettled(pos.id, 'sl')) continue;
+            if (TP.drag && TP.drag.posId === pos.id) continue;
+            const r = tpBeFor(pos, mid);
+            if (!r.ok) {
+                if (/already at or past breakeven/i.test(r.reason)) { be.done[pos.id] = t; persist(); }
+                continue;
+            }
+            st.busy = true;
+            st.at = t;
+            Promise.resolve(tpBreakeven({ source: 'auto', posId: pos.id })).then((res) => {
+                if (res && res.ok) { be.done[pos.id] = now(); persist(); }
+            }, () => {}).then(() => { st.busy = false; });
+        }
+    }
+
+    // ---------- the Execute card's TRAIL and AUTO BE (8.1) ----------
+    xcHooks.exits = true;
+    // TRAIL on: the open position(s) on this chart now and every new one; off: none
+    xcHooks.trailSet = (on) => {
+        const c = S.tpsl.trail;
+        c.auto = !!on;
+        const ps = tpPositions();
+        if (on) ps.forEach((p) => { if (!tpTrailArmed(p.id)) tpTrailToggle(p.id, true, 'quiet'); });
+        else Object.keys(c.armed).forEach((id) => tpTrailToggle(id, false, 'quiet'));
+        persist();
+        mcDepthSync();
+        tpToast(on ? 'Trailing SL on for ' + (ps.length ? 'this position and ' : '') + 'every new one: ' + tpTrailDesc() + '.' : 'Trailing SL off.', on ? 'good' : '');
+    };
+    xcHooks.autoBeSet = (on) => {
+        const b = S.tpsl.autoBe;
+        b.on = !!on;
+        persist();
+        mcDepthSync();
+        const v = b.unit === 'usd' && b.atUsd > 0 ? '$' + fmtSize(b.atUsd) : fmtSize(b.at) + ' pt';
+        tpToast(on ? 'Auto BE on: the stop goes to breakeven once a position is ' + v + ' in profit.' : 'Auto BE off.', on ? 'good' : '');
+    };
+    xcHooks.trailDesc = () => tpTrailDesc();
+
+    // ---------- client-side stop orders (8.1) ----------
+    // The extension holds the stop (docs/superpowers/specs/2026-10-06-client-stops-design.md). Press STOP on the Execute card, then click the
+    // chart: above the price it is a buy stop, below a sell stop, for the card's size at that moment. It watches the depth book's mid (every
+    // new best bid / ask, csCheck) and when the mid touches the stop it presses the card's own order code, like the hotkeys' Long / Short:
+    // the same gates (mcGate), the ticket on Market, xcExecute with the stop's size. It fires once: disarmed and saved before anything is
+    // sent, never retried. A stop crossed while nothing watched (a reload, a feed gap, another market) is shown as passed, never fired.
+    const CS_FRESH_MS = 2000, CS_DONE_MS = 8000, CS_KEEP_LOG = 40;
+    const CS = { root: null, pane: null, nodes: new Map(), rt: new Map(), place: null, drag: null, shield: null, firing: false, queue: [], log: [], sig: '' };
+
+    // the book's mid while it can be trusted: updated in the last 2 s, or held by our own socket's depth subscription while that socket is
+    // still talking (a quiet market sends no depth for a while, and the book is still right then). null otherwise.
+    function csMid() {
+        if (book.bid == null || book.ask == null) return null;
+        const t = now();
+        const live = t - book.ts < CS_FRESH_MS || (book.src === 'own' && ownDepth && !!ownWs && ownWs.readyState === 1 && t - ownLastMsgTs < CS_FRESH_MS);
+        return live ? (book.bid + book.ask) / 2 : null;
+    }
+
+    function csList() { return S.tpsl.stops.list; }
+    function csRt(id) {
+        let r = CS.rt.get(id);
+        if (!r) { r = { prev: null, why: '' }; CS.rt.set(id, r); }
+        return r;
+    }
+    // the account a stop belongs to: the demo's while the demo is on (nothing is ever sent then), else Vest's active one
+    function csAcc() { return xcDemoOn() ? 'demo' : tpActiveAccount(); }
+    // an armed stop on this chart's market: the depth book stays subscribed (mcDepthSync). Stops are part of chart TP/SL: off there, they rest.
+    function csWanted() {
+        if (S.tpsl.enabled === false) return false;
+        const sym = tpSymbol();
+        return csList().some((x) => x.state === 'armed' && tpSameSym(x.sym, sym));
+    }
+    // the overlay's frame loop runs while a stop is on this market or one is being placed or dragged (tpWatch)
+    function csNeedsFrames() {
+        if (CS.place || CS.drag) return true;
+        const sym = tpSymbol();
+        return csList().some((x) => tpSameSym(x.sym, sym));
+    }
+    function csSizeText(size, sym) {
+        return !!S.mnqView && mnqIsNq(sym) ? fmtSize(size / MNQ_DIV) + ' MNQ' : fmtSize(size);
+    }
+    function csName(x) { return (x.side === 'buy' ? 'Buy' : 'Sell') + ' stop ' + csSizeText(x.size, x.sym) + ' @ ' + x.price.toFixed(tpInfoFor(x.sym).dec); }
+
+    function csCheck() {
+        if (!IS_EXT) return;
+        const list = csList();
+        if (!list.length) return;
+        const t = now();
+        const mid = csMid();
+        const sym = tpSymbol();
+        const agree = tpSymbolsAgree();
+        const acc = csAcc();
+        const off = S.tpsl.enabled === false;
+        let changed = false;
+        const hits = [];
+        for (let i = list.length - 1; i >= 0; i--) {
+            const x = list[i];
+            // the demo's stops end with the demo; finished ones leave the chart after a few seconds
+            if ((x.acc === 'demo' && !xcDemoOn()) || (x.state === 'fired' && t - (x.doneAt || 0) > CS_DONE_MS)) { list.splice(i, 1); CS.rt.delete(x.id); changed = true; continue; }
+            if (x.state !== 'armed') continue;
+            const rt = csRt(x.id);
+            if (off) { rt.prev = null; rt.why = 'off'; continue; } // chart TP/SL switched off: nothing fires (and nothing is drawn)
+            if (CS.drag && CS.drag.id === x.id) { rt.why = 'drag'; continue; }
+            if (!agree || !tpSameSym(x.sym, sym)) { rt.prev = null; rt.why = 'market'; continue; }
+            if (x.acc !== acc) { rt.prev = null; rt.why = 'account'; continue; }
+            if (mid == null) { rt.prev = null; rt.why = 'stale'; continue; }
+            const r = csStep({ side: x.side, price: x.price, mid, prev: rt.prev, tick: tpInfoFor(x.sym).tick });
+            rt.prev = r.prev;
+            rt.why = r.skip === 'jump' ? 'jump' : '';
+            if (r.passed) {
+                x.state = 'passed';
+                x.why = 'price was past it when it could watch again (a reload, no price for a while, or another market): not sent';
+                x.doneAt = t;
+                changed = true;
+                tpToast(csName(x) + ': price went past it while it could not watch. Not sent. Click it to arm it again.', 'warn', 6000);
+                continue;
+            }
+            if (r.fire) hits.push(x);
+        }
+        // stops hit on the same sample go in the order price reached them: buy stops lowest first, sell stops highest first
+        hits.sort((a, b) => (a.side === 'buy' ? a.price - b.price : b.price - a.price));
+        hits.forEach((x) => { csFire(x, mid, t); changed = true; });
+        if (changed) persist();
+    }
+
+    // Fires once: the stop is disarmed and saved first, then queued (one order at a time through the ticket)
+    function csFire(x, mid, tCross) {
+        x.state = 'firing';
+        x.why = '';
+        x.hitMid = mid;
+        x.hitAt = tCross;
+        persist();
+        CS.queue.push(x);
+        if (!CS.firing) csRunQueue();
+    }
+
+    async function csRunQueue() {
+        CS.firing = true;
+        try {
+            while (CS.queue.length) await csSend(CS.queue.shift());
+        } finally { CS.firing = false; }
+    }
+
+    async function csSend(x) {
+        const side = x.side;
+        const t0 = now();
+        let tPress = 0;
+        const done = (state, why, level) => {
+            x.state = state;
+            x.why = why || '';
+            x.doneAt = now();
+            persist();
+            const ms = x.doneAt - (x.hitAt || t0);
+            tpToast(csName(x) + (state === 'fired' ? ' hit: ' + why : ': not sent, ' + why + '.'), level || (state === 'fired' ? 'good' : 'bad'), state === 'fired' ? 4000 : 8000);
+            csDevLine({ msg: (side === 'buy' ? 'Buy' : 'Sell') + ' stop ' + (state === 'fired' ? 'sent' : 'not sent') + ': ' + (why || ''), side, price: x.price, size: x.size,
+                mid: x.hitMid, result: state, crossToPressMs: tPress ? tPress - (x.hitAt || t0) : null, crossToDoneMs: ms, queuedMs: t0 - (x.hitAt || t0), demo: x.acc === 'demo' });
+        };
+        try {
+            if (x.acc === 'demo') { done('fired', '[DEMO] would send ' + (side === 'buy' ? 'Long ' : 'Short ') + csSizeText(x.size, x.sym) + ' @ market. Nothing sent.'); return; }
+            if (xcDemoOn()) return done('failed', 'Demo is on');
+            const gate = () => mcGate(side === 'buy' ? 'long' : 'short')
+                || (tpActiveAccount() !== x.acc ? 'the account changed' : '')
+                || (!tpSameSym(x.sym, tpSymbol()) ? 'the chart is on another market' : '')
+                || (!(x.size > 0) ? 'no size' : '');
+            let why = gate();
+            if (why) return done('failed', why);
+            if (!(await mcEnsureTab('market'))) return done('failed', 'the ticket could not be switched to Market');
+            why = gate() || (xcDemoOn() ? 'Demo was switched on' : '');
+            if (why) return done('failed', why);
+            const tw = xcTicketWhy(side);
+            if (tw) return done('failed', tw);
+            const flash = document.getElementById('ax4p-exec-flash');
+            if (flash) flash.textContent = ''; // the result is read from this line: never an earlier order's
+            const keep = activeSelectedSize;
+            activeSelectedSize = x.size;
+            xcSyncUsd(); // a stop / target in dollars: its points for the stop's size
+            TP.blockUntil = now() + 2000; // as for a press on the card: our TP/SL writes wait while the order goes in
+            tPress = now();
+            try { await xcExecute(side); } finally { activeSelectedSize = keep; lastRiskHtml = ''; updateExecutionRiskCalc(); }
+            // the order code writes its own result line, "BUY 3 @ ..." once it has pressed Vest's button
+            const said = ((flash || {}).textContent || '').trim();
+            if (said.indexOf(side.toUpperCase() + ' ') === 0) done('fired', said);
+            else done('failed', said ? 'the ticket did not take it (' + said + ')' : 'the ticket did not take it');
+        } catch (e) {
+            done('failed', 'error: ' + String(e && e.message || e).slice(0, 120));
+        }
+    }
+
+    // the timing lines the DEV build's log picks up (its suite API drains them every second); release builds keep none
+    function csDevLine(o) {
+        if (!BV_DEV) return;
+        CS.log.push(Object.assign({ stopAt: now() }, o));
+        if (CS.log.length > CS_KEEP_LOG) CS.log.splice(0, CS.log.length - CS_KEEP_LOG);
+    }
+
+    function csAdd(side, price) {
+        const sym = tpSymbol();
+        const acc = csAcc();
+        if (!acc) { tpToast('Log in to Vest first (or use the demo). No stop set.', 'warn'); return false; }
+        if (S.tpsl.enabled === false) { tpToast('Chart TP/SL is off in Settings: stops need it. No stop set.', 'warn'); return false; }
+        if (!(activeSelectedSize > 0)) { tpToast('Pick a size on the Execute card first. No stop set.', 'warn'); return false; }
+        if (csList().length >= 20) { tpToast('20 stops at most. Remove one first.', 'warn'); return false; }
+        const info = tpInfoFor(sym);
+        const sn = snapToTick(price, info.tick, info.dec);
+        const mid = csMid() || tpLivePrice();
+        if (!sn || !mid) { tpToast('No live price yet. No stop set.', 'warn'); return false; }
+        if (csSideFor(sn.n, mid, info.tick) !== side) { tpToast('Too close to the price. No stop set.', 'warn'); return false; }
+        const x = { id: 'cs' + now().toString(36) + Math.floor(Math.random() * 1e4), side, price: sn.n, size: activeSelectedSize, sym, acc, state: 'armed', at: now(), why: '' };
+        csList().push(x);
+        csRt(x.id).prev = csMid();
+        persist();
+        mcDepthSync();
+        tpToast(csName(x) + ' armed.' + (acc === 'demo' ? ' (Demo: nothing is sent.)' : ''), side === 'buy' ? 'good' : 'warn');
+        return true;
+    }
+
+    function csRemove(id) {
+        const list = csList();
+        const i = list.findIndex((x) => x.id === id);
+        if (i < 0) return;
+        const x = list[i];
+        if (x.state === 'firing') return; // being sent: it ends by itself
+        list.splice(i, 1);
+        CS.rt.delete(id);
+        persist();
+        mcDepthSync();
+        if (x.state === 'armed') tpToast(csName(x) + ' removed.', '');
+    }
+
+    // a passed or not-sent stop armed again: only from the right side of the price, and only on its own account and market
+    function csRearm(id) {
+        const x = csList().find((y) => y.id === id);
+        if (!x || x.state === 'armed' || x.state === 'firing' || x.state === 'fired') return;
+        const mid = csMid();
+        if (!mid) { tpToast('No live price yet. Not armed.', 'warn'); return; }
+        if (x.acc !== csAcc() || !tpSameSym(x.sym, tpSymbol())) { tpToast('That stop is for another account or market. Not armed.', 'warn'); return; }
+        if (csSideFor(x.price, mid, tpInfoFor(x.sym).tick) !== x.side) { tpToast('Price is past that stop. Drag it first. Not armed.', 'warn'); return; }
+        x.state = 'armed';
+        x.why = '';
+        csRt(x.id).prev = mid;
+        persist();
+        mcDepthSync();
+        tpToast(csName(x) + ' armed again.', 'good');
+    }
+
+    // ----- placing (STOP on the Execute card) and dragging: a full-page shield takes the pointer, the chart under it stays still -----
+    function csShield(on, cursor) {
+        let sh = CS.shield;
+        if (!on) {
+            if (sh && sh.parentNode) sh.parentNode.removeChild(sh);
+            window.removeEventListener('keydown', csOnKey, true);
+            return;
+        }
+        if (!sh) {
+            sh = CS.shield = tpEl('div');
+            sh.id = 'ax4p-cs-shield';
+            sh.style.cssText = 'position:fixed;left:0;top:0;right:0;bottom:0;z-index:2147483000;background:transparent;touch-action:none;';
+            sh.addEventListener('pointermove', csOnMove);
+            sh.addEventListener('pointerup', csOnUp);
+            sh.addEventListener('pointercancel', () => csEnd(false));
+            sh.addEventListener('contextmenu', (e) => { e.preventDefault(); csEnd(false); });
+        }
+        sh.style.cursor = cursor || 'crosshair';
+        if (!sh.isConnected) (document.body || document.documentElement).appendChild(sh);
+        window.addEventListener('keydown', csOnKey, true);
+    }
+
+    function csOnKey(e) {
+        if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); csEnd(false); }
+    }
+
+    // the snapped price under the pointer, or null outside the chart's main pane
+    function csPriceAt(clientX, clientY) {
+        const g = TP.geom;
+        if (!g || clientX < g.left || clientX > g.left + g.width || clientY < g.top || clientY > g.top + g.height) return null;
+        const info = tpInfoFor(tpSymbol());
+        const sn = snapToTick(tpYToPrice(clientY - g.top, g.vr, g.height), info.tick, info.dec);
+        return sn ? sn.n : null;
+    }
+
+    function csPlaceStart() {
+        if (!IS_EXT) return;
+        if (CS.place || CS.drag) { csEnd(false); return; }
+        if (S.tpsl.stops.show === false) return;
+        if (S.tpsl.enabled === false) { tpToast('Chart TP/SL is off in Settings: stops need it. No stop set.', 'warn'); return; }
+        if (!TP.chart || TP.scaleWhy) { tpToast("The chart is not ready (or its price scale is not on the right). No stop set.", 'warn'); return; }
+        if (!csAcc()) { tpToast('Log in to Vest first (or use the demo). No stop set.', 'warn'); return; }
+        if (!(activeSelectedSize > 0)) { tpToast('Pick a size on the Execute card first.', 'warn'); return; }
+        CS.place = { price: null, side: '' };
+        csShield(true, 'crosshair');
+        tpWatch(); // flat, the overlay's frame loop may be resting: it runs while placing
+        tpToast('Click the chart where the stop goes: above the price a buy stop, below a sell stop. Esc cancels.', '', 5000);
+    }
+
+    function csOnMove(e) {
+        const p = csPriceAt(e.clientX, e.clientY);
+        if (CS.place) {
+            CS.place.price = p;
+            CS.place.x = TP.geom ? e.clientX - TP.geom.left : null;
+            const mid = csMid() || tpLivePrice();
+            CS.place.side = p != null && mid ? csSideFor(p, mid, tpInfoFor(tpSymbol()).tick) : '';
+            return;
+        }
+        const d = CS.drag;
+        if (!d) return;
+        if (!d.moved && Math.abs(e.clientY - d.y0) < 3) return;
+        d.moved = true;
+        if (p != null) d.price = p;
+    }
+
+    function csOnUp(e) {
+        if (CS.place) {
+            const p = csPriceAt(e.clientX, e.clientY);
+            const pl = CS.place;
+            csEnd(false);
+            if (p == null) { tpToast('No stop set (that was off the chart).', ''); return; }
+            const mid = csMid() || tpLivePrice();
+            const side = mid ? csSideFor(p, mid, tpInfoFor(tpSymbol()).tick) : '';
+            if (!side) { tpToast(mid ? 'Too close to the price. No stop set.' : 'No live price yet. No stop set.', 'warn'); return; }
+            void pl;
+            csAdd(side, p);
+            return;
+        }
+        const d = CS.drag;
+        if (!d) return;
+        csEnd(true);
+    }
+
+    // ok: a drag is dropped (placing ends in csOnUp)
+    function csEnd(ok) {
+        const d = CS.drag;
+        const placing = !!CS.place;
+        CS.place = null;
+        CS.drag = null;
+        csShield(false);
+        if (placing) xcPaint();
+        if (!d) return;
+        const x = csList().find((y) => y.id === d.id);
+        if (!x) return;
+        if (!ok || !d.moved) {
+            if (ok && !d.moved && x.state !== 'armed') csRearm(x.id); // a click on a passed / not-sent stop arms it again
+            return;
+        }
+        if (d.price == null || d.price === x.price) return;
+        const mid = csMid();
+        const tick = tpInfoFor(x.sym).tick;
+        if (!mid) { tpToast('No live price: the stop stays at ' + x.price.toFixed(tpInfoFor(x.sym).dec) + '.', 'warn'); return; }
+        if (csSideFor(d.price, mid, tick) !== x.side) {
+            tpToast((x.side === 'buy' ? 'A buy stop goes above' : 'A sell stop goes below') + ' the price. It stays at ' + x.price.toFixed(tpInfoFor(x.sym).dec) + '.', 'warn');
+            return;
+        }
+        x.price = d.price;
+        if (x.state !== 'armed' && x.state !== 'firing' && x.state !== 'fired' && x.acc === csAcc() && tpSameSym(x.sym, tpSymbol())) { x.state = 'armed'; x.why = ''; }
+        csRt(x.id).prev = mid;
+        persist();
+        mcDepthSync();
+        if (x.state === 'armed') tpToast(csName(x) + (d.wasArmed ? ' moved.' : ' armed.'), x.side === 'buy' ? 'good' : 'warn');
+    }
+
+    function csOnDown(e) {
+        const n = e.target.closest && e.target.closest('.cs-n');
+        if (!n || n.classList.contains('gh') || e.button !== 0) return;
+        e.preventDefault();
+        e.stopPropagation();
+        const id = n.dataset.id;
+        if (e.target.closest('.cs-x')) { csRemove(id); return; }
+        const x = csList().find((y) => y.id === id);
+        if (!x || x.state === 'firing' || x.state === 'fired') return;
+        CS.drag = { id, y0: e.clientY, price: null, moved: false, wasArmed: x.state === 'armed' };
+        csShield(true, 'ns-resize');
+    }
+
+    // ----- drawing: a dashed line across the pane and a chip, left of the TP/SL column; the placing ghost follows the pointer -----
+    function csEnsureDom() {
+        if (CS.root && CS.root.isConnected) return true;
+        if (!document.body) return false;
+        if (!document.getElementById('ax4p-tp-css')) {
+            const st = document.createElement('style');
+            st.id = 'ax4p-tp-css';
+            st.textContent = TP_CSS;
+            (document.head || document.documentElement).appendChild(st);
+        }
+        const root = tpEl('div');
+        root.id = 'ax4p-cs-root';
+        CS.pane = tpEl('div', 'cs-pane');
+        CS.axis = tpEl('div', 'cs-axis');
+        root.appendChild(CS.pane);
+        root.appendChild(CS.axis);
+        document.body.appendChild(root);
+        CS.root = root;
+        CS.nodes.clear();
+        CS.sig = '';
+        CS.pane.addEventListener('pointerdown', csOnDown);
+        return true;
+    }
+
+    function csNode(key, ghost) {
+        let nd = CS.nodes.get(key);
+        if (nd) return nd;
+        const ln = tpEl('div', 'cs-ln');
+        // the chip says what it is; its price is on the price scale (the ghost, by the pointer, says both)
+        const n = tpEl('div', 'cs-n' + (ghost ? ' gh' : ''), '<span class="cs-k"></span><b class="cs-sz"></b>' + (ghost ? '<span class="cs-px"></span>' : '') + '<span class="cs-st"></span>' + (ghost ? '' : '<span class="cs-x" title="Remove">' + XC_ICON.x + '</span>'));
+        const ax = tpEl('div', 'cs-ax');
+        CS.pane.appendChild(ln);
+        CS.pane.appendChild(n);
+        CS.axis.appendChild(ax);
+        nd = { ln, n, ax, k: n.querySelector('.cs-k'), sz: n.querySelector('.cs-sz'), px: n.querySelector('.cs-px'), st: n.querySelector('.cs-st'), w: 0, tw: '' };
+        CS.nodes.set(key, nd);
+        return nd;
+    }
+
+    function csDraw() {
+        const g = TP.geom;
+        const sym = tpSymbol();
+        const mine = csList().filter((x) => tpSameSym(x.sym, sym) && (x.acc === csAcc() || x.state !== 'armed'));
+        const pl = CS.place && CS.place.price != null && CS.place.side ? CS.place : null;
+        if (!g || (!mine.length && !pl) || S.tpsl.stops.show === false && !mine.length) {
+            if (CS.root && CS.root.style.display !== 'none') CS.root.style.display = 'none';
+            CS.nodes.forEach((nd) => { nd.ln.remove(); nd.n.remove(); nd.ax.remove(); });
+            CS.nodes.clear();
+            return;
+        }
+        if (!csEnsureDom()) return;
+        if (CS.root.style.display === 'none') CS.root.style.display = '';
+        const sig = S.theme + '|' + S.chart.upColor + '|' + S.chart.downColor;
+        if (sig !== CS.sig) {
+            CS.sig = sig;
+            const c = tpColors();
+            CS.root.style.setProperty('--tp-up', c.up);
+            CS.root.style.setProperty('--tp-down', c.down);
+        }
+        const H = g.height, W = g.width;
+        tpSetBox(CS.pane, g.left, g.top, W, H);
+        tpSetBox(CS.axis, g.axisX, g.top, g.axisW, H);
+        const info = tpInfoFor(sym);
+        const tpCol = TP.root && TP.root.style.display !== 'none' && TP.lx != null ? TP.lx : null;
+        // our own floating widgets (the Execute card, Settings...): a chip never hides under one
+        const obs = [];
+        for (const id of TP_OBSTACLES) {
+            const el = document.getElementById(id);
+            const r = el ? el.getBoundingClientRect() : null;
+            if (r && r.width > 0 && r.height > 0) obs.push(r);
+        }
+        // how much of a chip at (x, y) a widget covers, in px²
+        const overlap = (x, y, w) => obs.reduce((a, r) => a + Math.max(0, Math.min(g.left + x + w, r.right + 4) - Math.max(g.left + x, r.left - 4)) * Math.max(0, Math.min(g.top + y + 20, r.bottom + 2) - Math.max(g.top + y, r.top - 2)), 0);
+        const seen = new Set();
+        const draw = (key, x, ghost) => {
+            seen.add(key);
+            const nd = csNode(key, ghost);
+            const d = CS.drag && CS.drag.id === x.id && CS.drag.moved && CS.drag.price != null ? CS.drag : null;
+            const px = d ? d.price : x.price;
+            const rt = CS.rt.get(x.id);
+            const why = x.state === 'armed' && rt ? rt.why : '';
+            const state = ghost ? 'CLICK TO SET' : x.state === 'armed' ? (why === 'stale' ? 'NO PRICE' : why === 'account' ? 'OTHER ACCOUNT' : why === 'market' ? 'WAIT' : 'ARMED')
+                : x.state === 'firing' ? 'SENDING' : x.state === 'fired' ? 'SENT' : x.state === 'passed' ? 'PASSED' : 'NOT SENT';
+            const wait = !ghost && (x.state === 'armed' ? !!why && why !== 'jump' && why !== 'drag' : x.state !== 'firing' && x.state !== 'fired');
+            tpText(nd.k, (x.side === 'buy' ? 'BUY' : 'SELL') + ' STOP');
+            tpText(nd.sz, csSizeText(x.size, x.sym));
+            const pxs = px.toFixed(info.dec);
+            if (nd.px) tpText(nd.px, pxs);
+            tpText(nd.ax, pxs);
+            tpText(nd.st, state);
+            tpClassIf(nd.n, 'sell', x.side === 'sell');
+            tpClassIf(nd.ln, 'sell', x.side === 'sell');
+            tpClassIf(nd.ax, 'sell', x.side === 'sell');
+            tpClassIf(nd.ax, 'done', !ghost && x.state !== 'armed' && x.state !== 'firing');
+            tpClassIf(nd.n, 'wait', wait);
+            tpClassIf(nd.ln, 'wait', wait);
+            tpClassIf(nd.n, 'done', !ghost && x.state !== 'armed' && x.state !== 'firing');
+            tpClassIf(nd.ln, 'done', !ghost && x.state !== 'armed' && x.state !== 'firing');
+            tpClassIf(nd.n, 'drag', !!d);
+            if (!ghost) tpAttr(nd.n, 'data-id', x.id);
+            tpAttr(nd.n, 'title', ghost ? '' : x.state === 'armed' ? csName(x) + ': fires a market order when the mid touches it, with the Execute card\'s stop and target. Drag to move.'
+                : x.state === 'passed' || x.state === 'failed' ? csName(x) + ': ' + (x.why || 'not sent') + '. Click to arm it again.' : csName(x) + (x.why ? ': ' + x.why : ''));
+            const txt = nd.k._t + nd.sz._t + (nd.px ? nd.px._t : '') + nd.st._t;
+            if (nd.tw !== txt) { nd.tw = txt; nd.w = nd.n.offsetWidth || 180; }
+            const y = tpPriceToY(px, g.vr, H);
+            const vis = y >= 0 && y <= H;
+            tpShow(nd.ln, vis);
+            tpShow(nd.ax, vis);
+            if (vis) tpMove(nd.ax, 0, Math.round(y - 8));
+            if (vis) {
+                tpMove(nd.ln, 0, Math.round(y));
+                if (nd.ln._w !== W) { nd.ln._w = W; nd.ln.style.width = W + 'px'; }
+            }
+            const cy = Math.round(Math.max(2, Math.min(H - 22, y - 10)));
+            // left of the TP/SL column (or near the right edge); then past any widget it would hide under; the placing ghost sits by the pointer
+            const fit = (v) => Math.max(6, Math.min(W - nd.w - 6, v));
+            const cands = ghost && CS.place.x != null ? [CS.place.x + 16, CS.place.x - nd.w - 16] : [tpCol != null ? tpCol - nd.w - 16 : W - nd.w - 70, W - nd.w - 70];
+            obs.forEach((r) => cands.push(r.right - g.left + 10, r.left - g.left - nd.w - 10));
+            cands.push(W - nd.w - 6);
+            // the first place no widget covers; with none free, the one covered least
+            let cx = null, best = Infinity;
+            for (const c of cands) {
+                const v = fit(c);
+                const o = overlap(v, cy, nd.w);
+                if (o === 0) { cx = v; break; }
+                if (o < best) { best = o; cx = v; }
+            }
+            tpClassIf(nd.n, 'off', !vis);
+            tpMove(nd.n, Math.round(cx), cy);
+        };
+        mine.forEach((x) => draw(x.id, x, false));
+        if (pl) draw('ghost', { id: 'ghost', side: pl.side, price: pl.price, size: activeSelectedSize, sym, state: 'armed' }, true);
+        CS.nodes.forEach((nd, k) => { if (!seen.has(k)) { nd.ln.remove(); nd.n.remove(); nd.ax.remove(); CS.nodes.delete(k); } });
+    }
+
+    xcHooks.stop = () => { csPlaceStart(); xcPaint(); };
+    xcHooks.placing = () => !!CS.place;
 
     // ---------- demo position (for recording): no network, no Vest calls ----------
 
@@ -6002,7 +7291,7 @@
         if (leg) leg.trigger = j.price;
         else pos.legs[j.kind].push({ id: 'demo-' + j.kind + '-' + (pos.legs[j.kind].length + 1), exec: 'market', fixed: false, qty: pos.qty, trigger: j.price, limit: null });
         const info = tpInfoFor(pos.symbol);
-        if (was != null && !j.isUndo) TP.undo = { key: tpLegKey(j.posId, j.kind, leg ? leg.id : null), posId: j.posId, kind: j.kind, legId: leg ? leg.id : null, price: was, s: was.toFixed(info.dec), until: now() + 5000, accountId: 'demo' };
+        if (was != null && !j.isUndo && !j.auto) TP.undo = { key: tpLegKey(j.posId, j.kind, leg ? leg.id : null), posId: j.posId, kind: j.kind, legId: leg ? leg.id : null, price: was, s: was.toFixed(info.dec), until: now() + 5000, accountId: 'demo' };
         else if (j.isUndo) TP.undo = null;
         TP.flash.set(key, now() + 700);
         if (leg) TP.flash.set(tpLegKey(j.posId, j.kind, leg.id), now() + 700);
@@ -6075,7 +7364,8 @@
             TP.pollAt = now();
             tpRefresh();
         }
-        const need = !!chart && (TP.drag || tpPositions().length > 0);
+        // client-side stops are drawn by this loop too: it runs while one is on this market, even flat
+        const need = !!chart && (TP.drag || tpPositions().length > 0 || csNeedsFrames());
         if (need && !TP.raf) TP.raf = requestAnimationFrame(tpFrame);
         if (!need && TP.raf) {
             cancelAnimationFrame(TP.raf);
@@ -6102,6 +7392,7 @@
         val('ax4p-be-ticks', be.ticks);
         val('ax4p-be-points', be.points);
         val('ax4p-be-min', be.minProfitTicks);
+        set('ax4p-cs-show', S.tpsl.stops.show !== false);
         ['pctProfit', 'ticks', 'points'].forEach((m) => {
             const row = document.getElementById('ax4p-be-row-' + m);
             if (row) row.style.display = be.mode === m ? '' : 'none';
@@ -6148,6 +7439,7 @@
         num('ax4p-be-ticks', 'ticks', 0, 1000, true);
         num('ax4p-be-points', 'points', 0, 1000000, false);
         num('ax4p-be-min', 'minProfitTicks', 0, 1000, true);
+        document.getElementById('ax4p-cs-show').onchange = (e) => { S.tpsl.stops.show = e.target.checked; persist(); xcPaint(); };
         tpPaintSettings();
     }
 
@@ -6176,6 +7468,11 @@
         }, true);
         document.addEventListener('visibilitychange', () => { if (!document.hidden) { TP.pollAt = 0; tpWatch(); } });
         setInterval(tpWatch, 1000);
+        setInterval(tpTrailTick, 250);
+        setInterval(tpAutoBeTick, 250);
+        // client-side stops: every new best bid / ask, and four times a second for the feed's state and market switches
+        bookHook = csCheck;
+        setInterval(csCheck, 250);
         tpWatch();
     }
 
@@ -6486,11 +7783,14 @@
     }
 
     // ---------- depth: the limit macros need a live best bid / ask ----------
+    // So does the trailing SL while a position on this chart is armed (tpBookWanted): it moves the stop on the book's mid. While our own
+    // trades feed is live the page's sockets are not parsed, so without this subscription the book would stay empty.
 
     function mcDepthSync() {
         try {
             const cfg = S.macros;
-            const want = !!(cfg && cfg.on && (cfg.act.limitBuy.on || cfg.act.limitSell.on) && ownWs && ownWs.readyState === 1);
+            const macrosWant = !!(cfg && cfg.on && (cfg.act.limitBuy.on || cfg.act.limitSell.on));
+            const want = !!((macrosWant || tpBookWanted()) && ownWs && ownWs.readyState === 1);
             const api = apiSymbol();
             let subChanged = false;
             if (mc.depthWs && (mc.depthWs !== ownWs || !want || mc.depthSym !== api)) {
@@ -7347,6 +8647,7 @@
             if (XC.abort) { stop('you pressed FLAT'); return; }
             const keep = activeSelectedSize;
             activeSelectedSize = qty;
+            xcSyncUsd(); // a stop / target in dollars: its points for this size
             try { await xcExecute(side); } finally { activeSelectedSize = keep; lastRiskHtml = ''; updateExecutionRiskCalc(); }
             // the order code writes its own result line, "SELL 2 @ ..." once it has pressed Vest's button
             const said = ((document.getElementById('ax4p-exec-flash') || {}).textContent || '').trim();
@@ -8390,6 +9691,7 @@
         injectAstralTheme();
         connectOwnPublicWs();
         buildAstralSuite();
+        mnqSync();
         setInterval(checkDislocation, 700);
         setTimeout(enforceTicketDefaults, 1500);
         setTimeout(enforceTicketDefaults, 4000);
@@ -8415,6 +9717,63 @@
         setInterval(relayFrameKeys, 2000);
     }
 
+    // ---------- the P&L card's Replay: Vest's own candles, read only (src/copy/35-share.js) ----------
+    function rpChart() {
+        const w = findTvWidget() || tv.widget;
+        let c = null;
+        try { c = w ? w.activeChart() : null; } catch (e) {}
+        return c ? { w, c } : null;
+    }
+    // the market as Vest's datafeed describes it (its name, its time zone); null when it cannot be read
+    function rpSymbolInfo(w) {
+        return new Promise((resolve) => {
+            const df = w && w._options && w._options.datafeed;
+            if (!df || typeof df.resolveSymbol !== 'function') { resolve(null); return; }
+            const t = setTimeout(() => resolve(null), 3000);
+            try { df.resolveSymbol(apiSymbol(), (si) => { clearTimeout(t); resolve(si || null); }, () => { clearTimeout(t); resolve(null); }); } catch (e) { clearTimeout(t); resolve(null); }
+        });
+    }
+    // the time zone the chart shows its times in (TradingView's own setting; "exchange" is the market's own zone)
+    async function rpTz(w, c) {
+        let z = '';
+        try { const api = typeof c.getTimezoneApi === 'function' ? c.getTimezoneApi() : null; const v = api && api.getTimezone ? api.getTimezone() : null; z = v && typeof v === 'object' ? v.id : v; } catch (e) {}
+        if (!z) { try { z = w._options && w._options.timezone; } catch (e) {} }
+        if (!z || z === 'exchange') { const si = await rpSymbolInfo(w); z = (si && si.timezone) || 'Etc/UTC'; }
+        return String(z);
+    }
+    // The bars the chart holds now, at its own timeframe, as [time s, open, high, low, close]. No request.
+    async function rpChartBars() {
+        const h = rpChart();
+        if (!h || typeof h.c.exportData !== 'function' || !tpSymbolsAgree()) return null;
+        const d = await h.c.exportData({ includeTime: true, includeSeries: true, includedStudies: [] });
+        const bars = [];
+        for (const r of (d && d.data) || []) {
+            const b = [r[0], r[1], r[2], r[3], r[4]].map(Number);
+            if (b.every(Number.isFinite)) bars.push(b);
+        }
+        return { res: String(h.c.resolution()), tz: await rpTz(h.w, h.c), bars };
+    }
+    // One page of Vest's own datafeed for another timeframe (Vest's code makes the GET): `first` is its latest ~500 bars, every later call the
+    // 500 before the last page (the datafeed keeps the place and ignores from / to; measured 2026-10-06). Never the chart's own timeframe: the
+    // chart's later scroll-back would then skip bars (AGENTS.md). src/copy/35-share.js pages back from here.
+    async function rpFeedBars(res, first) {
+        const h = rpChart();
+        if (!h || !/^\d+$/.test(String(res)) || String(res) === String(h.c.resolution()) || !tpSymbolsAgree()) return null;
+        const si = await rpSymbolInfo(h.w);
+        if (!si || !tpSameSym(si.name || si.ticker, apiSymbol())) return null;
+        const df = h.w._options.datafeed;
+        const now = Math.floor(Date.now() / 1000);
+        const got = await new Promise((resolve) => {
+            const t = setTimeout(() => resolve(null), 3500);
+            try {
+                df.getBars(si, String(res), { from: now - 7 * 86400, to: now, countBack: 500, firstDataRequest: first !== false },
+                    (bs) => { clearTimeout(t); resolve(Array.isArray(bs) ? bs : null); }, () => { clearTimeout(t); resolve(null); });
+            } catch (e) { clearTimeout(t); resolve(null); }
+        });
+        if (!got) return null;
+        const bars = got.map((b) => [Math.round(Number(b.time) / 1000), Number(b.open), Number(b.high), Number(b.low), Number(b.close)]).filter((b) => b.every(Number.isFinite));
+        return { res: String(res), tz: await rpTz(h.w, h.c), bars };
+    }
     // @@BV-SUITE-API-BEGIN
     // The copy trader (src/copy, appended to the extension page script) lives in its own closure and reaches the suite only
     // through this frozen object. It can run the card's own entry points; it cannot change them. The object is never put
@@ -8456,7 +9815,8 @@
             if (!(Number(size) > 0)) throw new Error('execute: size must be above 0');
             const keep = activeSelectedSize;
             activeSelectedSize = Number(size);
-            try { return await xcExecute(side); } finally { activeSelectedSize = keep; }
+            xcSyncUsd(); // a stop / target in dollars: its points for this size
+            try { return await xcExecute(side); } finally { activeSelectedSize = keep; xcSyncUsd(); }
         },
         // A click on the card's FLAT, so its Demo guard and its "stop 50% / REV first" handling still apply.
         flat() {
@@ -8466,6 +9826,10 @@
             return true;
         },
         positions: () => tpPositions().slice(),
+        // read only, for the P&L card's Replay (src/copy/35-share.js): Vest's own candles, and whether a row's market is the chart's
+        chartBars: () => rpChartBars(),
+        feedBars: (res, first) => rpFeedBars(res, first),
+        sameMarket: (sym) => tpSameSym(sym, tpSymbol()),
         bridge: () => tpBridge()
     });
     // @@BV-SUITE-API-END
@@ -12214,7 +13578,7 @@ if (typeof document !== 'undefined' && document && document.addEventListener) cp
 // What one line looks like: { t, seq, cat, msg, chain?, symbol?, acc?, accName?, ...fields }, scrubbed and size-capped.
 // Categories: you (what the owner did: it starts a "chain" for its symbol), leader, follower (what Vest shows changed), book (a list of
 // positions: the module logs only what changed since the last one), sync (do the followers match the leader now: it closes the chain),
-// plan, send, vest, socket, net, engine, tabs, guard, state, ui, page, log (a mirror of every cpLog line), error.
+// plan, send, vest, socket, net, engine, tabs, guard, state, ui, page, stop (the suite's client-side stops), log (a mirror of every cpLog line), error.
 // A chain is one thing the owner did and everything that followed from it, tagged with one id (A1, A2...) on every line about that symbol.
 //
 // A test ("session") is a run of lines kept in the extension's own IndexedDB (the worker module in src/dev/). The page sends its lines in batches
@@ -19410,6 +20774,337 @@ function cuBoot() {
     cuTick();
 }
 cuBoot();
+// ---- 35-share.js ----
+// ======================================================================================
+// P&L card (8.1): the dock's "P&L" button and the share poster's data (WICKED and STANDARD, which carry the copy trader).
+// Pressing it sends a snapshot of today's P&L per account to the share poster (better-vest/cert/share.html, through bridge.js and sw.js, which
+// cleans it with cert/share-model.js). After a winning exit worth 1% or more of the account's balance the button glows green for 45 s, so the
+// moment to post is obvious. Read only: Vest's own stores through the copier's readers (cuAccounts, cuToday, cpAccountInfo); nothing is sent
+// to Vest, and the snapshot never holds an id Vest did not show.
+// ======================================================================================
+const SH_GLOW_MS = 45000;   // the owner: "highlight green for like 45s"
+const SH_GAIN = 0.01;       // "a green trade whose P&L is over 1% of his balance"
+// a card with a rising line: the P&L card (the owner: not "Share", which reads as sharing the extension; the colour is on the icon only)
+const SH_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="m7 15 3.5-3.5 2.5 2.5L17 9.5"/><path d="M14 9.5h3v3"/></svg>';
+const SH_TIP = 'P&L card: today\'s P&L as an image to post, with Vest\'s logo';
+const SH = { bal: {}, glowUntil: 0, gain: null, busy: false };
+
+// A winning exit worth `pct` of the balance or more: the account's balance (its cash: realized P&L, not the open one) went from `prev` to
+// `now` in one step. A balance not read yet (null, or 0 while Vest's page loads) never counts, so a page load or an account switch never glows.
+function shGainHit(prev, now, pct) {
+    return typeof prev === 'number' && typeof now === 'number' && prev > 0 && now > 0 && now - prev >= prev * pct - 1e-9;
+}
+
+// the accounts whose exits count: the one you trade on, and the copy leader (in the demo, its leader)
+function shWatched() {
+    if (CU.demo) return [String(CU.demo.leader.id)];
+    const ids = [];
+    const act = cuActive();
+    if (act) ids.push(String(act));
+    const ov = cuOverall();
+    const lead = String((ov && ov.leaderId) || ((cuCfg() || {}).leaderId) || '');
+    if (lead && ov && ov.running && ids.indexOf(lead) < 0) ids.push(lead);
+    return ids;
+}
+function shBalance(id) {
+    if (CU.demo) { const d = CU.demo; return String(d.leader.id) === id ? d.leader.bal : null; }
+    try { const i = typeof cpAccountInfo === 'function' ? cpAccountInfo(id) : null; return i && typeof i.balance === 'number' ? i.balance : null; } catch (e) { return null; }
+}
+
+// once a second: a balance jump of 1% or more on a watched account lights the button for 45 s
+function shWatch(t) {
+    const ids = shWatched();
+    for (const id of ids) {
+        const b = shBalance(id);
+        const prev = SH.bal[id];
+        if (b != null) SH.bal[id] = b;
+        if (shGainHit(prev, b, SH_GAIN)) {
+            SH.glowUntil = t + SH_GLOW_MS;
+            SH.gain = { id, usd: Math.round((b - prev) * 100) / 100, pct: Math.round(((b - prev) / prev) * 10000) / 100 };
+            typeof cpDev === 'function' && cpDev('ui', () => ({ msg: 'The P&L card button glows for 45 s: ' + cpName(id) + ' booked +' + SH.gain.usd + ' (' + SH.gain.pct + '% of its balance)', acc: id }));
+        }
+    }
+}
+
+// What the share poster gets: every account Vest lists for you with today's P&L (Vest's own day: the account value now minus the value at
+// its last daily reset), the copy group, the account you trade on, and the market. In the demo, the demo's accounts.
+function shSnapshot(t) {
+    const su = cpSuite();
+    let market = '';
+    try { market = String(su && su.symbol ? su.symbol() : '').toUpperCase().replace(/-USD-PERP$|-PERP$/, ''); } catch (e) {}
+    if (market === 'NDX') market = 'NQ';
+    try { if (market === 'NQ' && su && su.settings && su.settings.get('mnqView') === true) market = 'MNQ'; } catch (e) {}
+    const day = typeof cpDayKey === 'function' ? cpDayKey(t) : '';
+    if (CU.demo) {
+        const d = CU.demo;
+        const all = [d.leader].concat(d.fol);
+        return {
+            v: 1, at: t, day, market, demo: true, copying: !!(d.running && !d.killed), leaderId: String(d.leader.id), activeId: String(d.leader.id),
+            followerIds: d.fol.filter((f) => f.on).map((f) => String(f.accountId)),
+            accounts: all.map((a) => ({ id: String(a.accountId || a.id), name: a.name, kind: a.kind, size: a.size, pnl: cuDemoToday(d, a) }))
+        };
+    }
+    const cfg = cuCfg() || {};
+    const ov = cuOverall() || {};
+    const leaderId = String(ov.leaderId || cfg.leaderId || '');
+    const followerIds = Array.isArray(cfg.followers) ? cfg.followers.filter((f) => f && f.on).map((f) => String(f.accountId)) : [];
+    return {
+        v: 1, at: t, day, market, demo: false, copying: !!ov.running, leaderId, followerIds, activeId: String(cuActive() || ''),
+        accounts: cuAccounts().map((a) => ({ id: String(a.id), name: a.name, kind: a.kind, size: a.size, pnl: cuToday(String(a.id)) }))
+    };
+}
+
+// ---------- Replay: today's trades of the account on this chart, on Vest's own candles ----------
+// The card (cert/share-replay.js) draws every fill at its own time and price. Read only: today's position rows through the GET bridge (the
+// copier's own read of /v3/positions), the candles from the chart itself (no request), or from Vest's own datafeed for a timeframe the chart
+// is not on (Vest's code asks; the chart's own timeframe is never paged, see AGENTS.md).
+const SH_REPLAY_MS = 4000;     // both reads; after that the card opens without the chart and says why
+const SH_MAX_BARS = 150;       // candles on a card: the finest timeframe that keeps the session under this
+const SH_RES = [1, 5, 15, 60]; // minutes
+const SH_ROW_PAGES = 4;        // 50 rows a page: 200 positions in a day is plenty
+const SH_FEED_PAGES = 6;       // Vest's datafeed pages of 500 bars: 5m candles about 10 days back, 15m a month
+// the fields the card reads (cert/share-replay.js keeps the same lists and drops anything else)
+const SH_ROW_KEYS = ['positionId', 'accountId', 'symbol', 'side', 'quantity', 'openPrice', 'closePrice', 'openDate', 'closeDate', 'pnl', 'fee', 'funding', 'closeReason'];
+const SH_ORDER_KEYS = ['order_id', 'side', 'position_order_type', 'executed_quantity', 'execution_price', 'execution_time', 'fee', 'updated_at', 'created_at', 'status', 'order_type'];
+
+// a time from Vest in ms: seconds, ms, µs and ns all occur (the same rule as the Calendar's tsMs)
+function shMs(v) {
+    if (v == null || v === '') return null;
+    let n = typeof v === 'number' ? v : (/^\d+(\.\d+)?$/.test(String(v)) ? Number(v) : Date.parse(String(v)));
+    if (!Number.isFinite(n) || n <= 0) return null;
+    if (n < 1e11) n *= 1000;
+    else if (n >= 1e17) n /= 1e6;
+    else if (n >= 1e14) n /= 1e3;
+    return Math.round(n);
+}
+function shTrim(r) {
+    const o = {};
+    for (const k of SH_ROW_KEYS) if (k in r) o[k] = r[k];
+    o.orders = (Array.isArray(r.orders) ? r.orders : []).map((x) => { const q = {}; for (const k of SH_ORDER_KEYS) if (x && k in x) q[k] = x[k]; return q; });
+    return o;
+}
+// every fill time of a row (or its open and close when it has none)
+function shRowTimes(r) {
+    const ts = (Array.isArray(r.orders) ? r.orders : []).filter((o) => Number(o && o.executed_quantity) > 0).map((o) => shMs(o.execution_time) || shMs(o.updated_at)).filter(Boolean);
+    if (!ts.length) { const a = shMs(r.openDate), b = shMs(r.closeDate); if (a) ts.push(a); if (b) ts.push(b); }
+    return ts;
+}
+
+// The session to draw: one account's rows on this market of today (Vest's day, cpDayKey), or, with none today, of the latest day it traded
+// this market (so the card still works the evening after Vest's daily reset). A row belongs to the day it closed; a position still open
+// to today when it opened today. Rows of other markets that day are only counted. Vest lists the newest first (the Calendar's delta walk
+// relies on it too), so the day is the first row's and the walk stops at a page with nothing from it.
+async function shSessionRows(bridge, accId, today, same) {
+    const rows = [];
+    const early = {}; // other markets' rows met before this market's first one, by day
+    let others = 0, day = '';
+    for (let page = 0; page < SH_ROW_PAGES; page++) {
+        const r = await bridge.get('/v3/positions', { account_id: String(accId), limit: 50, offset: page * 50 });
+        const list = Array.isArray(r) ? r : (r && r.positions) || [];
+        let hit = 0;
+        for (const x of list) {
+            if (!x || x.positionId == null) continue;
+            // a resting limit order's size-0 record is not a trade, nor is an order that never filled
+            const close = shMs(x.closeDate), open = shMs(x.openDate);
+            const k = close ? (shRowTimes(x).length && Number(x.quantity) > 0 ? cpDayKey(close) : '') : (Number(x.quantity) > 0 && open && cpDayKey(open) === today ? today : '');
+            if (!k) continue;
+            const mine = same(String(x.symbol || ''));
+            // only this market's rows choose the day; other markets' are counted for it
+            if (!day) {
+                if (!mine) { early[k] = (early[k] || 0) + 1; continue; }
+                day = k;
+                others += early[day] || 0;
+            }
+            if (k !== day) continue;
+            hit++;
+            if (mine) rows.push(shTrim(x)); else others++;
+        }
+        if (list.length < 50 || (day && !hit)) break;
+    }
+    return { rows, others: day ? others : early[today] || 0, day: day || today };
+}
+
+// The window to draw: from the first fill to the last (to now while a trade is open), a little room on both sides, at least 40 minutes.
+function shWindow(rows, now) {
+    let from = Infinity, to = -Infinity;
+    for (const r of rows) {
+        for (const t of shRowTimes(r)) { if (t < from) from = t; if (t > to) to = t; }
+        if (!shMs(r.closeDate)) to = now;
+    }
+    if (!(from < Infinity)) return null;
+    const pad = Math.max((to - from) * 0.12, 5 * 60000);
+    let a = from - pad, b = Math.min(now, Math.max(to, from) + pad);
+    // a short session gets at least 40 minutes around its middle (never past now: the rest goes before it)
+    const want = 40 * 60000;
+    if (b - a < want) { const mid = (a + b) / 2; b = Math.min(now, mid + want / 2); a = b - want; }
+    return { from: Math.max(0, a), to: b };
+}
+// minutes per candle of a chart timeframe ("1", "5", "60"; a day or a second chart does not count)
+const shResMin = (res) => (/^\d+$/.test(String(res)) ? Number(res) : null);
+// 1m candles into 5m ones (or 5m into 15m...): Vest's own bars, merged on the clock's own boundaries
+function shMerge(bars, min) {
+    const out = [];
+    const step = min * 60;
+    for (const b of bars) {
+        const t = Math.floor(b[0] / step) * step;
+        const last = out[out.length - 1];
+        if (last && last[0] === t) { last[2] = Math.max(last[2], b[2]); last[3] = Math.min(last[3], b[3]); last[4] = b[4]; }
+        else out.push([t, b[1], b[2], b[3], b[4]]);
+    }
+    return out;
+}
+// Vest's datafeed for one timeframe, paged back until it reaches `from` (or SH_FEED_PAGES pages): its latest bars, then 500 more each time.
+async function shFeed(su, min, from) {
+    const first = await su.feedBars(String(min), true).catch(() => null);
+    if (!first || !first.bars || !first.bars.length) return null;
+    let bars = first.bars;
+    for (let n = 1; n < SH_FEED_PAGES && bars[0][0] * 1000 > from; n++) {
+        const older = await su.feedBars(String(min), false).catch(() => null);
+        if (!older || !older.bars || !older.bars.length || older.bars[0][0] >= bars[0][0]) break;
+        const edge = older.bars[older.bars.length - 1][0];
+        bars = older.bars.concat(bars.filter((b) => b[0] > edge));
+    }
+    return { res: first.res, tz: first.tz, bars };
+}
+// The candles over the window: the finest timeframe that keeps them under SH_MAX_BARS and that Vest has that far back. The chart's own
+// bars first (merged up when its timeframe divides the one wanted), else Vest's datafeed for a timeframe the chart is not on.
+const SH_MIN_BARS = 36;        // a short session on a coarse timeframe still gets a chart worth looking at
+// the window at one timeframe: at least SH_MIN_BARS candles, around the session's middle, never past its end (which is never past now)
+function shWiden(win, min) {
+    const want = SH_MIN_BARS * min * 60000;
+    if (win.to - win.from >= want) return win;
+    const mid = (win.from + win.to) / 2;
+    const to = Math.min(win.to + want, Math.max(win.to, mid + want / 2), Date.now());
+    return { from: to - want, to };
+}
+async function shBars(su, wanted) {
+    const chart = await su.chartBars().catch(() => null);
+    const cMin = chart ? shResMin(chart.res) : null;
+    // the bars reach back to the window's start and up to its end (the window never runs past now; a quiet last bar or two is fine)
+    const covers = (bars, min, win) => bars.length && bars[0][0] * 1000 <= win.from && bars[bars.length - 1][0] * 1000 + min * 60000 >= win.to - 2 * min * 60000;
+    for (const min of SH_RES) {
+        if ((wanted.to - wanted.from) / (min * 60000) > SH_MAX_BARS && min !== SH_RES[SH_RES.length - 1]) continue;
+        const win = shWiden(wanted, min);
+        let got = null, src = '';
+        if (chart && cMin && min % cMin === 0 && covers(chart.bars, cMin, win)) { got = min === cMin ? chart.bars : shMerge(chart.bars, min); src = 'chart'; }
+        else if (min !== cMin) {
+            const f = await shFeed(su, min, win.from);
+            if (f && covers(f.bars, min, win)) { got = f.bars; src = 'datafeed'; }
+        }
+        if (!got) continue;
+        const bars = got.filter((b) => b[0] * 1000 + min * 60000 > win.from && b[0] * 1000 <= win.to);
+        if (bars.length) return { res: String(min), tz: (chart && chart.tz) || '', bars, src };
+    }
+    return null;
+}
+
+// The Replay part of the snapshot: never throws, at most SH_REPLAY_MS. The copy demo gets Vest's real candles of the last 4 hours and
+// sample trades (the card makes them and says Sample).
+async function shReplay(snap, t) {
+    const su = cpSuite();
+    if (!su || typeof su.chartBars !== 'function') return { err: 'no-chart' };
+    const work = (async () => {
+        if (snap.demo) {
+            const win = { from: t - 4 * 3600e3, to: t };
+            const b = await shBars(su, win);
+            if (!b) return { err: 'no-bars' };
+            const lead = CU.demo && CU.demo.leader;
+            const target = lead ? cuDemoToday(CU.demo, lead) : null;
+            return { accountId: snap.activeId, market: snap.market, day: snap.day, res: b.res, tz: b.tz, bars: b.bars, rows: [], sample: true, sampleTarget: target > 0 ? target : null };
+        }
+        const acc = snap.activeId || (snap.copying ? snap.leaderId : '');
+        if (!acc) return { err: 'no-account' };
+        const bridge = typeof vxBridge === 'function' ? vxBridge() : null;
+        if (!bridge) return { accountId: acc, err: 'no-bridge' };
+        const same = typeof su.sameMarket === 'function' ? su.sameMarket : () => true;
+        let got;
+        try { got = await shSessionRows(bridge, acc, snap.day, same); } catch (e) { return { accountId: acc, err: 'read-failed' }; }
+        const win = shWindow(got.rows, t);
+        if (!win) return { accountId: acc, market: snap.market, others: got.others, rows: [], err: 'no-trades' };
+        const b = await shBars(su, win);
+        if (!b) return { accountId: acc, market: snap.market, day: got.day, others: got.others, err: 'no-bars' };
+        return { accountId: acc, market: snap.market, day: got.day, res: b.res, tz: b.tz, bars: b.bars, rows: got.rows, others: got.others };
+    })();
+    let timer = null;
+    const late = new Promise((res) => { timer = setTimeout(() => res({ err: 'timeout' }), SH_REPLAY_MS); });
+    try { return await Promise.race([work.catch(() => ({ err: 'read-failed' })), late]); } finally { clearTimeout(timer); }
+}
+
+async function shOpen() {
+    if (SH.busy) return;
+    const t = Date.now();
+    const snap = shSnapshot(t);
+    SH.glowUntil = 0;
+    shPaint(t);
+    if (!snap.accounts.length) {
+        const su = cpSuite();
+        try { if (su && su.toast) su.toast('Nothing to share yet: Vest has not shown your accounts on this page.', 'warn'); } catch (e) {}
+        return;
+    }
+    SH.busy = true;
+    const btn = cuById('ax4p-share-tog');
+    if (btn) btn.classList.toggle('busy', true);
+    try {
+        snap.replay = await shReplay(snap, t);
+        // bridge.js passes at most 256 KB: a day too busy to fit keeps its summary, and the Replay says so
+        try { if (JSON.stringify(snap).length > 250 * 1024) snap.replay = { accountId: snap.replay.accountId, err: 'too-big' }; } catch (e) { snap.replay = { err: 'too-big' }; }
+        typeof cpDev === 'function' && cpDev('ui', () => ({ msg: 'P&L card button pressed: ' + snap.accounts.length + ' account(s), ' + (snap.copying ? 'copying (' + snap.followerIds.length + ' followers)' : 'not copying')
+            + '; Replay: ' + (snap.replay.err ? snap.replay.err : (snap.replay.rows || []).length + ' position(s) on ' + snap.replay.bars.length + ' × ' + snap.replay.res + 'm candles' + (snap.replay.sample ? ' (sample trades)' : '')), demo: snap.demo }));
+        try { window.postMessage({ bv: 1, dir: 'toExt', type: 'sopen', snap }, location.origin); } catch (e) {}
+    } finally {
+        SH.busy = false;
+        if (btn) btn.classList.toggle('busy', false);
+    }
+}
+
+// ---------- the dock button ----------
+// The dock is built by the suite a moment after load (and rebuilt on route changes), so this keeps checking, like the Copy button.
+function shEnsureButton() {
+    const dock = cuById('ax4p-master-dock');
+    if (!dock || cuById('ax4p-share-tog')) return;
+    const b = cuEl('button', { id: 'ax4p-share-tog', class: 'ax4p-dock-btn', title: SH_TIP });
+    b.innerHTML = SH_ICON;
+    b.appendChild(cuEl('span', { class: 'ax4p-lbl', text: 'P&L' }));
+    b.addEventListener('click', (e) => { if (e && e.stopPropagation) e.stopPropagation(); shOpen(); });
+    const before = cuById('ax4p-tog-settings');
+    if (before && before.parentNode === dock) dock.insertBefore(b, before); else dock.appendChild(b);
+    shInjectCss();
+}
+function shPaint(t) {
+    const b = cuById('ax4p-share-tog');
+    if (!b) return;
+    const on = t < SH.glowUntil;
+    if (b.classList.contains('glow') !== on) b.classList.toggle('glow', on);
+    const tip = on && SH.gain ? 'Green exit: +$' + SH.gain.usd.toLocaleString('en-US', { minimumFractionDigits: 2 }) + ' (+' + SH.gain.pct + '%). Make the card.' : SH_TIP;
+    if (b.title !== tip) b.title = tip;
+}
+function shInjectCss() {
+    if (cuById('ax4p-share-css')) return;
+    const st = cuEl('style', { id: 'ax4p-share-css' });
+    st.textContent = `
+        /* the button is like every other in the dock; only its icon has colour, and after a big green exit only the icon glows */
+        #ax4p-master-dock #ax4p-share-tog svg { color: var(--ax-up); }
+        #ax4p-master-dock #ax4p-share-tog.glow svg { animation: ax4pShareGlow 1.4s ease-in-out infinite; }
+        /* reading today's trades and candles for the Replay (a second at most) */
+        #ax4p-master-dock #ax4p-share-tog.busy svg { opacity: .45; }
+        @keyframes ax4pShareGlow { 0%, 100% { filter: drop-shadow(0 0 1px var(--ax-up)); transform: scale(1); } 50% { filter: drop-shadow(0 0 6px var(--ax-up)) drop-shadow(0 0 2px var(--ax-up)); transform: scale(1.12); } }`;
+    (document.head || document.documentElement).appendChild(st);
+}
+
+function shTick() {
+    const t = Date.now();
+    shEnsureButton();
+    if (!cuById('ax4p-share-tog')) return;
+    shWatch(t);
+    shPaint(t);
+}
+function shBoot() {
+    if (typeof BV_COPY !== 'undefined' && !BV_COPY) return;
+    try { if (window.__bvShareUi) return; window.__bvShareUi = true; } catch (e) {}
+    setInterval(shTick, 1000);
+    shTick();
+}
+shBoot();
 // ---- 40-runner.js ----
 // ======================================================================================
 // Copy trader: the test runner (cr*). Owner-started only: nothing in this file runs by itself.
