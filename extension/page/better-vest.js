@@ -20,7 +20,7 @@
 (function () {
     'use strict';
 
-    const VERSION = '8.1.0';
+    const VERSION = '8.1.5';
     // true only in the Chrome extension build (tools/build.py defines BV_EXT there)
     const IS_EXT = typeof BV_EXT !== 'undefined' && !!BV_EXT;
     // 'standard' = the shareable build; anything else = WICKED, the author's own full build.
@@ -221,7 +221,8 @@
         // MNQ view (8.1): on NQ, sizes and the market name read as MNQ contracts (Vest's size ÷ 2). Display only; Settings > Market.
         mnqView: false,
         // Daily loss limit (7.7, extension): a soft lockout for new trades. limit in dollars, reset hour in local time.
-        dll: { on: false, limit: 200, hour: 0, vest: true },
+        // flat (8.1.5): at the limit, also close every open position of the account.
+        dll: { on: false, limit: 200, hour: 0, vest: true, flat: true },
         tpsl: { enabled: true, showR: true, demo: false, followBars: true, makeRoom: true, labelScale: 1.15, be: { show: true, pct: 5, mode: 'pctProfit', ticks: 1, points: 0, minProfitTicks: 2, allowAtEntry: false },
             // Auto trailing SL (8.1, set on the Execute card): starts once `start` in profit (pt, or startUsd with unit 'usd'), or at once with
             // `now`; trails `dist` (pt, or distUsd) behind the best price, moves of at least `step` pt. `auto` (the card's TRAIL switch) arms the
@@ -231,7 +232,9 @@
             // profit, once per position (`done` = { positionId: time })
             autoBe: { on: false, at: 10, unit: 'pt', atUsd: null, done: {} },
             // Client-side stops (8.1): the STOP tile on the Execute card; list = [{ id, side, price, size, sym, acc, state, at, why, doneAt }]
-            stops: { show: true, list: [] } }
+            stops: { show: true, list: [] },
+            // LIMIT tile on the Execute card (8.1.5): click the chart, a resting limit order goes in through Vest's own ticket
+            limit: { show: true } }
     };
 
     function readStore(key, fallback) {
@@ -295,6 +298,8 @@
     // not sent (never sent again), and finished ones are dropped
     S.tpsl.stops = Object.assign({}, DEFAULTS.tpsl.stops, S.tpsl.stops || {});
     S.tpsl.stops.show = S.tpsl.stops.show !== false;
+    S.tpsl.limit = Object.assign({}, DEFAULTS.tpsl.limit, S.tpsl.limit && typeof S.tpsl.limit === 'object' ? S.tpsl.limit : {});
+    S.tpsl.limit.show = S.tpsl.limit.show !== false;
     S.tpsl.stops.list = (Array.isArray(S.tpsl.stops.list) ? S.tpsl.stops.list : []).filter((x) => x && typeof x === 'object' && (x.side === 'buy' || x.side === 'sell')
         && Number(x.price) > 0 && Number(x.size) > 0 && typeof x.sym === 'string' && x.acc && x.acc !== 'demo' && x.state !== 'fired').slice(0, 20)
         .map((x) => Object.assign({}, x, x.state === 'firing' ? { state: 'failed', why: 'the page reloaded while it was being sent: check Vest' } : {}));
@@ -351,6 +356,7 @@
     S.dll = Object.assign({}, DEFAULTS.dll, S.dll || {});
     S.dll.on = S.dll.on === true;
     S.dll.vest = S.dll.vest !== false;
+    S.dll.flat = S.dll.flat !== false;
     if (!(Number(S.dll.limit) > 0)) S.dll.limit = DEFAULTS.dll.limit;
     S.dll.hour = Number.isInteger(Number(S.dll.hour)) && Number(S.dll.hour) >= 0 && Number(S.dll.hour) <= 23 ? Number(S.dll.hour) : 0;
     // Partials take any number of targets since 7.5.2; 7.5.1 kept one (tp1Pts / tp1Pct), which becomes TP1
@@ -688,7 +694,9 @@
                Every colour is a theme token, so the card follows all seven themes. */
             #ax4p-exec-deck {
                 --xc-on-btn: #ffffff; --xc-kbd: rgba(255, 255, 255, .2);
-                width: 704px; max-width: calc(100vw - 24px); padding: 0 16px; z-index: 999992;
+                /* 800 since 8.1.5: the decision row holds the four readouts, LONG / SHORT and FLAT 50% REV STOP LIMIT on one line (704 pushed
+                   LIMIT past the edge with "% of 10K" showing); on a narrower window it wraps instead (.xc-dc flex-wrap) */
+                width: 800px; max-width: calc(100vw - 24px); padding: 0 16px; z-index: 999992;
                 background: var(--ax-raised); color: var(--ax-text);
                 border: 1px solid var(--ax-line); border-radius: 12px; box-shadow: 0 16px 48px var(--ax-shadow);
                 font: 12px/16px var(--ax-font, system-ui, -apple-system, "Inter", "Segoe UI", sans-serif);
@@ -744,7 +752,7 @@
             #ax4p-exec-deck .xc-lock-banner { display: flex; align-items: center; gap: 8px; margin: 2px 0 8px; padding: 8px 12px; border-radius: 8px; font-size: 12px; line-height: 16px; font-weight: 600; color: var(--ax-down);
                 background: color-mix(in srgb, var(--ax-down) 12%, transparent); border: 1px solid color-mix(in srgb, var(--ax-down) 45%, transparent); }
             #ax4p-exec-deck .xc-lock-banner svg { flex: none; }
-            #ax4p-exec-deck.xc-locked .xc-big, #ax4p-exec-deck.xc-locked #ax4p-rev-btn { opacity: .4; cursor: not-allowed; filter: none; }
+            #ax4p-exec-deck.xc-locked .xc-big, #ax4p-exec-deck.xc-locked #ax4p-rev-btn, #ax4p-exec-deck.xc-locked #ax4p-limit-btn { opacity: .4; cursor: not-allowed; filter: none; }
             #ax4p-exec-deck .xc-pill-lock { display: grid; place-items: center; color: var(--ax-down); }
             #ax4p-exec-deck .xc-seg, #ax4p-exec-deck .xc-field, #ax4p-exec-deck .xc-step { height: 32px; border: 1px solid var(--ax-line); border-radius: 8px; background: var(--ax-btn); }
             #ax4p-exec-deck .xc-sizes { display: flex; gap: 8px; width: 232px; }
@@ -805,6 +813,9 @@
             #ax4p-exec-deck .xc-g4 { display: flex; align-items: flex-end; justify-content: flex-end; gap: 18px; min-width: 0; }
             #ax4p-exec-deck .xc-opts { display: grid; gap: 12px; padding-bottom: 6px; }
             #ax4p-exec-deck .xc-lab--tg.ac { color: var(--ax-accent); }
+            /* SL/TP on STOP & LIMIT: one dot switch, right-aligned in the decision row's first line, right above the two tiles (hidden with them) */
+            #ax4p-exec-deck .xc-dc { flex-wrap: wrap; }
+            #ax4p-exec-deck .xc-carry { display: flex; justify-content: flex-end; flex: 0 0 100%; margin: -2px 0 -4px; }
             #ax4p-exec-deck .xc-exits { display: flex; align-items: center; gap: 22px; margin: -2px 0 10px; }
             #ax4p-exec-deck .xc-ex { display: flex; align-items: center; gap: 8px; }
             #ax4p-exec-deck .xc-ex + .xc-ex { padding-left: 22px; border-left: 1px solid var(--ax-line); }
@@ -857,6 +868,18 @@
             #ax4p-exec-deck .xc-m--rev svg { color: var(--ax-warn); }
             #ax4p-exec-deck .xc-m--stop { --t: var(--ax-accent); }
             #ax4p-exec-deck .xc-m--stop svg { color: var(--ax-accent); }
+            #ax4p-exec-deck .xc-m--limit { --t: var(--ax-accent); }
+            #ax4p-exec-deck .xc-m--limit svg { color: var(--ax-accent); }
+            /* Cancel all (8.1.5): a small caret on FLAT says there is more; on hover (or keyboard focus) a button rises above FLAT, its right edge on
+               FLAT's (it grows left, over the empty space above SHORT, and leaves the SL/TP switch alone). Its box reaches down to the capsule,
+               and it hides a moment late, so the pointer can go from FLAT up onto it without it closing */
+            #ax4p-exec-deck #ax4p-flatten-btn::after { content: ""; position: absolute; top: 3px; right: 4px; border: 3px solid transparent; border-top: 0; border-bottom: 4px solid currentColor; opacity: .55; }
+            #ax4p-exec-deck .xc-cxl { position: absolute; right: calc(100% - 48px); bottom: 100%; padding: 0 0 6px; z-index: 3; visibility: hidden; opacity: 0; transform: translateY(3px); transition: opacity .12s, transform .12s, visibility 0s linear .25s; }
+            #ax4p-exec-deck #ax4p-flatten-btn:hover ~ .xc-cxl, #ax4p-exec-deck #ax4p-flatten-btn:focus-visible ~ .xc-cxl, #ax4p-exec-deck .xc-cxl:hover, #ax4p-exec-deck .xc-cxl:has(button:focus-visible) { visibility: visible; opacity: 1; transform: none; transition: opacity .12s, transform .12s, visibility 0s; }
+            #ax4p-exec-deck .xc-cxl button { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px; border-radius: 6px; white-space: nowrap; font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+                color: var(--ax-down); background: var(--ax-raised); border: 1px solid color-mix(in srgb, var(--ax-down) 45%, var(--ax-line)); box-shadow: 0 6px 18px var(--ax-shadow); }
+            #ax4p-exec-deck .xc-cxl button:hover { background: color-mix(in srgb, var(--ax-down) 14%, var(--ax-raised)); }
+            #ax4p-exec-deck .xc-cxl button:disabled { opacity: .5; cursor: progress; }
             #ax4p-exec-deck .xc-m + .xc-m::before { content: ""; position: absolute; left: -2px; top: 8px; bottom: 8px; width: 1px; background: linear-gradient(to bottom, transparent, var(--ax-line) 25%, var(--ax-line) 75%, transparent); transition: opacity .12s; }
             #ax4p-exec-deck .xc-m:hover:not(:disabled) { background: color-mix(in srgb, var(--t) 9%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--t) 40%, transparent); color: var(--ax-accent); }
             #ax4p-exec-deck .xc-m:hover:not(:disabled) svg { color: var(--t); }
@@ -2237,8 +2260,27 @@
     function setFeedDot() {}
     function renderTape() {}
 
+    // detectPrices walks every span / div / p on the page three times (about 2 ms, forced layout included). The market bar's observer
+    // below paints fresh Mid / Index numbers itself, so while they keep coming, or while the bar's text is exactly what the last walk
+    // saw (a quiet market), the walk has nothing to add: it runs at most every 3 s then (the Mark price and anything the bar cannot
+    // show come with it). With no fresh numbers and no readable bar (hidden tab, no market bar) it runs every tick as before.
+    let priceFeedAt = 0;
+    let priceScanAt = 0;
+    let priceScanText = null;
+    let pricePair = [null, null]; // the Mid / Index the readouts last showed
     function checkDislocation() {
+        const t = now();
+        const barText = priceBar && priceBar.isConnected ? priceBar.textContent : null;
+        if (t - priceScanAt < 3000 && (t - priceFeedAt < 1500 || (barText != null && barText === priceScanText))) {
+            // a readout that appeared since (Settings opened) still gets the numbers within one tick
+            paintSpread(pricePair[0], pricePair[1]);
+            updateExecutionRiskCalc();
+            return;
+        }
+        priceScanAt = t;
+        priceScanText = barText;
         const { mid, idx } = detectPrices();
+        pricePair = [mid, idx];
         paintSpread(mid, idx);
         updateExecutionRiskCalc();
     }
@@ -2262,7 +2304,14 @@
                 const num = (re) => { const m = t.match(re); return m ? parseFloat(m[1].replace(/,/g, '')) : null; };
                 const mid = num(/Mid Price\s*\$?([0-9,]+\.\d{2})/i);
                 const idx = num(/Index Price\s*\$?([0-9,]+\.\d{2})/i);
-                if (mid && idx) paintSpread(mid, idx);
+                if (mid && idx) {
+                    // what detectPrices would have read from this same bar
+                    lastKnownMid = mid;
+                    lastKnownIdx = idx;
+                    priceFeedAt = now();
+                    pricePair = [mid, idx];
+                    paintSpread(mid, idx);
+                }
             });
         });
         priceObs.observe(bar, { subtree: true, childList: true, characterData: true });
@@ -2861,13 +2910,25 @@
     // What the last raw order did, for the W / S macros: they press the card's button and cannot see the outcome otherwise.
     const XCR = { n: 0, sent: false, msg: '' };
 
-    async function xcExecute(side) {
+    // plain = true: no stop and no target for this one order, whatever the card's switches say (a fired client stop with "SL/TP on Stop & Limit" off)
+    async function xcExecute(side, plain) {
         const lk = xcHooks.locked();
         if (lk) { flashExec(lk.text); XCR.msg = lk.text; XCR.sent = false; XCR.n++; return false; }
-        if (xcSlOn() && xcTpOn()) return triggerExecution(side);
+        // the chart labels of this entry, drawn now from the same prices the order code reads in this same turn (extension: tpProvStart)
+        const prov = xcHooks.entry ? xcHooks.entry(side, !plain && xcSlOn(), !plain && xcTpOn()) : null;
+        if (!plain && xcSlOn() && xcTpOn()) return triggerExecution(side);
         let sent = false;
-        try { sent = await xcRawExecution(side); } finally { XCR.sent = sent; XCR.n++; }
+        try { sent = plain ? await xcRawExecution(side, false, false) : await xcRawExecution(side); } finally { XCR.sent = sent; XCR.n++; if (!sent && prov) prov(); }
         return sent;
+    }
+
+    // "SL/TP on Stop & Limit" (the card's switch, Settings > Keys, one value): do STOP and LIMIT orders carry the card's stop and target (the
+    // ones that are on)? Off by default. The E / Q limit keys follow it too.
+    const xcCarryOn = () => !!(S.macros && S.macros.limitBracket);
+    // what a STOP or LIMIT order does about stop and target, for a toast
+    function xcCarryText() {
+        if (!xcCarryOn()) return ', no stop or target';
+        return (xcSlOn() ? ', with the stop' : ', no stop') + (xcTpOn() ? ' and target' : ', no target');
     }
 
     // The wanted leg gets its price; the other one is cleared with '', so a price left from the last order can never
@@ -2888,8 +2949,7 @@
     // Vest's own TP/SL box is switched off (its fields are emptied first, in case Vest keeps them when the box goes off);
     // with one wanted the box stays on and the other field is cleared. It refuses (nothing pressed) when the ticket does
     // not end up the way this order needs it. true = Buy / Sell was pressed.
-    async function xcRawExecution(side) {
-        const useSl = xcSlOn(), useTp = xcTpOn();
+    async function xcRawExecution(side, useSl = xcSlOn(), useTp = xcTpOn()) {
         const stop = (m) => { flashExec(m); XCR.msg = m; return false; };
         const size = activeSelectedSize;
         const slPts = parseFloat(document.getElementById('ax4p-sl-pts')?.value) || 15;
@@ -3152,7 +3212,7 @@
     // The extension fills xcHooks (positions, Demo, hotkey labels, 50% and REV). The userscript keeps these stubs, so there
     // the card trades exactly like the old strip and 50% / REV stay off.
     // known() is false when the card cannot see your position: then it shows no position line instead of "Flat".
-    const xcHooks = { known: () => false, unknownWhy: () => '', position: () => null, demo: () => false, keyFor: () => '', half: null, rev: null, flat: null, stop: null,
+    const xcHooks = { known: () => false, unknownWhy: () => '', position: () => null, demo: () => false, keyFor: () => '', half: null, rev: null, flat: null, stop: null, limit: null, entry: null, cancelAll: null,
         exits: false, trailSet: null, autoBeSet: null, trailDesc: null, busy: () => false, armed: () => false,
         partials: () => 'Partials need the Better Vest extension.', assetOf: () => null, applyPartials: null,
         // the daily loss limit (extension): locked() is { text } while new trades are locked, dll() is what the card shows
@@ -3169,6 +3229,7 @@
         half: '<svg viewBox="0 0 16 16" fill="none" aria-hidden="true"><circle cx="8" cy="8" r="5.75" stroke="currentColor" stroke-width="1.5"/><path d="M8 2.25a5.75 5.75 0 0 0 0 11.5z" fill="currentColor"/></svg>',
         rev: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 5.25h10.25M10.25 2.75l2.5 2.5-2.5 2.5M13.5 10.75H3.25M5.75 8.25l-2.5 2.5 2.5 2.5"/></svg>',
         stop: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1.5 8h3.25M11.25 8h3.25" stroke-dasharray="1.6 1.6"/><path d="M8 3v10M5.5 5.5L8 3l2.5 2.5"/></svg>',
+        limit: '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1.5 8h13" stroke-dasharray="1.6 1.6"/><path d="M8 13V5M5.5 10.5L8 13l2.5-2.5"/></svg>',
         lock: '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="7.25" width="9" height="6.25" rx="1.75"/><path d="M5.5 7.25V5.5a2.5 2.5 0 0 1 5 0v1.75"/></svg>'
     };
     function xcMarket() { return String(detectedSymbol || '').replace(/-PERP$/, '') || 'NQ'; }
@@ -3527,8 +3588,16 @@
         const stp = document.getElementById('ax4p-stop-btn');
         if (stp) {
             stp.hidden = !xcHooks.stop || S.tpsl.stops.show === false || S.tpsl.enabled === false;
-            stp.classList.toggle('armed', !!(xcHooks.placing && xcHooks.placing()));
+            stp.classList.toggle('armed', !!(xcHooks.placing && xcHooks.placing() === 'stop'));
         }
+        const lmt = document.getElementById('ax4p-limit-btn');
+        if (lmt) {
+            lmt.hidden = !xcHooks.limit || S.tpsl.limit.show === false || S.tpsl.enabled === false;
+            lmt.classList.toggle('armed', !!(xcHooks.placing && xcHooks.placing() === 'limit'));
+        }
+        xcPaintCarry();
+        const cxl = document.getElementById('ax4p-cxl');
+        if (cxl) cxl.hidden = !xcHooks.cancelAll;
         const rev = document.getElementById('ax4p-rev-btn');
         if (rev) {
             rev.disabled = !pos || !xcHooks.rev;
@@ -3548,6 +3617,23 @@
         xcPaintDll();
         xcPaintPartials();
         paintSizeUnit();
+    }
+
+    // the switch above STOP and LIMIT: shown with either of them, one value with Settings > Keys (S.macros.limitBracket)
+    function xcPaintCarry() {
+        const row = document.getElementById('ax4p-xc-carry');
+        if (!row) return;
+        const stp = document.getElementById('ax4p-stop-btn'), lmt = document.getElementById('ax4p-limit-btn');
+        row.hidden = !!(stp && stp.hidden) && !!(lmt && lmt.hidden);
+        const tg = document.getElementById('ax4p-xc-carry-tg');
+        if (tg) tg.setAttribute('aria-checked', String(xcCarryOn()));
+    }
+    function xcSetCarry(on) {
+        if (!S.macros) return;
+        S.macros.limitBracket = !!on;
+        persist();
+        xcPaintCarry();
+        mcPaint(); // the Keys checkbox
     }
 
     function xcWire(deck) {
@@ -3611,7 +3697,17 @@
         document.getElementById('ax4p-xc-p-apply').addEventListener('click', () => { if (xcHooks.applyPartials) xcHooks.applyPartials(); });
         document.getElementById('ax4p-half-btn').addEventListener('click', () => { if (xcHooks.half) xcHooks.half(); });
         document.getElementById('ax4p-rev-btn').addEventListener('click', () => { if (xcHooks.rev) xcHooks.rev(); });
+        const carry = document.getElementById('ax4p-xc-carry-tg');
+        carry.addEventListener('click', () => xcSetCarry(!xcCarryOn()));
+        carry.addEventListener('keydown', (e) => {
+            if (e.key !== ' ' && e.key !== 'Enter') return;
+            e.preventDefault();
+            xcSetCarry(!xcCarryOn());
+        });
         document.getElementById('ax4p-stop-btn').addEventListener('click', () => { if (xcHooks.stop) xcHooks.stop(); });
+        document.getElementById('ax4p-limit-btn').addEventListener('click', () => { if (xcHooks.limit) xcHooks.limit(); });
+        // a mouse press must not keep it open by focus once the pointer has left (the keyboard's focus still does, :focus-visible)
+        document.getElementById('ax4p-cxl-btn').addEventListener('click', (e) => { if (e.detail) e.currentTarget.blur(); if (xcHooks.cancelAll) xcHooks.cancelAll(); });
         xcPaint();
         setInterval(xcPaint, 1000);
     }
@@ -3813,6 +3909,9 @@
                 <div class="xc-parts" id="ax4p-xc-parts" hidden></div>
                 <div class="xc-papply"><button type="button" class="xc-apply" id="ax4p-xc-p-apply" title="Split this position's take-profit the same way, in Vest's Edit TP/SL window" hidden>Set on position</button></div>
                 <div class="xc-dc">
+                    <div class="xc-carry" id="ax4p-xc-carry" hidden>
+                        <span class="xc-lab xc-lab--tg ac" id="ax4p-xc-carry-tg" role="switch" aria-checked="false" aria-label="Stop and target on Stop and Limit orders" tabindex="0" title="SL/TP on Stop &amp; Limit: when on, STOP and LIMIT orders carry this card's stop and target (the ones switched on). When off, they go in plain, with no stop or target. The E / Q limit keys follow it too (same switch as Settings > Keys). A STOP that is already armed uses the setting as it is when it fires."><span class="xc-dot"></span><span class="xc-lt">SL/TP on Stop &amp; Limit</span></span>
+                    </div>
                     <dl class="xc-risk" id="ax4p-exec-risk-display">
                         <div><dt>Risk</dt><dd id="ax4p-xc-risk"></dd></div>
                         <div><dt>Target</dt><dd id="ax4p-xc-target"></dd></div>
@@ -3826,7 +3925,9 @@
                             <button type="button" id="ax4p-flatten-btn" class="xc-m xc-m--flat idle" title="Flat: close the whole position">${XC_ICON.flat}<span>Flat</span></button>
                             <button type="button" id="ax4p-half-btn" class="xc-m xc-m--half" title="Close 50% of the position" disabled>${XC_ICON.half}<span>50<small>%</small></span></button>
                             <button type="button" id="ax4p-rev-btn" class="xc-m xc-m--rev" title="Reverse: close the position, then open the other side (click twice)" disabled>${XC_ICON.rev}<span>Rev</span></button>
-                            <button type="button" id="ax4p-stop-btn" class="xc-m xc-m--stop" title="Stop entry: then click the chart where it goes. Above the price a buy stop, below a sell stop, for this size. Held by Better Vest: it sends a market order when the mid touches it, while this tab is open." hidden>${XC_ICON.stop}<span>Stop</span></button>
+                            <button type="button" id="ax4p-stop-btn" class="xc-m xc-m--stop" title="Stop entry: then click the chart where it goes. Above the price a buy stop, below a sell stop, for this size. Held by Better Vest: it sends a market order when the mid touches it, while this tab is open. The stop and target go with it only if SL/TP on Stop &amp; Limit (above) is on." hidden>${XC_ICON.stop}<span>Stop</span></button>
+                            <button type="button" id="ax4p-limit-btn" class="xc-m xc-m--limit" title="Limit order: then click the chart where it goes. Below the price a buy limit, above a sell limit, for this size. A real resting order on Vest, placed through its own ticket like the E / Q keys. The stop and target go with it only if SL/TP on Stop &amp; Limit (above) is on." hidden>${XC_ICON.limit}<span>Limit</span></button>
+                            <div class="xc-cxl" id="ax4p-cxl" hidden><button type="button" id="ax4p-cxl-btn" title="Cancel all orders of this account: your STOP orders (held by Better Vest) and your limit orders on Vest, on every market. TP and SL are not touched, and positions stay open.">Cancel all orders</button></div>
                         </div>
                     </div>
                 </div>
@@ -3997,7 +4098,14 @@
                     <div class="ax4p-sec-t">Client-side stops</div>
                     <label class="ax4p-row"><span>Show the STOP button on the Execute card</span><input type="checkbox" id="ax4p-cs-show"></label>
                     <details class="ax4p-more"><summary>How it works</summary>
-                        <div class="ax4p-hint">Press STOP, then click the chart: above the price it is a buy stop, below a sell stop, for the size selected on the Execute card. Better Vest holds it (Vest never sees it) and sends a market order with the card's stop and target the moment the mid touches it, once. Drag it to move it, the x removes it. It only works while this tab is open and the price is live: a stop that price went past while it could not watch (a reload, no price) is shown as PASSED and never sent. Click it to arm it again.</div>
+                        <div class="ax4p-hint">Press STOP, then click the chart: above the price it is a buy stop, below a sell stop, for the size selected on the Execute card. Better Vest holds it (Vest never sees it) and sends a market order the moment the mid touches it, once: with the card's stop and target (the ones that are on) only if "SL/TP on Stop &amp; Limit" is on (the switch above STOP and LIMIT on the card, or Keys), else a plain market order. That switch is read when the stop fires. Drag it to move it, the x removes it. It only works while this tab is open and the price is live: a stop that price went past while it could not watch (a reload, no price) is shown as PASSED and never sent. Click it to arm it again.</div>
+                    </details>
+                </div>
+                <div class="ax4p-sec">
+                    <div class="ax4p-sec-t">Limit orders from the chart</div>
+                    <label class="ax4p-row"><span>Show the LIMIT button on the Execute card</span><input type="checkbox" id="ax4p-lm-show"></label>
+                    <details class="ax4p-more"><summary>How it works</summary>
+                        <div class="ax4p-hint">Press LIMIT, then click the chart: below the price it is a buy limit, above a sell limit, for the size selected on the Execute card. One click sends a real resting order through Vest's own order ticket, the way the E and Q keys do (Limit tab, size, price, Buy / Sell), and puts the ticket back on Market. A price the market has already reached is refused, and so is anything the daily loss limit or the E / Q checks would refuse. It carries the card's stop and target (the ones that are on) only if "SL/TP on Stop &amp; Limit" is on (the switch above STOP and LIMIT, or Keys). In Demo it only says what it would place.</div>
                     </details>
                 </div>` : `
                 <div class="ax4p-sec"><div class="ax4p-hint" style="margin:0;">Chart TP/SL needs the Better Vest extension.</div></div>`}
@@ -4429,10 +4537,21 @@
         return { ys: res.ys, order: res.order, side, open };
     }
 
+    // Number.prototype.toLocaleString with options builds a new Intl.NumberFormat on every call (about 40 us): the chart's labels format
+    // several dollar amounts per frame. One formatter per (min, max) digits gives the same text.
+    // (the cache hangs on the function so that nothing depends on where a const is declared)
+    function numFmt(min, max) {
+        const cache = numFmt.cache || (numFmt.cache = new Map());
+        const k = min + ',' + max;
+        let f = cache.get(k);
+        if (!f) cache.set(k, f = new Intl.NumberFormat('en-US', { minimumFractionDigits: min, maximumFractionDigits: max }));
+        return f;
+    }
+
     function tpFmtUsd(n, signed) {
         if (!Number.isFinite(n)) return '-';
         const a = Math.abs(n);
-        const body = a.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const body = numFmt(2, 2).format(a);
         const neg = n < 0 && Math.round(a * 100) > 0;
         return (neg ? '-' : signed ? '+' : '') + '$' + body;
     }
@@ -4605,6 +4724,11 @@
         if (m - p >= t - 1e-9) return 'sell';
         return '';
     }
+    // The LIMIT tile (8.1.5): the same click, the other way round. Below the mid a buy limit, above a sell limit; '' within a tick of the mid.
+    function lmSideFor(price, mid, tick) {
+        const s = csSideFor(price, mid, tick);
+        return s === 'buy' ? 'sell' : s === 'sell' ? 'buy' : '';
+    }
     // @@BV-TPSL-MATH-END
 
     const TP = {
@@ -4621,7 +4745,8 @@
         dead: false, chartSym: '', chartSymAt: 0, lastCommit: new Map(), legPx: [], rescan: 0, geomErr: '',
         popup: false, evalAt: 0, legTol: 0.01, lastBarAt: 0, lastBarT: null, prevLx: null, away: false, tight: false, lastX: null, xMethod: '', gcAt: 0, loadingInfo: false,
         colW: 0, colSig: '', colAt: 0, measure: null, lx: null, lxGlide: false, room: null, roomAt: 0, roomFlatAt: 0, chartDown: false, chartTouchAt: 0,
-        deadUntil: 0, quick: 0, trail: new Map(), trailSeen: null, trailGone: new Map(), autoBe: new Map()
+        deadUntil: 0, quick: 0, trail: new Map(), trailSeen: null, trailGone: new Map(), autoBe: new Map(),
+        opt: new Map(), creates: new Map(), obs: null, obsTry: 0
     };
     // Label column geometry (px). The column sits just right of the last bar, or docked at the pane's right edge.
     const TP_GAP = 10;        // from the last bar to the label column
@@ -4677,8 +4802,9 @@
         } catch (e) { return null; }
     }
 
-    function tpActiveAccount() {
-        if (TP.acc && now() - TP.accAt < 400) return TP.acc;
+    // fresh: skip the 400 ms memo (what is about to be clicked must belong to the account as it is right now)
+    function tpActiveAccount(fresh) {
+        if (!fresh && TP.acc && now() - TP.accAt < 400) return TP.acc;
         let uid = null;
         try { const b = tpBridge(); uid = b && b.userId ? b.userId() : null; } catch (e) {}
         // no user id means no account: the bare key can belong to another login
@@ -4740,6 +4866,10 @@
             // shortens to NOK-PERP, which is Nokia's own symbol
             TP.info.set(String(x.symbol).toUpperCase(), rec);
             if (!TP.info.has(tpNormSym(x.symbol))) TP.info.set(tpNormSym(x.symbol), rec);
+            // and by the chart's own name (tpSymbol: "NQ" for NDX-USD-PERP): the STOP / LIMIT clicks read the tick by it. Missing, NQ's tick
+            // was 0.01, so a LIMIT price snapped to the cent and the order check (by the API name, 0.25) refused it as off the tick grid.
+            const canon = tpCanonSym(x.symbol);
+            if (canon && !TP.info.has(canon)) TP.info.set(canon, rec);
         });
         TP.infoAt = now();
     }
@@ -4748,7 +4878,7 @@
     function tpInfoFor(sym) {
         const i = tpInfoGet(sym) || {};
         let tick = i.tick;
-        if (!(tick > 0)) tick = /^(NDX|SPX|NQ|ES)-/i.test(String(sym)) ? NQ_TICK : 0.01;
+        if (!(tick > 0)) tick = /^(NDX|SPX|NQ|ES)(?:-|$)/i.test(String(sym)) ? NQ_TICK : 0.01; // "NQ" too: the chart's own name
         const dec = Math.max(i.dec != null ? i.dec : 0, tpDecimals(tick));
         return { tick, dec };
     }
@@ -4774,6 +4904,7 @@
 
     async function tpRefresh() {
         if (!TP.on || TP.demo) return;
+        if (tpApplyStore()) return; // Vest's own positions store, read as it is right now: no request (see below)
         if (TP.loading) { TP.again = true; return; }
         const b = tpBridge();
         const acc = tpActiveAccount();
@@ -4800,6 +4931,8 @@
             TP.rowsAt = now();
             TP.rowsStart = started;
             TP.err = '';
+            TP.src = 'rest';
+            TPS.sig = ''; // the next store read compares against this model
             tpReconcile();
         } catch (e) {
             TP.err = (e && (e.code || e.message)) || 'error';
@@ -4809,18 +4942,207 @@
         }
     }
 
+    // ---------- Vest's own positions store (8.1.5): the labels as soon as Vest's own lines ----------
+    // Vest draws its position lines from a zustand store it fills from its private socket and its own reads. The model is read from there
+    // the moment Vest changes it (subscribe), so a new position, a filled order or a moved stop shows on our labels in the same frame as on
+    // Vest's own lines. Before, a socket frame only scheduled a read of ours 0.5 to 5 s later, plus the read: 2 s and more after an entry.
+    // Same mapping as the REST rows (tpRefresh, tpLegs; the copier's vxPositionsFromStore): sizes and prices are bigints scaled by the
+    // market's size / price decimals from the exchange info. The leg ids are Vest's order ids (its order-intent events carry them). Anything
+    // not exactly as expected (no store, the account not hydrated, decimals not loaded, a value that is not a bigint) gives null, and the
+    // REST read stays the model, as before. The store is only read, never written.
+    const TPS = { api: null, unsub: null, findAt: 0, sig: '', queued: false };
+
+    const tpScaled = (v, dec) => Number(v) / Math.pow(10, dec);
+
+    // Vest's positions store, by its own shape (member names survive minification)
+    function tpIsPosStore(api) {
+        try {
+            if (!api || typeof api.getState !== 'function' || typeof api.subscribe !== 'function') return false;
+            const st = api.getState();
+            return !!st && typeof st.getRegistry === 'function' && typeof st.setPositions === 'function' && typeof st.getById === 'function' &&
+                !!st.accounts && typeof st.accounts === 'object';
+        } catch (e) { return false; }
+    }
+
+    // Found through React's fibers from the root (a component that reads a store keeps useCallback(..., [api, selector]): the api is the
+    // hook's memoizedState[1][0]); measured on the real page: found after about 100 fibers. Subscribed once; looked for again at most every 3 s
+    // while it is missing.
+    function tpFindStores() {
+        if (TPS.api && tpIsPosStore(TPS.api)) return;
+        const t = now();
+        if (t - TPS.findAt < 3000) return;
+        TPS.findAt = t;
+        let root = null;
+        try {
+            const el = document.getElementById('root');
+            for (const k of Object.keys(el || {})) {
+                if (k.indexOf('__reactContainer$') !== 0 || !el[k]) continue;
+                root = (el[k].stateNode && el[k].stateNode.current) || el[k];
+                break;
+            }
+        } catch (e) {}
+        if (!root) return;
+        let found = null;
+        const stack = [root];
+        for (let n = 0; stack.length && n < 40000 && !found; n++) {
+            const f = stack.pop();
+            if (!f) continue;
+            for (let h = f.memoizedState, i = 0; h && typeof h === 'object' && i < 100; h = h.next, i++) {
+                const m = h.memoizedState;
+                const a = Array.isArray(m) && Array.isArray(m[1]) ? m[1][0] : null;
+                if (a && tpIsPosStore(a)) { found = a; break; }
+            }
+            if (f.sibling) stack.push(f.sibling);
+            if (f.child) stack.push(f.child);
+        }
+        if (TPS.unsub) { try { TPS.unsub(); } catch (e) {} }
+        TPS.unsub = null;
+        TPS.api = found;
+        TPS.sig = '';
+        if (found) { try { TPS.unsub = found.subscribe(tpStoreChanged); } catch (e) { TPS.api = null; } }
+    }
+
+    // Vest changed its store (it does on every socket frame of the account): the model follows in a microtask, once however many come
+    function tpStoreChanged() {
+        if (TPS.queued) return;
+        TPS.queued = true;
+        Promise.resolve().then(() => { TPS.queued = false; try { tpApplyStore(); } catch (e) {} });
+    }
+
+    // One account's positions on one market, in the model's shape (tpRefresh); null when anything is not as expected
+    function tpStorePositions(acc, sym) {
+        const api = TPS.api;
+        if (!api || !tpIsPosStore(api)) return null;
+        let reg = null;
+        try { reg = api.getState().accounts[acc]; } catch (e) { return null; }
+        if (!reg || reg.hasHydrated !== true || !reg.positions || typeof reg.positions !== 'object') return null;
+        const out = [];
+        for (const p of Object.values(reg.positions)) {
+            if (!p || !tpSameSym(p.symbol, sym)) continue;
+            if (typeof p.quantity !== 'bigint' || typeof p.openPrice !== 'bigint' || typeof p.isLong !== 'boolean') return null;
+            if (p.closedAt || p.quantity <= 0n) continue;
+            const info = tpInfoGet(p.symbol);
+            if (!info || !Number.isInteger(info.dec) || !Number.isInteger(info.sizeDec)) return null;
+            const qty = tpScaled(p.quantity, info.sizeDec);
+            const legs = (arr) => {
+                const r = [];
+                for (const l of Array.isArray(arr) ? arr : []) {
+                    if (!l || l.id == null || typeof l.triggerPrice !== 'bigint') return null;
+                    if (l.status && TP_DEAD.test(String(l.status))) continue;
+                    const trigger = tpScaled(l.triggerPrice, info.dec);
+                    if (!(trigger > 0)) continue;
+                    const fixed = l.sizeMode === 'fixed' && typeof l.quantity === 'bigint' && l.quantity > 0n;
+                    r.push({ id: String(l.id), exec: l.executionType === 'limit' ? 'limit' : 'market', fixed,
+                        qty: fixed ? tpScaled(l.quantity, info.sizeDec) : qty, trigger, limit: typeof l.limitPrice === 'bigint' ? tpScaled(l.limitPrice, info.dec) : 0 });
+                }
+                return r;
+            };
+            const tp = legs(p.takeProfits), sl = legs(p.stopLosses);
+            if (!tp || !sl) return null;
+            const entry = tpScaled(p.openPrice, info.dec);
+            if (!(entry > 0)) continue;
+            // the liquidation price is not in this store: the last server read's, else none, as a REST row without one (the checks then read Vest's own liquidation line)
+            const was = TP.model.positions.find((x) => x.id === String(p.id));
+            out.push({ id: String(p.id), symbol: String(p.symbol), isLong: p.isLong, qty, entry, legs: { tp, sl }, liq: was ? was.liq : null });
+        }
+        return out;
+    }
+
+    // The model from Vest's store, as it is now; true when it was used. Never in the demo; only once the exchange info is loaded (the first
+    // read is the REST one, which loads it).
+    function tpApplyStore() {
+        if (!TP.on || TP.demo || !TP.info.size) return false;
+        if (!TPS.api) { tpFindStores(); if (!TPS.api) return false; }
+        const acc = tpActiveAccount();
+        const sym = tpSymbol();
+        const positions = acc && sym ? tpStorePositions(acc, sym) : null;
+        if (!positions) return false;
+        const sig = acc + '|' + sym + '|' + positions.map((p) => [p.id, p.isLong, p.qty, p.entry, p.liq,
+            ...['tp', 'sl'].map((k) => p.legs[k].map((l) => [l.id, l.exec, l.fixed, l.qty, l.trigger, l.limit].join(':')).join(','))].join(';')).join('/');
+        const changed = sig !== TPS.sig || TP.model.accountId !== acc || !tpSameSym(TP.model.symbol, sym);
+        if (changed) {
+            TP.model = { accountId: acc, symbol: sym, positions };
+            TPS.sig = sig;
+        }
+        const t = now();
+        TP.rowsAt = t;
+        TP.rowsStart = t;
+        TP.err = '';
+        TP.src = 'store';
+        tpReconcile();
+        // a position that just opened: the frame loop starts now, not on the next 1 s watch (in a microtask: this can run inside tpWatch)
+        if (changed && positions.length && !TP.raf) Promise.resolve().then(() => { if (!TP.raf) tpWatch(); });
+        return true;
+    }
+
+    // ---------- the entry on its way (8.1.5): our labels before Vest has the position ----------
+    // The card's LONG / SHORT, and everything that presses it (the pill, W / S, a fired STOP, REV's open, the copier's leader order), goes
+    // through the order code, which fills Vest's ticket for about 0.4 s before it presses Buy / Sell; then the order travels and fills, and
+    // only then does Vest (and so tpApplyStore) have the position. The stop and target the order code puts on the ticket are known at the
+    // press: the page's mid, the card's points, rounded to the tick, read in the same turn as the order code reads them. So the labels go up
+    // at once, marked SENDING and not draggable (no position to write to yet), and the real position replaces them the moment Vest's store
+    // has it, at the same prices. Nothing is sent from here. Only when flat on this market; gone when the order code did not press Buy /
+    // Sell, or after 2.5 s with no position (a refusal from Vest).
+    const TP_PROV_MS = 2500;
+    function tpProvStart(side, sl, tp) {
+        TP.prov = null;
+        try {
+            if (!TP.on || TP.demo || S.tpsl.enabled === false || tpPositions().length) return null;
+            const acc = tpActiveAccount(), sym = tpSymbol();
+            if (!acc || !sym || !tpSymbolsAgree()) return null;
+            const qty = Number(activeSelectedSize);
+            const { mid } = detectPrices();
+            if (!(qty > 0) || !(mid > 0)) return null;
+            // exactly what the order code reads (triggerExecution, xcRawExecution)
+            const slPts = parseFloat(document.getElementById('ax4p-sl-pts')?.value) || 15;
+            const tpPts = parseFloat(document.getElementById('ax4p-tp-pts')?.value) || 30;
+            const isLong = side === 'buy';
+            const leg = (id, px) => ({ id, exec: 'market', fixed: false, qty, trigger: px, limit: 0 });
+            const p = { id: 'prov', symbol: apiSymbol(), isLong, qty, entry: mid, liq: null, prov: true, legs: {
+                sl: sl ? [leg('prov-sl', Number(roundToTick(isLong ? mid - slPts : mid + slPts)))] : [], // roundToTick gives the ticket's text
+                tp: tp ? [leg('prov-tp', Number(roundToTick(isLong ? mid + tpPts : mid - tpPts)))] : [] } };
+            const token = { p, acc, sym, at: now() };
+            TP.prov = token;
+            Promise.resolve().then(() => { if (!TP.raf) tpWatch(); });
+            return () => { if (TP.prov === token) TP.prov = null; };
+        } catch (e) {
+            TP.prov = null;
+            return null;
+        }
+    }
+    // the entry on its way, while it is the only thing to draw on this market (a real position replaces it)
+    function tpProvPos() {
+        const v = TP.prov;
+        if (!v) return null;
+        if (now() - v.at > TP_PROV_MS || tpPositions().length || v.acc !== tpActiveAccount() || !tpSameSym(v.sym, tpSymbol())) { TP.prov = null; return null; }
+        return v.p;
+    }
+    xcHooks.entry = tpProvStart;
+
     // called from the page-socket listener (before ingestRaw): a cheap substring test, no parsing
     function tpslTap(data) {
         if (!TP.on || TP.demo || typeof data !== 'string' || data.length > 40000) return;
         if (data.indexOf('"account_state"') === -1 && data.indexOf('take_profit') === -1 && data.indexOf('stop_loss') === -1) return;
         if (TP.wsTimer) return;
-        const wait = Math.max(500, 5000 - (now() - TP.wsAt));
+        // while a write of ours is waiting to show up, the frame that says Vest applied it is read at once (the model is what unlocks a create)
+        const wait = TP.pending.size ? Math.max(60, 400 - (now() - TP.wsAt)) : Math.max(500, 5000 - (now() - TP.wsAt));
         TP.wsTimer = setTimeout(() => { TP.wsTimer = 0; TP.wsAt = now(); tpRefresh(); }, wait);
     }
 
     // a pending commit is done once the server shows the leg at the new price
     function tpReconcile() {
         const t = now();
+        // accepted moves the server has not shown yet (tpCommitOne): dropped once it shows them, or the leg or position is gone, or after 9 s
+        // creates of ours the server has not shown yet: kept apart from TP.pending, which the next request on the same leg rewrites
+        TP.creates.forEach((c, k) => {
+            const pos = TP.model.positions.find((p) => p.id === c.posId);
+            if (!pos || t - c.t > 9000 || pos.legs[c.kind].some((l) => Math.abs(l.trigger - c.price) < tpInfoFor(pos.symbol).tick / 2)) TP.creates.delete(k);
+        });
+        TP.opt.forEach((o, key) => {
+            const pos = TP.model.positions.find((p) => p.id === o.posId);
+            const leg = pos && pos.legs[o.kind].find((l) => l.id === o.legId);
+            if (!leg || t - o.t > 9000 || Math.abs(leg.trigger - o.trigger) < tpInfoFor(pos.symbol).tick / 2) TP.opt.delete(key);
+        });
         TP.pending.forEach((pe, key) => {
             if (pe.state === 'pend') return;
             const pos = TP.model.positions.find((p) => p.id === pe.posId);
@@ -4828,7 +5150,9 @@
             const info = tpInfoFor(pos.symbol);
             const legs = pos.legs[pe.kind];
             const hit = legs.some((l) => (pe.legId == null || l.id === pe.legId) && Math.abs(l.trigger - pe.price) < info.tick / 2);
-            if (hit || t - pe.t > 9000) TP.pending.delete(key);
+            if (hit || t - pe.t > 9000) {
+                TP.pending.delete(key);
+            }
         });
     }
 
@@ -5326,6 +5650,7 @@
         TP.nodes.clear();
         TP.ghostN = null;
         TP.themeSig = '';
+        TP.pane.addEventListener('pointerdown', tpWarmOnPress);
         TP.pane.addEventListener('pointerdown', tpOnDown);
         TP.pane.addEventListener('click', tpOnClick);
         TP.pane.addEventListener('wheel', tpOnWheel, { passive: false });
@@ -5647,7 +5972,8 @@
         TP.stamp++;
         const g = tpGeom();
         TP.geom = g;
-        const positions = g ? tpPositions() : [];
+        let positions = g ? tpPositions() : [];
+        if (g && !positions.length) { const pp = tpProvPos(); if (pp) positions = [pp]; }
         const live = tpLivePrice();
         if (!g || (!positions.length && !TP.drag)) {
             if (!g) tpScaleHint();
@@ -5795,11 +6121,12 @@
             tpText(e.hk, pos.isLong ? 'LONG' : 'SHORT');
             tpText(e.hs, posQty);
             tpText(e.ep, pos.entry.toFixed(info.dec));
-            const pnl = live ? tpUsd(live, pos.entry, pos.qty, pos.isLong) : null;
-            tpText(e.pnl, pnl == null ? '-' : tpFmtUsd(pnl, true));
+            const pnl = live && !pos.prov ? tpUsd(live, pos.entry, pos.qty, pos.isLong) : null;
+            const pnlTxt = pos.prov ? 'SENDING' : pnl == null ? '-' : tpFmtUsd(pnl, true);
+            tpText(e.pnl, pnlTxt);
             tpClassIf(e.pnl, 'pos', pnl != null && pnl > 0);
             tpClassIf(e.pnl, 'neg', pnl != null && pnl < 0);
-            tpText(e.hu, pnl == null ? '-' : tpFmtUsd(pnl, true));
+            tpText(e.hu, pnlTxt);
             tpShow(e.ax, !off0);
             if (!off0) axisItems.push({ el: e.ax, y: y0 });
             tpText(e.ax, pos.entry.toFixed(info.dec));
@@ -6285,8 +6612,10 @@
 
     // ---------- committing: through Vest's own mutation observers ----------
 
-    // Fresh for every commit (they are rare, and a cached observer can belong to an unmounted component).
-    // Each candidate is classified by tpMatchMutation. Two DIFFERENT matching writers means Vest changed under us: abort.
+    // Vest's two TP/SL writers are found once and kept: walking Vest's React tree is the one slow lookup of a commit, so it is done ahead
+    // (tpWarmObservers) and a kept writer is used only while it is still good: its component mounted (its observer has listeners) and its
+    // mutationFn the same code. Anything else walks the tree again. Each candidate is classified by tpMatchMutation. Two DIFFERENT matching
+    // writers means Vest changed under us: abort.
     function tpFindObservers() {
         const found = { upd: [], add: [] };
         const starts = [document.querySelector('[data-testid="submit-long"]'), document.querySelector('[data-testid="tpsl-toggle"]'),
@@ -6313,12 +6642,51 @@
             }
         }
         const pick = (arr) => {
-            if (!arr.length) return { h: null, amb: false };
+            if (!arr.length) return { h: null, src: '', amb: false };
             const srcs = new Set(arr.map((x) => x.src));
-            return srcs.size > 1 ? { h: null, amb: true } : { h: arr[0].m, amb: false };
+            return srcs.size > 1 ? { h: null, src: '', amb: true } : { h: arr[0].m, src: arr[0].src, amb: false };
         };
         const u = pick(found.upd), a = pick(found.add);
-        return { upd: u.h, add: a.h, ambiguous: u.amb || a.amb };
+        return { upd: u.h, add: a.h, ambiguous: u.amb || a.amb, srcs: { upd: u.src, add: a.src } };
+    }
+
+    // a kept writer is still the right one: mounted (React Query's observers have listeners only while their component is) and the same code
+    function tpObserverLive(m, src) {
+        try {
+            return !!m && typeof m.hasListeners === 'function' && m.hasListeners() && typeof m.mutate === 'function' && !!m.options &&
+                Function.prototype.toString.call(m.options.mutationFn) === src;
+        } catch (e) { return false; }
+    }
+
+    function tpWalkObservers() {
+        const o = tpFindObservers();
+        TP.obsTry = now();
+        if (!o.ambiguous && (o.upd || o.add)) TP.obs = { at: now(), upd: o.upd, add: o.add, srcs: o.srcs };
+        return o;
+    }
+
+    // the writer a commit needs ('upd' moves a leg, 'add' creates one): the kept one, or a walk
+    function tpObservers(need) {
+        const c = TP.obs;
+        if (c && c[need] && now() - c.at < 60000 && tpObserverLive(c[need], c.srcs[need])) return { upd: c.upd, add: c.add, ambiguous: false, cached: true };
+        return tpWalkObservers();
+    }
+
+    // ahead of any commit: while a position is open (the 5 s watch) and when a label is pressed. Quiet when both writers are kept and good;
+    // when Vest's ticket is not mounted (nothing to find) it tries again at most every 2 s.
+    function tpWarmObservers() {
+        const c = TP.obs;
+        if (c && c.upd && c.add && now() - c.at < 45000 && tpObserverLive(c.upd, c.srcs.upd) && tpObserverLive(c.add, c.srcs.add)) return;
+        if (now() - TP.obsTry < 2000) return;
+        try { tpWalkObservers(); } catch (e) {}
+    }
+
+    // A press on any label (a drag, a button, BE) gets the commit path ready while the finger is down: the writers looked up, the model read
+    // again if it is not fresh, so the release finds both done. Not the drag's own code (tpOnDown): that is pinned as 8.0.5's.
+    function tpWarmOnPress(e) {
+        if (TP.demo || e.button !== 0 || !(e.target.closest && e.target.closest('.tp-n'))) return;
+        tpWarmObservers();
+        if (now() - TP.rowsAt > 1500) tpRefresh();
     }
 
     function tpSetPending(j, state, key) {
@@ -6338,33 +6706,45 @@
         return !!e && typeof e === 'object' && !!(e.response || e.isAxiosError || e.status || e.statusCode);
     }
 
+    // Reads until the server shows the write (the label's pending state ends): a short first step, then slower, as a read is a request.
+    // The private socket's frame (tpslTap) usually says when to look, so the wait is checked every 40 ms and ends the moment that read shows it.
     async function tpPollCommit(key) {
-        for (let i = 0; i < 6; i++) {
-            await sleep(400);
-            for (let w = 0; TP.loading && w < 10; w++) await sleep(100);
-            await tpRefresh();
+        let gap = 150, next = now() + gap;
+        for (let n = 0; n < 6;) {
             const pe = TP.pending.get(key);
-            if (!pe || pe.state === 'pend') break;
+            if (!pe || pe.state === 'pend') return;
+            if (now() < next || TP.loading) { await sleep(40); continue; }
+            n++;
+            await tpRefresh();
+            gap = Math.min(650, gap + 100);
+            next = now() + gap;
         }
     }
 
-    // Is the model older than our last write to this position, or is a write still unconfirmed? Then the model can neither
-    // tell us whether a leg exists (duplicate create) nor what the leg's price is (limit shift, Undo target).
+    // Is a CREATE of ours on this position and side not yet visible? Then the model can't tell us whether the leg exists, and a second create
+    // would be a duplicate. A move of a leg we already know needs none of this: its id is known and tpCommitOne keeps what the server has not
+    // shown yet (TP.opt) for the limit shift and Undo. (A read that merely STARTED after the create proves nothing while Vest's order system
+    // is still working on it: TP.creates holds the create until a read shows the leg.)
     function tpUnsettled(posId, kind) {
-        if (TP.rowsStart < (TP.lastCommit.get(posId) || 0)) return true;
+        if (TP.creates.has(posId + ':' + kind)) return true;
+        if (TP.rowsStart < (TP.lastCommit.get(posId + ':' + kind) || 0)) return true;
         let un = false;
-        TP.pending.forEach((pe) => { if (pe.posId === posId && pe.kind === kind && pe.state === 'ok') un = true; });
+        TP.pending.forEach((pe) => { if (pe.posId === posId && pe.kind === kind && pe.legId == null && pe.state === 'ok') un = true; });
         return un;
     }
 
-    // Refresh and wait (up to ~3 s) until the server shows our last write. false = it never did.
+    // Refresh and wait (up to ~3 s) until the server shows our last create. false = it never did. Looks every 40 ms, so the read the private
+    // socket's frame causes ends the wait at once; reads of its own come every 100 to 250 ms.
     async function tpSettle(posId, kind) {
         const end = now() + 3000;
+        let gap = 100, next = now() + gap;
         while (tpUnsettled(posId, kind)) {
-            if (now() > end) return false;
-            await sleep(250);
-            for (let w = 0; TP.loading && w < 10; w++) await sleep(100);
+            const t = now();
+            if (t > end) return false;
+            if (t < next || TP.loading) { await sleep(40); continue; }
             await tpRefresh();
+            gap = Math.min(250, gap + 50);
+            next = now() + gap;
         }
         return true;
     }
@@ -6382,15 +6762,19 @@
                 slot.next = null;
                 await tpCommitOne(j);
                 j = slot.next;
-                if (j) await tpPollCommit(tpLegKey(j.posId, j.kind, j.legId));
+                // a queued move of a known leg goes at once; a queued create first waits until Vest shows the one before it
+                if (j && j.legId == null) await tpPollCommit(tpLegKey(j.posId, j.kind, j.legId));
             }
         } finally { TP.inflight.delete(key0); }
     }
 
     async function tpCommitOne(j) {
-        let key = tpLegKey(j.posId, j.kind, j.legId);
+        const inKey = tpLegKey(j.posId, j.kind, j.legId);
+        let key = inKey;
         const fail = (msg, level, quiet) => {
-            TP.pending.delete(key);
+            // a refused write goes back to what the last accepted one showed (the server may not show it yet), else to the server's own price
+            const o = j.legId != null ? TP.opt.get(key) : null;
+            if (o) { tpSetPending({ posId: o.posId, kind: o.kind, legId: o.legId, price: o.trigger, s: o.s }, 'ok', key); tpRefresh(); } else TP.pending.delete(key);
             TP.shake.set(key, now() + 420);
             // an automatic move (the trailing SL) says why to its caller instead of a toast on every refusal
             if (j.auto) { try { if (j.onFail) j.onFail(msg); } catch (e) {} } else if (!quiet) tpToast(msg, level || 'bad');
@@ -6409,9 +6793,12 @@
             if (now() < TP.blockUntil) return fail('The executor was just used. ' + label + ' not sent, try again.', 'warn');
             if (bvCopyLock) return fail('The copy trader is switching accounts. ' + label + ' not sent, try again in a moment.', 'warn'); // drags, breakeven and the Edit window alike
             if (tpActiveAccount() !== j.accountId) return fail('The account changed. ' + label + ' not sent.', 'warn');
-            // the previous write to this position must be visible before we decide between create and move
-            if (!(await tpSettle(j.posId, j.kind))) return fail('The last change is not confirmed yet. ' + label + ' not sent, try again in a second.', 'warn');
-            if (now() - TP.rowsAt > 8000) await Promise.race([tpRefresh(), sleep(1500)]);
+            // A create waits until our previous create on this position and side is visible (never two legs). A move of a leg we know does not.
+            if (j.legId == null && !(await tpSettle(j.posId, j.kind))) return fail('The last change is not confirmed yet. ' + label + ' not sent, try again in a second.', 'warn');
+            if (now() - TP.rowsAt > 8000) {
+                await Promise.race([tpRefresh(), sleep(1500)]);
+                for (let w = 0; TP.loading && w < 15; w++) await sleep(100); // a read already under way is the one that makes it fresh
+            }
             if (tpActiveAccount() !== j.accountId || TP.model.accountId !== j.accountId) return fail('The account changed. ' + label + ' not sent.', 'warn');
             const pos = TP.model.positions.find((p) => p.id === j.posId);
             if (!pos) return fail('The position is gone. ' + label + ' not sent.', 'warn');
@@ -6434,29 +6821,38 @@
             if (live && !(tpNearChart(sn.n, live, 0.5) && tpNearChart(pos.entry, live, 0.5))) return fail('That price is not on this market. ' + label + ' not sent.', 'warn');
             const v = validateLevel({ kind: j.kind, price: sn.n, entry: pos.entry, isLong: pos.isLong, mid: live, liq: pos.liq || tpLiqPrice() });
             if (!v.ok) return fail(v.reason + '. ' + label + ' not sent.', 'warn');
-            const obs = tpFindObservers();
+            const obs = tpObservers(leg ? 'upd' : 'add');
             if (obs.ambiguous) return fail('Vest’s TP/SL handler is not unique. Nothing was changed.');
             const handler = leg ? obs.upd : obs.add;
             if (!handler) return fail('Could not reach Vest’s TP/SL handler. Nothing was changed.');
             const type = j.kind === 'tp' ? 'takeProfits' : 'stopLosses';
+            // what the leg stands at for the server's side: our last accepted write to it, which a read may not show yet, else what the model has
+            const prevOpt = leg ? TP.opt.get(key) : null;
+            const curTrig = prevOpt ? prevOpt.trigger : leg ? leg.trigger : null;
+            let curLimit = prevOpt ? prevOpt.limit : leg ? leg.limit : null;
             let vars;
             if (leg) {
                 const payload = { positionId: pos.id, orderId: leg.id, executionType: leg.exec, triggerPrice: sn.s };
-                if (leg.exec === 'limit' && leg.limit != null) {
-                    const sh = shiftLimit(leg.trigger, leg.limit, sn.n, info.tick, info.dec);
-                    if (sh) payload.limitPrice = sh.s;
+                if (leg.exec === 'limit' && curLimit != null) {
+                    const sh = shiftLimit(curTrig, curLimit, sn.n, info.tick, info.dec);
+                    if (sh) { payload.limitPrice = sh.s; curLimit = sh.n; }
                 }
                 vars = { type, payload };
             } else {
                 vars = { type, positionId: pos.id, executionType: 'market', triggerPrice: sn.s, silent: true };
             }
-            const was = leg ? leg.trigger : null;
-            TP.lastCommit.set(j.posId, now());
+            const was = leg ? curTrig : null;
+            if (!leg) TP.lastCommit.set(j.posId + ':' + j.kind, now());
             let timer = 0;
+            let answer;
             try {
-                await Promise.race([handler.mutate(vars), new Promise((resolve, reject) => { timer = setTimeout(() => reject(new Error('NO_ANSWER')), 15000); })]);
+                answer = await Promise.race([handler.mutate(vars), new Promise((resolve, reject) => { timer = setTimeout(() => reject(new Error('NO_ANSWER')), 15000); })]);
             } finally { clearTimeout(timer); }
-            tpSetPending(Object.assign({}, j, { price: sn.n, s: sn.s }), 'ok', key);
+            // a newer request for this leg is already queued (a second drag during this one): its own 'pend' stays, this write's price is not shown again
+            const queued = j.legId != null && !!(TP.inflight.get(inKey) || {}).next;
+            if (!leg) TP.creates.set(j.posId + ':' + j.kind, { posId: j.posId, kind: j.kind, price: sn.n, t: now() });
+            if (leg) TP.opt.set(key, { posId: j.posId, kind: j.kind, legId: j.legId, trigger: sn.n, s: sn.s, limit: curLimit, t: now() });
+            if (!queued) tpSetPending(Object.assign({}, j, { price: sn.n, s: sn.s }), 'ok', key);
             TP.flash.set(key, now() + 700);
             if (j.okMsg) tpToast(j.okMsg, 'good');
             if (was != null && !j.isUndo && !j.auto) {
@@ -6464,7 +6860,7 @@
             } else if (j.isUndo) {
                 TP.undo = null;
             }
-            tpPollCommit(key);
+            if (!queued) tpPollCommit(key);
         } catch (e) {
             if (e && e.message === 'NO_ANSWER') {
                 // the write may still land: show the truth rather than a failure
@@ -6476,6 +6872,7 @@
             tpLog('commit failed', e);
         }
     }
+
 
     // ---------- breakeven ----------
 
@@ -6774,7 +7171,7 @@
     // the same gates (mcGate), the ticket on Market, xcExecute with the stop's size. It fires once: disarmed and saved before anything is
     // sent, never retried. A stop crossed while nothing watched (a reload, a feed gap, another market) is shown as passed, never fired.
     const CS_FRESH_MS = 2000, CS_DONE_MS = 8000, CS_KEEP_LOG = 40;
-    const CS = { root: null, pane: null, nodes: new Map(), rt: new Map(), place: null, drag: null, shield: null, firing: false, queue: [], log: [], sig: '' };
+    const CS = { root: null, pane: null, nodes: new Map(), rt: new Map(), place: null, drag: null, shield: null, firing: false, queue: [], log: [], sig: '', lmHold: false };
 
     // the book's mid while it can be trusted: updated in the last 2 s, or held by our own socket's depth subscription while that socket is
     // still talking (a quiet market sends no depth for a while, and the book is still right then). null otherwise.
@@ -6796,6 +7193,8 @@
     // an armed stop on this chart's market: the depth book stays subscribed (mcDepthSync). Stops are part of chart TP/SL: off there, they rest.
     function csWanted() {
         if (S.tpsl.enabled === false) return false;
+        // the LIMIT tile wants it too: to check the clicked price against the best bid / ask, while you aim and until its order is through
+        if (CS.lmHold || (CS.place && CS.place.kind === 'limit')) return true;
         const sym = tpSymbol();
         return csList().some((x) => x.state === 'armed' && tpSameSym(x.sym, sym));
     }
@@ -6885,7 +7284,7 @@
                 mid: x.hitMid, result: state, crossToPressMs: tPress ? tPress - (x.hitAt || t0) : null, crossToDoneMs: ms, queuedMs: t0 - (x.hitAt || t0), demo: x.acc === 'demo' });
         };
         try {
-            if (x.acc === 'demo') { done('fired', '[DEMO] would send ' + (side === 'buy' ? 'Long ' : 'Short ') + csSizeText(x.size, x.sym) + ' @ market. Nothing sent.'); return; }
+            if (x.acc === 'demo') { done('fired', '[DEMO] would send ' + (side === 'buy' ? 'Long ' : 'Short ') + csSizeText(x.size, x.sym) + ' @ market' + xcCarryText() + '. Nothing sent.'); return; }
             if (xcDemoOn()) return done('failed', 'Demo is on');
             const gate = () => mcGate(side === 'buy' ? 'long' : 'short')
                 || (tpActiveAccount() !== x.acc ? 'the account changed' : '')
@@ -6905,7 +7304,8 @@
             xcSyncUsd(); // a stop / target in dollars: its points for the stop's size
             TP.blockUntil = now() + 2000; // as for a press on the card: our TP/SL writes wait while the order goes in
             tPress = now();
-            try { await xcExecute(side); } finally { activeSelectedSize = keep; lastRiskHtml = ''; updateExecutionRiskCalc(); }
+            // the switch is read now, as the stop fires (like the card's own stop and target): off = a plain market order, no legs
+            try { await xcExecute(side, !xcCarryOn()); } finally { activeSelectedSize = keep; lastRiskHtml = ''; updateExecutionRiskCalc(); }
             // the order code writes its own result line, "BUY 3 @ ..." once it has pressed Vest's button
             const said = ((flash || {}).textContent || '').trim();
             if (said.indexOf(side.toUpperCase() + ' ') === 0) done('fired', said);
@@ -7007,18 +7407,23 @@
         return sn ? sn.n : null;
     }
 
-    function csPlaceStart() {
+    // kind 'stop' (default) or 'limit': the same shield, ghost and click, the side and what happens after the click differ
+    function csPlaceStart(kind) {
         if (!IS_EXT) return;
         if (CS.place || CS.drag) { csEnd(false); return; }
-        if (S.tpsl.stops.show === false) return;
-        if (S.tpsl.enabled === false) { tpToast('Chart TP/SL is off in Settings: stops need it. No stop set.', 'warn'); return; }
-        if (!TP.chart || TP.scaleWhy) { tpToast("The chart is not ready (or its price scale is not on the right). No stop set.", 'warn'); return; }
-        if (!csAcc()) { tpToast('Log in to Vest first (or use the demo). No stop set.', 'warn'); return; }
+        const lim = kind === 'limit';
+        const what = lim ? 'limit' : 'stop';
+        if (lim ? S.tpsl.limit.show === false : S.tpsl.stops.show === false) return;
+        if (S.tpsl.enabled === false) { tpToast('Chart TP/SL is off in Settings: ' + what + (lim ? ' orders' : 's') + ' need it. No ' + what + ' set.', 'warn'); return; }
+        if (!TP.chart || TP.scaleWhy) { tpToast("The chart is not ready (or its price scale is not on the right). No " + what + " set.", 'warn'); return; }
+        if (!csAcc()) { tpToast('Log in to Vest first (or use the demo). No ' + what + ' set.', 'warn'); return; }
         if (!(activeSelectedSize > 0)) { tpToast('Pick a size on the Execute card first.', 'warn'); return; }
-        CS.place = { price: null, side: '' };
+        CS.place = { price: null, side: '', kind: lim ? 'limit' : 'stop' };
         csShield(true, 'crosshair');
         tpWatch(); // flat, the overlay's frame loop may be resting: it runs while placing
-        tpToast('Click the chart where the stop goes: above the price a buy stop, below a sell stop. Esc cancels.', '', 5000);
+        if (lim) mcDepthSync(); // the book for the click's price check, subscribed while you aim
+        tpToast(lim ? 'Click the chart where the limit order goes: below the price a buy limit, above a sell limit. One click sends it. Esc cancels.'
+            : 'Click the chart where the stop goes: above the price a buy stop, below a sell stop. Esc cancels.', '', 5000);
     }
 
     function csOnMove(e) {
@@ -7027,7 +7432,7 @@
             CS.place.price = p;
             CS.place.x = TP.geom ? e.clientX - TP.geom.left : null;
             const mid = csMid() || tpLivePrice();
-            CS.place.side = p != null && mid ? csSideFor(p, mid, tpInfoFor(tpSymbol()).tick) : '';
+            CS.place.side = p != null && mid ? (CS.place.kind === 'limit' ? lmSideFor : csSideFor)(p, mid, tpInfoFor(tpSymbol()).tick) : '';
             return;
         }
         const d = CS.drag;
@@ -7040,19 +7445,29 @@
     function csOnUp(e) {
         if (CS.place) {
             const p = csPriceAt(e.clientX, e.clientY);
-            const pl = CS.place;
+            const lim = CS.place.kind === 'limit';
             csEnd(false);
+            if (lim) { lmClick(p); return; }
             if (p == null) { tpToast('No stop set (that was off the chart).', ''); return; }
             const mid = csMid() || tpLivePrice();
             const side = mid ? csSideFor(p, mid, tpInfoFor(tpSymbol()).tick) : '';
             if (!side) { tpToast(mid ? 'Too close to the price. No stop set.' : 'No live price yet. No stop set.', 'warn'); return; }
-            void pl;
             csAdd(side, p);
             return;
         }
         const d = CS.drag;
         if (!d) return;
         csEnd(true);
+    }
+
+    // The click of the LIMIT tile: one click, one order. Below the price a buy limit, above a sell limit (within a tick of it: refused). The
+    // order itself is the E / Q macros' (mcRun, mcLimit): Vest's own ticket on Limit, size, price, Buy / Sell, then the ticket back on Market.
+    function lmClick(p) {
+        if (p == null) { tpToast('No limit order set (that was off the chart).', ''); return; }
+        const mid = csMid() || tpLivePrice();
+        const side = mid ? lmSideFor(p, mid, tpInfoFor(tpSymbol()).tick) : '';
+        if (!side) { tpToast(mid ? 'Too close to the price. No limit order set.' : 'No live price yet. No limit order set.', 'warn'); return; }
+        mcRun(side === 'buy' ? 'limitBuy' : 'limitSell', 'LMT', { price: p });
     }
 
     // ok: a drag is dropped (placing ends in csOnUp)
@@ -7143,7 +7558,7 @@
         const sym = tpSymbol();
         const mine = csList().filter((x) => tpSameSym(x.sym, sym) && (x.acc === csAcc() || x.state !== 'armed'));
         const pl = CS.place && CS.place.price != null && CS.place.side ? CS.place : null;
-        if (!g || (!mine.length && !pl) || S.tpsl.stops.show === false && !mine.length) {
+        if (!g || (!mine.length && !pl) || S.tpsl.stops.show === false && !mine.length && !pl) {
             if (CS.root && CS.root.style.display !== 'none') CS.root.style.display = 'none';
             CS.nodes.forEach((nd) => { nd.ln.remove(); nd.n.remove(); nd.ax.remove(); });
             CS.nodes.clear();
@@ -7183,7 +7598,7 @@
             const state = ghost ? 'CLICK TO SET' : x.state === 'armed' ? (why === 'stale' ? 'NO PRICE' : why === 'account' ? 'OTHER ACCOUNT' : why === 'market' ? 'WAIT' : 'ARMED')
                 : x.state === 'firing' ? 'SENDING' : x.state === 'fired' ? 'SENT' : x.state === 'passed' ? 'PASSED' : 'NOT SENT';
             const wait = !ghost && (x.state === 'armed' ? !!why && why !== 'jump' && why !== 'drag' : x.state !== 'firing' && x.state !== 'fired');
-            tpText(nd.k, (x.side === 'buy' ? 'BUY' : 'SELL') + ' STOP');
+            tpText(nd.k, (x.side === 'buy' ? 'BUY' : 'SELL') + (x.kind === 'limit' ? ' LIMIT' : ' STOP'));
             tpText(nd.sz, csSizeText(x.size, x.sym));
             const pxs = px.toFixed(info.dec);
             if (nd.px) tpText(nd.px, pxs);
@@ -7199,7 +7614,7 @@
             tpClassIf(nd.ln, 'done', !ghost && x.state !== 'armed' && x.state !== 'firing');
             tpClassIf(nd.n, 'drag', !!d);
             if (!ghost) tpAttr(nd.n, 'data-id', x.id);
-            tpAttr(nd.n, 'title', ghost ? '' : x.state === 'armed' ? csName(x) + ': fires a market order when the mid touches it, with the Execute card\'s stop and target. Drag to move.'
+            tpAttr(nd.n, 'title', ghost ? '' : x.state === 'armed' ? csName(x) + ': fires a market order when the mid touches it' + (xcCarryOn() ? ', with the Execute card\'s stop and target' : ', with no stop or target (SL/TP on Stop & Limit is off)') + '. Drag to move.'
                 : x.state === 'passed' || x.state === 'failed' ? csName(x) + ': ' + (x.why || 'not sent') + '. Click to arm it again.' : csName(x) + (x.why ? ': ' + x.why : ''));
             const txt = nd.k._t + nd.sz._t + (nd.px ? nd.px._t : '') + nd.st._t;
             if (nd.tw !== txt) { nd.tw = txt; nd.w = nd.n.offsetWidth || 180; }
@@ -7230,12 +7645,13 @@
             tpMove(nd.n, Math.round(cx), cy);
         };
         mine.forEach((x) => draw(x.id, x, false));
-        if (pl) draw('ghost', { id: 'ghost', side: pl.side, price: pl.price, size: activeSelectedSize, sym, state: 'armed' }, true);
+        if (pl) draw('ghost', { id: 'ghost', side: pl.side, price: pl.price, size: activeSelectedSize, sym, state: 'armed', kind: pl.kind }, true);
         CS.nodes.forEach((nd, k) => { if (!seen.has(k)) { nd.ln.remove(); nd.n.remove(); nd.ax.remove(); CS.nodes.delete(k); } });
     }
 
-    xcHooks.stop = () => { csPlaceStart(); xcPaint(); };
-    xcHooks.placing = () => !!CS.place;
+    xcHooks.stop = () => { csPlaceStart('stop'); xcPaint(); };
+    xcHooks.limit = () => { csPlaceStart('limit'); xcPaint(); };
+    xcHooks.placing = () => (CS.place ? CS.place.kind : '');
 
     // ---------- demo position (for recording): no network, no Vest calls ----------
 
@@ -7360,12 +7776,14 @@
         if (!chart && !TP.quick && now() < (tv.fastUntil || 0)) TP.quick = setTimeout(() => { TP.quick = 0; tpWatch(); }, 250);
         const key = (tpActiveAccount() || '') + '|' + tpSymbol();
         if (key !== TP.lastKey) { TP.lastKey = key; TP.pollAt = 0; }
+        if (chart && !TP.demo) tpFindStores();
         if (chart && !TP.demo && !document.hidden && now() - TP.pollAt >= 5000) {
             TP.pollAt = now();
             tpRefresh();
+            if (tpPositions().length) tpWarmObservers();
         }
         // client-side stops are drawn by this loop too: it runs while one is on this market, even flat
-        const need = !!chart && (TP.drag || tpPositions().length > 0 || csNeedsFrames());
+        const need = !!chart && (TP.drag || tpPositions().length > 0 || csNeedsFrames() || !!tpProvPos());
         if (need && !TP.raf) TP.raf = requestAnimationFrame(tpFrame);
         if (!need && TP.raf) {
             cancelAnimationFrame(TP.raf);
@@ -7393,6 +7811,7 @@
         val('ax4p-be-points', be.points);
         val('ax4p-be-min', be.minProfitTicks);
         set('ax4p-cs-show', S.tpsl.stops.show !== false);
+        set('ax4p-lm-show', S.tpsl.limit.show !== false);
         ['pctProfit', 'ticks', 'points'].forEach((m) => {
             const row = document.getElementById('ax4p-be-row-' + m);
             if (row) row.style.display = be.mode === m ? '' : 'none';
@@ -7440,6 +7859,7 @@
         num('ax4p-be-points', 'points', 0, 1000000, false);
         num('ax4p-be-min', 'minProfitTicks', 0, 1000, true);
         document.getElementById('ax4p-cs-show').onchange = (e) => { S.tpsl.stops.show = e.target.checked; persist(); xcPaint(); };
+        document.getElementById('ax4p-lm-show').onchange = (e) => { S.tpsl.limit.show = e.target.checked; persist(); xcPaint(); };
         tpPaintSettings();
     }
 
@@ -7651,6 +8071,17 @@
         if (!q || !q.ok) return null;
         if (id === 'limitBuy') return { side: 'buy', price: q.bid, ref: 'bid' };
         if (id === 'limitSell') return { side: 'sell', price: q.ask, ref: 'ask' };
+        return null;
+    }
+
+    // A limit order at a price clicked on the chart (the LIMIT tile): it has to rest. A buy must sit under the best ask, a sell over the best
+    // bid; a price the market has since moved through is refused here, not filled. { side, price, ref } or { err }; null for no book.
+    function mcLimitAtPlan(id, price, q) {
+        if (!q || !q.ok) return null;
+        const p = Number(price);
+        if (!(p > 0)) return { err: 'No price' };
+        if (id === 'limitBuy') return p < q.ask ? { side: 'buy', price: p, ref: 'chart' } : { err: 'The price is at or above the best ask now: a buy limit there would fill at once' };
+        if (id === 'limitSell') return p > q.bid ? { side: 'sell', price: p, ref: 'chart' } : { err: 'The price is at or below the best bid now: a sell limit there would fill at once' };
         return null;
     }
 
@@ -7903,13 +8334,15 @@
     const mcReadNum = (el) => (el ? parseFloat(String(el.value || '').replace(/,/g, '')) : NaN);
 
     // the order the macro would send, from the live book; { err } when it must not go
-    function mcPlan(id) {
+    // at = { price }: the price clicked on the chart (the LIMIT tile) instead of the best bid / ask
+    function mcPlan(id, at) {
         const q = mcBookQuote(book, now(), MC_BOOK_MAX_AGE_MS);
         if (!q.ok) return { err: q.reason };
-        const plan = mcLimitPlan(id, q);
+        const plan = at ? mcLimitAtPlan(id, at.price, q) : mcLimitPlan(id, q);
         if (!plan) return { err: 'No such macro' };
+        if (plan.err) return { err: plan.err };
         const info = tpInfoFor(apiSymbol());
-        if (!mcOnTick(plan.price, info.tick)) return { err: 'The book price is off the tick grid' };
+        if (!mcOnTick(plan.price, info.tick)) return { err: at ? 'The price is off the tick grid' : 'The book price is off the tick grid' };
         const ref = mcMidRef(); // a fresh reading of the page's Mid Price, else the ticker's: an old mid proves nothing
         const bad = mcSanity(q, ref, info.tick); // no mid to compare with is a refusal too
         if (bad) return { err: bad };
@@ -8032,7 +8465,7 @@
     }
 
     // E / Q: Limit tab, size, price, Buy/Sell. Always puts the ticket back on Market afterwards.
-    async function mcLimit(id, k, acc0) {
+    async function mcLimit(id, k, acc0, at) {
         if (mcDemo()) return 0;
         const side = id === 'limitBuy' ? 'buy' : 'sell';
         const name = side === 'buy' ? 'Limit buy' : 'Limit sell';
@@ -8046,7 +8479,7 @@
         if (!held) return refuse('could not confirm your open position (Chart TP/SL must be on and loaded)');
         const posBad = mcPositionCheck(side, size, held, mcReduceOnlyOn());
         if (posBad) return refuse(posBad);
-        const first = mcPlan(id);
+        const first = mcPlan(id, at);
         if (first.err) return refuse(first.err);
         const submit = qTicket('[data-testid="' + (side === 'buy' ? 'submit-long' : 'submit-short') + '"]');
         if (!submit) return refuse('the order ticket is not on the page');
@@ -8099,7 +8532,7 @@
                 }
             }
             // price: from the book as it is right now; set, read back, and checked again just before the click
-            let plan = mcPlan(id);
+            let plan = mcPlan(id, at);
             if (plan.err) return refuse(plan.err);
             for (let i = 0; i < 3; i++) {
                 const el = qTicket('[data-testid="price-input"]');
@@ -8107,7 +8540,7 @@
                 setReactInputValue(el, plan.plan.text);
                 await sleep(120);
                 if (!mcSameNum(mcReadNum(qTicket('[data-testid="price-input"]')), plan.plan.price)) { if (i === 2) return refuse('the ticket did not take price ' + plan.plan.text); continue; }
-                const again = mcPlan(id);
+                const again = mcPlan(id, at);
                 if (again.err) return refuse(again.err);
                 if (again.plan.price === plan.plan.price) break; // the book did not move while we typed
                 plan = again;
@@ -8126,11 +8559,11 @@
             if (!mcUnitNq()) return refuse('the ticket size unit is not NQ');
             if (!mcSameNum(mcReadNum(qTicket('[data-testid="size-input"]')), size)) return refuse('the ticket size changed');
             if (!mcSameNum(mcReadNum(qTicket('[data-testid="price-input"]')), plan.plan.price)) return refuse('the ticket price changed');
-            const lastLook = mcPlan(id);
+            const lastLook = mcPlan(id, at);
             if (lastLook.err) return refuse(lastLook.err);
             if (lastLook.plan.price !== plan.plan.price) return refuse('the book moved');
             qTicket('[data-testid="' + (side === 'buy' ? 'submit-long' : 'submit-short') + '"]').click();
-            mcToast(k, '· ' + name + ' ' + mcSizeTxt() + ' @ ' + plan.plan.text + ' (' + plan.plan.ref + ')', side === 'buy' ? 'long' : 'short');
+            mcToast(k, '· ' + name + ' ' + (at ? csSizeText(size, tpSymbol()) : mcSizeTxt()) + ' @ ' + plan.plan.text + ' (' + plan.plan.ref + ')', side === 'buy' ? 'long' : 'short');
             await sleep(700); // Vest reads the form on click; the tab goes back to Market after that
             return 1400;
         } finally {
@@ -8144,9 +8577,14 @@
     }
 
     // Demo: the toast is all there is. (BE is the one macro with something to show: it moves the demo position's stop, no network.)
-    function mcDemoRun(id, k) {
+    function mcDemoRun(id, k, at) {
         const tag = '· [DEMO] ';
         const size = mcSizeTxt();
+        if (at) { // the LIMIT tile: what would have gone in, at the clicked price
+            const buy = id === 'limitBuy';
+            mcToast(k, tag + 'would place a ' + (buy ? 'buy' : 'sell') + ' limit ' + csSizeText(activeSelectedSize, tpSymbol()) + ' @ ' + mcPriceText(at.price, tpInfoFor(tpSymbol()).dec) + xcCarryText() + '. Nothing sent.', buy ? 'long' : 'short', true);
+            return;
+        }
         if (id === 'be') { mcBe(k, true); return; }
         if (id === 'long' || id === 'short') { mcToast(k, tag + (id === 'long' ? 'Long ' : 'Short ') + size + ' @ market' + xcLegsOffText() + ' (nothing sent)', id, true); return; }
         if (id === 'flat') { mcToast(k, tag + 'Flat (nothing sent)', 'warn', true); return; }
@@ -8154,24 +8592,26 @@
         const plan = mcLimitPlan(id, q);
         const px = plan ? mcPriceText(plan.price, tpInfoFor(apiSymbol()).dec) : null;
         const nm = id === 'limitBuy' ? 'Limit buy ' : 'Limit sell ';
-        const bracket = S.macros && S.macros.limitBracket ? (xcSlOn() ? ', with the stop' : ', no stop') + (xcTpOn() ? ' and target' : ', no target') : '';
+        const bracket = S.macros && S.macros.limitBracket ? xcCarryText() : '';
         mcToast(k, tag + nm + size + (px ? ' @ ' + px + ' (' + plan.ref + ')' : ' (no fresh book)') + bracket + ' (nothing sent)', id === 'limitBuy' ? 'long' : 'short', true);
     }
 
-    async function mcRun(id, k) {
+    // at = { price }: a limit order at a price clicked on the chart (the LIMIT tile); the keys call it without
+    async function mcRun(id, k, at) {
         if (!mcDebounce(mc.last, id, now(), MC_DEBOUNCE_MS)) return;
         // Demo first: before the Exec strip, the ticket or any Vest handler can be reached
-        if (mcDemo()) { mcDemoRun(id, k); return; }
+        if (mcDemo()) { mcDemoRun(id, k, at); return; }
         // 50% or REV running: only FLAT goes through (it presses the card's FLAT, which also stops them)
         if (XC.busy && id !== 'flat') { mcToast(k, '· ' + xcBusyText() + '. Nothing sent.', 'warn', true); return; }
         if (now() < mc.lockUntil) { mcToast(k, '· busy, one macro at a time', 'warn', true); return; }
         mc.lockUntil = now() + 9000;
         let hold = 0;
+        if (at) CS.lmHold = true; // the book stays subscribed until the order is through
         try {
             const acc0 = tpActiveAccount();
             if (id === 'long') hold = await mcMarket('buy', k, acc0);
             else if (id === 'short') hold = await mcMarket('sell', k, acc0);
-            else if (id === 'limitBuy' || id === 'limitSell') hold = await mcLimit(id, k, acc0);
+            else if (id === 'limitBuy' || id === 'limitSell') hold = await mcLimit(id, k, acc0, at);
             else if (id === 'be') hold = await mcBe(k, false);
             else if (id === 'flat') hold = await mcFlat(k, acc0);
         } catch (e) {
@@ -8179,6 +8619,7 @@
             mcToast(k, '· failed: ' + tpErrText(e), 'bad', true);
         } finally {
             mc.lockUntil = now() + (hold || 0);
+            if (at) CS.lmHold = false;
         }
     }
 
@@ -8196,7 +8637,7 @@
                     <label class="ax4p-row"><span><b>Macros on</b> (same as the dock button)</span><input type="checkbox" id="ax4p-mc-master"></label>
                     ${rows}
                     <label class="ax4p-row"><span>Toast on every macro</span><input type="checkbox" id="ax4p-mc-toast"></label>
-                    <label class="ax4p-row"><span>Limit orders carry the card's stop and target (the ones that are on)</span><input type="checkbox" id="ax4p-mc-bracket"></label>
+                    <label class="ax4p-row"><span>STOP and LIMIT orders, and the E / Q limit keys, carry the card's stop and target (the ones that are on)</span><input type="checkbox" id="ax4p-mc-bracket"></label>
                     <div class="ax4p-btnrow"><button id="ax4p-mc-reset" class="ax4p-btn">Reset keys</button></div>
                     <div class="ax4p-hint" id="ax4p-mc-msg">Click a key, then press the new one. Backspace unbinds, Esc cancels.</div>
                     <details class="ax4p-more"><summary>What each key does</summary>
@@ -8281,7 +8722,7 @@
         const bind = (id, fn) => { const el = document.getElementById(id); if (el) el.onchange = () => fn(el.checked); };
         bind('ax4p-mc-master', (v) => mcSetOn(v));
         bind('ax4p-mc-toast', (v) => { S.macros.toast = v; persist(); });
-        bind('ax4p-mc-bracket', (v) => { S.macros.limitBracket = v; persist(); });
+        bind('ax4p-mc-bracket', (v) => { S.macros.limitBracket = v; persist(); xcPaintCarry(); });
         MC_ACTIONS.forEach((a) => {
             const on = document.querySelector('[data-mc-on="' + a.id + '"]');
             if (on) on.onchange = () => { S.macros.act[a.id].on = on.checked; persist(); mcPaint(); mcDepthSync(); };
@@ -8933,6 +9374,81 @@
     };
     xcHooks.half = () => { xcHalf().catch(() => { XC.busy = false; xcPaint(); }); };
     xcHooks.flat = () => xcFlat().catch(() => {});
+
+    // ---------- Cancel all orders (8.1.5): the button above FLAT ----------
+    // Cancels this account's resting orders, never a TP or SL and never a position: the STOP orders Better Vest holds for this account (every
+    // market; removed here, there is nothing to send for them), and Vest's own resting orders (limits, every market) with Vest's own Cancel
+    // button on each row of its Open Orders tab (order-cancel-<id>), the button you would press. TP and SL rows have another button
+    // (cancel-tpsl-<id>) and are never pressed. The account is read fresh before the presses; the tab that was up is put back afterwards.
+    const CXL = { busy: false };
+    const cxlTab = () => document.querySelector('[data-testid="account-tab-open-orders"]');
+    // Vest's Cancel buttons on its open-order rows (only mounted while its Open Orders tab is up)
+    const cxlBtns = () => [...document.querySelectorAll('button[data-testid^="order-cancel-"]')].filter((b) => !isOurs(b));
+
+    async function xcCancelAll() {
+        if (CXL.busy) return;
+        const demo = xcDemoOn();
+        const acc = demo ? 'demo' : tpActiveAccount(true);
+        if (!acc) { xcSay('No Vest account found. Nothing cancelled.', 'bad'); return; }
+        if (XC.busy) { xcSay(xcBusyText() + '. Nothing cancelled.', 'bad'); return; }
+        if (DLLF.busy) { xcSay('The daily loss limit is closing your positions. Nothing cancelled.', 'bad'); return; }
+        CXL.busy = true;
+        const btn = document.getElementById('ax4p-cxl-btn');
+        if (btn) btn.disabled = true;
+        try {
+            // 1. the STOP orders of this account, held here: removed, quietly (one summary below)
+            const list = csList();
+            let stops = 0;
+            for (let i = list.length - 1; i >= 0; i--) {
+                const x = list[i];
+                if (x.acc !== acc || x.state !== 'armed') continue;
+                list.splice(i, 1);
+                CS.rt.delete(x.id);
+                stops++;
+            }
+            if (stops) { persist(); mcDepthSync(); }
+            const stopsTxt = stops ? stops + ' STOP order' + (stops === 1 ? '' : 's') : '';
+            if (demo) {
+                xcSay('[DEMO] Cancel all: ' + (stopsTxt ? stopsTxt + ' removed' : 'no STOP orders') + '. On a real account your limit orders on Vest are cancelled too. Nothing sent.');
+                return;
+            }
+            // 2. Vest's resting orders, through its Open Orders tab
+            const tab = cxlTab();
+            let done = 0, left = 0, moved = false;
+            if (tab) {
+                const tl = tab.closest ? tab.closest('[role="tablist"]') : null;
+                const prev = tl ? [...tl.querySelectorAll('[role="tab"]')].find((b) => b !== tab && mcTabOn(b)) : null;
+                if (!mcTabOn(tab)) { mcPress(tab); moved = true; }
+                // Vest mounts the rows a moment after its tab shows: wait for them, or for the tab to say it has none
+                const none = () => mcTabOn(tab) && !/\(\d+\)/.test(tab.textContent || '');
+                await xcWait(() => cxlBtns().length || none(), 3000);
+                const tried = new Set();
+                for (let round = 0; round < 4; round++) {
+                    if (tpActiveAccount(true) !== acc) { xcSay('The account changed. Stopped cancelling.', 'bad'); break; }
+                    const todo = cxlBtns().filter((b) => !b.disabled && !tried.has(b.getAttribute('data-testid')));
+                    if (!todo.length) break;
+                    // all at once, as fast as you could press them: each row's own Cancel runs its own request
+                    todo.forEach((b) => { tried.add(b.getAttribute('data-testid')); if (!invokeReactClick(b)) b.click(); });
+                    const ids = todo.map((b) => b.getAttribute('data-testid'));
+                    await xcWait(() => ids.every((id) => !document.querySelector('[data-testid="' + id.replace(/["\\]/g, '') + '"]')), 4000);
+                    done += ids.filter((id) => !document.querySelector('[data-testid="' + id.replace(/["\\]/g, '') + '"]')).length;
+                }
+                left = cxlBtns().length;
+                if (moved && prev) mcPress(prev); // the tab you had up
+            }
+            const ordTxt = done ? done + ' limit order' + (done === 1 ? '' : 's') : '';
+            const what = [stopsTxt, ordTxt].filter(Boolean).join(' and ');
+            if (left) xcSay((what ? 'Cancelled ' + what + '. ' : '') + left + ' order' + (left === 1 ? '' : 's') + ' could not be cancelled: check Vest\'s Open Orders tab.', 'bad');
+            else if (!tab) xcSay((what ? 'Cancelled ' + what + '. ' : '') + "Vest's Open Orders tab is not on the page, so its limit orders were not cancelled.", 'bad');
+            else xcSay(what ? 'Cancelled ' + what + '. TP and SL untouched.' : 'No open orders to cancel.', what ? 'warn' : '');
+        } catch (e) {
+            xcSay('Cancel all failed: ' + String(e && e.message || e).slice(0, 120), 'bad');
+        } finally {
+            CXL.busy = false;
+            if (btn) btn.disabled = false;
+        }
+    }
+    xcHooks.cancelAll = () => { xcCancelAll().catch(() => {}); };
     xcHooks.rev = () => {
         xcRev().catch(() => { XC.busy = false; xcPaint(); }).then(() => {
             const o = XC.revOpened;
@@ -8957,6 +9473,7 @@
     // limit the card turns amber; at 100% new trades are locked until the reset hour. The lock is remembered, so a
     // reload or a rally back above the line does not undo it. Reducing risk is never locked: FLAT, 50%, BE, the chart
     // TP/SL and Vest's own close buttons all keep working. It guards this browser's screen, not the account.
+    // Since 8.1.5 the lock can also close every open position of the account (Close at the limit, below).
     const DLL_KEY = 'ax4p_dll';
     const DLL_WARN = 0.75;
     const DLL_SETTLE_MS = 3000; // after an account switch, Vest's Account Value may still show the old account
@@ -9045,13 +9562,23 @@
         return all && typeof all === 'object' && !Array.isArray(all) ? all : {};
     }
 
+    // The account this tab's Vest is showing. tpActiveAccount reads the storage key, which another Vest tab shares and can change under a
+    // tab that never picked an account itself (this tab's Vest keeps its own account on screen). When the order ticket plainly holds
+    // another account, the screen and the key disagree: no account then, so nothing is read for, locked for or closed on either one.
+    function dllAccount(fresh) {
+        const a = tpActiveAccount(fresh);
+        if (!a) return a;
+        const t = tpTicketAccount();
+        return t && t !== a ? null : a;
+    }
+
     function dllTick() {
         try {
             const cfg = S.dll;
             if (cfg.on) {
                 const t = now();
                 // nothing is read when logged out (no account) or in Demo
-                const acc = xcDemoOn() ? null : tpActiveAccount();
+                const acc = xcDemoOn() ? null : dllAccount();
                 if (acc !== DLL.acc) { DLL.acc = acc; DLL.accSince = t; DLL.pending = false; DLL.pnl = null; DLL.level = null; }
                 const av = acc && t - DLL.accSince >= DLL_SETTLE_MS ? dllReadAccountValue() : null;
                 if (av == null) { DLL.pnl = null; DLL.pending = false; }
@@ -9070,6 +9597,7 @@
                     if (r.rec) {
                         if (r.rec.hour == null) r.rec.hour = hour;
                         if (r.rec.locked && r.rec.vest == null) r.rec.vest = !!cfg.vest; // the lock keeps the option it was set with
+                        if (r.rec.locked && r.rec.flat == null) r.rec.flat = !!cfg.flat; // and so does Close at the limit
                     }
                     if (r.rec && JSON.stringify(r.rec) !== JSON.stringify(prev)) {
                         // earlier days are over, each by its own reset hour; another account's lock of today stays
@@ -9078,9 +9606,130 @@
                         writeStore(DLL_KEY, all);
                     }
                 }
+                dllFlatCheck(t);
             }
         } catch (e) {}
         try { xcPaintDll(); dllPaintSettings(); } catch (e) {}
+    }
+
+    // ---------- Close at the limit (8.1.5): the lock also flattens the account ----------
+    // With "Close my positions at the limit" on (a lock keeps the option it was set with), every open position of the locked
+    // account is closed the way FLAT closes one: Vest's own Close button on its row, then FLAT's own steps with Vest's close
+    // window up (100%, Vest's Close, Vest's follow-up questions). Every market, one row at a time, for as long as the lock runs:
+    // a position that opens later (a resting order that fills, a trade from another device that shows up here) is closed too.
+    // Nothing is requested by our code. It never acts on another account: the account must be the locked one, read the same for
+    // 3 s (just after a switch Vest can still show the old account's rows), and it is read again right before each click. One
+    // Vest tab at a time (a Web Lock), so two tabs never close the same position twice.
+    const DLL_FLAT_GAP_MS = 5000; // between two passes
+    const DLL_FLAT_TRIES = 3;     // passes in a row that leave the same positions open, then it stops and says so
+    const DLL_FLAT_MAX = 12;      // rows closed in one pass at most
+    const DLLF = { busy: false, at: 0, seen: '', ids: '', tries: 0, gaveUp: false };
+    // a lock made before 8.1.5 has no flat of its own: the setting decides (the tick writes it onto the lock)
+    const dllRecFlat = (rec) => (rec && typeof rec.flat === 'boolean' ? rec.flat : !!S.dll.flat);
+
+    // Vest's Close buttons on the position rows (none of ours); Vest only draws them while its Positions tab is up
+    function dllFlatRows() {
+        return [...document.querySelectorAll('button[data-testid^="position-close-"]')].filter((b) => !isOurs(b));
+    }
+    // the open count Vest writes on its Positions tab ("Active Positions (2)"); the tab label stays on screen while another tab is up
+    function dllFlatTabCount() {
+        const t = document.querySelector('[data-testid="account-tab-active-positions"]');
+        const m = t && !isOurs(t) ? /\((\d+)\)/.exec(t.textContent || '') : null;
+        return m ? parseInt(m[1], 10) : 0;
+    }
+    // what is open as far as this tab can tell without touching anything: Vest's rows, the chart market's position, and the count on
+    // Vest's Positions tab (a position on another market while the Open Orders tab is up shows only there)
+    function dllFlatIds() {
+        const ids = dllFlatRows().map((b) => b.getAttribute('data-testid').slice('position-close-'.length));
+        tpPositions().forEach((p) => ids.push(String(p.id)));
+        const n = dllFlatTabCount();
+        if (n > 0) ids.push('open:' + n);
+        return [...new Set(ids)].sort().join(',');
+    }
+    // the locked account's own lock of today, with Close at the limit on (never the "any lock" an unread account gets)
+    function dllFlatLock(acc, t) {
+        const rec = acc ? dllStore()[acc] : null;
+        return rec && dllRecLocked(rec, t, S.dll.hour) && dllRecFlat(rec) ? rec : null;
+    }
+
+    // From dllTick, every 2 s. A pass starts when the locked account shows something open, and once in each tab for each
+    // lock even when nothing shows: a position on another market is only on screen once Vest's Positions tab is up.
+    function dllFlatCheck(t) {
+        const acc = DLL.acc;
+        if (!acc || t - DLL.accSince < DLL_SETTLE_MS || xcDemoOn() || dllAccount() !== acc) return;
+        const rec = dllFlatLock(acc, t);
+        if (!rec) { DLLF.seen = ''; DLLF.ids = ''; DLLF.tries = 0; DLLF.gaveUp = false; return; }
+        const lock = acc + '|' + rec.key;
+        const ids = dllFlatIds();
+        if (ids !== DLLF.ids) { DLLF.ids = ids; DLLF.tries = 0; DLLF.gaveUp = false; } // something closed or opened: a fresh start
+        if (DLLF.seen === lock && !ids) return;
+        if (DLLF.busy || DLLF.gaveUp || t - DLLF.at < DLL_FLAT_GAP_MS) return;
+        DLLF.seen = lock;
+        dllFlatRun(acc, rec.key).catch(() => {});
+    }
+
+    async function dllFlatRun(acc, key) {
+        DLLF.busy = true;
+        DLLF.at = now();
+        try {
+            let nl = null;
+            try { nl = navigator.locks; } catch (e) {}
+            // another tab holding it is closing them already: this one leaves it and looks again on a later tick
+            if (nl && typeof nl.request === 'function') await nl.request('ax4p-dll-flat', { ifAvailable: true }, (l) => (l ? dllFlatPass(acc, key) : null));
+            else await dllFlatPass(acc, key);
+        } finally {
+            DLLF.busy = false;
+            DLLF.at = now();
+        }
+    }
+
+    // One pass: Vest's Positions tab up if need be, then row after row until none is left. A row that does not close (its window
+    // did not open, or the position is still there 6 s after Vest's Close) is left for the next pass, and the pass goes on with
+    // the others. Three passes at most for the same positions.
+    async function dllFlatPass(acc, key) {
+        // read fresh, never from tpActiveAccount's 400 ms memo: a switch made just before a click would otherwise close the NEW account's first row
+        const still = () => { const rec = dllFlatLock(acc, now()); return !!rec && rec.key === key && dllAccount(true) === acc && !xcDemoOn(); };
+        const dialog = () => document.querySelector('[data-testid="close-dialog"]');
+        const skip = new Set();
+        const next = () => {
+            const rows = dllFlatRows().filter((b) => !skip.has(b.getAttribute('data-testid')));
+            return rows.find((b) => b.getAttribute('data-slot') === 'dialog-trigger') || rows[0] || null;
+        };
+        let n = 0, started = false;
+        for (let i = 0; i < DLL_FLAT_MAX; i++) {
+            if (!still()) return;
+            const row = await xcRowShown(next);
+            if (!still()) return; // the account changed while the rows came up: stop, never count it as a failed try on this lock
+            if (!row) break;
+            const tid = row.getAttribute('data-testid') || '';
+            if (!started) {
+                started = true;
+                XP.arm++; // as FLAT: a Partials arm still waiting for its fill is dropped
+                if (XC.busy) XC.abort = true; // as FLAT: 50% or REV stop before they do anything more
+                xcSay('Daily loss limit hit: closing your positions.', 'bad');
+            }
+            // a close window already up (yours, or ours on its way out) is shut first, so the one FLAT confirms is this row's
+            if (dialog()) { xcDismiss(dialog()); await xcWait(() => !dialog(), 1000); }
+            if (!still()) return;
+            invokeReactClick(row);
+            if (!(await xcWait(dialog, 1500))) { skip.add(tid); continue; }
+            if (!still()) { xcDismiss(dialog()); return; }
+            await xcFlat(); // Vest's close window is up, so FLAT goes straight to 100% and Vest's own Close
+            if (await xcWait(() => !document.querySelector(`[data-testid="${tid.replace(/["\\]/g, '')}"]`), 6000)) n++;
+            else {
+                skip.add(tid);
+                if (dialog()) xcDismiss(dialog()); // a window Vest kept up must not take the next row's place
+            }
+        }
+        const left = dllFlatRows().length > 0 || dllFlatTabCount() > 0 || (!n && tpPositions().length > 0);
+        if (!left) {
+            DLLF.tries = 0;
+            const lk = xcHooks.locked();
+            if (n) tpToast(`Daily loss limit: ${n === 1 ? 'position' : n + ' positions'} closed. New trades are locked until ${lk ? lk.until : dllHm(S.dll.hour)}.`, 'warn', 8000);
+        } else if (++DLLF.tries >= DLL_FLAT_TRIES) {
+            DLLF.gaveUp = true;
+            tpToast("Daily loss limit: a position could not be closed. Close it in Vest's Positions tab.", 'bad', 12000);
+        }
     }
 
     // { text, short, until, vest } while this account is locked, else null. Used by every gate, so it reads the stored
@@ -9126,14 +9775,15 @@
                 <div class="ax4p-sec" id="ax4p-dll-sec">
                     <div class="ax4p-sec-t">Daily loss limit</div>
                     <label class="ax4p-row"><span>Lock new trades at the limit</span><input type="checkbox" id="ax4p-dll-on"></label>
+                    <label class="ax4p-row"><span>Close my positions at the limit</span><input type="checkbox" id="ax4p-dll-flat"></label>
                     <div class="ax4p-row"><span>Limit ($ a day)</span><input type="number" id="ax4p-dll-limit" class="ax4p-in" min="1" step="10" style="width:72px;"></div>
                     <div class="ax4p-row"><span>Card turns amber at</span><b>75%</b></div>
                     <div class="ax4p-row"><span>Day resets at (your clock, 0 to 23)</span><input type="number" id="ax4p-dll-hour" class="ax4p-in" min="0" max="23" step="1" style="width:56px;"></div>
                     <label class="ax4p-row"><span>Also block Vest's own Buy and Sell</span><input type="checkbox" id="ax4p-dll-vest"></label>
                     <div class="ax4p-hint" id="ax4p-dll-msg"></div>
-                    <div class="ax4p-hint">At the limit, new trades lock until the reset hour. Getting out never locks: FLAT, 50%, BE, the chart TP/SL and Vest's close buttons always work.</div>
+                    <div class="ax4p-hint">At the limit, new trades lock until the reset hour, and with Close my positions on, every open position of the account is closed. Getting out never locks: FLAT, 50%, BE, the chart TP/SL and Vest's close buttons always work.</div>
                     <details class="ax4p-more"><summary>How the lock works</summary>
-                        <div class="ax4p-hint">Today is your Account Value now minus the first one Better Vest saw after the reset, kept for each account. At the limit, LONG, SHORT, REV, the pill, the W S E Q keys and Partials lock until the reset hour. With the last option on, Vest's own Sell button is locked too, even when it would reduce a long: use FLAT or 50% then. It is your own limit, separate from any rule Vest has. A deposit, withdrawal or transfer moves the Account Value, so it counts as profit or loss. A lock stays until the reset hour, even through a reset or import of these settings. It is a lock on this screen, so it cannot stop an order sent from somewhere else. It needs the Account Value to be on Vest's page, and nothing is protected while the card says it is not reading it.</div>
+                        <div class="ax4p-hint">Today is your Account Value now minus the first one Better Vest saw after the reset, kept for each account. At the limit, LONG, SHORT, REV, the pill, the W S E Q keys and Partials lock until the reset hour. With the last option on, Vest's own Sell button is locked too, even when it would reduce a long: use FLAT or 50% then. With Close my positions on, Better Vest closes every position of the account, on every market, one by one through Vest's own Close button, as FLAT does, and until the reset hour it closes any position that opens on that account, like a resting order that fills. It needs Vest's Positions tab, and brings it up when it has to. It is your own limit, separate from any rule Vest has. A deposit, withdrawal or transfer moves the Account Value, so it counts as profit or loss. A lock stays until the reset hour, even through a reset or import of these settings. It is a lock on this screen, so it cannot stop an order sent from somewhere else. It needs the Account Value to be on Vest's page, and nothing is protected while the card says it is not reading it.</div>
                     </details>
                 </div>`;
     }
@@ -9147,9 +9797,10 @@
         const set = (id, v) => { const el = q(id); if (el && document.activeElement !== el) el.value = v; };
         q('ax4p-dll-on').checked = !!S.dll.on;
         q('ax4p-dll-vest').checked = !!S.dll.vest;
+        q('ax4p-dll-flat').checked = !!S.dll.flat;
         set('ax4p-dll-limit', S.dll.limit);
         set('ax4p-dll-hour', S.dll.hour);
-        ['ax4p-dll-on', 'ax4p-dll-limit', 'ax4p-dll-hour', 'ax4p-dll-vest'].forEach((id) => { q(id).disabled = any; });
+        ['ax4p-dll-on', 'ax4p-dll-flat', 'ax4p-dll-limit', 'ax4p-dll-hour', 'ax4p-dll-vest'].forEach((id) => { q(id).disabled = any; });
         const info = xcHooks.dll();
         const msg = q('ax4p-dll-msg');
         const text = lk ? `Locked until ${lk.until}. These settings are read-only until then.` : any ? 'Another account is locked. These settings are read-only until its reset.' : info ? info.line : 'Off.';
@@ -9162,6 +9813,7 @@
         const apply = () => { persist(); dllTick(); };
         q('ax4p-dll-on').onchange = (e) => { if (xcHooks.lockedAny()) return; S.dll.on = e.target.checked; apply(); };
         q('ax4p-dll-vest').onchange = (e) => { if (xcHooks.lockedAny()) return; S.dll.vest = e.target.checked; apply(); };
+        q('ax4p-dll-flat').onchange = (e) => { if (xcHooks.lockedAny()) return; S.dll.flat = e.target.checked; apply(); };
         q('ax4p-dll-limit').onchange = (e) => {
             if (xcHooks.lockedAny()) return;
             const v = parseFloat(e.target.value);
@@ -9179,14 +9831,14 @@
         dllPaintSettings();
     }
 
-    // While locked: LONG, SHORT and REV on the card (the pill presses the card's buttons) and turning Partials on are
+    // While locked: LONG, SHORT, REV and LIMIT on the card (the pill presses the card's buttons) and turning Partials on are
     // refused, and with the option on so are Vest's own Buy and Sell. Everything else keeps working.
     function dllGuard(e) {
         const t = e.target && e.target.closest ? e.target : null;
         if (!t) return;
         const lk = xcHooks.locked();
         if (!lk) return;
-        const ours = t.closest('#ax4p-buy-btn, #ax4p-sell-btn, #ax4p-rev-btn, #ax4p-xc-partials');
+        const ours = t.closest('#ax4p-buy-btn, #ax4p-sell-btn, #ax4p-rev-btn, #ax4p-limit-btn, #ax4p-xc-partials');
         const vest = !ours && lk.vest && t.closest('[data-testid="submit-long"], [data-testid="submit-short"]');
         if (!ours && !vest) return;
         if (ours && ours.id === 'ax4p-xc-partials' && S.xc.partials) return; // switching Partials off is fine
