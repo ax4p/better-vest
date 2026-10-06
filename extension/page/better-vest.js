@@ -11,6 +11,7 @@
     const BV_EXT = true;
     const BV_EDITION = 'standard';
     const BV_COPY = true;
+    const BV_DEV = false;
     const GM_getValue = () => null;
     const GM_setValue = (key, value) => {
         if (key !== 'ax4p_settings') return;
@@ -19,7 +20,7 @@
 (function () {
     'use strict';
 
-    const VERSION = '8.0.4';
+    const VERSION = '8.0.5';
     // true only in the Chrome extension build (tools/build.py defines BV_EXT there)
     const IS_EXT = typeof BV_EXT !== 'undefined' && !!BV_EXT;
     // 'standard' = the shareable build; anything else = WICKED, the author's own full build.
@@ -4831,6 +4832,9 @@
         try {
             const pane = chart.getPanes()[0];
             const sc = pane.getRightPriceScales()[0];   // a chart with its price scale on the left has none: unsupported
+            // said once, as for a percent or an inverted scale, instead of the labels staying away in silence (the owner's DEV test, 2026-10-06:
+            // TradingView had moved his price scale to the left and Vest's own lines showed)
+            if (!sc) { TP.scaleWhy = pane.getLeftPriceScales && pane.getLeftPriceScales().length ? 'left' : ''; if (TP.scaleWhy) TP.health = 'scale-left'; return null; }
             mode = sc.getMode ? sc.getMode() : 0;
             inverted = !!(sc.isInverted && sc.isInverted());
             vr = sc.getVisiblePriceRange();
@@ -5063,7 +5067,9 @@
         TP.scaleHinted = why;
         tpToast(why === 'inverted'
             ? 'Chart TP/SL is hidden while the price scale is inverted. Right-click the price scale and turn off Invert scale.'
-            : 'Chart TP/SL is hidden on a percent or indexed price scale. Right-click the price scale and pick Regular or Logarithmic.', 'warn', 8000);
+            : why === 'left'
+                ? 'Chart TP/SL is hidden while the price scale is on the left. Right-click the price scale and pick Move scale to right.'
+                : 'Chart TP/SL is hidden on a percent or indexed price scale. Right-click the price scale and pick Regular or Logarithmic.', 'warn', 8000);
     }
 
     function tpFmtR(r) {
@@ -9579,6 +9585,7 @@
     'use strict';
     // the suite stood down (a second copy of the page script): so does the copier, it has no suite to trust
     if (!bvSuite()) return;
+    const BV_DEV = false;
 // ---- 00-core.js ----
 // Copy trader core (v8, public Standard build and the private Copier build): state, settings, planner, diff, guard, log, leader watch,
 // reconciler, kill switch, status reads for the UI and the sub dock, the start preview.
@@ -9624,7 +9631,12 @@ const CP_EXEC_ROUND_MS = 6000; // per action of one account (they run one after 
 const CP_ENGINES = ['tabs', 'direct']; // c.engine: 'direct' (the default: everything from this tab) or 'tabs' (one background tab per follower; off while CP.turboOff)
 const CP_TURBO_OFF_WHY = 'Turbo is off for now while I make it more stable. Light copies from this tab.';
 const CP_FAST_FLOOR_MS = 4500; // after a click-time send the reconciler may not undo it for this long (the leader's own order is slower than the click)
-const CP_AUTH_COOL = 10000;    // Vest logs every tab out after two terminal auth failures within 10 s: after one, nothing is sent for this long
+const CP_AUTH_WINDOW = 10000;  // Vest logs every tab out after two terminal auth failures within 10 s: sign-in errors of several accounts this close are the session's
+const CP_AUTH_COOL = 1500;     // ...and then nothing is sent for this long (the owner, 2026-10-06: copy trading must be fast, any wait like this under 2 s)
+const CP_AUTH_RETRY_MS = [1000, 2000, 4000, 6000]; // one follower's own sign-in error: its waits before the next try (then 6 s each), the others copy on (the owner)
+const CP_LATE_MS = 30000;      // back from a sign-in error, a follower joins a running trade only this long after it fell behind on that market...
+const CP_LATE_SL_SHARE = 0.25; // ...and only while the price is within this share of the leader's stop distance from the leader's entry
+const CP_LATE_PCT = 0.0003;    // (the leader has no stop: within 0.03% of its entry, about 9 points on NQ at 31,000)
 const CP_REST_IDLE_MS = 3000;  // an idle follower read through the GET is reused for this long
 const CP_TSNAP_FRESH_MS = 3500; // Turbo: a follower tab's own snapshot this young is how that follower is read (its tab's store is live for its own account)
 const CP_CONFIRM_TAB_MS = 3000; // Turbo: an acknowledged order that its tab's own store does not show is believed missing only on a snapshot taken this long after the ack (a loaded machine delays the tab's store by a second or more)
@@ -9632,10 +9644,10 @@ const CP_CONFIRM_REST_MS = 5000; // Light: the same for the GET, which the owner
 const CP_CONFIRM_GIVEUP_MS = 9000; // no trusted read of an acknowledged order after this long: the follower is paused, the order is never sent blind
 // Vest's answers to a cancel of an order that is not (or no longer) there: ORDER_NOT_FOUND 3017, OMS_ORDER_NOT_FOUND 10010, ME_ORDER_NOT_FOUND 11004
 const CP_GONE_RE = /\b(?:3017|10010|11004)\b|\b(?:OMS_|ME_)?ORDER_NOT_FOUND\b|\border (?:is )?(?:not found|not open|no longer open|already (?:filled|cancell?ed|closed|executed))/i;
-const CP_AUTH_RE = /\b401\b|unauthori[sz]ed|\bsession\b|not authenticated|token expired/i;
+const CP_AUTH_RE = /\b401\b|\b1002\b|unauthori[sz]ed|\bsession\b|not authenticated|token expired/i;
 const CP_LOCK = 'ax4p-copy-leader';  // navigator.locks name: one tab copies at a time
 const CP_BUS = 'ax4p-copy';          // BroadcastChannel: stop / kill / halt reach every Vest tab, follower tabs included
-const CP_LOG_MAX = 1000;     // each leader order now brings the follower tabs' own lines with it (round 4), so the Export keeps more
+const CP_LOG_MAX = 3000;     // each leader order now brings the follower tabs' own lines with it (round 4), so the Export keeps more
 const CP_ACK_VERSION = 1;      // the risk note the user agreed to (c.ack); a higher number asks again
 const CP_ACK_TEXT = 'The copy trader places real market orders on your follower accounts, through Vest\'s own order code, the moment the leader trades. ' +
     'It copies every market the leader trades while it is on, at the leader\'s size times each follower\'s ratio. There is no size cap. ' +
@@ -9652,9 +9664,18 @@ const CP = {
     log: [], logLoaded: false, saveT: null, lastLogged: new Map(),
     localCfg: null,                       // used only when the suite API is missing (tests)
     running: false, killed: false, killAt: 0, flattening: false, engineUp: false, engineId: '', runAt: 0,
+    lastErr: {},                          // 'account|symbol' -> { at, text }: the last failed order of that pair, named in its pause
+    authCool: {},                         // accountId -> { at, n, until, seen }: that follower's sign-in trouble (it waits until `until`, then tries again)
+    authFails: [],                        // [{ id, t }] sign-in errors of the last CP_AUTH_WINDOW ms: several accounts means the session, not one follower
+    lateKeep: {},                         // accountId -> { 'SYMBOL#positionId': when it fell behind }: leader trades it is still behind on after an order of it went through on another market (cpAuthBack)
+    lateWhy: {},                          // accountId -> { symbol, why }: it sat out the leader's running trade after its sign-in trouble
+    satOut: {},                           // accountId -> { 'SYMBOL#positionId': why }: leader positions it sat out for good (it joins the next one)
+    writerWarned: {},                     // kind -> true: the owner was told once that Vest's function for it is not on the page yet (cpWriterHold)
     // 8.0.4: Turbo (the Tabs engine) is switched off for now. The owner's live test with 10 followers paused and glitched on Turbo, so every
     // copy runs on Direct (Light) until it is stable. The engine and its tests stay; the tests switch it back on (turboOff = false).
-    turboOff: true,
+    // 8.0.5: the Turbo lab's fixes are in and held up in the owner's live tests with nine followers (2026-10-06): Turbo is back in every build, on
+    // the owner's word. Light stays the default; true here turns Turbo off again, as in 8.0.4.
+    turboOff: false,
     timer: null, looping: false, again: false, reading: false, execBusy: 0, chain: Promise.resolve(),
     snap: { leader: null, followers: {} },
     drift: new Map(),                     // 'account|symbol' -> {sig, first, attempts, lastSent, alerted}
@@ -9699,7 +9720,7 @@ function cpNewFollower(accountId) {
 // markets: the ones the copier manages (filled by itself, see cpManage, unless autoMarkets is off); ack: the version of the risk note the user agreed to;
 // resume: { at, leaderId, accounts, markets } while copying runs and followers hold copied positions (see cpResumeTrack), else null
 function cpDefaults() {
-    return { on: false, leaderId: '', followers: [], markets: [], ack: 0, autoMarkets: true, engine: 'direct', resume: null, mirrorLimits: true };
+    return { on: false, leaderId: '', followers: [], markets: [], ack: 0, autoMarkets: true, engine: 'direct', resume: null, mirrorLimits: true, sendAtPending: false };
 }
 
 // The live settings object: missing fields are filled in place, so an older saved S.copy keeps working. Fields that v8 dropped
@@ -9721,6 +9742,7 @@ function cpCfg() {
     if (!Array.isArray(c.markets)) c.markets = [];
     if (typeof c.autoMarkets !== 'boolean') c.autoMarkets = true;
     if (typeof c.mirrorLimits !== 'boolean') c.mirrorLimits = true;
+    if (typeof c.sendAtPending !== 'boolean') c.sendAtPending = false;
     if (c.markets.some((m) => typeof m !== 'string' || m !== cpCanonSym(m))) c.markets = Array.from(new Set(c.markets.map(cpCanonSym).filter(Boolean)));
     if (c.followers.length > CP_MAX_FOLLOWERS) c.followers.length = CP_MAX_FOLLOWERS;
     for (const f of c.followers) if (f && f.maxQty !== undefined) delete f.maxQty;
@@ -9744,20 +9766,28 @@ function cpSetFollower(accountId, patch) {
     const id = String(accountId);
     if (!id || id === String(c.leaderId)) return null;
     let f = cpFollowerOf(c, id);
+    const was = f ? { on: f.on, ratio: f.ratio } : null;
     if (!f) {
-        if (c.followers.length >= CP_MAX_FOLLOWERS) return null;
+        if (c.followers.length >= CP_MAX_FOLLOWERS) { typeof cpDev === 'function' && cpDev('state', () => ({ msg: 'follower ' + cpName(id) + ' not added: the copier takes at most ' + CP_MAX_FOLLOWERS + ' followers', acc: id })); return null; }
         f = cpNewFollower(id);
         c.followers.push(f);
     }
     if (patch) Object.assign(f, patch);
+    if (patch && patch.on === true) cpAuthClear(id); // switched on by hand: no old sign-in wait or sat-out trade holds it
     cpSave(c);
+    typeof cpDev === 'function' && (!was || (patch && Object.keys(patch).some((k) => was[k] !== patch[k]))) && cpDev('state', () => ({
+        msg: !was ? cpName(id) + ' added as a follower (ratio ' + f.ratio + ', ' + (f.on ? 'on' : 'off') + ')'
+            : cpName(id) + ' changed: ' + Object.keys(patch).filter((k) => was[k] !== patch[k]).map((k) => k + ' ' + was[k] + ' -> ' + patch[k]).join(', '),
+        acc: id, patch, followers: c.followers.length }));
     return f;
 }
 
 function cpRemoveFollower(accountId) {
     const c = cpCfg();
     c.followers = c.followers.filter((f) => String(f.accountId) !== String(accountId));
+    typeof cpDev === 'function' && cpDev('state', () => ({ msg: cpName(accountId) + ' removed from the followers (' + c.followers.length + ' left)', acc: accountId }));
     delete CP.paused[accountId];
+    cpAuthClear(String(accountId));
     delete CP.syncAt[accountId];
     delete CP.resumedAt[accountId];
     cpSave(c);
@@ -9780,10 +9810,11 @@ function cpEng() {
 // Refused while copying runs (the kill switch's five seconds count: its engine is still up): switch copying off first.
 function cpSetEngine(id) {
     const want = String(id);
-    if (CP_ENGINES.indexOf(want) < 0) return { ok: false, why: 'unknown engine' };
-    if (!cpEngines[want]) return { ok: false, why: 'that engine is not available in this build' };
-    if (want === 'tabs' && CP.turboOff) return { ok: false, why: CP_TURBO_OFF_WHY };
-    if (CP.running || CP.engineUp || CP.flattening) return { ok: false, why: 'Switch copying off before you change the engine.' };
+    const dvNo = (why) => { typeof cpDev === 'function' && cpDev('state', () => ({ msg: 'engine change to ' + want + ' refused: ' + why, engine: want, why })); return { ok: false, why }; };
+    if (CP_ENGINES.indexOf(want) < 0) return dvNo('unknown engine');
+    if (!cpEngines[want]) return dvNo('that engine is not available in this build');
+    if (want === 'tabs' && CP.turboOff) return dvNo(CP_TURBO_OFF_WHY);
+    if (CP.running || CP.engineUp || CP.flattening) return dvNo('Switch copying off before you change the engine.');
     const c = cpCfg();
     if (c.engine === want) return { ok: true, why: '' };
     c.engine = want;
@@ -9808,6 +9839,20 @@ function cpSetMirrorLimits(on) {
     return v;
 }
 
+// "Ultra-fast" (c.sendAtPending, 16-accept.js): on, an open or an add of the leader goes to the followers as the leader's order goes out, about
+// one round trip sooner; if Vest then refuses the leader's order the followers are closed again (cpAcceptRejected). Off, the default: at Vest's OK.
+function cpUltraFastOn() { return cpCfg().sendAtPending === true; }
+
+function cpSetUltraFast(on) {
+    const c = cpCfg();
+    const v = !!on;
+    if (c.sendAtPending === v) return v;
+    c.sendAtPending = v;
+    cpSave(c);
+    cpLog('info', { note: v ? 'ultra-fast on: opens and adds go to the followers as your order goes out' : 'ultra-fast off: copies go at Vest\'s OK' });
+    return v;
+}
+
 // ---------- managed markets ----------
 
 // The markets the copier manages are the saved set plus (with autoMarkets on, the default) every market the leader holds a position on, added
@@ -9826,6 +9871,7 @@ function cpManage(c, symbols, why, force) {
     if (added.length) {
         cpSave(c);
         cpLog('info', { note: 'now managing ' + added.join(', '), why });
+        typeof cpDev === 'function' && cpDev('state', () => ({ msg: 'copier now manages ' + added.join(', ') + ' (' + why + '): the followers are brought to the leader there, and a market that is not managed is never touched', markets: c.markets.slice(), added }));
     }
     return added;
 }
@@ -9861,8 +9907,8 @@ function cpAddMarket(symbol) {
     const m = cpCanonSym(symbol);
     if (!m) return { ok: false, why: 'no market given' };
     const list = cpMarketList();
-    if (list.length && !list.some((x) => x.symbol === m)) return { ok: false, why: 'Vest does not list ' + m };
-    if (!list.length && !/^[A-Z0-9._]+-PERP$/.test(m)) return { ok: false, why: 'Vest\'s market list is not loaded yet' };
+    if (list.length && !list.some((x) => x.symbol === m)) { typeof cpDev === 'function' && cpDev('state', () => ({ msg: 'market ' + m + ' not added: Vest does not list it', symbol: m })); return { ok: false, why: 'Vest does not list ' + m }; }
+    if (!list.length && !/^[A-Z0-9._]+-PERP$/.test(m)) { typeof cpDev === 'function' && cpDev('state', () => ({ msg: 'market ' + m + ' not added: Vest\'s market list is not loaded yet', symbol: m })); return { ok: false, why: 'Vest\'s market list is not loaded yet' }; }
     if (c.markets.includes(m)) return { ok: true, why: '' };
     cpManage(c, [m], 'added by the user', true);
     if (CP.running) { CP.wake.set(m, CP.now() + CP_INTENT_MS); CP.fastUntil = CP.now() + CP_INTENT_MS; if (CP.looping) CP.again = true; else cpSchedule(CP_FAST_MS); }
@@ -9888,17 +9934,19 @@ function cpForgetMarket(symbol) {
     const m = cpCanonSym(symbol);
     if (!c.markets.includes(m)) return { ok: false, why: m + ' is not in the list' };
     const lead = CP.snap.leader;
-    if (c.autoMarkets !== false && CP.running && lead && lead.positions.some((p) => p.symbol === m && Number(p.qty) > 0)) return { ok: false, why: 'the leader holds a position on ' + m + ' right now' };
+    if (c.autoMarkets !== false && CP.running && lead && lead.positions.some((p) => p.symbol === m && Number(p.qty) > 0)) { typeof cpDev === 'function' && cpDev('state', () => ({ msg: 'market ' + m + ' not removed: the leader holds a position on it right now', symbol: m })); return { ok: false, why: 'the leader holds a position on ' + m + ' right now' }; }
     c.markets = c.markets.filter((x) => x !== m);
     for (const k of Object.keys(CP.holds)) if (k.endsWith('|' + m)) delete CP.holds[k];
     cpSave(c);
     cpLog('info', { note: 'no longer managing ' + m });
+    typeof cpDev === 'function' && cpDev('state', () => ({ msg: 'copier no longer manages ' + m + ': followers keep whatever they hold there', symbol: m, markets: c.markets.slice() }));
     return { ok: true, why: '' };
 }
 
 function cpToast(msg, level) {
     CP.alerts.push({ t: CP.now(), msg, level: level || 'warn' });
     if (CP.alerts.length > 20) CP.alerts.shift();
+    typeof cpDev === 'function' && cpDev('ui', () => ({ msg: 'toast shown to you (' + (level || 'warn') + '): ' + msg, level: level || 'warn', toast: true }));
     const su = cpSuite();
     try { if (su && su.toast) su.toast(msg, level || 'warn'); } catch (e) {}
 }
@@ -9978,6 +10026,14 @@ function cpScaleLegs(legs, leaderQty, qty, ratio, step, notes, label) {
     return out.sort((a, b) => a.trigger - b.trigger);
 }
 
+// Vest's store keeps a position's leverage as the margin it works out (50.001204 for a 50x position); an order has to name the whole number
+// that was chosen, or Vest's order system rejects it after its 200 (10004 OMS_INVALID_LEVERAGE: the owner's DEV test, 2026-10-06).
+// Opens and adds use this; a close or a reduce sends the position's own value, as Vest's own Close window does (Vest takes it there).
+function cpOrderLev(x) {
+    const n = Number(x);
+    return n > 0 ? Math.max(1, Math.round(n)) : null;
+}
+
 // Desired follower positions: one entry per market in marketInfo ({symbol: {step, tick}}), flat ones included, so the
 // diff knows which markets we manage. skip = the scaled size rounds to nothing (acts as flat, reported);
 // hold = we cannot tell what is wanted, so the diff leaves that market alone.
@@ -9999,7 +10055,7 @@ function cpPlan(leaderPositions, follower, marketInfo) {
         const side = cpSide(p.side);
         if (!side) { e.hold = 'leader side unknown'; continue; }
         e.leaderPositionId = p.id == null ? null : p.id;
-        e.leverage = Number(p.leverage) > 0 ? Number(p.leverage) : null; // the follower opens at the leader's leverage
+        e.leverage = cpOrderLev(p.leverage); // the follower opens at the leader's leverage (the whole number, see cpOrderLev)
         const qty = cpFloor(Number(p.qty) * ratio, step);
         if (!(qty > 0)) { e.skip = 'size ' + cpFmt(p.qty) + ' x ' + ratio + ' is under the ' + step + ' step'; continue; }
         e.side = side;
@@ -10090,14 +10146,28 @@ function cpDiff(desired, actual, accountId, scratch) {
         const plev = a && a.leverage > 0 ? a.leverage : d.leverage > 0 ? d.leverage : 0;
         const close = (extra) => mk('close', Object.assign({ symbol: d.symbol, side: a.side, positionId: a.id, qty: a.qty }, plev > 0 ? { leverage: plev } : {}, extra));
         if (a && !want) { acts.push(close({ reason: d.skip || 'leader flat' })); continue; }
-        if (!a) { acts.push(open({})); continue; }
+        if (!a) {
+            // A resting opening limit order of the follower on this market has its own position record at Vest (size 0 until it fills), and Vest
+            // refuses an open while it exists (10006 position already exists). Its own ticket sends an add on the record (same side) or a reduce
+            // that turns it (the other side, not reduce-only): so does the copy (orPlaceholder in 15-orders.js; the owner's Turbo test, 2026-10-06).
+            const ph = typeof orPlaceholder === 'function' ? orPlaceholder(accountId, d.symbol) : null;
+            if (ph) {
+                const lev = d.leverage > 0 ? { leverage: d.leverage } : {};
+                acts.push(ph.side === d.side
+                    ? mk('append', Object.assign({ symbol: d.symbol, side: d.side, positionId: ph.positionId, qty: d.qty, targetQty: d.qty, placeholder: ph.orderId }, lev))
+                    : mk('reduce', Object.assign({ symbol: d.symbol, side: d.side, positionId: ph.positionId, qty: d.qty, targetQty: d.qty, reduceOnly: false, placeholder: ph.orderId }, lev)));
+                continue;
+            }
+            acts.push(open({}));
+            continue;
+        }
         if (a.side !== d.side) {
             const c = close({ reverse: true });
             acts.push(c, open({ reverse: true, afterSeq: c.seq }));
             continue;
         }
         const diff = cpRoundTo(d.qty - a.qty, d.step);
-        const lev = a.leverage > 0 ? a.leverage : d.leverage; // an add keeps the position's own leverage
+        const lev = cpOrderLev(a.leverage > 0 ? a.leverage : d.leverage); // an add keeps the position's own leverage, as a whole number
         if (diff > d.step / 2) acts.push(mk('append', Object.assign({ symbol: d.symbol, side: a.side, positionId: a.id, qty: diff, targetQty: d.qty }, lev > 0 ? { leverage: lev } : {})));
         else if (diff < -d.step / 2) acts.push(mk('reduce', Object.assign({ symbol: d.symbol, side: a.side, positionId: a.id, qty: -diff, targetQty: d.qty }, plev > 0 ? { leverage: plev } : {})));
         else acts.push(...cpDiffLegs('tp', d, a, mk), ...cpDiffLegs('sl', d, a, mk));
@@ -10118,6 +10188,88 @@ function cpSummary(a) {
 
 function cpScrub(s) { return String(s == null ? '' : s).replace(/Bearer\s+\S+/gi, 'Bearer ***').slice(0, 200); }
 
+// Vest answers some refusals with a bare number. The words come from Vest's own enum in its bundle (the forensics read, 2026-10-05).
+const CP_VEST_CODES = { 1002: 'sign-in rejected', 1003: 'too many requests', 1026: 'account inactive', 1152: 'below the minimum order size', 1153: 'account in reduce-only mode', 3017: 'order not found',
+    // Vest's order system (its OMS_ enum): a command it answered 200 to and then rejected on the socket (command_events) carries one of these
+    10001: 'market disabled', 10002: 'invalid quantity', 10003: 'invalid decimal places', 10004: 'invalid leverage', 10005: 'invalid time in force', 10006: 'position already exists',
+    10007: 'order already exists', 10008: 'balance sequence conflict', 10009: 'position not found', 10010: 'order not found', 10011: 'open orders exist', 10012: 'cancel not supported',
+    10013: 'reduce-only exceeds the position', 10014: 'incompatible side', 10015: 'invalid balance', 10016: 'not enough available balance', 10017: 'invalid reference price',
+    10018: 'account mismatch', 10019: 'account type mismatch', 10020: 'invalid command', 10021: 'invalid order', 10022: 'invalid notional size', 10023: 'invalid limit price',
+    10024: 'invalid market price', 10025: 'market on hold', 10026: 'stock split in progress', 10027: 'account parked', 10028: 'account retired', 10029: 'position close requested', 10030: 'account halted' };
+function cpWords(text) {
+    const s = String(text == null ? '' : text);
+    const m = /\b(1002|1003|1026|1152|1153|3017|100[0-2][0-9]|10030)\b/.exec(s);
+    return m && CP_VEST_CODES[m[1]] && !s.includes(CP_VEST_CODES[m[1]]) ? s + ' (' + CP_VEST_CODES[m[1]] + ')' : s;
+}
+
+// ---------- debug trail (8.0.4) ----------
+// The plain log lines say what happened; these say which code decided it. Every pause, desync, refusal, error and failed order
+// carries `code` (the copier's call chain, function@line of page/better-vest.js of this version) and `st` (what that decision read
+// for the follower and market: the engine, the last acknowledged order, the settle wait, the drift retries, the tab report's age).
+// Stacks hold function names and line numbers only; nothing here can carry a token.
+const CP_TROUBLE = { pause: 1, desync: 1, refused: 1, error: 1, warn: 1 };
+const CP_TRAIL_SKIP = /^(cpLog|cpLogOnce|cpCode|cpFrames|cpStateOf|Error)$/;
+
+function cpFrames(stack) {
+    const out = [];
+    for (const line of String(stack || '').split('\n')) {
+        const m = /^\s*at (?:async )?([\w$.<>]+) \((.*)\)\s*$/.exec(line) || /^\s*at (?:async )?()(.+)$/.exec(line);
+        if (!m) continue;
+        const fn = (m[1] || '?').replace(/^(Object|Window|HTMLDocument)\./, '');
+        if (CP_TRAIL_SKIP.test(fn)) continue;
+        const pos = /:(\d+):\d+\)?$/.exec(m[2]);
+        out.push(fn + (pos ? '@' + pos[1] : ''));
+        if (out.length >= 6) break;
+    }
+    return out.join(' < ');
+}
+function cpCode() {
+    try { return cpFrames(new Error().stack); } catch (e) { return ''; }
+}
+function cpStateOf(acc, symbol) {
+    try {
+        const t = CP.now();
+        const st = { eng: CP.engineUp && CP.engineId ? CP.engineId : cpEngineId(), run: CP.running ? 1 : 0 };
+        if (CP.killed) st.killed = 1;
+        if (acc && symbol && symbol !== '-') {
+            const k = acc + '|' + symbol;
+            const ack = CP.acks[k];
+            if (ack) st.ack = { ageMs: t - ack.at, ids: (ack.ids || []).length, want: ack.expect ? [ack.expect.side, ack.expect.qty].filter((x) => x != null).join(' ') : undefined };
+            const until = CP.settle.get(k);
+            if (until) st.settleLeftMs = Math.max(0, until - t);
+            const d = CP.drift.get(k);
+            if (d) st.drift = { forMs: t - d.first, tries: d.attempts, lastSendMs: d.lastSent ? t - d.lastSent : undefined };
+            if (CP.okQty.has(k)) st.ackedOk = 1;
+        }
+        if (acc) {
+            const s = CP.tsnap && CP.tsnap[acc];
+            if (s && s.recv) st.tabReportMs = t - s.recv;
+            if (CP.paused[acc]) st.paused = CP.paused[acc].why;
+            const ac = CP.authCool[acc];
+            if (ac) st.signIn = { tries: ac.n, waitLeftMs: Math.max(0, ac.until - t) };
+        }
+        if (CP.authAt && t - CP.authAt < CP_AUTH_COOL) st.authCoolMs = CP_AUTH_COOL - (t - CP.authAt);
+        return st;
+    } catch (e) { return { err: cpScrub(e && e.message || e).slice(0, 80) }; }
+}
+
+// Uncaught errors and rejections that come from our own code (its functions are in the stack) go into the log with their trail,
+// at most once per message per 30 s. Vest's own errors are not ours to log.
+function cpWatchErrors() {
+    if (CP.errWatch || typeof window === 'undefined' || typeof window.addEventListener !== 'function') return;
+    CP.errWatch = new Map();
+    const note = (msg, stack) => {
+        const s = String(stack || '');
+        if (!/better-vest\.js/.test(s)) return; // our page script's own file (the MAIN-world content script page/better-vest.js)
+        const key = String(msg).slice(0, 120), t = CP.now();
+        if (CP.errWatch.has(key) && t - CP.errWatch.get(key) < 30000) return;
+        CP.errWatch.set(key, t);
+        cpLog('error', { note: 'uncaught: ' + cpScrub(msg), code: cpFrames(s) });
+    };
+    window.addEventListener('error', (ev) => { try { note(ev && ev.message, ev && ev.error && ev.error.stack); } catch (e) {} });
+    window.addEventListener('unhandledrejection', (ev) => { try { const r = ev && ev.reason; note(r && r.message || r, r && r.stack); } catch (e) {} });
+}
+
 function cpPost(m) {
     try { window.postMessage(Object.assign({ bv: 1, dir: 'toExt', type: 'copy' }, m), location.origin); } catch (e) {}
 }
@@ -10126,16 +10278,23 @@ function cpLog(type, fields) {
     const e = Object.assign({ t: CP.now(), type }, fields || {});
     // every timing record says which engine ('tabs' or 'direct') ran the copy: the owner compares them from the exported log
     if (type === 'timing' && !e.engine) e.engine = CP.engineUp && CP.engineId ? CP.engineId : cpEngineId();
+    // the debug trail: which code decided it, and the state it read (routine lines stay as they were)
+    if (CP_TROUBLE[type] || (type === 'action' && e.ok === false)) {
+        if (!e.code) e.code = cpCode();
+        if (!e.st) e.st = cpStateOf(e.acc != null ? String(e.acc) : '', e.symbol);
+    }
     CP.log.push(e);
     if (CP.log.length > CP_LOG_MAX) CP.log.splice(0, CP.log.length - CP_LOG_MAX);
     if (!CP.saveT) CP.saveT = CP.set(() => { CP.saveT = null; cpPost({ op: 'log-save', entries: CP.log }); }, 2000);
+    typeof cpDev === 'function' && cpDev('log', () => Object.assign({ msg: e.type + (e.note ? ': ' + e.note : e.why ? ': ' + e.why : e.result ? ': ' + e.result : '') }, e));
     return e;
 }
 
 // A refusal repeats every second while the drift lasts: log it once per change (and again after 30 s).
 function cpLogOnce(type, a, why) {
     const key = [a.accountId, a.kind, a.symbol, a.leg || ''].join('|');
-    const sig = [type, why, a.side, a.qty, a.trigger, a.legId].join('|');
+    // numbers in the reason (a trade's age, the price's distance) change every pass: they must not make every pass a new line
+    const sig = [type, String(why).replace(/\d+(?:\.\d+)?/g, '#'), a.side, a.qty, a.trigger, a.legId].join('|');
     const prev = CP.lastLogged.get(key);
     const t = CP.now();
     if (prev && prev.sig === sig && t - prev.t < 30000) return;
@@ -10144,8 +10303,17 @@ function cpLogOnce(type, a, why) {
 }
 
 function cpLogExport() {
-    return JSON.stringify({ app: 'Better Vest by Astral', module: 'copy trader', exportedAt: new Date(CP.now()).toISOString(), entries: CP.log }, null, 2);
+    // what ran, so a log can be read against the right code: the version, the engine and the settings that shape decisions
+    let diag = null;
+    try {
+        const c = cpCfg(), su = cpSuite();
+        diag = { version: su && su.version || '', engine: cpEngineId(c), turboOff: !!CP.turboOff, running: !!CP.running, killed: !!CP.killed,
+            followersOn: c.followers.filter((f) => f && f.on).length, markets: c.markets.slice(0, 30), autoMarkets: c.autoMarkets !== false,
+            mirrorLimits: c.mirrorLimits !== false, paused: Object.keys(CP.paused).length, browser: typeof navigator !== 'undefined' && navigator.userAgent ? String(navigator.userAgent).slice(0, 160) : '' };
+    } catch (e) { diag = { err: cpScrub(e && e.message || e) }; }
+    return JSON.stringify({ app: 'Better Vest by Astral', module: 'copy trader', exportedAt: new Date(CP.now()).toISOString(), diag, entries: CP.log }, null, 2);
 }
+
 
 // ---------- guard ----------
 
@@ -10165,8 +10333,25 @@ function cpRefusal(a) {
     if (!f) return 'not a follower';
     if (!f.on) return 'follower off';
     if (CP.paused[a.accountId] && !flat) return 'follower paused: ' + CP.paused[a.accountId].why;
+    // a leader position this follower sat out after a sign-in error stays sat out, whatever it does elsewhere: it joins the leader's next one
+    const joins = a.kind === 'open' || a.kind === 'append' || (a.kind === 'reduce' && a.placeholder != null); // a reduce that turns an order's record joins too
+    if (joins && !flat) { const so = cpSatOut(String(a.accountId), a.symbol); if (so) return so; }
+    // one follower's own sign-in error: it waits, then tries again, while the others are copied (the owner, 2026-10-05). Closing, reducing and
+    // TP/SL changes go as soon as its wait is over; joining a running trade (an open or an add) only while that still makes sense (cpLateWhy).
+    const ac = CP.authCool[String(a.accountId)];
+    if (ac && !flat) {
+        if (joins) cpLateSeen(ac, a);
+        if (CP.now() < ac.until) return 'sign-in error at Vest: trying again shortly';
+        if (joins) { const late = cpLateWhy(a); if (late) return late; }
+    } else if (joins && !flat && CP.lateKeep[String(a.accountId)]) {
+        // its sign-in trouble is over (an order of it went through on another market), but it is still behind on a trade it fell behind on during the
+        // trouble: that one is judged by age and price as before, until it joins it. A new leader trade is not in the record and is copied at once.
+        const lk = cpLateKeepOf(String(a.accountId)), lp = cpLeadPos(a.symbol);
+        if (lk && lp && lp.id != null && lk[a.symbol + '#' + lp.id] != null) { const late = cpLateWhy(a); if (late) return late; }
+    }
     // the Tabs engine: a follower whose tab is still opening is refused here, which is not an attempt, so a slow tab never pauses it
     if (!flat && CP.engineUp) { const eng = cpEngines[CP.engineId]; if (eng && typeof eng.refusal === 'function') { const no = eng.refusal(a.accountId); if (no) return no; } }
+    if (!flat) { const no = cpWriterHold(a); if (no) return no; }
     if (!c.markets.includes(a.symbol)) return 'market not managed';
     if (a.kind === 'open' || a.kind === 'append') {
         const size = Number(a.targetQty != null ? a.targetQty : a.qty);
@@ -10175,13 +10360,173 @@ function cpRefusal(a) {
     return '';
 }
 
+// Light runs Vest's own functions from this tab. One that is not on the page yet (its Vest window has not been open since the page loaded)
+// is waited for: the action is held here, so it is never tried and never counted toward a pause, and the warm-up or the owner's own use of
+// it brings the function (the owner's DEV tests, 2026-10-06: a TP copy failed for every follower and the retry rule paused them all).
+function cpWriterHold(a) {
+    if (!CP.engineUp || CP.engineId !== 'direct' || !CP_KINDS[a.kind]) return '';
+    const v = cpVx();
+    if (!v || typeof v.writerWhy !== 'function') return '';
+    let why = '';
+    try {
+        why = v.writerWhy(a.kind);
+        if (why && a.kind === 'close' && !v.writerWhy('reduce')) why = ''; // the engine closes with a full-size reduce (ceCloseFallback)
+    } catch (e) { return ''; }
+    if (!why) return '';
+    if (!CP.writerWarned[a.kind]) {
+        CP.writerWarned[a.kind] = true;
+        const name = { tpAdd: 'TP/SL add', tpUpdate: 'TP/SL move', tpDelete: 'TP/SL remove' }[a.kind] || a.kind;
+        cpToast('Copy: waiting for Vest\'s ' + name + ' function on this page. The copier opens Vest\'s window for a moment when you are idle; nobody is paused.', 'warn');
+    }
+    return 'waiting for Vest\'s ' + a.kind + ' function on this page: ' + why;
+}
+
+// A follower coming back from a sign-in error joins the leader's running trade only while that still makes sense: within CP_LATE_MS of falling
+// behind on that position, and while the price is near the leader's entry (a share of the leader's stop distance, or a small percent without a
+// stop). Too late is decided for good (cpSatOut): it sits that trade out and joins the leader's next one. The reason is kept for the widget.
+function cpLateWhy(a) {
+    const id = String(a.accountId);
+    const lp = cpLeadPos(a.symbol);
+    let why = '';
+    if (lp) {
+        const ac = CP.authCool[id] ? CP.authCool[id] : CP.lateKeep[id] ? { seen: CP.lateKeep[id] } : null, k = lp.id != null ? a.symbol + '#' + lp.id : '';
+        const d = CP.drift.get(cpPair(a));
+        const since = k && ac && ac.seen && ac.seen[k] != null ? ac.seen[k] : d ? d.first : CP.now();
+        const age = CP.now() - since;
+        if (age > CP_LATE_MS) {
+            why = 'sat out this ' + a.symbol + ' trade: it was ' + Math.round(age / 1000) + ' s old when its sign-in wait ended';
+            if (k) {
+                const m = CP.satOut[id] || (CP.satOut[id] = {});
+                m[k] = why;
+                const ks = Object.keys(m);
+                if (ks.length > 20) delete m[ks[0]]; // closed positions never match again: only a long day's worth is kept
+            }
+        } else {
+            let px = NaN;
+            try { px = typeof vxMarketPrice === 'function' ? Number(vxMarketPrice(a.symbol)) : NaN; } catch (e) {} // the guard runs for every follower on every pass: it must never throw
+            const entry = Number(lp.entry);
+            if (px > 0 && entry > 0) {
+                const sl = (Array.isArray(lp.sl) ? lp.sl : []).map((l) => Number(l && l.trigger)).find((x) => x > 0);
+                const room = sl > 0 ? Math.abs(entry - sl) * CP_LATE_SL_SHARE : entry * CP_LATE_PCT;
+                const off = Math.abs(px - entry);
+                if (off > room) why = 'sat out this ' + a.symbol + ' trade: the price is ' + (Math.round(off * 100) / 100) + ' from the leader\'s entry';
+            }
+        }
+    }
+    typeof cpDvOnce === 'function' && lp && cpDvOnce('late|' + id + '|' + a.symbol, why ? cpDvNoNum(why) : 'join') && cpDev('guard', () => ({
+        msg: cpName(id) + ' ' + a.symbol + ': back from its sign-in wait, ' + (why ? why : 'still close enough to the leader\'s entry, so it joins the running trade'), acc: id, symbol: a.symbol, sitOut: !!why }));
+    if (why) CP.lateWhy[id] = { symbol: a.symbol, why }; else delete CP.lateWhy[id];
+    return why;
+}
+
+// The earliest moment this follower was behind on the leader's position (by its id), kept for the whole sign-in trouble: the drift record starts
+// over whenever the leader's size changes (it scales in), which would make a minutes-old trade young again.
+function cpLateSeen(ac, a) {
+    const lp = cpLeadPos(a.symbol);
+    if (!lp || lp.id == null) return;
+    const k = a.symbol + '#' + lp.id, d = CP.drift.get(cpPair(a));
+    const at = d ? d.first : CP.now();
+    if (!ac.seen) ac.seen = {};
+    if (ac.seen[k] == null || at < ac.seen[k]) ac.seen[k] = at;
+}
+
+function cpLeadPos(symbol) {
+    const lead = CP.snap.leader;
+    return lead && Array.isArray(lead.positions) ? lead.positions.find((p) => p.symbol === symbol && Number(p.qty) > 0) || null : null;
+}
+
+// the reason a follower sat out a position the leader still holds (on `symbol`, or on any market); '' when there is none
+function cpSatOut(id, symbol) {
+    const m = CP.satOut[id];
+    const lead = m && CP.snap.leader;
+    for (const p of lead && Array.isArray(lead.positions) ? lead.positions : []) {
+        const k = p.symbol + '#' + p.id;
+        if (Number(p.qty) > 0 && p.id != null && (!symbol || p.symbol === symbol) && m[k]) return m[k];
+    }
+    return '';
+}
+
+// the owner switched a follower on, resumed or removed it: an old sign-in wait or a trade it sat out no longer holds it
+function cpAuthClear(id) {
+    delete CP.authCool[id];
+    delete CP.lateKeep[id];
+    delete CP.lateWhy[id];
+    delete CP.satOut[id];
+}
+
+// An order of this follower went through on another market before a trade it is behind on was judged (cpLateWhy judges one only after its
+// wait, on a reconciler pass): a trade that is already too old is sat out now, before the wait is dropped, or the next pass would join it.
+// The market the order went through on is left alone: the follower is in that trade.
+function cpSitOutLate(id, ac, symbol) {
+    const lead = CP.snap.leader;
+    if (!ac.seen || !lead || !Array.isArray(lead.positions)) return;
+    for (const p of lead.positions) {
+        const k = p.symbol + '#' + p.id, age = CP.now() - ac.seen[k];
+        if (!(Number(p.qty) > 0) || p.id == null || p.symbol === symbol || !(age > CP_LATE_MS)) continue;
+        const m = CP.satOut[id] || (CP.satOut[id] = {});
+        if (!m[k]) {
+            m[k] = 'sat out this ' + p.symbol + ' trade: it was ' + Math.round(age / 1000) + ' s old when its sign-in wait ended';
+            typeof cpDev === 'function' && cpDev('guard', () => ({ msg: cpName(id) + ' got an order through on ' + symbol + ' and sits out the leader\'s older ' + p.symbol + ' trade: ' + m[k], acc: id, symbol: p.symbol, sitOut: true }));
+        }
+    }
+}
+
+// Behind on another leader trade that it fell behind on during its sign-in trouble and that is still young: its wait is dropped with the first
+// order that goes through, but that trade stays under the age and price rule (cpLateWhy) until the follower joins it or the leader's position is
+// gone, or it would join at any price as soon as an order of it went through on another market. Only trades cpLateSeen recorded are kept.
+function cpLateKeepStart(id, ac, symbol) {
+    const lead = CP.snap.leader, keep = CP.lateKeep[id] || {}, sat = CP.satOut[id] || {};
+    for (const p of lead && Array.isArray(lead.positions) ? lead.positions : []) {
+        const k = p.symbol + '#' + p.id;
+        if (Number(p.qty) > 0 && p.id != null && p.symbol !== symbol && ac.seen && ac.seen[k] != null && !sat[k]) keep[k] = ac.seen[k];
+    }
+    if (Object.keys(keep).length) {
+        CP.lateKeep[id] = keep;
+        typeof cpDev === 'function' && cpDev('guard', () => ({ msg: cpName(id) + ' is behind on ' + Object.keys(keep).join(', ') + ': those stay under the age and price rule until it joins them', acc: id, keep: Object.keys(keep) }));
+    } else delete CP.lateKeep[id];
+}
+
+// the kept trades of a follower that the leader still holds and that it has not sat out; the record is dropped when none is left
+function cpLateKeepOf(id) {
+    const keep = CP.lateKeep[id];
+    if (!keep) return null;
+    const lead = CP.snap.leader, sat = CP.satOut[id] || {};
+    if (!lead || !Array.isArray(lead.positions)) return keep; // no leader read to judge by: nothing is dropped
+    for (const k of Object.keys(keep)) if (sat[k] || !lead.positions.some((p) => p.id != null && Number(p.qty) > 0 && p.symbol + '#' + p.id === k)) delete keep[k];
+    if (!Object.keys(keep).length) { delete CP.lateKeep[id]; return null; }
+    return keep;
+}
+
+// an order of this follower went through on `symbol`: it has joined the trades it was kept behind on there
+function cpLateKeepJoined(id, symbol) {
+    const keep = CP.lateKeep[id];
+    if (!keep) return;
+    for (const k of Object.keys(keep)) if (k.startsWith(symbol + '#')) delete keep[k];
+    if (!Object.keys(keep).length) delete CP.lateKeep[id];
+}
+
+// a follower that had a sign-in error got an order through (on `symbol`): its wait is over, and the log and a toast say so
+function cpAuthBack(id, symbol) {
+    const ac = CP.authCool[id];
+    if (ac) cpSitOutLate(id, ac, symbol);
+    if (ac) cpLateKeepStart(id, ac, symbol);
+    delete CP.authCool[id];
+    delete CP.lateWhy[id];
+    cpLog('info', { note: 'copying again after a sign-in error', acc: id, tries: ac ? ac.n : 0 });
+    typeof cpDev === 'function' && cpDev('state', () => ({ msg: cpName(id) + ' is back: an order of it went through on ' + symbol + ' after ' + (ac ? ac.n : 0) + ' sign-in error' + (ac && ac.n === 1 ? '' : 's') + (ac ? ' (' + Math.round((CP.now() - ac.at) / 1000) + ' s since the first)' : ''), acc: id, symbol, tries: ac ? ac.n : 0 }));
+    cpToast('Copy: ' + cpName(id) + ' is copying again.', 'good');
+}
+
 // {ok, why}
 function cpGuard(a, quiet) {
     const why = cpRefusal(a);
     if (why) {
         if (!quiet && a) cpLogOnce('refused', a, why);
+        // one line per change of the reason for a follower, kind and market (a refusal comes back every pass)
+        typeof cpDvOnce === 'function' && a && cpDvOnce('g|' + [a.accountId, a.kind, a.symbol, a.leg || ''].join('|'), cpDvNoNum(why)) && cpDev('guard', () => ({ msg: cpName(a.accountId) + ': ' + cpDvAct(a) + ' refused by the guard: ' + why, acc: a.accountId, symbol: a.symbol, kind: a.kind, why, quiet: !!quiet }));
         return { ok: false, why };
     }
+    typeof cpDvOnce === 'function' && a && cpDvOnce('g|' + [a.accountId, a.kind, a.symbol, a.leg || ''].join('|'), null); // allowed now: the same refusal later is news again
     return { ok: true, why: '' };
 }
 
@@ -10191,6 +10536,7 @@ function cpPair(a) { return a.accountId + '|' + a.symbol; }
 
 // Batches run one after another; the guard is checked again at the moment of sending (state may have changed in the queue).
 function cpDispatch(actions, src) {
+    typeof cpDev === 'function' && CP.execBusy > 0 && cpDev('send', () => ({ msg: 'a batch of ' + actions.length + ' action' + (actions.length === 1 ? '' : 's') + ' (' + src + ') waits behind the batch that is still running', src, n: actions.length, symbol: actions[0] && actions.every((a) => a.symbol === actions[0].symbol) ? actions[0].symbol : undefined }));
     const run = () => cpExecNow(actions, src);
     const p = CP.chain.then(run, run);
     CP.chain = p.catch(() => {});
@@ -10240,7 +10586,11 @@ function cpNoteBatch(res, src) {
 
 async function cpExecNow(actions, src) {
     const pairs = new Set(actions.map(cpPair));
-    const live = actions.filter((a) => cpGuard(a, true).ok);
+    const dvRefused = [];
+    const live = actions.filter((a) => { const g = cpGuard(a, true); if (!g.ok) dvRefused.push({ a, why: g.why }); return g.ok; });
+    dvRefused.length && typeof cpDev === 'function' && cpDev('guard', () => ({
+        msg: 'at send time the guard dropped ' + dvRefused.length + ' of ' + actions.length + ' action' + (actions.length === 1 ? '' : 's') + ' (' + src + '): ' + dvRefused.map((x) => cpName(x.a.accountId) + ' ' + cpDvAct(x.a) + ' - ' + x.why).join('; ') + (live.length ? '' : ' (nothing is sent)'),
+        symbol: dvRefused.every((x) => x.a.symbol === dvRefused[0].a.symbol) ? dvRefused[0].a.symbol : undefined, src, dropped: dvRefused.map((x) => ({ acc: x.a.accountId, kind: x.a.kind, why: x.why })) }));
     if (!live.length) { pairs.forEach((p) => CP.settle.delete(p)); return []; }
     const eng = cpEng();
     if (!eng || typeof eng.exec !== 'function') {
@@ -10255,6 +10605,7 @@ async function cpExecNow(actions, src) {
     try {
         // an engine that never answers must not hold the queue (and the reconciler) forever
         const lim = cpExecLimit(live);
+        typeof cpDvSend === 'function' && cpDvSend(live, src, lim);
         const limit = new Promise((_, no) => { guardT = CP.set(() => no(new Error('engine timed out after ' + lim + ' ms')), lim); });
         res = await Promise.race([eng.exec(live, { permit: cpPermit }), limit]);
         if (!Array.isArray(res)) throw new Error('engine returned no results');
@@ -10278,7 +10629,11 @@ async function cpExecNow(actions, src) {
             cpGone(a);
         }
         cpLog('action', Object.assign(cpSummary(a), { src, engine: CP.engineId || undefined, start: t0, ack: t0 + (r.ms != null ? r.ms : ack - t0), ms: r.ms != null ? r.ms : ack - t0,
-            ok: !!r.ok, result: r.ok ? (r.gone ? 'ok (already gone)' : 'ok') : 'error: ' + cpScrub(r.error) }, r.gone ? { gone: true } : {}));
+            ok: !!r.ok, result: r.ok ? (r.gone ? 'ok (already gone)' : 'ok') : 'error: ' + cpWords(cpScrub(r.error)) }, r.gone ? { gone: true } : {}));
+        typeof cpDev === 'function' && cpDev('vest', () => cpDvVest(a, r, src));
+        if (!r.ok && a.accountId != null && !/^(skipped|stopped|engine stopped)\b/.test(String(r.error || ''))) CP.lastErr[cpPair(a)] = { at: ack, text: cpWords(cpScrub(r.error)).slice(0, 120) };
+        if (r.ok && a.accountId != null && CP.lateKeep[String(a.accountId)]) cpLateKeepJoined(String(a.accountId), a.symbol);
+        if (r.ok && a.accountId != null && CP.authCool[String(a.accountId)]) cpAuthBack(String(a.accountId), a.symbol);
         if (!r.ok && a.accountId && CP_AUTH_RE.test(String(r.error || ''))) authBad.add(String(a.accountId));
     }
     pairs.forEach((p) => CP.settle.set(p, ack + CP_SETTLE_MS));
@@ -10286,15 +10641,43 @@ async function cpExecNow(actions, src) {
     // out at Vest's acceptance are due as soon as the position shows
     if (CP.running && !CP.killed && CP.now() < CP.fastUntil) { if (CP.looping) CP.again = true; else cpSchedule(0); }
     cpNoteBatch(res, src);
+    typeof cpDvBatchDone === 'function' && cpDvBatchDone(res, src, t0);
     // pairs whose open went through: see cpTick (their legs may follow as soon as the position shows)
     for (const r of res) if (r && r.ok && r.action && r.action.kind === 'open') CP.afterOpen.add(cpPair(r.action));
     // an acknowledged order that a read does not show yet must never be sent again on that read alone (see cpConfirm). A resting limit order is
     // not a position order: the order mirror tracks it by its own id.
     for (const r of res) if (r && r.ok && r.action && CP_QTY_KINDS[r.action.kind] && r.action.orderType !== 'limit') cpNoteAck(r, t0, ack);
-    // A sign-in error is not retried: two of them within 10 s make Vest log out every tab, the leader's included.
+    // Sign-in errors (the owner, 2026-10-05: copying must not stop for every follower when one of them has trouble):
+    // - one account's own (Vest will not mint its token: a breached, closed or new account): that follower waits 1 s, then 2, 4 and 6 s
+    //   between tries, with a warning, and the other followers keep being copied. A 401 means the order was not taken, so trying again is safe.
+    //   When it gets through it is told (cpAuthBack); a trade that ran on without it is joined only while that makes sense (cpLateWhy).
+    // - several accounts within 10 s, or several in one batch: that is the session, not one follower. Two sign-in errors within 10 s can make
+    //   Vest log out every tab, the leader's included, so nothing is sent for CP_AUTH_COOL (CP.authAt). Vest's logout path is fed by its
+    //   refresh-token failures (the bundle); whether an order's 401 counts too is not known. The owner chose speed (1.5 s, 2026-10-06).
     if (authBad.size) {
-        CP.authAt = ack;
-        for (const id of authBad) cpPause(id, 'Vest answered with a sign-in error. Not retried, so it cannot log you out');
+        const fails = CP.authFails.filter((x) => ack - x.t < CP_AUTH_WINDOW);
+        for (const id of authBad) fails.push({ id, t: ack });
+        CP.authFails = fails;
+        const several = authBad.size > 1 || new Set(fails.map((x) => x.id)).size > 1;
+        if (several) {
+            CP.authAt = ack;
+            cpToast('Copy: Vest answered with a sign-in error for several accounts. Nothing is sent for a moment, so Vest does not log you out.', 'bad');
+            typeof cpDev === 'function' && cpDev('guard', () => ({ msg: 'sign-in errors on several accounts within ' + CP_AUTH_WINDOW / 1000 + ' s (' + Array.from(new Set(fails.map((x) => cpName(x.id)))).join(', ') + '): nothing is sent for '
+                + CP_AUTH_COOL + ' ms so Vest does not log every tab out', accounts: Array.from(new Set(fails.map((x) => x.id))), coolMs: CP_AUTH_COOL, until: ack + CP_AUTH_COOL }));
+        }
+        for (const id of authBad) {
+            // the wait grows while the trouble goes on (failed again within 2 minutes of its last wait); a new incident starts at 1 s
+            const prev = CP.authCool[id] && ack - CP.authCool[id].until < 120000 ? CP.authCool[id] : null;
+            const n = prev ? prev.n + 1 : 1;
+            const wait = CP_AUTH_RETRY_MS[Math.min(n, CP_AUTH_RETRY_MS.length) - 1];
+            // a new 401 is a normal incident again; what it was kept behind on before only lends its times (a trade does not turn young again)
+            CP.authCool[id] = { at: prev ? prev.at : ack, n, until: ack + wait, seen: Object.assign({}, CP.lateKeep[id], CP.authCool[id] && CP.authCool[id].seen) };
+            delete CP.lateKeep[id];
+            cpLog('warn', { acc: id, why: 'sign-in error at Vest: trying again in ' + Math.round(wait / 1000) + ' s, the other followers keep copying', tries: n });
+            typeof cpDev === 'function' && cpDev('guard', () => ({ msg: cpName(id) + ' got a sign-in error from Vest (try ' + n + '): it waits ' + wait + ' ms, then tries again; the other followers keep copying' + (several ? ' (several accounts failed, so nothing is sent for ' + CP_AUTH_COOL + ' ms)' : ''),
+                acc: id, tries: n, waitMs: wait, until: ack + wait, several, lastErr: Object.keys(CP.lastErr).filter((k) => k.startsWith(id + '|')).map((k) => CP.lastErr[k].text)[0] }));
+            if (n === 1 && !several) cpToast('Copy: ' + cpName(id) + ' got a sign-in error from Vest. The other followers keep copying; it tries again in ' + Math.round(wait / 1000) + ' s.', 'warn');
+        }
     }
     return res;
 }
@@ -10314,6 +10697,8 @@ function cpNoteAck(r, sent, ack) {
     if (oid) rec.ids.push(oid);
     const tq = a.kind === 'close' ? 0 : a.targetQty != null ? Number(a.targetQty) : NaN;
     if (Number.isFinite(tq)) rec.expect = { symbol: a.symbol, qty: tq, side: a.kind === 'close' ? null : cpSide(a.side) };
+    typeof cpDev === 'function' && cpDev('plan', () => ({ msg: cpName(a.accountId) + ' ' + a.symbol + ': Vest acknowledged the order, so the copier expects ' + (rec.expect ? (rec.expect.qty > 0 ? (rec.expect.side || '') + ' ' + cpDvQ(rec.expect.qty) : 'flat') : 'no particular size')
+        + ' there and will not send it again until a trusted read shows or denies it', acc: a.accountId, symbol: a.symbol, expect: rec.expect, orderIds: rec.ids.slice(-3) }));
 }
 
 // A cancel found its order already gone: look again at what the follower holds and rests, from the next pass on.
@@ -10414,16 +10799,19 @@ function cpMatches(positions, ex) {
     return Math.abs(Number(have[0].qty) - ex.qty) <= (step > 0 ? step / 2 : 1e-9);
 }
 
-// Turbo: has this follower's own tab settled the last acknowledged order of the pair (see cpConfirm for the rules)? Synchronous: the fast path asks too.
-function cpTabConfirmed(accountId, pair) {
+// Turbo: how has this follower's own tab settled the last acknowledged order of the pair (see cpConfirm for the rules)? Synchronous: the fast path asks too.
+// 'match' (the tab shows what the order should have left), 'fate' (Vest said what became of it), 'late' (the tab took a snapshot CP_CONFIRM_TAB_MS after
+// the ack and still does not show it: believed missing, which under load is as often a slow store as a missing order), or '' (not settled).
+function cpTabVerdict(accountId, pair) {
     const s = cpTabFresh(accountId);
     const a = CP.acks[pair];
-    if (!s || !a) return false;
-    if (s.recv >= a.sent && cpMatches(s.positions, a.expect)) return true;
+    if (!s || !a) return '';
+    if (s.recv >= a.sent && cpMatches(s.positions, a.expect)) return 'match';
     const fate = cpFateOf(a.ids);
-    if (fate && s.recv >= fate.at) return true;
-    return s.at >= a.at + CP_CONFIRM_TAB_MS;
+    if (fate && s.recv >= fate.at) return 'fate';
+    return s.at >= a.at + CP_CONFIRM_TAB_MS ? 'late' : '';
 }
+function cpTabConfirmed(accountId, pair) { return cpTabVerdict(accountId, pair) !== ''; }
 
 // An order of ours was acknowledged (Vest's REST answer said yes), and a read of the follower does not show it yet. The order must never be
 // sent again on that read alone: Vest's lists lag by seconds, and the owner's live test sent the same open again, twice, until the follower
@@ -10439,8 +10827,36 @@ async function cpConfirm(accountId, pair, tickAt) {
     const now = CP.now();
     const fate = cpFateOf(a.ids);
     if (CP.engineUp && CP.engineId === 'tabs') {
-        if (!cpTabFresh(id)) return { state: 'wait', why: 'its tab has not reported lately' };
-        return cpTabConfirmed(id, pair) ? { state: 'trusted', read: cpTabRead(id) } : { state: 'wait', why: 'waiting for its tab to show the order' };
+        // Vest's own list (the one all-accounts GET, which needs no tab) is asked about the order at most once a second, once the Light wait has passed
+        // (the GET lags by seconds, so earlier it proves nothing). It is the second opinion that stops a slow tab store from becoming a second order.
+        // DEV: one line per change of what this check came to, not one per pass
+        const say = (sig, msg, f) => { typeof cpDvOnce === 'function' && cpDvOnce('tc|' + pair, sig, 5000) && cpDev('tabs', () => Object.assign({ msg: cpName(id) + ': ' + msg(), acc: id, pair, engine: 'tabs', sinceAckMs: now - a.at }, f)); };
+        const ask = async () => {
+            if (now < a.at + CP_CONFIRM_REST_MS || now - (CP.confirmAt[pair] || 0) < 1000) return null;
+            CP.confirmAt[pair] = now;
+            const fr = await cpRead(id, 'rest', Math.max(tickAt, a.at));
+            say('ask|' + (fr && fr.ok), () => 'asked Vest\'s own list (the one GET, not the tab) ' + cpDvN(now - a.at) + ' ms after the order was acknowledged, as a second opinion: ' + (fr && fr.ok ? 'it answered' : 'it FAILED (' + (fr && fr.error) + ')'), { ok: !!(fr && fr.ok), error: fr && !fr.ok ? fr.error : undefined });
+            return fr;
+        };
+        if (!cpTabFresh(id)) {
+            // A silent tab: a GET that shows the order settles it. One that does not show it settles nothing (it may be the lag), so the order is
+            // never believed missing from here: after CP_CONFIRM_GIVEUP_MS the follower pauses, with the cause named.
+            const fr = await ask();
+            if (fr && fr.ok && cpMatches(fr.positions, a.expect)) { say('silent|shown', () => 'its tab is silent, but Vest\'s own list shows the order: confirmed by the GET'); return { state: 'trusted', read: fr }; }
+            say('silent|' + (fr ? (fr.ok ? 'notshown' : 'failed') : 'early'), () => 'its tab has not reported lately' + (fr ? (fr.ok ? ' and Vest\'s list does not show the order yet (that may only be its lag): nothing is sent again, the follower pauses after ' + cpDvN(CP_CONFIRM_GIVEUP_MS) + ' ms without a confirmation' : ' and the GET failed') : ': waiting, Vest\'s list only counts ' + cpDvN(CP_CONFIRM_REST_MS) + ' ms after the acknowledgement'));
+            return { state: 'wait', why: 'its tab has not reported lately' + (fr && !fr.ok ? ' and the GET failed' : '') };
+        }
+        const v = cpTabVerdict(id, pair);
+        if (v === 'match' || v === 'fate') return { state: 'trusted', read: cpTabRead(id) };
+        if (v === 'late') {
+            // Both must say it is missing: the tab (taken 3 s after the ack) and a GET that started after the ack and CP_CONFIRM_REST_MS past it.
+            const fr = await ask();
+            if (!fr) { say('late|wait', () => 'its tab does not show the order ' + cpDvN(CP_CONFIRM_TAB_MS) + ' ms after the acknowledgement (a slow tab store looks the same as a lost order): waiting for Vest\'s list as well before sending anything again'); return { state: 'wait', why: 'its tab does not show the order yet; waiting for Vest\'s list as well' }; }
+            if (!fr.ok) return { state: 'failed', error: fr.error };
+            say('late|' + cpMatches(fr.positions, a.expect), () => cpMatches(fr.positions, a.expect) ? 'its tab did not show the order, but Vest\'s own list does: the tab\'s store was only late, so no second order is sent' : 'its tab and Vest\'s own list both say the order is missing: it will be sent again');
+            return { state: 'trusted', read: fr };
+        }
+        return { state: 'wait', why: 'waiting for its tab to show the order' };
     }
     const sp = typeof cpAcceptRead === 'function' ? cpAcceptRead(id) : null;
     if (sp && cpMatches(sp.positions, a.expect)) return { state: 'trusted', read: sp };
@@ -10493,13 +10909,14 @@ function cpBusyFor(id, at) {
 // account, paced by the read budget (18-budget.js).
 async function cpFetch(accountId, mode, since) {
     let at = CP.now(); // the read is judged by when it started: it can only show what happened before that
+    const at0 = at;
     // Turbo: the follower's own tab is the authority for its account (cpTabSnap); the reads below are for when it has not reported lately
-    const ts = cpTabRead(accountId);
+    const ts = mode === 'rest' ? null : cpTabRead(accountId); // 'rest': the GET only (a second opinion on what the tab says)
     if (ts && !(mode === 'fresh' && since != null && ts.at < since)) { if (typeof cpReadCount === 'function') cpReadCount('tab'); return ts; }
     try {
         const v = cpVx();
         const canStore = !!v && typeof v.storePositions === 'function';
-        const sp = canStore && mode !== 'fresh' ? v.storePositions(accountId) : null;
+        const sp = canStore && mode !== 'fresh' && mode !== 'rest' ? v.storePositions(accountId) : null;
         let ps = sp ? Object.assign(sp, { source: 'store' }) : null;
         // The all-accounts list is refused by a bridge that does not know its path (an older Better Vest script on the page): from then on this
         // session reads one account at a time, as before.
@@ -10519,11 +10936,17 @@ async function cpFetch(accountId, mode, since) {
         if (!ps) {
             // only an idle background read waits for the budget: a 'live' or 'fresh' read is one a send is waiting on
             if (!mode && canStore && typeof cpRestSlot === 'function') { await cpRestSlot(); at = CP.now(); }
-            ps = await v.positions(accountId, mode === 'fresh' ? { fresh: true } : undefined);
+            ps = await v.positions(accountId, mode === 'fresh' || mode === 'rest' ? { fresh: true } : undefined);
             if (typeof cpReadCount === 'function') cpReadCount(ps && ps.source);
         } else if (sp && typeof cpReadCount === 'function') cpReadCount('store');
-        return { ok: true, at, source: ps && ps.source || '', positions: (Array.isArray(ps) ? ps : []).filter((p) => p && Number(p.qty) > 0).map(cpNormPos) };
+        const out = { ok: true, at, source: ps && ps.source || '', positions: (Array.isArray(ps) ? ps : []).filter((p) => p && Number(p.qty) > 0).map(cpNormPos) };
+        // a store read is free and happens every pass: only the reads that went out to Vest (the GET) are worth a line
+        // (a confirm read always; an idle or live one at most every 15 s per account: with no store to read they happen every pass)
+        typeof cpDev === 'function' && out.source !== 'store' && (mode === 'fresh' || (typeof cpDvOnce === 'function' && cpDvOnce('net|' + accountId + '|' + (mode || ''), out.source, 15000))) && cpDev('net', () => ({ msg: 'read ' + cpName(accountId) + ' from Vest (' + (out.source || '?') + (mode ? ', ' + mode : '') + '): ' + out.positions.length + ' position' + (out.positions.length === 1 ? '' : 's') + ', took ' + Math.round(CP.now() - at0) + ' ms',
+            acc: accountId, source: out.source, mode: mode || undefined, ms: Math.round(CP.now() - at0), positions: out.positions.length }));
+        return out;
     } catch (e) {
+        typeof cpDvOnce === 'function' && cpDvOnce('rd|' + accountId, cpScrub(e && e.message || e)) && cpDev('net', () => ({ msg: 'could not read ' + cpName(accountId) + ': ' + cpScrub(e && e.message || e), acc: accountId, mode: mode || undefined, error: cpScrub(e && e.message || e) }));
         return { ok: false, at, error: cpScrub(e && e.message || e) };
     }
 }
@@ -10552,7 +10975,12 @@ async function cpHydrate() {
     const t0 = CP.now();
     const reads = await cpReadMany(ids, 'live');
     let n = 0;
-    reads.forEach((r, i) => { if (r.ok) { CP.snap.followers[ids[i]] = r; n++; } });
+    reads.forEach((r, i) => {
+        if (r.ok) {
+            CP.snap.followers[ids[i]] = r; n++;
+            typeof cpDev === 'function' && cpDev('book', () => ({ acc: ids[i], role: 'follower', positions: r.positions, source: 'read at start (' + r.source + ')' }));
+        }
+    });
     cpLog('info', { note: 'followers read at start: ' + n + ' of ' + ids.length, ms: Math.round(CP.now() - t0), source: reads.find((r) => r.ok) ? reads.find((r) => r.ok).source : '' });
 }
 
@@ -10598,6 +11026,7 @@ async function cpLoop() {
 
 function cpSetStatus(state, extra) {
     CP.status = Object.assign({ state, at: CP.now(), pending: 0, skipped: [], holds: Object.assign({}, CP.holds) }, extra || {});
+    typeof cpDvOnce === 'function' && cpDvOnce('status', String(state), 120000) && cpDev('state', () => ({ msg: 'reconciler status: ' + state, status: String(state) }));
 }
 
 // One pass: read the leader and the followers, plan, diff, and send what has drifted long enough (or an intent woke).
@@ -10626,10 +11055,14 @@ async function cpTick() {
     // an intent or a stop may have happened while we were reading: this pass would be stale
     if (!CP.running || CP.killed || CP.execBusy) return;
     const lead = reads[0];
-    if (!lead.ok) return cpSetStatus('could not read the leader: ' + lead.error);
+    if (!lead.ok) {
+        typeof cpDvOnce === 'function' && cpDvOnce('rd|leader', String(lead.error)) && cpDev('net', () => ({ msg: 'could not read the leader (' + lead.error + '): this pass does nothing', acc: c.leaderId, error: lead.error }));
+        return cpSetStatus('could not read the leader: ' + lead.error);
+    }
     CP.snap.leader = lead;
+    typeof cpDev === 'function' && cpDev('book', () => ({ acc: c.leaderId, role: 'leader', positions: lead.positions, source: 'read (' + lead.source + ')' }));
     if (typeof cpRememberLeader === 'function') cpRememberLeader(lead.positions); // a reduce of this position is found by its id even when the stores lag (16-accept.js)
-    for (const p of lead.positions) if (p.leverage > 0) CP.lev[p.symbol] = p.leverage;
+    for (const p of lead.positions) if (p.leverage > 0) CP.lev[p.symbol] = cpOrderLev(p.leverage);
     const t = CP.now();
     // A change of the leader's position on a market is a leader change: acted on at once (the drift gate below is for drift on the follower's
     // side, with the leader standing still). The leader's frames and accepted orders wake the market the same way; this covers what neither saw.
@@ -10640,11 +11073,13 @@ async function cpTick() {
             const sig = cpLeadSig(lead.positions, s);
             if (CP.leadSig[s] !== undefined && CP.leadSig[s] !== sig) {
                 CP.leadAt[s] = t;
+                typeof cpDev === 'function' && cpDev('plan', () => ({ msg: 'the leader\'s ' + s + ' position changed from "' + (CP.leadSig[s] || 'flat') + '" to "' + (sig || 'flat') + '"' + (c.markets.includes(s) ? ': the reconciler acts on it at once' : ': not a managed market, nothing follows'), symbol: s, from: CP.leadSig[s] || 'flat', to: sig || 'flat', managed: c.markets.includes(s) }));
                 if (c.markets.includes(s) && !(CP.wake.get(s) > t)) CP.wakeF.set(s, t + CP_INTENT_MS);
             }
             CP.leadSig[s] = sig;
         }
     }
+    for (const id of Object.keys(CP.lateKeep)) cpLateKeepOf(id); // trades the leader has closed need no more judging
     // every market the leader holds is managed from now on (and kept awake while a leader frame is fresh, a new market included)
     cpManage(c, lead.positions.map((p) => p.symbol), 'the leader holds a position there');
     if (CP.wakeAny > t) for (const p of lead.positions) CP.wakeF.set(p.symbol, CP.wakeAny);
@@ -10659,19 +11094,31 @@ async function cpTick() {
     let pending = 0;
     const seen = new Set();
     const out = [];
+    const perF = []; // each follower's diff this pass (the debug log's sync of a market reads it)
     for (let i = 0; i < folls.length; i++) {
         const f = folls[i], r = reads[i + 1];
         if (!r.ok) { cpLogOnce('refused', { accountId: f.accountId, kind: 'read', symbol: '-' }, 'could not read: ' + r.error); continue; }
         CP.snap.followers[f.accountId] = r;
+        typeof cpDev === 'function' && cpDev('book', () => ({ acc: f.accountId, role: 'follower', positions: r.positions, source: 'read (' + r.source + ')' }));
         const desired = cpPlan(lead.positions, f, info);
-        for (const d of desired) if (d.skip) skipped.push({ accountId: f.accountId, symbol: d.symbol, why: d.skip });
+        for (const d of desired) if (d.skip) {
+            skipped.push({ accountId: f.accountId, symbol: d.symbol, why: d.skip });
+            typeof cpDvOnce === 'function' && cpDvOnce('sk|' + f.accountId + '|' + d.symbol, d.skip) && cpDev('plan', () => ({ msg: cpName(f.accountId) + ' ' + d.symbol + ': skipped, ' + d.skip + ' (it is treated as flat there)', acc: f.accountId, symbol: d.symbol, skip: d.skip }));
+        }
         const acts = cpDiff(desired, r.positions, f.accountId);
+        perF.push({ id: String(f.accountId), acts });
+        for (const d of desired) if (d.hold) {
+            typeof cpDvOnce === 'function' && cpDvOnce('hold|' + f.accountId + '|' + d.symbol, d.hold) && cpDev('plan', () => ({ msg: cpName(f.accountId) + ' ' + d.symbol + ': the planner leaves it alone, ' + d.hold, acc: f.accountId, symbol: d.symbol, hold: d.hold }));
+        }
         if (!acts.length && !desired.some((d) => d.hold)) CP.syncAt[f.accountId] = r.at; // a read that shows it matching ends an old error
         const bySym = new Map();
         for (const a of acts) { if (!bySym.has(a.symbol)) bySym.set(a.symbol, []); bySym.get(a.symbol).push(a); }
         for (const [symbol, list0] of bySym) {
             let list = list0;
-            if (orx && orx.held(f.accountId, symbol, list0)) continue; // limit orders rest there: exposure agrees, or a leftover is cancelled first
+            if (orx && orx.held(f.accountId, symbol, list0)) {
+                typeof cpDvOnce === 'function' && cpDvOnce('w|' + f.accountId + '|' + symbol, 'held') && cpDev('plan', () => ({ msg: cpName(f.accountId) + ' ' + symbol + ': limit orders rest there, so the position reconciler waits (their exposure agrees, or a leftover is cancelled first)', acc: f.accountId, symbol, wait: 'limit orders', needs: list0.map(cpDvAct) }));
+                continue; // limit orders rest there: exposure agrees, or a leftover is cancelled first
+            }
             const pair = f.accountId + '|' + symbol;
             seen.add(pair);
             pending += list.length;
@@ -10683,7 +11130,11 @@ async function cpTick() {
                 const ack = settleAt - CP_SETTLE_MS;
                 const opened = CP.afterOpen.has(pair) && Number.isFinite(ack) && lead.at >= ack && r.at >= ack && r.positions.some((p) => p.symbol === symbol && Number(p.qty) > 0)
                     && list.every((a) => a.kind === 'tpAdd' || a.kind === 'tpUpdate' || a.kind === 'tpDelete');
-                if (!opened) continue;
+                if (!opened) {
+                    typeof cpDvOnce === 'function' && cpDvOnce('w|' + pair, 'settle') && cpDev('plan', () => ({ msg: cpName(f.accountId) + ' ' + symbol + ': waiting, the last send has not had time to show yet ('
+                        + (isFinite(settleAt) ? Math.max(0, Math.round(settleAt - t)) + ' ms of settle left' : 'the batch is still going out') + (lead.at < settleAt ? ', the leader read is older than the send' : ', the follower read is older than the send') + ')', acc: f.accountId, symbol, wait: 'settle', needs: list.map(cpDvAct) }));
+                    continue;
+                }
             }
             // A click-time send moved the follower before the leader's own order was on the exchange: until the leader shows what was predicted
             // (or the floor passes, because that order was refused) the gap is the leader being slow, not drift to undo.
@@ -10695,13 +11146,20 @@ async function cpTick() {
                 // ... and for CP_SURPRISE_MS: the leader's own order can show a half-way state on its way to what was predicted (two fills), and
                 // answering that would be an order of ours in each direction. It has to stay on the new book that long (CP.leadAt, set above).
                 const surprise = fl.from !== undefined && lsig !== fl.want && lsig !== fl.from && t - (CP.leadAt[symbol] || 0) >= CP_SURPRISE_MS;
-                if (t < fl.until && lsig !== fl.want && !surprise) continue;
+                if (t < fl.until && lsig !== fl.want && !surprise) {
+                    typeof cpDvOnce === 'function' && cpDvOnce('w|' + pair, 'floor') && cpDev('plan', () => ({ msg: cpName(f.accountId) + ' ' + symbol + ': waiting for the leader to show what the early send predicted (the leader shows "' + (lsig || 'flat') + '", predicted "' + (fl.want || 'flat') + '", '
+                        + Math.max(0, Math.round(fl.until - t)) + ' ms of waiting left)', acc: f.accountId, symbol, wait: 'floor', leaderShows: lsig || 'flat', predicted: fl.want || 'flat' }));
+                    continue;
+                }
+                typeof cpDev === 'function' && cpDev('plan', () => ({ msg: cpName(f.accountId) + ' ' + symbol + ': the wait for the leader is over, ' + (surprise ? 'the leader stayed on a book nobody predicted ("' + (lsig || 'flat') + '"), so the reconciler corrects the follower'
+                    : lsig === fl.want ? 'the leader shows what was predicted' : 'the time ran out and the leader never showed it (its order was probably refused)'), acc: f.accountId, symbol, surprise, leaderShows: lsig || 'flat', predicted: fl.want || 'flat' }));
                 CP.floor.delete(pair);
                 if (surprise) CP.wake.set(symbol, t + CP_INTENT_MS);
             }
             CP.afterOpen.delete(pair);
             const sig = list.map(cpDriftSig).join(';');
             let rec = CP.drift.get(pair);
+            const driftWas = rec ? rec.sig : null;
             if (!rec || rec.sig !== sig) { rec = { sig, first: t, attempts: 0, lastSent: 0, alerted: false }; CP.drift.set(pair, rec); }
             const age = t - rec.first;
             // An intent of the owner acts at once. A leader frame acts at once for an open or a TP/SL change, but a reduce or close first has to
@@ -10710,15 +11168,41 @@ async function cpTick() {
             const frameWoke = (CP.wakeF.get(symbol) || 0) > t;
             const gate = (CP.wake.get(symbol) || 0) > t ? 0 : frameWoke ? (list.some((a) => a.kind === 'reduce' || a.kind === 'close') ? CP_FRAME_GATE_MS : 0) : CP_DRIFT_MS;
             const woke = gate < CP_DRIFT_MS;
+            driftWas !== sig && typeof cpDev === 'function' && cpDev('plan', () => ({ msg: cpName(f.accountId) + ' ' + symbol + ': ' + (driftWas === null ? 'out of line with the leader' : 'what it needs changed') + ', needs: ' + list.map(cpDvAct).join('; ') + '. '
+                + (gate === 0 ? 'Acts at once (' + ((CP.wake.get(symbol) || 0) > t ? 'your action woke it' : 'a leader frame woke it') + ')' : frameWoke ? 'A leader reduce or close first has to stay unchanged for ' + gate + ' ms' : 'Waits ' + gate + ' ms of drift before it acts'),
+                acc: f.accountId, symbol, drift: driftWas === null ? 'started' : 'changed', gateMs: gate, woke, leader: cpLeadSig(lead.positions, symbol) || 'flat', follower: cpLeadSig(r.positions, symbol) || 'flat', needs: list.map(cpDvActFields) }));
             let send = false;
             let retry = false;
-            if (rec.attempts === 0) send = age >= gate;
+            // A follower whose last send on this pair got a sign-in error is tried again the moment its wait is over (cpRefusal holds it until then):
+            // the 401 means Vest did not take the order, and the drift gate below (CP_DESYNC_MS) would turn the 1, 2, 4, 6 s waits into 3, 7, 11, 17 s.
+            const acw = CP.authCool[String(f.accountId)], lerr = CP.lastErr[pair];
+            const authRetry = rec.attempts >= 1 && !!acw && t >= acw.until && !!lerr && lerr.at >= rec.lastSent && CP_AUTH_RE.test(lerr.text);
+            // Vest rejected the pair's last order on its socket (a follower REJECTED frame, cpAcceptFollowerCommand): it took nothing, so the one
+            // retry goes on this pass, not after the drift gate; a second rejection pauses as before, naming Vest's reason (the owner: retries under 2 s)
+            const ak = CP.acks[pair], akFate = ak && ak.at >= rec.lastSent ? cpFateOf(ak.ids) : null;
+            const rejRetry = !authRetry && rec.attempts === 1 && !!akFate && akFate.type === 'REJECTED';
+            if (authRetry) send = true;
+            else if (rejRetry) { send = true; retry = true; }
+            else if (rec.attempts === 0) send = age >= gate;
             else if (rec.attempts === 1 && age >= CP_DESYNC_MS) { send = true; retry = true; } // alarmed below, once it is clear that a second send is allowed
             else if (rec.attempts >= 2 && t - rec.lastSent >= CP_DESYNC_MS) {
-                cpPause(f.accountId, symbol + ' still out of sync after a retry');
+                // name what failed, when the last failure of this pair is recent: the bare "out of sync" hid the cause in every live log so far
+                const le = CP.lastErr[pair];
+                // a follower whose last failure was a sign-in error is not paused: it tries again after each wait (cpRefusal holds it meanwhile)
+                if (CP.authCool[String(f.accountId)] && le && CP_AUTH_RE.test(le.text)) {
+                    typeof cpDvOnce === 'function' && cpDvOnce('w|' + pair, 'authpause') && cpDev('guard', () => ({ msg: cpName(f.accountId) + ' ' + symbol + ': not paused, its last error was a sign-in error, so it tries again after its wait (' + le.text + ')', acc: f.accountId, symbol, lastErr: le.text }));
+                    rec.attempts = 0;
+                    continue;
+                }
+                cpPause(f.accountId, symbol + ' still out of sync after a retry' + (le && t - le.at < 60000 ? ' (last error: ' + le.text + ')' : ''));
                 continue;
             }
-            if (!send) continue;
+            if (!send) {
+                typeof cpDvOnce === 'function' && cpDvOnce('w|' + pair, 'gate' + rec.attempts) && cpDev('plan', () => ({ msg: cpName(f.accountId) + ' ' + symbol + ': ' + (rec.attempts === 0 ? 'holding off, the drift is ' + Math.round(age) + ' ms old and the gate is ' + gate + ' ms'
+                    : rec.attempts === 1 ? 'sent once, it checks again in ' + Math.max(0, CP_DESYNC_MS - Math.round(age)) + ' ms and retries if it is still wrong' : 'retried, it waits ' + Math.max(0, CP_DESYNC_MS - Math.round(t - rec.lastSent)) + ' ms more before it decides'),
+                    acc: f.accountId, symbol, wait: 'gate', attempts: rec.attempts, ageMs: Math.round(age), gateMs: gate }));
+                continue;
+            }
             let ok = list.filter((a) => cpGuard(a).ok); // refused actions are logged by the guard and never counted as attempts
             if (!ok.length) continue;
             // An order of ours that was acknowledged OK is on the exchange, whatever a read says: a read that does not show it yet (Vest's
@@ -10727,18 +11211,31 @@ async function cpTick() {
             if (CP.okQty.has(pair) && ok.some((a) => CP_QTY_KINDS[a.kind])) {
                 const cf = await cpConfirm(f.accountId, pair, tickAt);
                 if (!CP.running || CP.killed || CP.execBusy) return;
+                typeof cpDev === 'function' && (cf.state === 'trusted' || (typeof cpDvOnce === 'function' && cpDvOnce('w|' + pair, 'confirm:' + cf.state + ':' + (cf.why || cf.error)))) && cpDev('plan', () => {
+                    const ak = CP.acks[pair];
+                    const shows = !!(cf.read && ak && cpMatches(cf.read.positions, ak.expect));
+                    const fate = ak ? cpFateOf(ak.ids) : null;
+                    const ageMs = ak ? Math.round(t - ak.at) : null;
+                    return { msg: cpName(f.accountId) + ' ' + symbol + ': ' + (cf.state === 'trusted'
+                        ? (shows ? 'its last acknowledged order shows on a trusted read, so what is still missing is sent'
+                            : fate ? 'Vest said its last order was ' + fate.type.toLowerCase() + ', so it is sent again on a trusted read'
+                                : 'its last acknowledged order does not show ' + ageMs + ' ms after Vest\'s OK: believed missing, sent again on a trusted read')
+                        : cf.state === 'wait' ? 'not sent again yet: ' + cf.why : 'not sent again: the read failed (' + cf.error + ')'),
+                        acc: f.accountId, symbol, confirm: cf.state, shows, fate: fate ? fate.type : undefined, ackAgeMs: ageMs, readSource: cf.read ? cf.read.source : undefined };
+                });
                 if (cf.state !== 'trusted') {
                     if (cf.state === 'failed') cpLogOnce('refused', { accountId: f.accountId, kind: 'confirm', symbol }, 'not sent again: the read failed (' + cf.error + ')');
                     const ack = CP.acks[pair] ? CP.acks[pair].at : CP.ackAt[pair] || t;
                     if (t - ack > CP_CONFIRM_GIVEUP_MS) { // never resent blind: the follower stops until the owner looks
                         CP.okQty.delete(pair);
                         delete CP.acks[pair];
-                        cpPause(f.accountId, 'could not confirm the last order');
+                        cpPause(f.accountId, 'could not confirm the last order (' + (cf.why || cf.error || 'no trusted read') + ')');
                     }
                     continue;
                 }
                 const fr = cf.read;
                 CP.snap.followers[f.accountId] = fr;
+                typeof cpDev === 'function' && cpDev('book', () => ({ acc: f.accountId, role: 'follower', positions: fr.positions, source: 'confirm read (' + fr.source + ')' }));
                 list = cpDiff(cpPlan(lead.positions, f, info), fr.positions, f.accountId).filter((a) => a.symbol === symbol);
                 ok = list.filter((a) => cpGuard(a).ok);
                 if (!ok.length) {
@@ -10751,18 +11248,27 @@ async function cpTick() {
                 cpLog('desync', { acc: f.accountId, symbol, ageMs: age, wanted: sig });
                 cpToast('Copy: ' + cpName(f.accountId) + ' is out of sync on ' + symbol + '. Retrying once.', 'warn');
             }
-            rec.attempts++;
+            rec.attempts = authRetry ? 1 : rec.attempts + 1; // a sign-in retry is not a desync retry: the pair stays at "sent once"
             rec.lastSent = t;
             CP.okQty.delete(pair);
             CP.settle.set(pair, Infinity);
             cpLog('send', { acc: f.accountId, symbol, attempt: rec.attempts, n: ok.length, ageMs: age, woke });
+            typeof cpDvOnce === 'function' && cpDvOnce('w|' + pair, null);
+            typeof cpDev === 'function' && cpDev('plan', () => ({ msg: cpName(f.accountId) + ' ' + symbol + ': sending ' + ok.map(cpDvAct).join('; ') + ' ('
+                + (authRetry ? 'a retry after its sign-in wait' : retry ? 'a retry, it was still wrong after ' + Math.round(age) + ' ms' : 'attempt ' + rec.attempts + ', the drift is ' + Math.round(age) + ' ms old') + (woke ? ', woken early by ' + ((CP.wake.get(symbol) || 0) > t ? 'your action' : 'a leader frame') : ', the drift gate passed') + ')',
+                acc: f.accountId, symbol, attempt: rec.attempts, retry, ageMs: Math.round(age), woke, actions: ok.map(cpDvActFields) }));
             out.push(...ok);
         }
     }
     // one batch for every follower: the engine runs the accounts side by side, not one batch after another
     if (out.length) cpDispatch(out, 'reconciler');
     if (orx) { const os = orStep(c, lead, folls, orx, out); skipped.push(...os.skipped); pending += os.pending; }
-    for (const k of Array.from(CP.drift.keys())) if (!seen.has(k)) CP.drift.delete(k);
+    for (const k of Array.from(CP.drift.keys())) {
+        if (seen.has(k)) continue;
+        typeof cpDev === 'function' && cpDev('plan', () => ({ msg: cpName(k.slice(0, k.indexOf('|'))) + ' ' + k.slice(k.indexOf('|') + 1) + ': nothing is left to fix (it matches the leader again, or its limit orders took over)', acc: k.slice(0, k.indexOf('|')), symbol: k.slice(k.indexOf('|') + 1), drift: 'ended' }));
+        typeof cpDvOnce === 'function' && cpDvOnce('w|' + k, null);
+        CP.drift.delete(k);
+    }
     for (const k of Array.from(CP.okQty)) {
         if (seen.has(k) || (CP.settle.get(k) || 0) > t) continue;
         // Turbo: an acknowledged order stays on the books until the follower's own tab has shown its effect (cpTabConfirmed), however quiet the pair is: a
@@ -10776,6 +11282,7 @@ async function cpTick() {
     for (const [k, fl] of Array.from(CP.floor)) if (fl.until <= t || cpLeadSig(lead.positions, k.slice(k.indexOf('|') + 1)) === fl.want) CP.floor.delete(k);
     for (const [s, until] of Array.from(CP.wake)) if (until <= t) CP.wake.delete(s);
     for (const [s, until] of Array.from(CP.wakeF)) if (until <= t) CP.wakeF.delete(s);
+    typeof cpDvSyncPass === 'function' && cpDvSyncPass(c, lead, perF, t);
     cpResumeTrack(c);
     cpSetStatus('ok', { pending, skipped });
 }
@@ -10796,17 +11303,21 @@ function cpPause(accountId, why) {
     CP.paused[accountId] = { why, at: CP.now() };
     for (const k of Array.from(CP.drift.keys())) if (k.startsWith(accountId + '|')) CP.drift.delete(k);
     cpLog('pause', { acc: accountId, why });
+    typeof cpDev === 'function' && cpDev('state', () => ({ msg: cpName(accountId) + ' is PAUSED: ' + why + '. The copier leaves it alone until you resume it or switch copying on again', acc: accountId, why, paused: true,
+        lastErr: Object.keys(CP.lastErr).filter((k) => k.startsWith(accountId + '|')).map((k) => ({ pair: k, text: CP.lastErr[k].text, agoMs: Math.round(CP.now() - CP.lastErr[k].at) })) }));
     cpToast('Copy: ' + cpName(accountId) + ' is paused (' + why + '). It is not being copied until you resume it.', 'bad');
 }
 
 function cpResume(accountId) {
     delete CP.paused[accountId];
+    cpAuthClear(String(accountId)); // the owner's own Resume: no old sign-in wait or sat-out trade holds it
     CP.resumedAt[accountId] = CP.now();
     for (const k of Array.from(CP.drift.keys())) if (k.startsWith(accountId + '|')) CP.drift.delete(k);
     // an order acknowledged before the pause is judged by the next read like any other: it was either confirmed or given up on
     for (const k of Array.from(CP.okQty)) if (k.startsWith(accountId + '|')) CP.okQty.delete(k);
     for (const k of Object.keys(CP.acks)) if (k.startsWith(accountId + '|')) delete CP.acks[k];
     cpLog('info', { acc: accountId, note: 'resumed' });
+    typeof cpDev === 'function' && cpDev('state', () => ({ msg: cpName(accountId) + ' resumed: its old waits and unconfirmed orders are forgotten, the next pass judges it fresh', acc: accountId, resumed: true }));
 }
 
 // ---------- the leader's socket frames wake the reconciler ----------
@@ -10815,6 +11326,7 @@ function cpResume(accountId) {
 // That wakes every copied market, so the followers are fixed on the next poll instead of after the drift gate (CP.wakeF: not for a reduce or close).
 function cpWakeAll(c) {
     const t = CP.now();
+    typeof cpDvOnce === 'function' && cpDvOnce('wakeall', 'x', 1000) && cpDev('socket', () => ({ msg: 'Vest says the leader account changed: every copied market is woken (a reduce or close still waits ' + CP_FRAME_GATE_MS + ' ms to stay unchanged)', markets: (c.markets || []).slice(), acc: c.leaderId }));
     for (const m of c.markets || []) CP.wakeF.set(m, t + CP_INTENT_MS);
     CP.wakeAny = t + CP_INTENT_MS; // the next pass also wakes a market the leader has only just opened
     CP.fastUntil = t + CP_INTENT_MS;
@@ -10867,6 +11379,7 @@ function cpBus(m) {
 
 function cpOnBus(m) {
     if (!m || typeof m !== 'object' || m.from === CP.tabId) return;
+    typeof cpDev === 'function' && cpDev('state', () => ({ msg: 'another Vest tab sent "' + m.t + '" over the copier channel' + (m.t === 'kill' ? ': this tab stops copying too' : m.t === 'stop' ? ': this tab switches copying off too' : ''), bus: m.t }));
     if (m.t === 'kill') {
         CP.killed = true;
         CP.killAt = CP.now();
@@ -10913,19 +11426,27 @@ function cpWritersWhy() {
 async function cpStart() {
     const c = cpCfg();
     if (CP.running) return true;
-    if (cpAckNeeded()) { cpLog('info', { note: 'not started: needs acknowledgement' }); return false; }
-    if (!c.leaderId) { cpToast('Copy: pick the leader account first.', 'bad'); return false; }
+    typeof cpDev === 'function' && cpDev('state', () => ({ msg: 'copying is being switched on: ' + cpDvCfg(c), cfg: { leader: c.leaderId, followers: c.followers.map((x) => ({ acc: x.accountId, on: x.on, ratio: x.ratio })), markets: c.markets.slice(), engine: cpEngineId(c), ultraFast: c.sendAtPending === true, mirrorLimits: c.mirrorLimits !== false } }));
+    if (cpAckNeeded()) { cpLog('info', { note: 'not started: needs acknowledgement' }); typeof cpDev === 'function' && cpDev('state', () => ({ msg: 'copying did not start: the risk note has not been accepted yet' })); return false; }
+    if (!c.leaderId) { cpToast('Copy: pick the leader account first.', 'bad'); typeof cpDev === 'function' && cpDev('state', () => ({ msg: 'copying did not start: no leader account is picked' })); return false; }
     if (!(await cpLockTake())) {
         c.on = false; // in this tab's memory only: the tab that copies keeps its own saved state
         cpSetStatus('copying is running in another Vest tab');
         cpLog('info', { note: 'not started: copying is running in another Vest tab' });
         cpToast('Copy: copying is running in another Vest tab. Only one tab can copy at a time.', 'bad');
+        typeof cpDev === 'function' && cpDev('state', () => ({ msg: 'copying did not start: another Vest tab holds the copy lock (only one tab copies at a time)' }));
         return false;
     }
     if (CP.running) return true;
     CP.killed = false;
     CP.flattening = false;
     CP.authAt = 0;
+    CP.authCool = {};
+    CP.authFails = [];
+    CP.lateWhy = {};
+    CP.satOut = {};
+    CP.lateKeep = {};
+    CP.writerWarned = {};
     c.on = true;
     cpSave(c);
     CP.running = true;
@@ -10938,16 +11459,19 @@ async function cpStart() {
         cpLog('info', { note: 'switching copying on cleared ' + wasPaused.length + ' pause' + (wasPaused.length === 1 ? '' : 's'), accounts: wasPaused });
     }
     cpLog('info', { note: 'copying on', followers: c.followers.filter((f) => f.on).length });
+    typeof cpDev === 'function' && cpDev('state', () => ({ msg: 'copying is ON (the copy lock is taken, this tab is the only one that copies)', running: true }));
     cpKeepAwake(true); // a background tab would otherwise be throttled and copy late
+    cpLoadWatch(true);
     const engId = cpEngineId(c);
     const eng = cpEngines[engId];
-    if (!eng) { cpToast('Copy: the copy engine is not available.', 'bad'); cpStop('no engine'); return false; }
+    if (!eng) { cpToast('Copy: the copy engine is not available.', 'bad'); typeof cpDev === 'function' && cpDev('error', () => ({ msg: 'copying cannot start: the ' + engId + ' engine is not in this build', engine: engId })); cpStop('no engine'); return false; }
     // Vest's script text is what tells its writers apart: have it before the first intent, not after
     try { const v = cpVx(); if (v && typeof v.prepare === 'function') await v.prepare(); } catch (e) { cpLog('error', { note: 'prepare: ' + cpScrub(e && e.message || e) }); }
     if (!CP.running) return false; // switched off while Vest's script text was loading: nothing was started
     const vwhy = cpWritersWhy();
     if (vwhy) {
         cpLog('error', { note: 'Vest changed: ' + vwhy });
+        typeof cpDev === 'function' && cpDev('error', () => ({ msg: 'copying cannot start: Vest\'s order functions cannot be relied on (' + vwhy + ')', why: vwhy }));
         cpToast('Copy: Vest changed, so copying is unavailable until Better Vest is updated.', 'bad');
         cpStop('Vest changed');
         return false;
@@ -10959,12 +11483,14 @@ async function cpStart() {
         CP.engineUp = true;
         CP.engineId = engId;
         cpWatchState(true);
+        typeof cpDev === 'function' && cpDev('engine', () => ({ msg: 'the ' + engId + ' engine is up (' + (engId === 'tabs' ? 'Turbo: one background tab per follower' : 'Light: every order goes out from this tab') + '), the reconciler starts', engine: engId }));
         if (typeof orStart === 'function') orStart();
         if (typeof cpAcceptWatch === 'function') cpAcceptWatch(true); // Vest's acceptance of the leader's orders (16-accept.js)
         cpHydrate().catch(() => {}); // every follower's positions in one read, so the first order of the session needs no read
     } catch (e) {
         CP.engineId = engId; // a half-started engine (its tabs may be open) is stopped by the stop below
         cpLog('error', { note: 'engine start: ' + cpScrub(e && e.message || e) });
+        typeof cpDev === 'function' && cpDev('error', () => ({ msg: 'the ' + engId + ' engine did not start: ' + cpScrub(e && e.message || e), engine: engId }));
         cpToast('Copy: the engine did not start (' + cpScrub(e && e.message || e) + ').', 'bad');
         cpStop('engine did not start');
         return false;
@@ -10994,6 +11520,7 @@ function cpStop(why, keepEngine, quiet) {
     c.resume = null; // a copier that was switched off by hand, by the kill switch or by a failure does not come back by itself
     cpSave(c);
     cpKeepAwake(false);
+    cpLoadWatch(false);
     CP.drift.clear();
     CP.settle.clear();
     CP.afterOpen.clear();
@@ -11009,6 +11536,7 @@ function cpStop(why, keepEngine, quiet) {
     CP.wakeAny = 0;
     cpSetStatus('off');
     cpLog('info', { note: 'copying off', why: why || '' });
+    typeof cpDev === 'function' && cpDev('state', () => ({ msg: 'copying is OFF: ' + (why || 'master switch') + (keepEngine ? ' (the engine stays up for a possible flatten)' : '') + '; the reconciler, its waits and unconfirmed orders are cleared', why: why || '', keepEngine: !!keepEngine, quiet: !!quiet }));
     if (!quiet) { cpBus({ t: 'stop' }); cpBus({ t: 'halt' }); } // halt: a follower tab in the middle of its actions stops after the one it is on
     if (!keepEngine) return cpEngineStop();
     return Promise.resolve();
@@ -11019,10 +11547,15 @@ function cpStop(why, keepEngine, quiet) {
 // First press: stop copying at once. Second press within 5 s: close every follower position in the copied markets.
 async function cpKillPress() {
     const t = CP.now();
-    if (CP.killed && !CP.flattening && t - CP.killAt <= CP_KILL_WINDOW) { await cpFlatten(); return 'flatten'; }
+    if (CP.killed && !CP.flattening && t - CP.killAt <= CP_KILL_WINDOW) {
+        typeof cpDev === 'function' && cpDev('state', () => ({ msg: 'KILL SWITCH (second press, ' + Math.round(t - CP.killAt) + ' ms after the first): closing the followers\' positions in the copied markets', kill: 2, symbol: cpDvCur() }));
+        await cpFlatten();
+        return 'flatten';
+    }
     CP.killed = true;
     CP.killAt = t;
     cpLog('kill', { note: 'stop' });
+    typeof cpDev === 'function' && cpDev('state', () => ({ msg: 'KILL SWITCH (first press): copying stops at once, orders still queued are refused; press again within ' + CP_KILL_WINDOW / 1000 + ' s to close the followers\' positions', kill: 1, symbol: cpDvCur() }));
     cpToast('Copy stopped. Press Alt+Shift+K again within 5 s to close the followers\' positions.', 'bad');
     cpBus({ t: 'kill' });
     cpBus({ t: 'halt' });
@@ -11048,7 +11581,7 @@ async function cpFlatten() {
         const reads = await cpReadMany(fl.map((x) => x.accountId), 'live');
         for (let i = 0; i < fl.length; i++) {
             const f = fl[i], r = reads[i];
-            if (!r.ok) { cpToast('Copy: could not read ' + cpName(f.accountId) + ' to flatten it.', 'bad'); continue; }
+            if (!r.ok) { cpToast('Copy: could not read ' + cpName(f.accountId) + ' to flatten it.', 'bad'); typeof cpDev === 'function' && cpDev('net', () => ({ msg: 'flatten: could not read ' + cpName(f.accountId) + ' (' + r.error + '), so it is not closed', acc: f.accountId, error: r.error })); continue; }
             // what the copier has resting for it goes first, so nothing opens again after the close
             if (typeof orFlattenCancels === 'function') acts.push(...await orFlattenCancels(c, f));
             for (const p of r.positions) {
@@ -11060,10 +11593,13 @@ async function cpFlatten() {
         cpToast(!acts.length ? 'Copy: the followers hold nothing in the copied markets.'
             : 'Copy: closing ' + closes + ' follower position' + (closes === 1 ? '' : 's') + (cancels ? ' and cancelling ' + cancels + ' resting order' + (cancels === 1 ? '' : 's') : '') + '.', acts.length ? 'warn' : 'good');
         cpLog('kill', { note: 'flatten', n: acts.length });
+        typeof cpDev === 'function' && cpDev('state', () => ({ msg: 'flatten: ' + closes + ' follower position' + (closes === 1 ? '' : 's') + ' to close' + (cancels ? ' and ' + cancels + ' resting order' + (cancels === 1 ? '' : 's') + ' to cancel' : '') + (acts.length ? ': ' + acts.map((a) => cpName(a.accountId) + ' ' + cpDvAct(a)).join('; ') : ' (the followers hold nothing in the copied markets)'), n: acts.length, closes, cancels, symbol: cpDvFlatSym(acts) }));
         const ok = acts.filter((a) => cpGuard(a).ok);
         const res = ok.length ? await cpDispatch(ok, 'flatten') : [];
         if (typeof orNoteResults === 'function') orNoteResults(c, res);
         const bad = res.filter((x) => !x.ok).length;
+        typeof cpDev === 'function' && cpDev('state', () => ({ msg: 'flatten finished: ' + (res.length - bad) + ' of ' + res.length + ' orders went through' + (bad ? ', ' + bad + ' failed (check the followers by hand)' : ''), ok: res.length - bad, failed: bad, symbol: cpDvFlatSym(acts) }));
+        typeof cpDvFlatCheck === 'function' && cpDvFlatCheck(c, fl, acts);
         if (bad) cpToast('Copy: ' + bad + ' close order' + (bad === 1 ? '' : 's') + ' failed. Check the followers by hand.', 'bad');
         return res;
     } catch (e) {
@@ -11103,6 +11639,39 @@ async function cpKeepAwake(on) {
     }
 }
 
+// ---------- load (8.0.5) ----------
+// With ten followers this tab does the work of eleven. Once a minute while copying runs, one `load` line says how hard it is working: the
+// longest main-thread freeze and how many there were (Chrome's long tasks, 50 ms and up), and the page's memory. A slow copy can then be
+// told apart from a busy machine in the next live log.
+const CP_LOAD_EVERY = 60000;
+function cpLoadWatch(on) {
+    const L = CP.load;
+    if (!on) {
+        if (L) { try { if (L.obs) L.obs.disconnect(); } catch (e) {} if (L.timer != null) CP.clear(L.timer); }
+        CP.load = null;
+        return;
+    }
+    if (L) return;
+    const st = CP.load = { obs: null, timer: null, max: 0, n: 0 };
+    try {
+        if (typeof PerformanceObserver === 'function' && (PerformanceObserver.supportedEntryTypes || []).includes('longtask')) {
+            st.obs = new PerformanceObserver((list) => { for (const e of list.getEntries()) { st.n++; if (e.duration > st.max) st.max = e.duration; } });
+            st.obs.observe({ type: 'longtask' });
+        }
+    } catch (e) { st.obs = null; }
+    const tick = () => {
+        if (CP.load !== st) return;
+        const f = { longestTaskMs: Math.round(st.max), longTasks: st.n };
+        try { const m = typeof performance !== 'undefined' && performance.memory; if (m && m.usedJSHeapSize) f.heapMB = Math.round(m.usedJSHeapSize / 1048576); } catch (e) {}
+        try { if (typeof navigator !== 'undefined' && navigator.deviceMemory) f.deviceGB = navigator.deviceMemory; } catch (e) {}
+        try { if (typeof document !== 'undefined' && document.visibilityState) f.vis = document.visibilityState; } catch (e) {}
+        st.max = 0; st.n = 0;
+        if (CP.running) cpLog('load', f);
+        st.timer = CP.set(tick, CP_LOAD_EVERY);
+    };
+    st.timer = CP.set(tick, CP_LOAD_EVERY);
+}
+
 // ---------- leader watch ----------
 
 function cpSymbol() {
@@ -11121,7 +11690,10 @@ function cpPredict(positions, intent, step) {
     const round = (v) => cpRoundTo(v, step);
     if (intent.kind === 'flat') return set(null);
     if (!cur) {
-        if (intent.kind === 'order' && intent.qty > 0) return set({ symbol: intent.symbol, side: intent.side, qty: intent.qty, leverage: intent.leverage > 0 ? intent.leverage : CP.lev[intent.symbol] || null, tp: [], sl: [] });
+        // A reduce-only order (a leader's close or reduce, as Vest's acceptance reports it) on a book that holds nothing opens nothing: the book is
+        // already flat because Vest's own store showed the order's effect before its answer did (the frame can beat the REST answer), so the order
+        // is not a new position. Predicted as an open it opened every follower on the other side of a leader that had just gone flat (Turbo lab).
+        if (intent.kind === 'order' && intent.qty > 0 && !intent.reduceOnly) return set({ symbol: intent.symbol, side: intent.side, qty: intent.qty, leverage: intent.leverage > 0 ? intent.leverage : CP.lev[intent.symbol] || null, tp: [], sl: [] });
         return list;
     }
     if (intent.kind === 'half') return set(Object.assign({}, cur, { qty: cpFloor(cur.qty / 2, step) }));
@@ -11139,18 +11711,19 @@ function cpPredict(positions, intent, step) {
 // once and polled every 250 ms); with a known size, the followers also get the predicted action right now.
 function cpIntent(intent) {
     const c = cpCfg();
-    if (!CP.running || CP.killed || !c.on || CP.flattening) return null;
+    const dvNo = (why) => { typeof cpDev === 'function' && cpDev('state', () => ({ msg: 'the copier saw your action (' + intent.kind + (intent.side ? ' ' + intent.side : '') + (intent.qty ? ' ' + intent.qty : '') + ', ' + intent.src + ') and ignored it: ' + why, symbol: intent.symbol || cpSymbol(), ignored: why })); return null; };
+    if (!CP.running || CP.killed || !c.on || CP.flattening) return dvNo(CP.killed ? 'the kill switch is on' : CP.flattening ? 'it is flattening the followers' : 'copying is off');
     // Vest's own acceptance of the leader's order (src 'accept', 16-accept.js): it comes from Vest's mutation cache, which never sees our
     // follower writes, and it carries the account that was active when the order started, so a running batch does not make it ours
     const accepted = intent.src === 'accept';
     // our own engines click the ticket on follower accounts: those clicks are not the leader's
-    if ((CP.execBusy && !accepted) || String(cpActive()) !== String(c.leaderId) || cpDemoWhy()) return null;
+    if ((CP.execBusy && !accepted) || String(cpActive()) !== String(c.leaderId) || cpDemoWhy()) return dvNo(CP.execBusy && !accepted ? 'a batch of the copier is running (its own clicks are not yours)' : String(cpActive()) !== String(c.leaderId) ? 'this tab is not on the leader account' : cpDemoWhy());
     const t = CP.now();
     const symbol = cpCanonSym(intent.symbol || cpSymbol());
-    if (!symbol) return null;
+    if (!symbol) return dvNo('no market is open');
     const li = CP.lastIntent;
     // the card's LONG / SHORT presses Vest's own submit button a moment later: one intent, not two
-    if (intent.src === 'ticket' && li && li.src === 'card' && t - li.t < 3000 && li.symbol === symbol && li.side === intent.side) return null;
+    if (intent.src === 'ticket' && li && li.src === 'card' && t - li.t < 3000 && li.symbol === symbol && li.side === intent.side) return dvNo('it is the same click as the card button a moment ago, which already counted');
     const it = Object.assign({}, intent, { symbol, t });
     CP.lastIntent = it;
     // an intent that the click-time path acts on names its market: the followers are copied there from this click, whatever the market is.
@@ -11160,30 +11733,41 @@ function cpIntent(intent) {
     if (accepted) CP.wakeF.set(symbol, t + CP_INTENT_MS); else CP.wake.set(symbol, t + CP_INTENT_MS);
     CP.fastUntil = t + CP_INTENT_MS;
     cpLog('intent', { kind: it.kind, symbol, side: it.side, qty: it.qty, src: it.src });
+    typeof cpDvIntent === 'function' && cpDvIntent(symbol, it);
+    typeof cpDev === 'function' && cpDev('state', () => ({ msg: 'the copier registered your action: ' + it.kind + (it.side ? ' ' + it.side : '') + (it.qty ? ' ' + it.qty : '') + ' on ' + symbol + ' (' + it.src + '); the market is awake for ' + CP_INTENT_MS + ' ms'
+        + (accepted ? ', Vest accepted the order, the reconciler waits ' + CP_FRAME_GATE_MS + ' ms before it undoes anything' : ', the reconciler acts on it at once'), symbol, kind: it.kind, side: it.side, qty: it.qty, src: it.src, accepted }));
     cpFast(it, c);
     cpSchedule(CP_FAST_MS);
     return it;
 }
 
 function cpFast(it, c) {
-    if (it.kind === 'wake' || (it.kind === 'order' && !(it.qty > 0)) || !c.markets.includes(it.symbol)) return;
+    if (it.kind === 'wake' || (it.kind === 'order' && !(it.qty > 0)) || !c.markets.includes(it.symbol)) {
+        typeof cpDev === 'function' && cpDev('plan', () => ({ msg: 'no early send for this ' + it.symbol + ' action: ' + (it.kind === 'wake' ? 'it only wakes the reconciler (no size is known)' : !c.markets.includes(it.symbol) ? it.symbol + ' is not a managed market yet' : 'no order size is known'), symbol: it.symbol, kind: it.kind }));
+        return;
+    }
     const accepted = it.src === 'accept';
     // An open or an add is not sent on the click: a refused one (margin, daily loss limit, market closed) would otherwise have opened every
     // follower and the reconciler would close them again at a spread. It goes at Vest's acceptance of the leader's order instead (src
     // 'accept': the REST answer, 2xx, which a refusal never gets). Flat, 50% and REV only reduce risk, so they keep the click-time path;
     // c.fastOpens opts the click path in too.
-    if (it.kind === 'order' && c.fastOpens !== true && !accepted) return;
+    if (it.kind === 'order' && c.fastOpens !== true && !accepted) {
+        typeof cpDev === 'function' && cpDev('plan', () => ({ msg: 'no early send on the click for ' + it.symbol + ': an open or an add goes out at Vest\'s OK of your order, so a refused order never opens the followers', symbol: it.symbol, kind: it.kind }));
+        return;
+    }
     const lead = CP.snap.leader;
     let base = lead && CP.now() - lead.at <= CP_SNAP_MAX_AGE ? lead.positions : null;
     // at acceptance the leader's book is what its previous accepted order left (a REV is a close then an open), else Vest's own live store;
     // a click reads the store too when the last pass is old (the leader is the active account, so its store is current)
     if (accepted && typeof cpAcceptBase === 'function') base = cpAcceptBase() || base;
     else if (!base && typeof cpAcceptLeaderPositions === 'function') base = cpAcceptLeaderPositions(c);
-    if (!base) return;
+    if (!base) { typeof cpDev === 'function' && cpDev('plan', () => ({ msg: 'no early send for ' + it.symbol + ': there is no leader book to predict from (the last read is older than ' + CP_SNAP_MAX_AGE + ' ms and Vest\'s store has none), the reconciler will do it', symbol: it.symbol })); return; }
     const info = cpInfo(c.markets);
     const step = info[it.symbol] && info[it.symbol].step;
-    if (!(step > 0)) return;
+    if (!(step > 0)) { typeof cpDev === 'function' && cpDev('plan', () => ({ msg: 'no early send for ' + it.symbol + ': Vest gave no size step for it', symbol: it.symbol })); return; }
     const predicted = cpPredict(base, it, step);
+    typeof cpDev === 'function' && cpDev('plan', () => ({ msg: 'predicted leader book on ' + it.symbol + ' after ' + (accepted ? 'Vest accepted your ' : 'your ') + it.kind + (it.side ? ' ' + it.side : '') + (it.qty ? ' ' + it.qty : '') + ': from "' + (cpLeadSig(base, it.symbol) || 'flat') + '" to "' + (cpLeadSig(predicted, it.symbol) || 'flat') + '"',
+        symbol: it.symbol, from: cpLeadSig(base, it.symbol) || 'flat', predicted: cpLeadSig(predicted, it.symbol) || 'flat', accepted }));
     if (accepted && typeof cpAcceptPredicted === 'function') cpAcceptPredicted(predicted);
     // A second accepted order on a market whose followers are still waiting for the first (a REV is a close and then an open, 50 to 100 ms apart):
     // the leader will never show the book of the first one, so its floor now waits for this one's. Left alone, the floor held the reconciler
@@ -11205,29 +11789,36 @@ function cpFastSend(it, c, predicted, info, from, again) {
     if (again && (!CP.running || CP.killed || CP.flattening || !c.on || (it.rec && it.rec.undone))) return;
     const acts = [];
     const missing = [];
+    const dvSkip = []; // who the early send left out, and why (the debug log)
     for (const f of c.followers) {
-        if (!f || !f.on || CP.paused[f.accountId]) continue;
+        if (!f || !f.on) continue;
+        if (CP.paused[f.accountId]) { dvSkip.push({ acc: f.accountId, why: 'paused: ' + CP.paused[f.accountId].why }); continue; }
         // at acceptance a follower is read from Vest's store as it is now: the settle rule below still holds
         // (with Turbo a click-time send reads the follower's tab too: its snapshot is as current as the store and it is the follower's own view)
         let s = (accepted || CP.engineId === 'tabs') && typeof cpAcceptRead === 'function' ? cpAcceptRead(f.accountId) : null;
         if (!s) { s = CP.snap.followers[f.accountId]; if (s && CP.now() - s.at > CP_FAST_SNAP_MS) s = null; }
         if (!s) { missing.push(f); continue; }
         const pair = f.accountId + '|' + it.symbol;
-        if (CP.settle.has(pair) && CP.settle.get(pair) > s.at) continue;
+        if (CP.settle.has(pair) && CP.settle.get(pair) > s.at) { dvSkip.push({ acc: f.accountId, why: 'its last send has not shown yet (settle lock)' }); continue; }
         if (CP.okQty.has(pair)) {
             // an acknowledged order that no read shows yet: the reconciler confirms it first (cpConfirm); with Turbo the follower's own tab may have settled it already
-            if (!cpTabConfirmed(f.accountId, pair)) continue;
+            if (!cpTabConfirmed(f.accountId, pair)) { dvSkip.push({ acc: f.accountId, why: 'its last order is acknowledged but not confirmed yet' }); continue; }
             CP.okQty.delete(pair);
             delete CP.acks[pair];
         }
         const d = cpPlan(predicted, f, info).filter((x) => x.symbol === it.symbol);
+        const dvN = acts.length;
         for (const a of cpDiff(d, s.positions, f.accountId)) {
             // a position opened at the wrong leverage cannot be fixed afterwards: without the leader's leverage (the order's own, or the
             // position's) or one set in the settings an open waits for the reconciler, which reads it off the leader's position
             if ((a.kind === 'open' || a.kind === 'append') && !(a.leverage > 0) && !(Number(c.leverage) > 0)) { cpLogOnce('refused', a, 'fast path: leverage not known yet, the reconciler will do it'); continue; }
             if (cpGuard(a).ok) acts.push(a);
         }
+        if (acts.length === dvN) dvSkip.push({ acc: f.accountId, why: 'nothing to send (it already holds the predicted book, or the guard refused it)' });
     }
+    typeof cpDev === 'function' && cpDev('plan', () => ({ msg: 'early plan on ' + it.symbol + (again ? ' (second pass, after reading the followers that had no read)' : '') + ': ' + (acts.length ? acts.length + ' action' + (acts.length === 1 ? '' : 's') + ' to send: ' + acts.map((a) => cpName(a.accountId) + ' ' + cpDvAct(a)).join('; ') : 'nothing to send')
+        + (dvSkip.length ? '; left out: ' + dvSkip.map((x) => cpName(x.acc) + ' (' + x.why + ')').join(', ') : '') + (missing.length && !again ? '; reading first: ' + missing.map((x) => cpName(x.accountId)).join(', ') : ''),
+        symbol: it.symbol, accepted, again: !!again, actions: acts.map(cpDvActFields), skipped: dvSkip.map((x) => ({ acc: x.acc, name: cpName(x.acc), why: x.why })), deferred: missing.map((x) => x.accountId) }));
     if (acts.length) {
         const want = cpLeadSig(predicted, it.symbol);
         for (const a of acts) { CP.settle.set(cpPair(a), Infinity); CP.floor.set(cpPair(a), { until: it.t + CP_FAST_FLOOR_MS, want, from }); }
@@ -11257,8 +11848,10 @@ function cpOnClick(e) {
         e.stopImmediatePropagation();
         cpToast('Copy is switching accounts. Click again in a moment.', 'warn');
         cpLog('refused', { kind: 'click', symbol: '-', why: 'the tab was on a follower account' });
+        typeof cpDev === 'function' && cpDev('guard', () => ({ msg: 'your click on an order button was stopped: the copy engine has this tab on a follower account for a moment, so the order would have gone to a follower', symbol: cpSymbol() }));
         return;
     }
+    typeof cpDvClickLog === 'function' && cpDvClickLog(t, e);
     const b = t.closest('#ax4p-buy-btn, #ax4p-sell-btn, #ax4p-flatten-btn, #ax4p-half-btn, #ax4p-rev-btn, [data-testid="submit-long"], [data-testid="submit-short"]');
     if (!b || b.disabled) return;
     const su = cpSuite();
@@ -11277,6 +11870,7 @@ function cpOnClick(e) {
 }
 
 function cpOnKey(e) {
+    if (e && e.altKey && !e.repeat) typeof cpDvKeyLog === 'function' && cpDvKeyLog(e);
     if (!e || !e.altKey || !e.shiftKey || e.ctrlKey || e.metaKey || e.code !== 'KeyK' || e.repeat) return;
     e.preventDefault();
     e.stopPropagation();
@@ -11300,6 +11894,7 @@ function cpBoot() {
     // a follower tab (the Tabs engine opens one per account, ?bvCopy=) runs the executor of 25-tabs.js only: no click or key hooks, no log, no reload rule
     if (typeof ceIsFollowerTab === 'function' && ceIsFollowerTab()) return;
     CP.booted = true;
+    cpWatchErrors();
     document.addEventListener('click', cpOnClick, true);
     document.addEventListener('keydown', cpOnKey, true);
     cpAttachFrames();
@@ -11329,7 +11924,10 @@ function cpBoot() {
         if (!c0) { if (n < 60) CP.set(() => settle(n + 1), 1000); return; }
         if (!c0.on || CP.running || CP.killed) return;
         if (c0.resume) {
-            if (String(c0.resume.leaderId) === String(c0.leaderId) && c0.leaderId && !cpAckNeeded()) return cpResumeBoot(0);
+            if (String(c0.resume.leaderId) === String(c0.leaderId) && c0.leaderId && !cpAckNeeded()) {
+                typeof cpDev === 'function' && cpDev('state', () => ({ msg: 'after the page load: copying was on and followers hold copied positions (' + c0.resume.accounts.map(cpName).join(', ') + ' on ' + c0.resume.markets.join(' ') + '), so it waits for Vest and for this tab to be on the leader account, then switches on again', reload: true, resume: c0.resume }));
+                return cpResumeBoot(0);
+            }
             c0.resume = null; // another leader, or the risk note no longer agreed to: the copied positions are not ours to follow
         }
         cpLockHeldElsewhere().then((other) => {
@@ -11339,6 +11937,7 @@ function cpBoot() {
             if (other) return;
             cpSave(c);
             cpLog('info', { note: 'copying was on before the page reloaded: switched off' });
+            typeof cpDev === 'function' && cpDev('state', () => ({ msg: 'after the page load: copying had been on, so it is switched off (a reload never resumes copying unless followers still hold copied positions)', reload: true }));
             cpToast('Copying is off after a reload. Switch it on to copy again.', 'warn');
         });
     };
@@ -11375,7 +11974,7 @@ function cpResumeTrack(c) {
     }
     const r = c.resume;
     if (!accounts.length) {
-        if (r && known) { c.resume = null; cpSave(c); }
+        if (r && known) { c.resume = null; cpSave(c); typeof cpDev === 'function' && cpDev('state', () => ({ msg: 'no follower holds a copied position any more: copying would not come back after a reload' })); }
         return;
     }
     accounts.sort();
@@ -11384,6 +11983,7 @@ function cpResumeTrack(c) {
     if (same && CP.now() - Number(r.at) < 60000) return;
     c.resume = { at: CP.now(), leaderId: String(c.leaderId), accounts, markets: ms };
     cpSave(c);
+    typeof cpDvOnce === 'function' && cpDvOnce('resume', accounts.join(',') + '|' + ms.join(','), 600000) && cpDev('state', () => ({ msg: 'followers hold copied positions (' + accounts.map(cpName).join(', ') + ' on ' + ms.join(' ') + '): copying comes back by itself after a page reload', accounts, markets: ms }));
 }
 
 // After a reload with c.resume set: wait for Vest and for this tab to be on the leader account, then switch copying on (no preview question:
@@ -11401,6 +12001,7 @@ function cpResumeBoot(n) {
         c.on = false;
         c.resume = null;
         cpSave(c);
+        typeof cpDev === 'function' && cpDev('state', () => ({ msg: 'after the page load: gave up waiting ' + CP_RESUME_WAIT + ' s for ' + (ready ? 'this tab to be on the leader account' : 'Vest to be ready') + ', copying stays off', reload: true }));
         if (ready) {
             cpLog('info', { note: 'copying was on before the page reloaded: stays off, this tab is not on the leader account' });
             cpToast('Copying stays off: this tab is not on the leader account.', 'warn');
@@ -11415,6 +12016,7 @@ function cpResumeBoot(n) {
         if (!c1.on || CP.running || CP.killed) return;
         if (other) { c1.on = false; return; } // in this tab's memory only: the tab that copies keeps its own saved state
         const r = c1.resume;
+        typeof cpDev === 'function' && cpDev('state', () => ({ msg: 'after the page load: Vest is ready and this tab is on the leader account, switching copying on again', reload: true }));
         return cpStart().then((ok) => {
             if (!ok || !CP.running) return;
             cpLog('info', { note: 'copying resumed after the page reloaded', followers: r ? r.accounts.length : 0, markets: r ? r.markets : [] });
@@ -11456,6 +12058,13 @@ function cpFollowerStates() {
         // paused wins over idle: while copying is off the widget still says why this follower was left out (switching copying on clears it)
         if (CP.paused[id]) { o.state = 'paused'; o.why = CP.paused[id].why; return o; }
         if (!CP.running || CP.killed) { o.state = 'idle'; o.why = CP.killed ? 'kill switch' : ''; return o; }
+        // sign-in trouble: waiting for its next try, or it sat out the leader's running trade (it joins the next one)
+        const ac = CP.authCool[id];
+        if (ac && t < ac.until) { o.state = 'error'; o.why = 'sign-in error at Vest: trying again in ' + Math.max(1, Math.ceil((ac.until - t) / 1000)) + ' s'; return o; }
+        const so = cpSatOut(id);
+        if (so) { o.state = 'drift'; o.why = so; return o; }
+        const lw = CP.lateWhy[id];
+        if (lw && lead && Array.isArray(lead.positions) && lead.positions.some((p) => p.symbol === lw.symbol && Number(p.qty) > 0)) { o.state = 'drift'; o.why = lw.why; return o; }
         for (const [k, until] of CP.settle) if (k.startsWith(pre) && until > t) { o.state = 'pending'; return o; }
         const last = cpLastAction(id, Math.max(CP.runAt, CP.resumedAt[id] || 0), false);
         if (last && !last.ok && !(CP.syncAt[id] > last.t)) { o.state = 'error'; o.why = String(last.result || '').replace(/^error:\s*/, '').slice(0, 80); return o; }
@@ -11561,7 +12170,7 @@ function cpPreviewText(actions, total) {
 // What the reconciler would send right now, from fresh reads of the leader and the followers (the ones that are on, or only accountIds).
 // It sends nothing and changes no copier state: it reads through cpFetch (no cache) and diffs on scratch counters.
 async function cpPreview(accountIds) {
-    const fail = (why) => ({ ok: false, why, actions: [], text: '' });
+    const fail = (why) => { typeof cpDev === 'function' && cpDev('plan', () => ({ msg: 'start preview (reads only, nothing is sent): cannot be made, ' + why, why })); return { ok: false, why, actions: [], text: '' }; };
     const c = cpCfg();
     const v = cpVx();
     if (!c.leaderId) return fail('pick the leader account first');
@@ -11588,10 +12197,44 @@ async function cpPreview(accountIds) {
     // the order mirror: the limit orders it would place and cancel (reads only)
     const ox = typeof orPreview === 'function' ? await orPreview(c, lead, folls, reads) : null;
     const text = [cpPreviewText(rows, folls.length), ox ? ox.text : ''].filter(Boolean).join(' ');
+    typeof cpDev === 'function' && cpDev('plan', () => ({ msg: 'start preview (reads only, nothing is sent): ' + (text || 'the followers already match the leader, nothing to do'), actions: rows.length, text }));
     return { ok: true, why: '', actions: rows.map(({ reason, ...x }) => x).concat(ox ? ox.rows : []), text };
 }
 
 if (typeof document !== 'undefined' && document && document.addEventListener) cpBoot();
+// ---- 05-devlog.js ----
+// Copy trader debug log (the DEV build). Every other file of the copier reports what it does with
+//   typeof cpDev === 'function' && cpDev('<cat>', () => ({ msg: '<plain words>', ...fields }));
+// The second argument is a function that builds the line: it runs only in the DEV build, inside a try/catch of its own, so it costs
+// nothing in a release build and can never throw into the copier. It must not await, send or change anything.
+//
+// Release builds carry only cpDevOn and cpDev below, which do nothing. Everything between the dev markers is cut out of them by
+// tools/build.py. The tests load this file raw (the markers are plain comments there), set CP.dev = true and call cpDev themselves.
+//
+// What one line looks like: { t, seq, cat, msg, chain?, symbol?, acc?, accName?, ...fields }, scrubbed and size-capped.
+// Categories: you (what the owner did: it starts a "chain" for its symbol), leader, follower (what Vest shows changed), book (a list of
+// positions: the module logs only what changed since the last one), sync (do the followers match the leader now: it closes the chain),
+// plan, send, vest, socket, net, engine, tabs, guard, state, ui, page, log (a mirror of every cpLog line), error.
+// A chain is one thing the owner did and everything that followed from it, tagged with one id (A1, A2...) on every line about that symbol.
+//
+// A test ("session") is a run of lines kept in the extension's own IndexedDB (the worker module in src/dev/). The page sends its lines in batches
+// (about every second and when it unloads), so a reload or a crash loses about a second at most. "Start new test" saves the finished test
+// as a .json and a .txt file and starts fresh logs; the last 30 tests stay inside the extension.
+
+var cpDevSink = null; // var, not let: the core's first lines may call cpDev before this file has run. Set at the end of the dev part.
+
+function cpDevOn() {
+    try { return (typeof BV_DEV !== 'undefined' && BV_DEV === true) || (typeof CP !== 'undefined' && CP.dev === true); } catch (e) { return false; }
+}
+
+function cpDev(cat, build) {
+    try {
+        const sink = cpDevSink;
+        if (!sink || !cpDevOn()) return;
+        sink(cat, build);
+    } catch (e) {}
+}
+
 // ---- 10-vest.js ----
 // ---------- Vest adapter (vx) ----------
 // Everything the copy trader needs from Vest's own page, and nothing it has to build itself: Vest's account store (found through React
@@ -11640,6 +12283,7 @@ const VX = {
     specs: { map: new Map(), at: 0, promise: null, clientAt: 0 },
     ws: { hooked: false, listeners: new Map(), others: false }, // others: a frame for an account that was not the active one has been seen (the socket streams every account)
     warm: { busy: null, tries: {} },     // vxWarm: attempts per window
+    user: { at: 0, down: false, downAt: 0, frames: null }, // the owner's last click or key in this tab (vxUserBusy): a Vest window is never opened under it
     pin: null,                           // the tab's one account pin (vxPin)
     all: { data: null, promise: null, startedAt: 0 } // vxPositionsAll: the last all-accounts read and the one on its way
 };
@@ -11787,6 +12431,9 @@ function vxFindStores(force, gap) {
     }, VX_BUDGET);
     for (const k of ['acct', 'cap', 'pos', 'der', 'eq']) if (found[k]) VX.stores[k] = found[k];
     mk.forEach((a, n) => VX.mkts.set(n, a));
+    typeof cpDevOn === 'function' && cpDevOn() && vxDevOnce('stores', ['acct', 'cap', 'pos', 'der', 'eq'].map((k) => k + (VX.stores[k] ? '+' : '-')).join(' ') + ' ' + VX.mkts.size, 'state', () => ({
+        msg: 'Looked for Vest\'s data stores in its page: found ' + (['acct', 'cap', 'pos', 'der', 'eq'].filter((k) => VX.stores[k]).join(', ') || 'none') + (['acct', 'cap', 'pos', 'der', 'eq'].some((k) => !VX.stores[k]) ? '; still missing ' + ['acct', 'cap', 'pos', 'der', 'eq'].filter((k) => !VX.stores[k]).join(', ') : '') + '; ' + VX.mkts.size + ' market price stores',
+        found: ['acct', 'cap', 'pos', 'der', 'eq'].filter((k) => VX.stores[k]), markets: VX.mkts.size, forced: !!force }));
 }
 
 // cached store of a kind, revalidated by its own shape on every call; a rescan only when it is missing (and not more often than VX_SCAN_GAP)
@@ -11877,8 +12524,13 @@ async function vxLoadSpecs() {
     const b = vxBridge();
     if (!b) { vxSpecsFromClient(); return; }
     VX.specs.promise = (async () => {
+        const t0 = Date.now();
         try {
             vxTakeSpecs(await b.get('/v3/exchangeInfo'));
+            typeof cpDev === 'function' && cpDev('net', () => ({ msg: 'GET exchange info (market sizes and tick sizes): ' + VX.specs.map.size + ' markets in ' + (Date.now() - t0) + ' ms', path: '/v3/exchangeInfo', ms: Date.now() - t0, markets: VX.specs.map.size }));
+        } catch (e) {
+            typeof cpDev === 'function' && cpDev('net', () => ({ msg: 'GET exchange info failed after ' + (Date.now() - t0) + ' ms: ' + vxDevErr(e), path: '/v3/exchangeInfo', ms: Date.now() - t0 }));
+            throw e;
         } finally { VX.specs.promise = null; }
     })();
     return VX.specs.promise;
@@ -11956,9 +12608,18 @@ const vxRestOpen = (x) => x && x.positionId != null && !(vxNum(x.closeDate) > 0)
 async function vxPositionsFromRest(accountId) {
     const b = vxBridge();
     if (!b) throw new Error('vx: no GET bridge');
-    const r = await b.get('/v3/positions', { account_id: String(accountId), limit: 50, offset: 0 });
+    const t0 = Date.now();
+    let r;
+    try {
+        r = await b.get('/v3/positions', { account_id: String(accountId), limit: 50, offset: 0 });
+    } catch (e) {
+        typeof cpDev === 'function' && cpDev('net', () => ({ msg: 'GET positions of ' + vxDevName(accountId) + ' failed after ' + (Date.now() - t0) + ' ms: ' + vxDevErr(e), acc: accountId, path: '/v3/positions', ms: Date.now() - t0 }));
+        throw e;
+    }
     const rows = Array.isArray(r) ? r : (r && r.positions) || [];
-    return rows.filter(vxRestOpen).map(vxRestPos).filter((p) => p.entry > 0);
+    const out = rows.filter(vxRestOpen).map(vxRestPos).filter((p) => p.entry > 0);
+    typeof cpDev === 'function' && cpDev('net', () => ({ msg: 'GET positions of ' + vxDevName(accountId) + ': ' + vxDevBook(out) + ' (' + (Date.now() - t0) + ' ms)', acc: accountId, path: '/v3/positions', ms: Date.now() - t0, positions: out.length }));
+    return out;
 }
 
 // Every account's open positions in ONE GET: the list Vest itself refetches every minute (/v3/positions/opened, no params; its own store is
@@ -11995,7 +12656,14 @@ function vxPositionsAll(opts) {
     A.promise = p;
     A.startedAt = t;
     const done = () => { if (A.promise === p) A.promise = null; };
-    p.then((d) => { done(); if (!A.data || d.at >= A.data.at) A.data = d; }, done);
+    p.then((d) => {
+        done();
+        if (!A.data || d.at >= A.data.at) A.data = d;
+        typeof cpDev === 'function' && cpDev('net', () => ({ msg: 'GET every account\'s open positions in one request: ' + vxDevByWords(d.by) + ' (' + (Date.now() - t) + ' ms)', path: '/v3/positions/opened', ms: Date.now() - t, accounts: d.by.size, since: opts && opts.since ? t - opts.since : undefined }));
+    }, (e) => {
+        done();
+        typeof cpDev === 'function' && cpDev('net', () => ({ msg: 'GET every account\'s open positions failed after ' + (Date.now() - t) + ' ms: ' + vxDevErr(e), path: '/v3/positions/opened', ms: Date.now() - t }));
+    });
     return p;
 }
 
@@ -12014,14 +12682,19 @@ function vxMarketStore(symbol) {
 
 function vxMarketPrice(symbol) {
     const a = vxMarketStore(symbol);
-    if (!a) return null;
+    if (!a) {
+        typeof cpDevOn === 'function' && cpDevOn() && vxDevPrice(symbol, null, 'no price store found for this market');
+        return null;
+    }
     try {
         const st = a.getState();
         const dec = Number(st.marketSpec.priceDecimals);
         const md = st.marketData;
         const big = typeof md.midPrice === 'bigint' && md.midPrice > 0n ? md.midPrice : typeof md.markPrice === 'bigint' && md.markPrice > 0n ? md.markPrice : null;
-        return big != null && Number.isInteger(dec) && dec >= 0 ? vxScaled(big, dec) : null;
-    } catch (e) { return null; }
+        const px = big != null && Number.isInteger(dec) && dec >= 0 ? vxScaled(big, dec) : null;
+        typeof cpDevOn === 'function' && cpDevOn() && vxDevPrice(symbol, px, big == null ? 'the store holds no mid or mark price yet' : 'the market\'s price decimals are not known', big != null && typeof md.midPrice === 'bigint' && md.midPrice > 0n ? 'mid' : 'mark');
+        return px;
+    } catch (e) { typeof cpDevOn === 'function' && cpDevOn() && vxDevPrice(symbol, null, 'the price store could not be read: ' + vxDevErr(e)); return null; }
 }
 
 // The derived record of one position (Vest recomputes it on every ticker frame of every account that holds the market), when it is the
@@ -12313,19 +12986,26 @@ function vxLoadBundle() {
             if (u.origin === origin && urls.indexOf(u.href) < 0) urls.push(u.href);
         }
     } catch (e) {}
-    if (!urls.length) { B.err = 'no main script'; B.retryAt = Date.now() + 3000; return Promise.resolve(false); }
+    if (!urls.length) {
+        B.err = 'no main script'; B.retryAt = Date.now() + 3000;
+        typeof cpDevOn === 'function' && cpDevOn() && vxDevOnce('bundle', 'none', 'net', () => ({ msg: 'Vest\'s main script is not on the page yet: the writers cannot be told apart (tries again in 3 s)' }));
+        return Promise.resolve(false);
+    }
     B.state = 'loading';
+    const bt0 = Date.now();
     B.promise = Promise.all(urls.map((u) => window.fetch(u, { method: 'GET', credentials: 'omit', cache: 'force-cache' })
         .then((r) => (r && r.ok ? r.text() : Promise.reject(new Error('script ' + (r && r.status))))))).then((texts) => {
         B.text = texts.join('\n');
         B.state = 'ok';
         B.err = '';
         VX.pending.forEach((o) => vxAddObserver(o));
+        typeof cpDev === 'function' && cpDev('net', () => ({ msg: 'GET Vest\'s own main script (' + urls.length + ' file' + (urls.length === 1 ? '' : 's') + ', ' + B.text.length.toLocaleString('en-US') + ' characters, ' + (Date.now() - bt0) + ' ms) to tell its order writers apart', ms: Date.now() - bt0, chars: B.text.length }));
         return true;
     }, (e) => {
         B.state = 'idle';
         B.err = String((e && e.message) || e);
         B.retryAt = Date.now() + 10000;
+        typeof cpDev === 'function' && cpDev('net', () => ({ msg: 'GET Vest\'s main script failed after ' + (Date.now() - bt0) + ' ms: ' + B.err + ' (tries again in 10 s)', ms: Date.now() - bt0 }));
         return false;
     }).then((ok) => { B.promise = null; return ok; });
     return B.promise;
@@ -12377,11 +13057,13 @@ function vxWriters(force, need) {
         if (ambiguous.length) bits.push('two different functions claim ' + ambiguous.join(', '));
         if (missing.length) bits.push('not found: ' + missing.join(', '));
         if (VX.pending.size && VX.bundle.state !== 'ok') bits.push('Vest script text not loaded yet');
+        typeof cpDevOn === 'function' && cpDevOn() && vxDevOnce('writers', 'bad|' + bits.join(';'), 'state', () => ({ msg: 'Vest\'s order writers: ' + bits.join('; ') + ' (found: ' + (rep.found.join(', ') || 'none') + ')', found: rep.found, missing, ambiguous, pending: rep.pending, conflicts: rep.conflicts, bundle: rep.bundle }));
         return { why: bits.join('; '), missing, ambiguous };
     }
     const out = {};
     for (const k of VX_KINDS) if (VX.byKind[k] && VX.byKind[k].size === 1) out[k] = vxCaller([...VX.byKind[k].values()][0]);
     if (Object.keys(out).length === VX_KINDS.length) VX.wrDone = out;
+    typeof cpDevOn === 'function' && cpDevOn() && vxDevOnce('writers', 'ok|' + Object.keys(out).join(','), 'state', () => ({ msg: 'Vest\'s order writers found: ' + Object.keys(out).join(', ') + (Object.keys(out).length === VX_KINDS.length ? ' (all ' + VX_KINDS.length + ')' : ' (the others are only needed for what the copier calls)'), found: Object.keys(out) }));
     return out;
 }
 
@@ -12428,6 +13110,69 @@ async function vxDismiss(shownSel) {
     return !open();
 }
 
+// A window of Vest's own is open. Ours (the copier's window, its picker and question, the suite's panels: every id starts with ax4p-) are
+// not Vest's: the copier's own window counted before (role="dialog"), so with it open the warm-ups never ran and Vest's TP/SL add and
+// cancel functions were never found (the owner's DEV tests, 2026-10-06: every TP/SL copy failed, limit orders were held).
+function vxVestDialogOpen() {
+    try {
+        for (const d of Array.from(document.querySelectorAll('[role="dialog"],[role="alertdialog"]'))) {
+            if (d.closest && d.closest('[id^="ax4p-"]')) continue;
+            return true;
+        }
+    } catch (e) {}
+    return false;
+}
+
+// The owner is busy in this tab: a button held (a drag), or a click, key or wheel in the last 1.5 s. The warm-ups wait, so a Vest window or
+// tab never opens under the owner's own click. Clicks inside the chart's iframe (same origin) are heard too. A held button counts for 5 s at
+// most (a release outside the window is never heard), and a field that only has the focus does not count: both kept the warm-ups from ever
+// running in the owner's DEV test (2026-10-06, test 4: Vest's cancel and TP/SL add functions were never found, limit orders were held).
+const VX_USER_IDLE_MS = 1500;
+const VX_USER_HELD_MS = 5000;
+function vxUserWatch() {
+    const U = VX.user;
+    const note = (down) => (ev) => { try { if (ev && ev.isTrusted === false) return; U.at = Date.now(); if (down != null) { U.down = down; if (down) U.downAt = U.at; } } catch (e) {} };
+    const hook = (w) => {
+        try {
+            w.addEventListener('pointerdown', note(true), true);
+            w.addEventListener('pointerup', note(false), true);
+            w.addEventListener('pointercancel', note(false), true);
+            w.addEventListener('keydown', note(null), true);
+            w.addEventListener('wheel', note(null), { capture: true, passive: true });
+        } catch (e) {}
+    };
+    if (!U.frames) { U.frames = new WeakSet(); if (typeof window !== 'undefined' && window && typeof window.addEventListener === 'function') hook(window); }
+    try {
+        for (const f of Array.from(document.querySelectorAll('iframe'))) {
+            let w = null;
+            try { w = f.contentWindow; if (w && w.document) void w.document.body; } catch (e) { w = null; } // another origin: not ours to hear
+            if (w && !U.frames.has(w)) { U.frames.add(w); hook(w); }
+        }
+    } catch (e) {}
+}
+function vxUserBusy() {
+    vxUserWatch();
+    const U = VX.user, t = Date.now();
+    return (U.down && t - (U.downAt || 0) < VX_USER_HELD_MS) || t - U.at < VX_USER_IDLE_MS;
+}
+
+// One of the owner's own order mutations, for a kind whose function only lives while its Vest window is open (close, the TP/SL ones,
+// cancel): when that kind is not known yet, the mutation itself is adopted, classified exactly as a scanned observer is (its function's
+// own text, or the function it calls in Vest's script). A conflict, a kind the text does not prove, or a different kind adopts nothing.
+// The owner's first TP then gives the copier the TP/SL add before the copy is planned (the copy goes at Vest's OK, after this).
+const VX_LEARN = ['close', 'tpAdd', 'tpUpdate', 'tpDelete', 'cancel'];
+function vxLearn(m, kind) {
+    try {
+        // the cache's entry (a Mutation: no mutate of its own) holds the same options as the observer that started it; only its function is used
+        if (VX_LEARN.indexOf(kind) < 0 || vxHave(kind) || !m || !m.options || typeof m.options.mutationFn !== 'function') return;
+        const r = vxClassifyObserver(m);
+        if (r.need || r.kind !== kind) return;
+        (VX.byKind[kind] = VX.byKind[kind] || new Map());
+        if (!VX.byKind[kind].has(r.src)) VX.byKind[kind].set(r.src, m);
+        typeof cpDev === 'function' && cpDev('engine', () => ({ msg: 'Learned Vest\'s ' + kind + ' function from your own order (no window had to be opened for it)', kind }));
+    } catch (e) {}
+}
+
 // kinds: the writers wanted; opens the windows that could hold the missing ones. Resolves { opened: [ids], still: [kinds] }.
 async function vxWarm(kinds) {
     if (VX.warm.busy) return VX.warm.busy;
@@ -12439,7 +13184,8 @@ async function vxWarm(kinds) {
             if (!w.kinds.some((k) => want.indexOf(k) >= 0 && !vxHave(k))) continue;
             const st = VX.warm.tries[w.id] || (VX.warm.tries[w.id] = { n: 0, at: 0 });
             if (st.n >= VX_WARM_TRIES || Date.now() - st.at < VX_WARM_GAP) continue;
-            if (document.querySelector('[role="dialog"]')) continue; // a window is already open: not ours to touch
+            if (vxVestDialogOpen()) continue; // a window of Vest's is already open: not ours to touch
+            if (vxUserBusy()) continue;       // the owner is clicking or typing: tried again on a later pass
             const btn = Array.from(document.querySelectorAll(w.open)).find(vxShown);
             if (!btn) continue;
             st.n++;
@@ -12459,6 +13205,7 @@ async function vxWarm(kinds) {
             await vxDismiss(w.shown);
         }
         const still = want.filter((k) => !vxHave(k));
+        if (opened.length) typeof cpDev === 'function' && cpDev('engine', () => ({ msg: 'Opened Vest\'s own ' + opened.map((x) => x === 'close' ? 'Close window' : 'Edit TP/SL window').join(' and ') + ' for a moment (nothing submitted) to find its order writers; still missing: ' + (still.join(', ') || 'none'), opened, still }));
         return { opened, still };
     })();
     VX.warm.busy = run;
@@ -12468,10 +13215,14 @@ async function vxWarm(kinds) {
 // keep looking while some kind is missing: several writers live in components that are only mounted while their window or table is shown
 function vxWatch(on, ms) {
     if (VX.wrTimer) { clearInterval(VX.wrTimer); VX.wrTimer = 0; }
+    typeof cpDev === 'function' && cpDev('state', () => ({ msg: on ? 'Writer watch on: looking for Vest\'s order writers every ' + (ms || 3000) + ' ms until all the copier needs are found' : 'Writer watch off', on: !!on, everyMs: ms || 3000 }));
     if (!on) return;
     VX.wrTimer = setInterval(() => {
         const w = vxWriters(false, VX_NEED);
-        if (!w.why && VX.wrTimer) { clearInterval(VX.wrTimer); VX.wrTimer = 0; }
+        if (!w.why && VX.wrTimer) {
+            clearInterval(VX.wrTimer); VX.wrTimer = 0;
+            typeof cpDev === 'function' && cpDev('state', () => ({ msg: 'Writer watch done: every writer the copier needs is found' }));
+        }
     }, ms || 3000);
 }
 
@@ -12495,8 +13246,13 @@ function vxWsFrame(data) {
         if (!VX.ws.others && frame.channel === 'account_state' && evt.accountId) {
             let act = null;
             try { act = vx.active(); } catch (e) {}
-            if (act != null && String(act) !== evt.accountId) VX.ws.others = true;
+            if (act != null && String(act) !== evt.accountId) {
+                VX.ws.others = true;
+                typeof cpDev === 'function' && cpDev('socket', () => ({ msg: 'First private frame of an account that is not the active one (' + vxDevName(evt.accountId) + '): Vest\'s stores are now trusted for every account', acc: evt.accountId, active: act }));
+            }
         }
+        // the log is read-only and must never keep a frame from the copier: its own try/catch (cpDev's builders have one, this summary does not)
+        try { typeof cpDevOn === 'function' && cpDevOn() && vxDevFrame(evt, set.size); } catch (e) {}
         for (const cb of Array.from(set)) { try { cb(evt); } catch (e) {} }
     }
 }
@@ -12510,7 +13266,9 @@ function vxWsInstall() {
         if (!new.target) return Native.apply(this, arguments);
         const ws = Reflect.construct(Native, arguments, new.target);
         try {
-            if (VX_PRIVATE.test(String(url))) ws.addEventListener('message', (ev) => { try { vxWsFrame(ev.data); } catch (e) {} });
+            if (VX_PRIVATE.test(String(url))) {
+                ws.addEventListener('message', (ev) => { try { vxWsFrame(ev.data); } catch (e) {} });
+            }
         } catch (e) {}
         return ws;
     };
@@ -12529,7 +13287,11 @@ function vxOnPrivate(channel, cb) {
     let set = VX.ws.listeners.get(channel);
     if (!set) VX.ws.listeners.set(channel, (set = new Set()));
     set.add(cb);
-    return () => { set.delete(cb); };
+    typeof cpDev === 'function' && cpDev('socket', () => ({ msg: 'Listening to the private socket\'s ' + channel + ' frames (' + set.size + ' listener' + (set.size === 1 ? '' : 's') + ')', channel, listeners: set.size }));
+    return () => {
+        set.delete(cb);
+        typeof cpDev === 'function' && cpDev('socket', () => ({ msg: 'Stopped listening to the private socket\'s ' + channel + ' frames (' + set.size + ' left)', channel, listeners: set.size }));
+    };
 }
 
 // The account Vest's order ticket shows: a hook of the ticket keeps the account's capital record ({ id, name, rootAccountId, stage, ... }),
@@ -12660,8 +13422,11 @@ function vxPickError(e) {
         out.status = Number.isFinite(Number(st)) ? Number(st) : null;
         const cd = e && (e.code != null ? e.code : e.response && e.response.data && e.response.data.code);
         out.code = typeof cd === 'string' || typeof cd === 'number' ? cd : null;
-        // a timeout, a network failure or a 408 / 5xx: Vest's own client retries those with an idempotency key, so the order may exist
-        out.uncertain = out.status == null ? /timeout|network|aborted|ECONN/i.test(out.message) : out.status === 408 || out.status === 429 || out.status >= 500;
+        // a timeout, a network failure or a 408 / 5xx: Vest's own client retries those with an idempotency key, so the order may exist.
+        // Vest's own error class carries only a code, no status (review 2, 2026-10-05): its codes for the same cases count too: UNKNOWN 0,
+        // INTERNAL 500, INTERNAL_CREATE_ORDER_TIMEOUT 901, TOO_MANY_REQUESTS 1003, SERVICE_UNAVAILABLE 1004, MAX_RETRIES_EXCEEDED 9999 (its enum).
+        const vestMaybe = out.code != null && [0, 500, 901, 1003, 1004, 9999].includes(Number(out.code));
+        out.uncertain = vestMaybe || (out.status == null ? /timeout|network|aborted|ECONN/i.test(out.message) : out.status === 408 || out.status === 429 || out.status >= 500);
     } catch (x) {}
     return out;
 }
@@ -12682,20 +13447,31 @@ function vxOrderEvent(ev) {
         if (ph === 'pending') {
             const vars = ev.action.variables;
             const kind = vxMutationKind(m, vars);
-            if (!kind || (kind !== 'cancel' && VX_NEED.indexOf(kind) < 0)) return;
+            if (!kind || (kind !== 'cancel' && VX_NEED.indexOf(kind) < 0)) {
+                typeof cpDevOn === 'function' && cpDevOn() && vxDevOnce('mut|' + vxDevMutKey(m), 'x', 'net', () => ({ msg: 'Vest ran a mutation the copier does not read as an order (' + (kind ? 'kind ' + kind + ' is not one it copies' : 'not recognised') + '): ' + vxDevMutKey(m) + '. Shown once per kind of mutation: if this was a TP/SL move or an order of yours, the copier did not see it', kind: kind || undefined, key: vxDevMutKey(m), varKeys: vars && typeof vars === 'object' ? Object.keys(vars).slice(0, 20) : typeof vars }));
+                return;
+            }
             // open names its account; the others read the tab's active account when they run, a few microtasks after this event
             let accountId = null;
             if (kind === 'open' && vars && vars.accountId != null) accountId = String(vars.accountId);
             else { const a = VX.stores.acct; const id = a ? a.getState().activeAccountId : null; accountId = id ? String(id) : null; }
             rec = { kind, vars: typeof vars === 'string' ? { orderId: vars.slice(0, 80) } : vxPick(vars, 0), accountId, switching: VX.inWith > 0, at, id: m.mutationId };
             R.recs.set(m, rec);
+            if (!rec.switching) vxLearn(m, kind); // the owner's own order (ours run inside vx.withAccount)
             out = { phase: 'pending', kind, vars: rec.vars, accountId, switching: rec.switching, id: rec.id, at, tPending: at };
         } else {
             rec = R.recs.get(m);
-            if (!rec) return; // started before we listened: whose it was is not known
+            if (!rec) {
+                typeof cpDevOn === 'function' && cpDevOn() && vxDevOnce('mut-late|' + vxDevMutKey(m), 'x', 'net', () => ({ msg: 'A mutation of Vest\'s answered (' + ph + ') that started before the copier listened or that it did not read as an order: ' + vxDevMutKey(m) + '. Shown once per kind', phase: ph, key: vxDevMutKey(m) }));
+                return; // started before we listened: whose it was is not known
+            }
             out = { phase: ph, kind: rec.kind, vars: rec.vars, accountId: rec.accountId, switching: rec.switching, id: rec.id, at, tPending: rec.at };
             if (ph === 'success') out.data = vxPick(m.state && m.state.data, 1);
-            else out.error = vxPickError(ev.action.error);
+            else {
+                out.error = vxPickError(ev.action.error);
+                typeof cpDev === 'function' && cpDev('net', () => ({ msg: 'Vest\'s REST answer to ' + rec.kind + ' (' + (at - rec.at) + ' ms after it left) was an error: ' + (out.error.status != null ? 'HTTP ' + out.error.status + ', ' : '') + (out.error.code != null ? 'code ' + out.error.code + (typeof CP_VEST_CODES !== 'undefined' && CP_VEST_CODES[out.error.code] ? ' (' + CP_VEST_CODES[out.error.code] + ')' : '') + ', ' : '') + '"' + out.error.message + '"; ' + (out.error.uncertain ? 'uncertain: Vest retries these and the order may exist' : 'a clear refusal'),
+                    kind: rec.kind, ms: at - rec.at, status: out.error.status, code: out.error.code, uncertain: out.error.uncertain, error: out.error.message }));
+            }
         }
         const subs = Array.from(R.subs);
         vxDefer(() => { for (const cb of subs) { try { cb(out); } catch (e) {} } });
@@ -12707,7 +13483,10 @@ function vxOrdersUnhook() {
     const un = R.unsub;
     R.unsub = null;
     R.client = null;
-    if (un) { try { un(); } catch (e) {} }
+    if (un) {
+        try { un(); } catch (e) {}
+        typeof cpDev === 'function' && cpDev('state', () => ({ msg: 'Order watcher stopped listening to the mutation cache' }));
+    }
 }
 
 // (Re)find the client and subscribe once; look again every VX_SCAN_GAP while there is none, every VX_RQ_RECHECK once there is (Vest may
@@ -12719,11 +13498,19 @@ function vxOrdersTry() {
     let client = null;
     try { client = vxFindClient(); } catch (e) {}
     if (client && client !== R.client) {
+        const had = !!R.client;
         vxOrdersUnhook();
         try {
             const un = client.getMutationCache().subscribe(vxOrderEvent);
-            if (typeof un === 'function') { R.client = client; R.unsub = un; }
-        } catch (e) {}
+            if (typeof un === 'function') {
+                R.client = client; R.unsub = un;
+                typeof cpDev === 'function' && cpDev('state', () => ({ msg: had ? 'Vest mounted a new query client: the order watcher listens to its mutation cache now' : 'Order watcher started: found Vest\'s query client and listening to its mutation cache (every order you place in this tab is seen when it leaves and when Vest answers)', replaced: had }));
+            }
+        } catch (e) {
+            typeof cpDev === 'function' && cpDev('error', () => ({ msg: 'Order watcher: found Vest\'s query client but could not subscribe to its mutation cache: ' + vxDevErr(e) }));
+        }
+    } else if (!client && !R.unsub) {
+        typeof cpDevOn === 'function' && cpDevOn() && vxDevOnce('rq-miss', 'x', 'state', () => ({ msg: 'Order watcher: Vest\'s query client is not found yet (looking again every ' + VX_SCAN_GAP + ' ms); your own orders reach the copier only through the reconciler until it is' }));
     }
     R.timer = setTimeout(vxOrdersTry, R.unsub ? VX_RQ_RECHECK : VX_SCAN_GAP);
 }
@@ -12737,10 +13524,12 @@ function vxOnOrders(cb) {
     if (typeof cb !== 'function') return () => {};
     const R = VX.rq;
     R.subs.add(cb);
+    typeof cpDev === 'function' && cpDev('state', () => ({ msg: 'Something asked to hear Vest\'s order mutations (' + R.subs.size + ' listener' + (R.subs.size === 1 ? '' : 's') + '): ' + (R.unsub ? 'already listening to the mutation cache' : 'looking for Vest\'s query client'), listeners: R.subs.size }));
     if (!R.timer && !R.unsub) vxOrdersTry();
     return () => {
         R.subs.delete(cb);
         if (R.subs.size) return;
+        typeof cpDev === 'function' && cpDev('state', () => ({ msg: 'The last listener of Vest\'s order mutations left: the order watcher stops', listeners: 0 }));
         if (R.timer) { clearTimeout(R.timer); R.timer = 0; }
         vxOrdersUnhook();
     };
@@ -12756,17 +13545,28 @@ function vxWithAccount(id, fn) {
     const prev = a.getState().activeAccountId;
     if (!prev) throw new Error('vx.withAccount: no active account to switch back to');
     if (!id || typeof id !== 'string') throw new Error('vx.withAccount: bad account id');
-    if (id === prev) return fn();
-    if (!vxKnownAccount(a.getState(), id)) throw new Error('vx.withAccount: unknown account ' + id);
+    if (id === prev) {
+        // already on it (the leader's own account, or a follower tab's pin): the writer is called as it is
+        typeof cpDev === 'function' && cpDev('engine', () => ({ msg: 'The tab is already on ' + vxDevName(id) + ': its writer is called without switching accounts', acc: id, switched: false }));
+        return fn();
+    }
+    if (!vxKnownAccount(a.getState(), id)) {
+        typeof cpDev === 'function' && cpDev('error', () => ({ msg: 'Could not switch the tab to ' + vxDevName(id) + ': Vest does not hold that account', acc: id }));
+        throw new Error('vx.withAccount: unknown account ' + id);
+    }
+    const t0 = typeof cpDevOn === 'function' && cpDevOn() ? vxDevClock() : 0;
     a.getState().setActiveAccountId(id);
     if (a.getState().activeAccountId !== id) {
         if (a.getState().activeAccountId !== prev) a.getState().setActiveAccountId(prev);
+        typeof cpDev === 'function' && cpDev('error', () => ({ msg: 'The switch of the tab to ' + vxDevName(id) + ' did not take (Vest kept ' + vxDevName(a.getState().activeAccountId) + '): nothing was called', acc: id }));
         throw new Error('vx.withAccount: the switch to ' + id + ' did not take');
     }
     let out, err, failed = false;
     try { out = fn(); } catch (e) { failed = true; err = e; }
     try { if (a.getState().activeAccountId !== prev) a.getState().setActiveAccountId(prev); } catch (e) {}
-    if (a.getState().activeAccountId !== prev) {
+    const back = a.getState().activeAccountId === prev;
+    typeof cpDev === 'function' && cpDev('engine', () => ({ msg: 'Switched the tab to ' + vxDevName(id) + ' for one turn and ' + (back ? 'back to ' + vxDevName(prev) : 'COULD NOT switch back to ' + vxDevName(prev)) + ' (' + (vxDevClock() - t0).toFixed(2) + ' ms)' + (failed ? '; the writer call threw: ' + vxDevErr(err) : ''), acc: id, from: prev, switched: true, ms: Math.round((vxDevClock() - t0) * 100) / 100, restored: back, failed }));
+    if (!back) {
         const e = new Error('vx.withAccount: could not switch back to ' + prev);
         e.restoreFailed = true;
         e.cause = err;
@@ -12823,7 +13623,9 @@ const vx = {
         if (!a || !id || typeof id !== 'string') return false;
         const st = a.getState();
         if (!vxKnownAccount(st, id)) return false;
+        const was = st.activeAccountId;
         if (st.activeAccountId !== id) st.setActiveAccountId(id);
+        typeof cpDev === 'function' && was !== id && cpDev('engine', () => ({ msg: 'The tab\'s active account was set to ' + vxDevName(id) + ' (was ' + vxDevName(was) + ')' + (a.getState().activeAccountId === id ? '' : ': it did not take'), acc: id, from: was }));
         return a.getState().activeAccountId === id;
     },
     // Switch, call fn, switch back, all in this turn. fn must reach Vest's writer without awaiting first (the writer reads the active
@@ -12885,7 +13687,11 @@ const vx = {
         let live = false;
         try { live = !(opts && opts.fresh) && (VX.ws.others || String(vx.active()) === id); } catch (e) {}
         const fromStore = live ? vxPositionsFromStore(id) : null;
-        if (fromStore) return Object.assign(fromStore, { source: 'store' });
+        if (fromStore) {
+            typeof cpDevOn === 'function' && cpDevOn() && vxDevStoreRead(id, 'store', fromStore, 'positions()');
+            return Object.assign(fromStore, { source: 'store' });
+        }
+        typeof cpDev === 'function' && cpDev('net', () => ({ msg: 'Read of ' + vxDevName(id) + '\'s positions goes to the REST list: ' + ((opts && opts.fresh) ? 'a fresh read was asked for' : live ? 'its store could not be read for certain (' + vxDevStoreWhy(id) + ')' : 'its store is not trusted yet (not the active account, and no frame of another account has been seen)'), acc: id, fresh: !!(opts && opts.fresh), live }));
         return Object.assign(await vxPositionsFromRest(id), { source: 'rest' });
     },
     // what the order ticket shows (null when it cannot be told), to compare with active() before trusting a UI-path order
@@ -12919,8 +13725,15 @@ const vx = {
         if (!id) return null;
         let live = false;
         try { live = VX.ws.others || String(vx.active()) === id; } catch (e) {}
-        if (!live) return null;
-        try { return vxPositionsFromStore(id, !!(opts && opts.lenient)); } catch (e) { return null; }
+        if (!live) {
+            typeof cpDevOn === 'function' && cpDevOn() && vxDevStoreRead(id, 'untrusted', null, 'storePositions');
+            return null;
+        }
+        try {
+            const out = vxPositionsFromStore(id, !!(opts && opts.lenient));
+            typeof cpDevOn === 'function' && cpDevOn() && vxDevStoreRead(id, out ? 'store' : 'unreadable', out, 'storePositions');
+            return out;
+        } catch (e) { return null; }
     },
     // The size and price decimals of markets, handed to a tab that has no GET bridge (a follower tab: the leader tab sends them with its messages):
     // { 'NDX-USD-PERP': { sizeDec, priceDec, tick } }. Only integers in range are taken; what is already known is overwritten (same source).
@@ -12966,7 +13779,10 @@ function vxPin(accountId, opts) {
     const P = { accountId: id, applied: false, drifted: false, drifts: 0, repins: 0, gaveUp: false, lastDriftAt: 0, lastSeen: null, stopped: false };
     const recent = [];
     let unsub = null, subOn = null, timer = 0, firstDone = null;
-    const report = (info) => { if (typeof opts.onDrift === 'function') { try { opts.onDrift(Object.assign({ expected: id }, info)); } catch (e) {} } };
+    const report = (info) => {
+        typeof cpDev === 'function' && cpDev('tabs', () => ({ msg: 'This tab was on ' + vxDevName(info.got) + ' instead of ' + vxDevName(id) + ': ' + (info.gaveUp ? 'it was flipped back 5 times in 2 s, so the pin gives up' : info.repinned ? 'pinned back' : 'not pinned back'), acc: id, got: info.got, repinned: !!info.repinned, gaveUp: !!info.gaveUp }));
+        if (typeof opts.onDrift === 'function') { try { opts.onDrift(Object.assign({ expected: id }, info)); } catch (e) {} }
+    };
     const onChange = (state) => {
         if (P.stopped || !state) return;
         const cur = state.activeAccountId;
@@ -12997,6 +13813,7 @@ function vxPin(accountId, opts) {
         status: () => ({ accountId: id, applied: P.applied, active: vx.active(), drifts: P.drifts, repins: P.repins, gaveUp: P.gaveUp, lastDriftAt: P.lastDriftAt, lastSeen: P.lastSeen }),
         check: () => vx.active() === id,
         stop() {
+            if (!P.stopped) typeof cpDev === 'function' && cpDev('tabs', () => ({ msg: 'The pin of this tab to ' + vxDevName(id) + ' was released', acc: id, drifts: P.drifts, repins: P.repins }));
             P.stopped = true;
             if (timer) clearTimeout(timer);
             timer = 0;
@@ -13013,9 +13830,11 @@ function vxPin(accountId, opts) {
     });
     Object.assign(done, handle);
     VX.pin = handle;
+    typeof cpDev === 'function' && cpDev('tabs', () => ({ msg: 'This tab is pinned to ' + vxDevName(id) + ': the pin re-applies the account if Vest changes it', acc: id }));
     tick();
     return done;
 }
+
 
 // at document_start, before Vest opens its private socket
 vxWsInstall();
@@ -13172,6 +13991,7 @@ function orStore() {
         return !!found;
     }, typeof VX_BUDGET === 'number' ? VX_BUDGET : 40000);
     OR.store = found;
+    typeof cpDevOn === 'function' && cpDevOn() && orDevOnce('store', found ? 'found' : 'missing', 'state', () => ({ msg: found ? 'Found Vest\'s open-orders store in its page: the order lists of every account are read from it' : 'Vest\'s open-orders store was not found in its page: order lists come from the REST list (one GET for all accounts) until it is' }));
     return found;
 }
 
@@ -13188,11 +14008,15 @@ function orStoreRead(accountId) {
     try {
         const st = api.getState();
         const reg = st.accounts[accountId];
-        if (!reg || reg.hasHydrated !== true) return null;
+        if (!reg || reg.hasHydrated !== true) {
+            typeof cpDevOn === 'function' && cpDevOn() && orDevOnce('read|' + accountId + '|store', 'cold', 'state', () => ({ msg: 'Order list of ' + cpName(accountId) + ' cannot come from Vest\'s store: ' + (reg ? 'the account has not been loaded into it yet' : 'the store has no record of the account'), acc: accountId }));
+            return null;
+        }
         const orders = [];
         for (const o of st.getAll(accountId)) { const x = orFromStore(o, accountId); if (x) orders.push(x); }
         return { ok: true, source: 'store', orders };
     } catch (e) {
+        typeof cpDevOn === 'function' && cpDevOn() && orDevOnce('read|' + accountId + '|store', 'err|' + String(e && e.message), 'state', () => ({ msg: 'Order list of ' + cpName(accountId) + ' cannot be read from Vest\'s store for certain: ' + String(e && e.message || e).slice(0, 160) + ' (nothing is guessed; the REST list is used)', acc: accountId }));
         return null;
     }
 }
@@ -13208,6 +14032,7 @@ function orRestAll(fresh) {
     // only use up the REST budget: the orders of an account whose store is not live are then simply not readable.
     if (OR.restBlocked) return Promise.resolve({ ok: false, error: 'the GET bridge does not allow reading the order list' });
     OR.rest.promise = (async () => {
+        const t0 = Date.now();
         try {
             if (typeof cpRestSlot === 'function') await cpRestSlot(); // the one budget of all REST reads (18-budget.js)
             const r = await b.get('/v3/positions/opened-orders');
@@ -13225,8 +14050,10 @@ function orRestAll(fresh) {
             // rows with no account id cannot be told apart: unknown, not "no orders"
             const data = noId ? { ok: false, error: 'order rows carry no account id' } : { ok: true, by };
             OR.rest = { at: CP.now(), promise: null, data };
+            typeof cpDev === 'function' && cpDev('net', () => ({ msg: 'GET every account\'s resting limit orders in one request: ' + (data.ok ? Array.from(by, ([id, l]) => cpName(id) + ' ' + l.length).join(', ') || 'none resting' : 'unusable, ' + data.error) + ' (' + (Date.now() - t0) + ' ms)', path: '/v3/positions/opened-orders', ms: Date.now() - t0, ok: data.ok, accounts: by.size }));
             return data;
         } catch (e) {
+            typeof cpDev === 'function' && cpDev('net', () => ({ msg: 'GET of the resting limit orders failed after ' + (Date.now() - t0) + ' ms: ' + String(e && (e.code || e.message) || e).slice(0, 160), path: '/v3/positions/opened-orders', ms: Date.now() - t0, ok: false }));
             OR.rest.promise = null;
             if (/blocked/i.test(String(e && (e.code || e.message || e)))) OR.restBlocked = true;
             return { ok: false, error: cpScrub(e && e.message || e) };
@@ -13245,13 +14072,38 @@ function orReadMany(ids, opts) {
         // Turbo: a follower's own tab reports its resting orders from its own store (the leader tab's store lags for a follower)
         const t = typeof cpTabOrders === 'function' ? cpTabOrders(id) : null;
         const r = t || (!fresh && orLive(id) ? orStoreRead(id) : null);
-        if (r) out[id] = r; else need.push(id);
+        if (r) {
+            typeof cpDevOn === 'function' && cpDevOn() && orDevOnce('read|' + id, r.source || 'tab', 'state', () => ({ msg: 'Order list of ' + cpName(id) + ' comes from ' + (t ? 'its own tab (Turbo)' : 'Vest\'s store') + ': ' + (r.orders ? orDevList(r.orders) : 'unknown'), acc: id, source: r.source || 'tab' }));
+            out[id] = r;
+        } else need.push(id);
     }
     if (!need.length) return out;
     return orRestAll(fresh).then((rest) => {
-        for (const id of need) out[id] = rest.ok ? { ok: true, source: 'rest', orders: rest.by.get(String(id)) || [] } : { ok: false, error: rest.error };
+        for (const id of need) {
+            out[id] = rest.ok ? { ok: true, source: 'rest', orders: rest.by.get(String(id)) || [] } : { ok: false, error: rest.error };
+            typeof cpDevOn === 'function' && cpDevOn() && orDevOnce('read|' + id, rest.ok ? 'rest' : 'fail|' + rest.error, 'state', () => ({ msg: 'Order list of ' + cpName(id) + ' ' + (rest.ok ? 'comes from the REST list: ' + orDevList(out[id].orders) : 'cannot be read at all: ' + rest.error), acc: id, source: rest.ok ? 'rest' : 'none' }));
+        }
         return out;
     });
+}
+
+// ---------- a follower's position record under its resting order ----------
+
+// A resting opening limit order has its own position record at Vest (size 0 until it fills), and Vest refuses an open while that record
+// exists (10006 OMS_POSITION_ALREADY_EXISTS: the owner's Turbo test, 2026-10-06, every follower paused after two of them). Vest's own ticket
+// sends an add on the record (same side) or a reduce that turns it (the other side): cpDiff does the same with what this returns.
+// -> { positionId, side, orderId } of the follower's resting opening order on `symbol`, or null. Synchronous: only what is already known
+// (its own tab with Turbo, Vest's store when it is live for the account, else the last shared REST list).
+function orPlaceholder(accountId, symbol) {
+    try {
+        const id = String(accountId);
+        let r = typeof cpTabOrders === 'function' ? cpTabOrders(id) : null;
+        if (!r && orLive(id)) r = orStoreRead(id);
+        if (!r && OR.rest.data && OR.rest.data.ok && OR.rest.data.by) r = { orders: OR.rest.data.by.get(id) || [] };
+        const list = r && Array.isArray(r.orders) ? r.orders : [];
+        const o = list.find((x) => x && x.symbol === symbol && !x.reduceOnly && !x.isClose && x.positionId && x.remaining > 0);
+        return o ? { positionId: String(o.positionId), side: o.isBuy ? 'long' : 'short', orderId: String(o.id) } : null;
+    } catch (e) { return null; }
 }
 
 // ---------- an order that is already gone ----------
@@ -13261,6 +14113,7 @@ function orReadMany(ids, opts) {
 function orGone(a) {
     const c = cpCfg();
     const map = orMap(c);
+    typeof cpDev === 'function' && cpDev('follower', () => ({ msg: 'Cancel of ' + (a && a.accountId != null ? cpName(a.accountId) : 'a follower') + '\'s mirror order came back "order not found": it filled with your order or was taken off. The mirror is forgotten, the order lists are read again and ' + (a && a.symbol ? a.symbol : 'the market') + ' is looked at on the next pass', acc: a && a.accountId, symbol: a && a.symbol, order: a && a.orderId != null ? String(a.orderId).slice(-6) : undefined, wasMirror: !!(a && a.orderId != null && map[String(a.orderId)]) }));
     if (a && a.orderId != null && map[String(a.orderId)]) { delete map[String(a.orderId)]; cpSave(c); }
     OR.rest = { at: 0, promise: null, data: null };
     if (a && a.accountId != null && a.symbol) OR.tries.delete(String(a.accountId) + '|' + a.symbol);
@@ -13290,13 +14143,19 @@ function orOnState(evt) {
             if (OR.events.size > OR_EVENT_MAX) OR.events.delete(OR.events.keys().next().value);
             const rec = map[id];
             if (!rec) continue;
-            if (type === 'FILLED') { orDone(c)[orDoneKey(rec.account, rec.leader, rec.price)] = CP.now(); delete map[id]; changed = true; }
-            else if (type === 'CANCELLED') {
+            if (type === 'FILLED') {
+                typeof cpDev === 'function' && cpDev('follower', () => ({ msg: cpName(rec.account) + '\'s mirror order FILLED (' + orDevMirror(rec) + '): it is marked done, so it is not placed again for your order ' + String(rec.leader).slice(-6), acc: rec.account, symbol: rec.symbol, order: id.slice(-6), leaderOrder: String(rec.leader).slice(-6), event: type }));
+                orDone(c)[orDoneKey(rec.account, rec.leader, rec.price)] = CP.now(); delete map[id]; changed = true;
+            } else if (type === 'CANCELLED') {
                 // not ours: the owner took it off by hand, so it is not placed again for this leader order
+                typeof cpDev === 'function' && cpDev('follower', () => ({ msg: cpName(rec.account) + '\'s mirror order was CANCELLED (' + orDevMirror(rec) + '): ' + (OR.ourCancels.has(id) ? 'the copier asked for it' : 'not by the copier (taken off by hand), so it is not placed again for your order ' + String(rec.leader).slice(-6)), acc: rec.account, symbol: rec.symbol, order: id.slice(-6), leaderOrder: String(rec.leader).slice(-6), event: type, ours: OR.ourCancels.has(id) }));
                 if (!OR.ourCancels.has(id)) orDone(c)[orDoneKey(rec.account, rec.leader, rec.price)] = CP.now();
                 delete map[id];
                 changed = true;
-            } else if (type === 'REJECTED') { delete map[id]; changed = true; } // the reconciler places it again, under the retry and pause rules
+            } else if (type === 'REJECTED') {
+                typeof cpDev === 'function' && cpDev('follower', () => ({ msg: cpName(rec.account) + '\'s mirror order was REJECTED by Vest (' + orDevMirror(rec) + (r.error_code != null ? ', error code ' + r.error_code + (typeof CP_VEST_CODES !== 'undefined' && CP_VEST_CODES[r.error_code] ? ', ' + CP_VEST_CODES[r.error_code] : '') : '') + '): the reconciler places it again under the retry and pause rules', acc: rec.account, symbol: rec.symbol, order: id.slice(-6), leaderOrder: String(rec.leader).slice(-6), event: type, errorCode: r.error_code }));
+                delete map[id]; changed = true; // the reconciler places it again, under the retry and pause rules
+            }
         }
         if (changed) cpSave(c);
     } catch (e) {}
@@ -13305,10 +14164,12 @@ function orOnState(evt) {
 function orStart() {
     orStop();
     try { if (typeof vx.onAccountState === 'function') OR.unsub = vx.onAccountState(orOnState); } catch (e) { OR.unsub = null; }
+    typeof cpDev === 'function' && cpDev('state', () => ({ msg: 'Order mirror started: ' + (OR.unsub ? 'it hears what becomes of every order from the private socket' : 'no private socket listener (it reads the order lists only)') + '; the copier\'s own mirrors on file: ' + Object.keys(orMap(cpCfg())).length, listening: !!OR.unsub, mirrors: Object.keys(orMap(cpCfg())).length }));
 }
 
 // Copying off: what was learned about the leader's orders is stale, what the settings hold (c.orderMap, c.orderDone) stays.
 function orStop() {
+    (OR.unsub || OR.prevLead) && typeof cpDev === 'function' && cpDev('state', () => ({ msg: 'Order mirror stopped: what it learned about your resting orders is forgotten (' + OR.ghosts.size + ' fill grace' + (OR.ghosts.size === 1 ? '' : 's') + ' dropped); the mirrors on file stay', ghosts: OR.ghosts.size }));
     if (OR.unsub) { try { OR.unsub(); } catch (e) {} OR.unsub = null; }
     OR.prevLead = null;
     OR.prevPos = null;
@@ -13325,6 +14186,7 @@ function orWake(symbol) {
     if (!CP.running || CP.killed) return;
     const t = CP.now();
     const m = cpCanonSym(symbol);
+    typeof cpDev === 'function' && cpDev('plan', () => ({ msg: 'Order mirror wakes ' + (m || 'the market') + ' for the next reconciler pass', symbol: m || undefined }));
     if (m) CP.wake.set(m, t + CP_INTENT_MS);
     CP.fastUntil = Math.max(CP.fastUntil, t + CP_INTENT_MS);
     if (CP.looping) CP.again = true; else cpSchedule(0);
@@ -13335,6 +14197,7 @@ function orWake(symbol) {
 // Vest's store (a cancel has dropped the order from it already, a placement shows with the socket's next frame, which wakes the reconciler again), so
 // this only makes the next pass come at once.
 function coOnLeaderOrder(ev) {
+    typeof cpDev === 'function' && cpDev('plan', () => ({ msg: 'Order mirror hears from Vest\'s OK of your order: ' + (ev && ev.kind === 'cancel' ? 'a cancel of order ' + String(ev.orderId).slice(-6) : ev ? 'a resting ' + (ev.reduceOnly ? 'reduce-only ' : '') + ev.kind + (ev.symbol ? ' on ' + cpCanonSym(ev.symbol) : ' (market not known)') + (ev.side ? ' ' + ev.side : '') + (ev.qty != null ? ' ' + ev.qty : '') + (ev.price ? ' @ ' + orFmtPrice(ev.price) : '') + (ev.orderId != null ? ' (order ' + String(ev.orderId).slice(-6) + ')' : '') : 'nothing') + (ev && CP.running && !CP.killed && cpMirrorOn() ? '' : ' - ignored: ' + (!CP.running ? 'copying is not running' : CP.killed ? 'the kill switch is on' : 'mirror limit orders is off')), symbol: ev && ev.symbol ? cpCanonSym(ev.symbol) : undefined, kind: ev && ev.kind, order: ev && ev.orderId != null ? String(ev.orderId).slice(-6) : undefined }));
     if (!ev || !CP.running || CP.killed || !cpMirrorOn()) return;
     // what the leader's own order is, as Vest accepted it: a reduce or close is never copied as an opening order, whatever our reads of the
     // leader's position say a moment after a fill (the owner's live test, 10:58:48: a sell limit that reduced a long went to the followers as an open)
@@ -13401,10 +14264,20 @@ function orPlanFollower(P, f, fpos, frows) {
 function orPlanSymbol(P, f, id, ratio, m, fpos, frows, mine, R) {
     const mi = P.info[m] || {};
     const step = Number(mi.step), tick = Number(mi.tick) || 0;
-    if (!(step > 0)) { R.skipped.push({ accountId: id, symbol: m, why: 'no market info: its limit orders are not copied' }); return null; }
+    // the debug log's notes of this plan (DEV build only; null in release builds): what was decided and why, for what the plan's result does not carry
+    const dv = typeof cpDevOn === 'function' && cpDevOn() ? [] : null;
+    if (!(step > 0)) {
+        R.skipped.push({ accountId: id, symbol: m, why: 'no market info: its limit orders are not copied' });
+        dv && orDevPlan(P, id, m, null, [], dv, 'no market info for ' + m + ': its limit orders are not copied');
+        return null;
+    }
     const lpos = P.leadPos.filter((p) => p.symbol === m && Number(p.qty) > 0);
     const fps = fpos.filter((p) => p.symbol === m && Number(p.qty) > 0);
-    if (lpos.length > 1 || fps.length > 1) { R.skipped.push({ accountId: id, symbol: m, why: 'several positions on this market' }); return null; }
+    if (lpos.length > 1 || fps.length > 1) {
+        R.skipped.push({ accountId: id, symbol: m, why: 'several positions on this market' });
+        dv && orDevPlan(P, id, m, null, [], dv, (lpos.length > 1 ? 'you hold' : 'it holds') + ' several positions on ' + m + ': its limit orders are not copied');
+        return null;
+    }
     const lp = lpos[0] || null, fp = fps[0] || null;
     const S = { symbol: m, place: [], cancel: [], hold: '', waiting: false };
     const sideOf = (isBuy) => (isBuy ? 'buy' : 'sell');
@@ -13453,19 +14326,22 @@ function orPlanSymbol(P, f, id, ratio, m, fpos, frows, mine, R) {
     // missing ones
     for (const w of want) {
         if (w.ghost || w.pair || w.foreign) continue;
-        if (P.done[orDoneKey(id, w.id, w.price)]) continue; // its mirror filled (or was taken off by hand): not placed again
+        if (P.done[orDoneKey(id, w.id, w.price)]) { dv && dv.push({ t: 'done', w }); continue; } // its mirror filled (or was taken off by hand): not placed again
         // an add, reduce or close needs the follower's matching position, an open needs it flat: the position reconciler brings that about first
         // A reduce or close goes only to a follower that holds the position it reduces, on the side the order takes from: it can never open or flip one.
         const reduces = (w.kind === 'reduce' || w.kind === 'close') && fp && (fp.side === 'long') === !w.isBuy;
-        if (w.kind === 'open' ? !!fp : (!fp || (lp && fp.side !== lp.side) || ((w.kind === 'reduce' || w.kind === 'close') && !reduces))) { S.waiting = true; continue; }
+        if (w.kind === 'open' ? !!fp : (!fp || (lp && fp.side !== lp.side) || ((w.kind === 'reduce' || w.kind === 'close') && !reduces))) { dv && dv.push({ t: 'waiting', w, fp }); S.waiting = true; continue; }
         let q = cpFloor(w.rem * ratio, step);
         if (w.kind === 'reduce') q = Math.min(q, fp.qty);
         if (w.kind === 'close') q = fp.qty;
-        if (!(q > 0)) { R.skipped.push({ accountId: id, symbol: m, why: 'order ' + cpFmt(w.rem) + ' x ' + ratio + ' is under the ' + step + ' step' }); continue; }
+        if (!(q > 0)) { R.skipped.push({ accountId: id, symbol: m, why: 'order ' + cpFmt(w.rem) + ' x ' + ratio + ' is under the ' + step + ' step' }); dv && dv.push({ t: 'skip', w, why: R.skipped[R.skipped.length - 1].why }); continue; }
         // an open takes the leader's leverage; an add, reduce or close keeps the follower's own position's (what Vest's own windows send)
-        const lev = w.kind === 'open' ? w.o.leverage || (lp && lp.leverage) || CP.lev[m] || null : (fp && fp.leverage) || w.o.leverage || (lp && lp.leverage) || CP.lev[m] || null;
+        const lev0 = w.kind === 'open' ? w.o.leverage || (lp && lp.leverage) || CP.lev[m] || null : (fp && fp.leverage) || w.o.leverage || (lp && lp.leverage) || CP.lev[m] || null;
+        // an open or an add names the whole number (Vest rejects a store value like 50.001204 with 10004, see cpOrderLev); a reduce or close keeps the position's
+        const lev = (w.kind === 'open' || w.kind === 'append') && typeof cpOrderLev === 'function' ? cpOrderLev(lev0) : lev0;
         if ((w.kind === 'open' || w.kind === 'append') && !(lev > 0) && !(Number(P.leverage) > 0)) {
             R.skipped.push({ accountId: id, symbol: m, why: 'limit order not copied: its leverage is not known' });
+            dv && dv.push({ t: 'skip', w, why: 'its leverage is not known' });
             continue;
         }
         // a reduce or close is always reduce-only on the follower, whatever the leader's own row says (Vest's ticket stores false for a limit that reduces)
@@ -13502,6 +14378,7 @@ function orPlanSymbol(P, f, id, ratio, m, fpos, frows, mine, R) {
         if (agree) S.hold = want.every((w) => w.ghost) ? 'grace' : 'exposure';
     }
     if (S.cancel.length) S.hold = 'cancel'; // the leftover is cancelled first, the position is matched on a later pass
+    dv && orDevPlan(P, id, m, S, want, dv, '', { lp, fp, ratio, step, tick, recs, used });
     return S;
 }
 
@@ -13510,7 +14387,11 @@ function orPlanSymbol(P, f, id, ratio, m, fpos, frows, mine, R) {
 // An order that was resting at the last pass and is not now either filled (its mirror gets CP_LIMIT_GRACE_MS) or cancelled (the mirror is
 // a leftover at once). The private socket says which; without it the leader's position moving the order's way means filled.
 function orTrack(lead, lo, t) {
-    for (const [id, g] of Array.from(OR.ghosts)) if (g.until <= t) OR.ghosts.delete(id);
+    for (const [id, g] of Array.from(OR.ghosts)) {
+        if (g.until > t) continue;
+        typeof cpDev === 'function' && cpDev('plan', () => ({ msg: 'The grace for your filled ' + orDevOrder(g.o) + ' is over: its mirrors, if they did not fill, are cancelled and the position is matched at market', symbol: g.o.symbol, leaderOrder: id.slice(-6) }));
+        OR.ghosts.delete(id);
+    }
     const posNow = new Map();
     for (const p of lead.positions) posNow.set(p.symbol, orSigned(p));
     if (OR.prevLead) {
@@ -13525,8 +14406,11 @@ function orTrack(lead, lo, t) {
                 filled = d * (x.o.isBuy ? 1 : -1) > 1e-12;
             }
             if (filled) OR.ghosts.set(id, { o: x.o, kind: x.kind, until: t + CP_LIMIT_GRACE_MS });
+            typeof cpDev === 'function' && cpDev('leader', () => ({ msg: 'Your resting ' + orDevOrder(x.o) + (filled ? ' FILLED' : ' is gone from Vest\'s list') + ' (' + (ev && /^(FILLED|CANCELLED|REJECTED|EXPIRED)$/.test(ev.type) ? 'the private socket says ' + ev.type : 'no socket event' + (filled ? ', but your position moved its way' : ', and your position did not move its way')) + '): ' + (filled ? 'its mirrors get ' + CP_LIMIT_GRACE_MS + ' ms to fill by themselves' : 'its mirrors are leftovers now and are cancelled'),
+                symbol: x.o.symbol, leaderOrder: id.slice(-6), filled, event: ev ? ev.type : undefined, kind: x.kind }));
         }
     }
+    typeof cpDevOn === 'function' && cpDevOn() && orDevLeader(OR.prevLead, lo, lead);
     OR.prevLead = new Map(lo.map((o) => [o.id, { o, kind: orKind(o, lead.positions.find((p) => p.symbol === o.symbol && Number(p.qty) > 0) || null) }]));
     OR.prevPos = posNow;
 }
@@ -13542,6 +14426,7 @@ function orTidy(c, id, rows, leadIds, t) {
         if (ids.has(oid)) { rec.seen = true; continue; }
         // a read showed it once, so a read that does not show it now is believed at once (it filled, or somebody took it off)
         if (rec.seen || t - Number(rec.at) > OR_WAIT_MS) {
+            typeof cpDev === 'function' && cpDev('follower', () => ({ msg: cpName(id) + '\'s mirror order ' + oid.slice(-6) + ' (' + orDevMirror(rec) + ') is no longer on its order list (' + (rec.seen ? 'a read showed it before' : 'it never showed within ' + OR_WAIT_MS + ' ms') + '): ' + (leadIds.has(rec.leader) && !OR.ourCancels.has(oid) ? 'it filled or was taken off by hand while your order still rests, so it is marked done and not placed again' : OR.ourCancels.has(oid) ? 'the copier cancelled it' : 'your order is gone too, so it is simply forgotten'), acc: id, symbol: rec.symbol, order: oid.slice(-6), leaderOrder: String(rec.leader).slice(-6) }));
             delete map[oid];
             // it filled (or somebody took it off): while the leader's order rests it is not placed again
             if (leadIds.has(rec.leader) && !OR.ourCancels.has(oid)) done[orDoneKey(id, rec.leader, rec.price)] = t;
@@ -13554,6 +14439,7 @@ function orTidy(c, id, rows, leadIds, t) {
         const k = OR.attempts.findIndex((a) => a.acc === id && a.symbol === r.symbol && a.isBuy === r.isBuy && Math.abs(a.price - r.price) < 1e-9 && Math.abs(a.qty - r.qty) < 1e-9);
         if (k < 0) continue;
         const a = OR.attempts.splice(k, 1)[0];
+        typeof cpDev === 'function' && cpDev('follower', () => ({ msg: 'Adopted ' + cpName(id) + '\'s order ' + r.id.slice(-6) + ' (' + orDevOrder(r) + ') as the mirror of your order ' + String(a.mirror.leader).slice(-6) + ': its placement answer was lost, but it showed up on the list ' + Math.round(t - a.at) + ' ms later', acc: id, symbol: r.symbol, order: r.id.slice(-6), leaderOrder: String(a.mirror.leader).slice(-6) }));
         map[r.id] = { leader: a.mirror.leader, account: id, symbol: r.symbol, side: a.isBuy ? 'buy' : 'sell', price: r.price, qty: r.qty, kind: a.mirror.kind, lq: a.mirror.lq, ratio: a.mirror.ratio, at: a.at, seen: true };
         changed = true;
     }
@@ -13582,7 +14468,10 @@ function orCancelOk() {
 async function orWarmCancel() {
     try {
         if (OR.warm.busy || OR.warm.n >= 6 || CP.now() - OR.warm.at < 2500) return;
-        if (typeof document === 'undefined' || typeof document.querySelector !== 'function' || document.querySelector('[role="dialog"]')) return;
+        if (typeof document === 'undefined' || typeof document.querySelector !== 'function') return;
+        // a window of Vest's own is open (the copier's own window does not count: it blocked this before), or the owner is clicking or typing
+        if (typeof vxVestDialogOpen === 'function' ? vxVestDialogOpen() : document.querySelector('[role="dialog"]')) return;
+        if (typeof vxUserBusy === 'function' && vxUserBusy()) return;
         const tab = document.querySelector('[data-testid="account-tab-open-orders"]');
         if (!tab) return;
         OR.warm.busy = true;
@@ -13594,11 +14483,14 @@ async function orWarmCancel() {
             const prev = list ? Array.from(list.querySelectorAll('[role="tab"], button')).find((b) => b !== tab && (b.getAttribute('data-state') === 'active' || b.getAttribute('aria-selected') === 'true')) : null;
             const wasActive = tab.getAttribute('data-state') === 'active' || tab.getAttribute('aria-selected') === 'true';
             if (!wasActive) tab.click();
-            for (let i = 0; i < 25 && !orCancelOk(); i++) {
+            // up to 3 s: Vest mounts the rows (and their Cancel button) a moment after its tab shows; 1.5 s missed it five times running in the
+            // owner's DEV test 7 (2026-10-06), so the first limit order waited about 19 s
+            for (let i = 0; i < 50 && !orCancelOk(); i++) {
                 await sleep(60);
                 if (typeof vx.writers === 'function') vx.writers(true, []);
             }
             if (!wasActive && prev && prev.click) prev.click();
+            typeof cpDev === 'function' && cpDev('engine', () => ({ msg: 'Showed Vest\'s Open Orders tab for a moment (nothing submitted) so its Cancel button is mounted: ' + (orCancelOk() ? 'the cancel writer is found' : 'still not found') + ' (try ' + OR.warm.n + ' of 6)', tries: OR.warm.n, found: orCancelOk() }));
         } finally { OR.warm.busy = false; }
     } catch (e) {}
 }
@@ -13607,6 +14499,7 @@ async function orWarmCancel() {
 // logged (at most every 30 s) and the pass goes on without the mirror.
 function orFail(e, where) {
     const t = CP.now();
+    typeof cpDev === 'function' && cpDev('error', () => ({ msg: 'Order mirror failed (' + where + '): ' + String(e && e.message || e).slice(0, 200) + '. The position reconciler goes on without it', where, stack: String(e && e.stack || '').split('\n').slice(0, 4).join(' | ') }));
     if (!OR.failAt || t - OR.failAt > 30000) { OR.failAt = t; cpLog('error', { note: 'order mirror (' + where + '): ' + cpScrub(e && e.message || e) }); }
 }
 
@@ -13633,6 +14526,7 @@ function orUnknown(c, accounts) {
     if (OR.prevLead) for (const x of OR.prevLead.values()) syms.add(x.o.symbol);
     for (const rec of Object.values(orMap(c))) if (accounts.has(String(rec.account))) syms.add(rec.symbol);
     const open = OR.goodAt > 0 && t - OR.goodAt < OR_UNKNOWN_HOLD_MS;
+    typeof cpDevOn === 'function' && cpDevOn() && orDevOnce('unknown|' + Array.from(accounts).sort().join(','), open ? 'hold' : 'free', 'state', () => ({ msg: 'Order lists cannot be read for ' + (accounts.size ? Array.from(accounts, (a) => cpName(a)).join(', ') : 'the leader') + ': ' + (open ? 'the position reconciler waits up to ' + OR_UNKNOWN_HOLD_MS + ' ms where mirrors may rest, then goes on without them' : 'no mirror is held back any more; the position reconciler goes on without the mirror'), accounts: Array.from(accounts), holdOpen: open }));
     return { rows: new Map(), skipped: [], held: (acc, sym, list) => open && syms.has(sym) && list.some((a) => CP_QTY_KINDS[a.kind]), unknown: true };
 }
 
@@ -13664,6 +14558,7 @@ function orAnalyse(c, lead, folls, reads, by, leaderId) {
             // cannot be asked for: nothing is guessed, and the follower shows as syncing while the leader's orders or its own mirrors are at stake
             if (lo.length || Object.values(orMap(c)).some((m) => m && String(m.account) === id)) {
                 OR.state[id] = { mismatch: true, why: 'its orders cannot be read yet' };
+                typeof cpDevOn === 'function' && cpDevOn() && orDevOnce('stale|' + id, 'x', 'plan', () => ({ msg: cpName(id) + ' shows as syncing: ' + (!F || !F.ok ? 'its order list cannot be read (' + (F && F.error ? F.error : 'Vest has not streamed it yet') + ')' : 'its positions could not be read this pass') + ', and your resting orders or its own mirrors are at stake. Nothing is guessed or sent for it', acc: id }));
                 cpLogOnce('refused', { accountId: id, kind: 'limit', symbol: '-' }, 'limit orders wait: Vest has not streamed this account\'s orders yet');
             } else delete OR.state[id];
             return;
@@ -13713,10 +14608,14 @@ function orStepRun(c, A, out, res) {
             if (!list.length) continue;
             res.pending += list.length;
             seen.add(pair);
-            if (blocked.has(pair) || (CP.settle.get(pair) || 0) > t) continue;
+            if (blocked.has(pair) || (CP.settle.get(pair) || 0) > t) {
+                typeof cpDevOn === 'function' && cpDevOn() && orDevOnce('wait|' + pair, blocked.has(pair) ? 'pos' : 'settle', 'plan', () => ({ msg: 'Mirror for ' + cpName(R.accountId) + ' on ' + m + ' waits: ' + (blocked.has(pair) ? 'the position reconciler has an action for it this pass' : 'its last order is still settling'), acc: R.accountId, symbol: m }));
+                continue;
+            }
             // never place what cannot be cancelled: say so once, and try to get Vest's Cancel button on the page
             if (!A.cancelOk) {
                 orWarmCancel();
+                typeof cpDevOn === 'function' && cpDevOn() && orDevOnce('nocancel|' + pair, S.place.length ? 'place' : 'cancel', 'guard', () => ({ msg: 'Mirror for ' + cpName(R.accountId) + ' on ' + m + ' is held: Vest\'s Cancel button is not on the page, and the copier never places what it cannot cancel' + (S.cancel.length ? ' (leftovers are still tried)' : ''), acc: R.accountId, symbol: m }));
                 if (S.place.length && !OR.warned) {
                     OR.warned = true;
                     cpLog('refused', { acc: R.accountId, kind: 'limit', symbol: m, why: 'Vest\'s Cancel button is not on the page: open the Open Orders tab so the copier can cancel what it places' });
@@ -13727,28 +14626,37 @@ function orStepRun(c, A, out, res) {
             }
             const sig = list.map((a) => [a.kind, a.symbol, a.side, a.price, a.qty, a.orderId || ''].join(':')).join(';');
             let rec = OR.tries.get(pair);
-            if (!rec || rec.sig !== sig) { rec = { sig, first: t, attempts: 0, lastSent: 0, alerted: false }; OR.tries.set(pair, rec); }
+            if (!rec || rec.sig !== sig) {
+                typeof cpDev === 'function' && cpDev('plan', () => ({ msg: 'Mirror for ' + cpName(R.accountId) + ' on ' + m + ' has something new to do: ' + orDevActs(list) + (rec ? ' (the earlier plan changed, the retry count starts over)' : ''), acc: R.accountId, symbol: m }));
+                rec = { sig, first: t, attempts: 0, lastSent: 0, alerted: false }; OR.tries.set(pair, rec);
+            }
             const age = t - rec.first;
             let send = false;
             if (rec.attempts === 0) send = true;
             else if (rec.attempts === 1 && t - rec.lastSent >= CP_DESYNC_MS) {
                 if (!rec.alerted) {
                     rec.alerted = true;
+                    typeof cpDev === 'function' && cpDev('guard', () => ({ msg: 'Mirror for ' + cpName(R.accountId) + ' on ' + m + ' is out of sync ' + Math.round(age) + ' ms after its first send: retrying once', acc: R.accountId, symbol: m, ageMs: age }));
                     cpLog('desync', { acc: R.accountId, symbol: m, ageMs: age, wanted: sig, orders: true });
                     cpToast('Copy: ' + cpName(R.accountId) + '\'s limit orders are out of sync on ' + m + '. Retrying once.', 'warn');
                 }
                 send = true;
             } else if (rec.attempts >= 2 && t - rec.lastSent >= CP_DESYNC_MS) {
+                typeof cpDev === 'function' && cpDev('guard', () => ({ msg: 'Mirror for ' + cpName(R.accountId) + ' on ' + m + ' is still out of sync after a retry (' + Math.round(age) + ' ms): ' + cpName(R.accountId) + ' is paused', acc: R.accountId, symbol: m, ageMs: age }));
                 cpPause(R.accountId, 'limit orders on ' + m + ' still out of sync after a retry');
                 continue;
             }
             if (!send) continue;
             const ok = list.filter((a) => cpGuard(a).ok); // a refusal is logged by the guard and is not an attempt
-            if (!ok.length) continue;
+            if (!ok.length) {
+                typeof cpDev === 'function' && cpDev('guard', () => ({ msg: 'The guard refused every mirror action for ' + cpName(R.accountId) + ' on ' + m + ' (' + orDevActs(list) + '): nothing is sent, and it does not count as an attempt', acc: R.accountId, symbol: m }));
+                continue;
+            }
             rec.attempts++;
             rec.lastSent = t;
             CP.settle.set(pair, Infinity);
             for (const a of ok) if (a.kind === 'cancel') orOurCancel(a.orderId);
+            typeof cpDev === 'function' && cpDev('send', () => ({ msg: 'Mirror sends to ' + cpName(R.accountId) + ' (attempt ' + rec.attempts + (rec.attempts > 1 ? ', a retry ' + Math.round(t - rec.first) + ' ms after the first' : '') + '): ' + orDevActs(ok), acc: R.accountId, symbol: m, attempt: rec.attempts, n: ok.length }));
             cpLog('orders', { acc: R.accountId, symbol: m, attempt: rec.attempts, note: ok.map((a) => (a.kind === 'cancel' ? 'cancel ' : 'place ') + a.side + ' ' + (a.kind === 'cancel' ? '' : a.qty + ' ') + 'limit @ ' + cpFmt(a.price)).join(', ') });
             acts.push(...ok);
         }
@@ -13775,11 +14683,13 @@ function orNoteResults(c, res) {
         const a = r && r.action;
         if (!a) continue;
         if (a.kind === 'cancel') {
+            typeof cpDev === 'function' && cpDev('vest', () => ({ msg: 'Cancel of ' + cpName(a.accountId) + '\'s mirror order ' + String(a.orderId).slice(-6) + ' (' + a.side + ' limit ' + cpFmt(a.qty) + ' @ ' + orFmtPrice(a.price) + '): ' + (r.ok ? 'Vest accepted it' + (r.ms != null ? ' in ' + Math.round(r.ms) + ' ms' : '') + ', the mirror is forgotten' : 'FAILED: ' + cpScrub(r.error) + (/not found/i.test(String(r.error || '')) ? ' (already gone)' : ' (it stays on file and is tried again under the retry rules)')), acc: a.accountId, symbol: a.symbol, order: String(a.orderId).slice(-6), ok: !!r.ok, ms: r.ms }));
             if (r.ok && map[a.orderId]) { delete map[a.orderId]; changed = true; }
             continue;
         }
         if (!a.mirror || a.orderType !== 'limit') continue;
         const oid = r.resp && r.resp.orderId != null ? String(r.resp.orderId) : '';
+        typeof cpDev === 'function' && cpDev('vest', () => ({ msg: 'Mirror ' + a.side + ' limit ' + cpFmt(a.qty) + ' ' + a.symbol + ' @ ' + orFmtPrice(a.price) + ' for ' + cpName(a.accountId) + ' (mirrors your order ' + String(a.mirror.leader).slice(-6) + '): ' + (r.ok && oid ? 'Vest accepted it as order ' + oid.slice(-6) + (r.ms != null ? ' in ' + Math.round(r.ms) + ' ms' : '') + ', it is on file' : r.ok ? 'the call went through but the answer carried no order id: the next read can adopt it' : /timeout/i.test(String(r.error || '')) ? 'TIMED OUT (' + cpScrub(r.error) + '): it may exist, the next read can adopt it' : 'FAILED: ' + cpScrub(r.error)), acc: a.accountId, symbol: a.symbol, order: oid ? oid.slice(-6) : undefined, leaderOrder: String(a.mirror.leader).slice(-6), ok: !!r.ok, ms: r.ms, mirrorKind: a.mirror.kind }));
         if (r.ok && oid) {
             map[oid] = { leader: a.mirror.leader, account: String(a.accountId), symbol: a.symbol, side: a.side, price: a.price, qty: a.qty, kind: a.mirror.kind, lq: a.mirror.lq, ratio: a.mirror.ratio, at: t };
             changed = true;
@@ -13823,7 +14733,11 @@ async function orFlattenRun(c, f) {
     const acts = [];
     for (const [oid, rec] of Object.entries(map)) {
         if (String(rec.account) !== id || !c.markets.includes(rec.symbol)) continue;
-        if (rows && !rows.some((r) => r.id === oid)) { delete map[oid]; cpSave(c); continue; } // already gone
+        if (rows && !rows.some((r) => r.id === oid)) {
+            typeof cpDev === 'function' && cpDev('plan', () => ({ msg: 'Flatten: ' + cpName(id) + '\'s mirror order ' + oid.slice(-6) + ' (' + orDevMirror(rec) + ') is already gone from its list: forgotten, nothing to cancel', acc: id, symbol: rec.symbol, order: oid.slice(-6) }));
+            delete map[oid]; cpSave(c); continue; // already gone
+        }
+        typeof cpDev === 'function' && cpDev('plan', () => ({ msg: 'Flatten: cancel ' + cpName(id) + '\'s mirror order ' + oid.slice(-6) + ' (' + orDevMirror(rec) + ') before its position is closed' + (rows ? '' : ' (its order list could not be read, so every mirror on file is tried)'), acc: id, symbol: rec.symbol, order: oid.slice(-6) }));
         orOurCancel(oid);
         acts.push({ kind: 'cancel', accountId: id, symbol: rec.symbol, side: rec.side, qty: rec.qty, price: rec.price, orderId: oid, flatten: true, seq: ++CP.seq, reason: 'flatten' });
     }
@@ -13862,7 +14776,9 @@ async function orPreviewRun(c, lead, folls, reads) {
             }
         }
     });
-    return { rows, text: orPreviewText(rows, folls.length) };
+    const text = orPreviewText(rows, folls.length);
+    typeof cpDev === 'function' && cpDev('plan', () => ({ msg: 'Start preview of the limit orders: ' + (L.orders.length ? 'you have ' + orDevList(L.orders) + '. ' : 'you have none resting. ') + (text || 'The mirror would send nothing now.'), orders: L.orders.length, rows: rows.length }));
+    return { rows, text };
 }
 
 function orPreviewText(rows, total) {
@@ -13882,6 +14798,7 @@ function orPreviewText(rows, total) {
     }
     return out.join(' ');
 }
+
 // ---- 16-accept.js ----
 // ---------- copy at Vest's acceptance of the leader's own order (round 2, D) ----------
 // Until now an open reached the followers when the leader's fill showed (about 1 to 1.6 s after the click). Vest's own mutation cache says
@@ -13909,6 +14826,7 @@ const CP_IDS_MAX = 200;         // leader positions remembered by id
 const CPA = {
     on: false, unsub: [], rejected: new Map(), recs: [], byCmd: new Map(), byOrd: new Map(), ofAct: new WeakMap(),
     ids: new Map(), // position id -> { symbol, side, qty }: every leader position this tab has seen (a read, or a position row of the leader's own socket frames)
+    early: new Map(), // mutation id -> rec of an open or add that was sent at 'pending' (c.sendAtPending): its success or error is still to come
     pred: null,   // { at, positions }: the leader's book after its last accepted order (chained: a REV is a close and then an open)
     click: null   // { symbol, kind, t }: the last click-time send (flat, 50%, REV) that is not ours at acceptance
 };
@@ -13923,13 +14841,17 @@ function cpAcceptWatch(on) {
     CPA.pred = null;
     CPA.click = null;
     CPA.rejected.clear();
+    CPA.early.clear();
     CPA.recs.length = 0;
     CPA.byCmd.clear();
     CPA.byOrd.clear();
     CPA.ids.clear();
-    if (!on) return;
+    if (!on) { typeof cpDev === 'function' && cpDev('state', () => ({ msg: 'Accept watcher off: the copier no longer listens to your own orders in Vest\'s mutation cache', on: false })); return; }
     const v = cpVx();
-    if (!v || typeof v.onOrders !== 'function') return;
+    if (!v || typeof v.onOrders !== 'function') {
+        typeof cpDev === 'function' && cpDev('state', () => ({ msg: 'Accept watcher could not start: ' + (v ? 'the Vest adapter has no order hook' : 'no Vest adapter') + '. Your orders reach the copier only through the reconciler', on: false }));
+        return;
+    }
     CPA.on = true;
     try { CPA.unsub.push(v.onOrders(cpAcceptEvent)); } catch (e) {}
     try {
@@ -13938,6 +14860,7 @@ function cpAcceptWatch(on) {
             CPA.unsub.push(v.onPrivate('account_state', cpAcceptState));
         }
     } catch (e) {}
+    typeof cpDev === 'function' && cpDev('state', () => ({ msg: 'Accept watcher on: the copier hears your own orders at Vest\'s OK (mutation cache), and the leader\'s command and account frames (' + CPA.unsub.length + ' listeners)', on: true, listeners: CPA.unsub.length }));
 }
 
 // ---------- helpers ----------
@@ -13948,6 +14871,7 @@ function cpAcceptShort(id) { return id == null ? '' : String(id).slice(-6); }
 function cpAcceptWake(symbol, now, atOnce) {
     if (!symbol || !CP.running) return;
     const t = CP.now();
+    typeof cpDev === 'function' && cpDev('plan', () => ({ msg: 'Woke ' + symbol + ' for the reconciler' + (atOnce ? ' to act at once (undoing a copy)' : ' (an open or a TP/SL change goes at once, a reduce or close waits out the frame gate)'), symbol, atOnce: !!atOnce, now: !!now }));
     // Like a leader frame (CP.wakeF), not like a click (CP.wake): an open or a TP/SL change is acted on at once, but a reduce or close first has
     // to survive CP_FRAME_GATE_MS. A REV is a close and then an open 50 to 100 ms later; woken at once on the close, the reconciler saw the
     // leader flat, closed the followers and could only open them again after the settle window (a second or more). atOnce: undoing a copy.
@@ -14014,11 +14938,19 @@ function cpAcceptOpposite(side) { return side === 'long' ? 'short' : 'long'; }
 // click is two adds), else the leader's live positions. null: nothing known, the fast path stands down.
 function cpAcceptBase() {
     const p = CPA.pred;
-    if (p && CP.now() - p.at < CP_PRED_MS) return p.positions;
-    return cpAcceptLeaderPositions(cpCfg());
+    if (p && CP.now() - p.at < CP_PRED_MS) {
+        typeof cpDev === 'function' && cpDev('plan', () => ({ msg: 'Base for the next copy: the book your previous accepted order left (' + cpaDevN(CP.now() - p.at) + ' ms ago): ' + cpaDevBook(p.positions), source: 'prediction', ageMs: CP.now() - p.at }));
+        return p.positions;
+    }
+    const base = cpAcceptLeaderPositions(cpCfg());
+    typeof cpDev === 'function' && cpDev('plan', () => ({ msg: 'Base for the next copy: ' + (base ? 'your live positions: ' + cpaDevBook(base) : 'nothing known about your positions, the fast path stands down'), source: base ? 'live' : 'none' }));
+    return base;
 }
 
-function cpAcceptPredicted(positions) { CPA.pred = { at: CP.now(), positions }; }
+function cpAcceptPredicted(positions) {
+    CPA.pred = { at: CP.now(), positions };
+    typeof cpDev === 'function' && cpDev('plan', () => ({ msg: 'Predicted your book after this order: ' + cpaDevBook(positions), predicted: cpaDevBook(positions) }));
+}
 
 // A follower's positions as they are now: its own tab's snapshot (Turbo), else Vest's store (it streams every account); null when neither can be trusted for it yet:
 // the fast path then uses the reconciler's last read, as it always did.
@@ -14026,19 +14958,29 @@ function cpAcceptRead(accountId) {
     // Turbo: the follower's own tab knows its account better than the leader tab's store does (which lagged by seconds in the owner's live
     // test). Its snapshot is pushed on every change and as a heartbeat, so one this young is as current as a store read.
     const ts = typeof cpTabRead === 'function' ? cpTabRead(accountId) : null;
-    if (ts && ts.ageMs <= 1500) return { ok: true, at: CP.now(), source: 'tab', positions: ts.positions };
+    if (ts && ts.ageMs <= 1500) {
+        typeof cpDevOn === 'function' && cpDevOn() && cpaDevOnce('read|' + accountId, 'tab', 'state', () => ({ msg: 'Fast-path read of ' + cpName(accountId) + ': its own tab\'s snapshot (' + cpaDevN(ts.ageMs) + ' ms old)', acc: accountId, source: 'tab', ageMs: ts.ageMs }));
+        return { ok: true, at: CP.now(), source: 'tab', positions: ts.positions };
+    }
     const v = cpVx();
     let list = null;
     try { list = v && typeof v.storePositions === 'function' ? v.storePositions(accountId) : null; } catch (e) {}
+    typeof cpDevOn === 'function' && cpDevOn() && cpaDevOnce('read|' + accountId, list ? 'store' : 'none', 'state', () => ({ msg: 'Fast-path read of ' + cpName(accountId) + ': ' + (list ? 'Vest\'s store' : 'nothing usable (not trusted yet), the last read is used or it is read once') , acc: accountId, source: list ? 'store' : 'none' }));
     return list ? { ok: true, at: CP.now(), source: 'store', positions: list.map(cpNormPos).filter((p) => Number(p.qty) > 0) } : null;
 }
 
 // The fast path sent `acts` for `it`: at acceptance, remember which leader order they belong to (for the timing log and for undoing them
 // if Vest refuses that order); otherwise it was a click-time send, which the leader's own accepted order must not repeat.
 function cpAcceptSent(acts, it) {
-    if (it.src !== 'accept') { CPA.click = { symbol: it.symbol, kind: it.kind, t: CP.now() }; return; }
+    if (it.src !== 'accept') {
+        CPA.click = { symbol: it.symbol, kind: it.kind, t: CP.now() };
+        typeof cpDev === 'function' && cpDev('send', () => ({ msg: 'Sent to the followers from your click (' + it.kind + ' on ' + it.symbol + '): ' + cpaDevActs(acts) + '. When Vest accepts that order it will not be sent again', symbol: it.symbol, kind: it.kind, src: it.src, n: acts.length, echoMs: CP_ACCEPT_ECHO_MS }));
+        return;
+    }
     const rec = it.rec;
     if (!rec) return;
+    typeof cpDev === 'function' && cpDev('send', () => ({ msg: 'Sent to the followers ' + (rec.early ? 'early, before Vest answered' : rec.sent ? '(a second batch, for followers that had to be read first)' : 'at Vest\'s OK of your ' + rec.kind) + ': ' + cpaDevActs(acts), symbol: it.symbol, kind: rec.kind, src: 'accept', n: acts.length, early: !!rec.early, order: cpAcceptShort(rec.orderId),
+        sinceOkMs: rec.tSuccess ? CP.now() - rec.tSuccess : null, sincePendingMs: rec.tPending ? CP.now() - rec.tPending : null }));
     if (!rec.sent) rec.tSend = CP.now();
     rec.sent = true;
     rec.n = (rec.n || 0) + acts.length; // a second batch for followers that had to be read first adds to it
@@ -14063,11 +15005,19 @@ function cpAcceptBatchDone(res, ackAt) {
         e.ms = Math.max(e.ms, Math.round(Number(r.ms) || 0));
         fo.set(id, e);
     }
-    const sendMs = rec.tSend - rec.tSuccess;
-    cpLog('timing', { stage: 'copied', kind: rec.kind, symbol: rec.symbol, ord: cpAcceptShort(rec.orderId), n: rec.n, okToSendMs: sendMs,
-        okToAckMs: ackAt - rec.tSuccess, clickToAckMs: rec.tPending ? ackAt - rec.tPending : null,
+    // sent at pending: Vest's OK of the leader's order may not be in yet (0), so the clock starts at the pending event (negative = before the OK)
+    const base = rec.tSuccess || rec.tPending;
+    const sendMs = rec.tSend - base;
+    typeof cpDev === 'function' && cpDev('vest', () => {
+        const bad = res.filter((r) => r && r.action && CPA.ofAct.get(r.action) === rec && !r.ok);
+        return { msg: 'Followers answered for your ' + rec.kind + ' on ' + rec.symbol + ': ' + (fo.size - new Set(bad.map((r) => String(r.action.accountId))).size) + ' of ' + fo.size + ' ok, ' + cpaDevN(ackAt - base) + ' ms after ' + (rec.tSuccess ? 'Vest\'s OK' : 'your order was sent') +
+            (rec.tClick ? ', ' + cpaDevN(ackAt - rec.tClick) + ' ms after your click' : '') + (bad.length ? '. Failed: ' + bad.map((r) => cpName(r.action.accountId) + ' (' + cpScrub(r.error) + ')').join(', ') : ''),
+            symbol: rec.symbol, kind: rec.kind, order: cpAcceptShort(rec.orderId), okToAckMs: ackAt - base, sendMs, followers: Array.from(fo.values(), (x) => ({ acc: x.acc, name: cpName(x.acc), ok: x.ok, ms: x.ms })) };
+    });
+    cpLog('timing', { stage: 'copied', kind: rec.kind, symbol: rec.symbol, ord: cpAcceptShort(rec.orderId), n: rec.n, okToSendMs: sendMs, early: rec.early ? true : undefined,
+        okToAckMs: ackAt - base, clickToAckMs: rec.tPending ? ackAt - rec.tPending : null,
         followers: Array.from(fo.values(), (e) => ({ acc: e.acc, ok: e.ok, sendMs, ackMs: sendMs + e.ms })) });
-    return rec.tSuccess;
+    return base;
 }
 
 // ---------- the leader's own orders (events of vx.onOrders) ----------
@@ -14078,6 +15028,8 @@ function cpAcceptEvent(e) {
     try {
         if (!e || !CPA.on) return;
         const c = cpCfg();
+        // one line for every order event of this tab, whatever is done with it (a pending order is what the owner did, the rest is Vest's answer)
+        typeof cpDev === 'function' && cpDev(e.phase === 'pending' ? 'you' : 'vest', () => (e.phase === 'pending' ? cpaDevOrder(e) : cpaDevAnswer(e)));
         if (!CP.running || CP.killed || !c.on || CP.flattening || !CP.engineUp || !c.leaderId) return;
         // the leader's own order only: open names its account; the others carry the account that was active when they started. One that
         // started inside vx.withAccount is not the person's (we never use mutate, so this cannot happen from our own writes: belt and braces)
@@ -14091,30 +15043,140 @@ function cpAcceptEvent(e) {
     }
 }
 
-// Nothing is sent at pending: the market is only woken (the reconciler polls it every 250 ms), as the click path does. This also covers the
+// By default nothing is sent at pending: the market is only woken (the reconciler polls it every 250 ms), as the click path does. This also covers the
 // leader's orders no click listener sees (Vest's own close buttons, hotkeys inside the chart iframe).
+// c.sendAtPending === true (opt-in, 8.1): an open or an add of the leader goes to the followers now, while the leader's own request is on its
+// way, instead of at Vest's OK about one round trip later. If Vest then refuses that order the followers are moved back (cpAcceptError, and the
+// REJECTED command / order frames, as for an order that was refused after its 2xx). Market orders only: a refused reduce or close costs nothing.
 function cpAcceptPending(e, c) {
     const symbol = cpAcceptSymbolOf(e, c);
     if (symbol && c.markets.includes(symbol)) cpAcceptWake(symbol, false);
+    else typeof cpDev === 'function' && cpDev('plan', () => ({ msg: 'Your ' + e.kind + (symbol ? ' on ' + symbol + ' is not on a market the copier manages (' + (c.markets.join(', ') || 'none') + ')' : ' has no known market yet') + ': nothing is woken now, the reconciler or the intent decides later', symbol: symbol || undefined, kind: e.kind, markets: c.markets }));
+    if (c.sendAtPending === true && symbol && (e.kind === 'open' || e.kind === 'append')) cpAcceptEarly(e, c, symbol);
+    else if (c.sendAtPending === true) typeof cpDev === 'function' && cpDev('plan', () => ({ msg: 'Early send is on, but ' + (e.kind === 'open' || e.kind === 'append' ? 'the market of your ' + e.kind + ' is not known' : 'a ' + e.kind + ' never goes early (only an open or an add)') + ': it waits for Vest\'s OK', symbol: symbol || undefined, kind: e.kind }));
+}
+
+// the follower intent of a leader open or add at pending (cpAcceptSuccess builds the same one inline at Vest's OK): null when the order has no usable side or size
+function cpAcceptOrderIntent(e) {
+    const v = e.vars || {};
+    const qty = Number(v.quantity);
+    const side = e.kind === 'open' ? cpSide(v.side) : v.isBuy === false ? 'short' : 'long';
+    if (!side || !(qty > 0)) return null;
+    // the leader's own leverage, from the order's own variables: a fast open from flat has no position to read it from
+    const lev = Number(v.leverage) > 0 ? Number(v.leverage) : 0;
+    const it = { kind: 'order', side, qty };
+    if (lev > 0) it.leverage = lev;
+    return it;
+}
+
+function cpAcceptEarly(e, c, symbol) {
+    const v = e.vars || {};
+    if (String(v.orderType || '').toLowerCase() === 'limit' || e.id == null) {
+        typeof cpDev === 'function' && cpDev('plan', () => ({ msg: 'Early send skipped for your ' + e.kind + ' on ' + symbol + ': ' + (e.id == null ? 'the order has no id' : 'it is a limit order (the order mirror handles resting orders)'), symbol, kind: e.kind }));
+        return;
+    }
+    const it = cpAcceptOrderIntent(e);
+    if (!it) {
+        typeof cpDev === 'function' && cpDev('plan', () => ({ msg: 'Early send skipped for your ' + e.kind + ' on ' + symbol + ': no usable side or size in the order', symbol, kind: e.kind, side: v.side, isBuy: v.isBuy, qty: v.quantity }));
+        return;
+    }
+    if (it.leverage > 0) CP.lev[symbol] = it.leverage;
+    const rec = { kind: e.kind, symbol, tClick: 0, tPending: e.at, tSuccess: 0, early: true, orderId: undefined, commandId: undefined, positionId: v.positionId, tif: v.timeInForce,
+        sent: false, undone: false, tSend: 0, tAck: 0, tCmd: 0, tFill: 0, tPos: 0, n: 0, confirmed: false };
+    rec.prevPred = CPA.pred;
+    CPA.early.set(e.id, rec);
+    while (CPA.early.size > CP_RECS_MAX) CPA.early.delete(CPA.early.keys().next().value);
+    cpLog('timing', { stage: 'early', kind: e.kind, symbol, otype: v.orderType, tif: v.timeInForce });
+    typeof cpDev === 'function' && cpDev('plan', () => ({ msg: 'Early send: your ' + e.kind + ' (' + it.side + ' ' + cpaDevN(it.qty) + ' ' + symbol + ') goes to the followers now, before Vest answers. If Vest refuses it, the followers are moved back', symbol, kind: e.kind, side: it.side, qty: it.qty, leverage: it.leverage }));
+    cpIntent(Object.assign(it, { symbol, src: 'accept', acceptAt: e.at, rec }));
+    rec.myPred = CPA.pred !== rec.prevPred ? CPA.pred : null; // the book this order predicted (null: it predicted none)
+    typeof cpDev === 'function' && cpDev('plan', () => ({ msg: rec.myPred ? 'Early send: the book this order predicted is kept until Vest answers' : 'Early send: this order predicted no book (nothing was sent, or the book was not known)', symbol, predicted: !!rec.myPred }));
+}
+
+// Vest refused an early order and nothing went out for it: its prediction is taken back. A newer order predicted on top of it counts it too,
+// so that one is dropped as well and the next order is predicted from the leader's own book (a count too low is fixed by the reconciler; one too high is not safe).
+function cpAcceptUnpredict(rec) {
+    if (!rec || !rec.myPred) return;
+    typeof cpDev === 'function' && cpDev('plan', () => ({ msg: 'Took back the predicted book of the refused ' + rec.kind + ' on ' + rec.symbol + (CPA.pred === rec.myPred ? ' (the next order is predicted from the book before it)' : ' and the newer prediction built on it (the next order is predicted from your own book)'), symbol: rec.symbol, kind: rec.kind }));
+    CPA.pred = CPA.pred === rec.myPred ? rec.prevPred || null : null;
+}
+
+// the leader's order that went to the followers at pending has been answered 2xx: complete its record. Vest may have refused it before it answered.
+function cpAcceptEarlyOk(rec, e) {
+    const d = e.data || {};
+    rec.tSuccess = e.at;
+    rec.orderId = d.orderId;
+    rec.commandId = d.commandId;
+    if (d.positionId != null) rec.positionId = d.positionId;
+    cpAcceptRemember(rec);
+    cpLog('timing', { stage: 'ok', kind: rec.kind, symbol: rec.symbol, ord: cpAcceptShort(rec.orderId), tif: rec.tif, early: true, pendingToOkMs: rec.tPending ? rec.tSuccess - rec.tPending : null,
+        sentToOkMs: rec.tSend ? rec.tSuccess - rec.tSend : null });
+    typeof cpDev === 'function' && cpDev('vest', () => ({ msg: 'Vest\'s OK of your early ' + rec.kind + ' on ' + rec.symbol + ' came ' + (rec.tSend ? cpaDevN(rec.tSuccess - rec.tSend) + ' ms after the followers were sent' : 'with nothing sent yet') + ' (' + cpaDevMs(rec.tPending, rec.tSuccess) + ' after you sent it)', symbol: rec.symbol, kind: rec.kind, order: cpAcceptShort(rec.orderId), sent: !!rec.sent }));
+    if (cpAcceptRefused(rec.commandId) || cpAcceptRefused(rec.orderId)) cpAcceptRejected([rec.commandId, rec.orderId], rec, 'refused before its answer');
 }
 
 function cpAcceptError(e, c) {
     const symbol = cpAcceptSymbolOf(e, c);
     const er = e.error || {};
     cpLog('info', { note: 'the leader\'s ' + e.kind + ' was refused by Vest' + (symbol ? ' (' + symbol + ')' : ''), why: cpScrub(er.message), status: er.status, code: er.code });
+    const early = e.id != null ? CPA.early.get(e.id) : null;
+    if (early) {
+        CPA.early.delete(e.id);
+        // a no stops a send that is still waiting for its follower reads (cpFastSend, again) and takes the order's prediction back.
+        // A timeout or a 5xx keeps both: the order may exist.
+        if (!early.sent && !er.uncertain) {
+            typeof cpDev === 'function' && cpDev('plan', () => ({ msg: 'Vest refused your early ' + e.kind + ' before anything was sent to the followers: nothing to undo', symbol, kind: e.kind }));
+            early.undone = true;
+            cpAcceptUnpredict(early);
+        }
+        // sent at pending, and Vest said no: the followers hold a position the leader never got, so the market stays awake and they are moved back.
+        // A timeout or a 5xx is not a no (Vest retries those and the order may exist): the fill frame or the reconciler decides, as for any order.
+        if (early.sent && !er.uncertain) { cpAcceptRejected([], early, 'Vest answered ' + (er.status != null ? 'HTTP ' + er.status : 'with an error') + (er.code != null ? ' ' + er.code : '')); return; }
+        if (er.uncertain) typeof cpDev === 'function' && cpDev('plan', () => ({ msg: 'Vest\'s answer to your early ' + e.kind + ' was a timeout or server error: the order may exist, so nothing is undone; the fill frame or the reconciler decides', symbol, kind: e.kind, sent: early.sent }));
+    }
     // nothing was sent for it, so nothing is undone; the wake is dropped, unless the answer was a timeout or a 5xx: Vest retries those and the
     // order may exist, so the fill frame or the reconciler decides
     if (symbol && !er.uncertain) CP.wake.delete(symbol);
+    typeof cpDev === 'function' && cpDev('plan', () => ({ msg: 'Your ' + e.kind + (symbol ? ' on ' + symbol : '') + ' was refused: nothing was sent for it, so nothing is undone' + (er.uncertain ? ' (the answer was a timeout or server error: the market stays awake, the order may exist)' : (symbol ? ' (the wake on ' + symbol + ' is dropped)' : '')), symbol: symbol || undefined, kind: e.kind, uncertain: !!er.uncertain }));
 }
 
 function cpAcceptSuccess(e, c) {
     const v = e.vars || {};
     const d = e.data || {};
     const kind = e.kind;
-    if (kind === 'tpAdd' || kind === 'tpUpdate' || kind === 'tpDelete') { cpWakeAll(c); return; } // the reconciler copies the legs
-    if (kind === 'cancel') { cpAcceptMirror({ kind: 'cancel', orderId: v.orderId, at: e.at }); return; }
+    if (kind === 'tpAdd' || kind === 'tpUpdate' || kind === 'tpDelete') {
+        typeof cpDev === 'function' && cpDev('plan', () => ({ msg: 'Your TP/SL change is accepted: every market is woken and the reconciler copies the legs to the followers (nothing is sent from here)', symbol: cpAcceptSymbolOf(e, c) || undefined, kind }));
+        cpWakeAll(c);
+        return; // the reconciler copies the legs
+    }
+    if (kind === 'cancel') {
+        typeof cpDev === 'function' && cpDev('plan', () => ({ msg: 'Your cancel of a resting order is accepted: handed to the order mirror' + (typeof coOnLeaderOrder === 'function' ? '' : ' (there is no order mirror in this build)'), orderId: v.orderId, kind }));
+        cpAcceptMirror({ kind: 'cancel', orderId: v.orderId, at: e.at });
+        return;
+    }
     if (kind !== 'open' && kind !== 'append' && kind !== 'reduce' && kind !== 'close') return;
     const symbol = cpAcceptSymbolOf(e, c);
+    const early = e.id != null ? CPA.early.get(e.id) : null;
+    if (early) CPA.early.delete(e.id);
+    if (early && early.sent) {
+        typeof cpDev === 'function' && cpDev('plan', () => ({ msg: 'Your ' + kind + ' on ' + symbol + ' was already sent to the followers at pending: only its record is completed now', symbol, kind }));
+        cpAcceptEarlyOk(early, e);
+        return; // already sent at pending: only the record is completed
+    }
+    // nothing went out at pending: the order is predicted again below, from the book before it. When a newer order was predicted on top of
+    // this one, that prediction (and its send) already holds this order: predicting it again would count it twice, so the reconciler checks it.
+    if (early && early.myPred) {
+        if (CPA.pred !== early.myPred) {
+            cpLog('info', { note: 'accept: a newer order of the leader was predicted on top of this ' + kind + ', the reconciler checks it' });
+            typeof cpDev === 'function' && cpDev('plan', () => ({ msg: 'A newer order of yours was already predicted on top of this ' + kind + ' on ' + symbol + ': its send holds this one too, so it is not predicted again (a refusal would still move the followers back)', symbol, kind }));
+            // the newer order's send holds this one: it counts as sent, so a REJECTED frame for it moves the followers back (cpAcceptRejected)
+            early.sent = true;
+            cpAcceptEarlyOk(early, e);
+            if (symbol) cpAcceptWake(symbol, false); else cpWakeAll(c);
+            return;
+        }
+        CPA.pred = early.prevPred || null;
+    }
     const pos = kind === 'reduce' || kind === 'close' ? cpAcceptFindPos(v.positionId, c) : null;
     const limit = String(v.orderType || '').toLowerCase() === 'limit';
     const qty = Number(v.quantity);
@@ -14129,13 +15191,20 @@ function cpAcceptSuccess(e, c) {
     // Told even when the market is not known: what kind of order it is (a reduce is never an opening order) is what the mirror needs from here.
     if (limit && !symbol) {
         cpLog('info', { note: 'accept: the market of the leader\'s ' + kind + ' is not known, the order mirror will find it' });
+        typeof cpDev === 'function' && cpDev('plan', () => ({ msg: 'Your resting limit ' + kind + ' is accepted but its market is not known: handed to the order mirror, which finds it from Vest\'s order list', kind, price: Number(kind === 'close' ? v.limitPrice : v.price) || undefined, qty: qty > 0 ? qty : undefined, order: cpAcceptShort(rec.orderId) }));
         cpAcceptMirror({ kind, symbol: '', side: '', qty: qty > 0 ? qty : null, price: Number(kind === 'close' ? v.limitPrice : v.price) || null, tif: v.timeInForce, reduceOnly: kind === 'reduce' || kind === 'close',
             positionId: rec.positionId, orderId: rec.orderId, commandId: rec.commandId, leverage: Number(v.leverage) > 0 ? Number(v.leverage) : null, at: e.at });
         return;
     }
-    if (!symbol) { cpLog('info', { note: 'accept: the market of the leader\'s ' + kind + ' is not known, the reconciler will copy it' }); cpWakeAll(c); return; }
+    if (!symbol) {
+        cpLog('info', { note: 'accept: the market of the leader\'s ' + kind + ' is not known, the reconciler will copy it' });
+        typeof cpDev === 'function' && cpDev('plan', () => ({ msg: 'Your ' + kind + ' is accepted but its market is not known: every market is woken and the reconciler copies it from the books', kind, order: cpAcceptShort(rec.orderId) }));
+        cpWakeAll(c);
+        return;
+    }
     if (limit) {
         const side = kind === 'open' ? cpSide(v.side) : kind === 'append' ? (v.isBuy === false ? 'short' : 'long') : pos ? cpAcceptOpposite(cpSide(pos.side)) : '';
+        typeof cpDev === 'function' && cpDev('plan', () => ({ msg: 'Your resting limit ' + kind + ' on ' + symbol + ' (' + (side || '?') + ' ' + cpaDevN(qty) + ' @ ' + cpaDevN(kind === 'close' ? v.limitPrice : v.price) + (kind === 'reduce' || kind === 'close' ? ', reduce-only' : '') + ') is accepted: handed to the order mirror, not copied as a position until it fills', symbol, kind, side, qty: qty > 0 ? qty : undefined, price: Number(kind === 'close' ? v.limitPrice : v.price) || undefined, order: cpAcceptShort(rec.orderId), mirror: typeof coOnLeaderOrder === 'function' }));
         cpAcceptMirror({ kind, symbol, side, qty: qty > 0 ? qty : null, price: Number(kind === 'close' ? v.limitPrice : v.price) || null, tif: v.timeInForce, reduceOnly: kind === 'reduce' || kind === 'close',
             positionId: rec.positionId, orderId: rec.orderId, commandId: rec.commandId, leverage: Number(v.leverage) > 0 ? Number(v.leverage) : null, at: e.at });
         return;
@@ -14143,18 +15212,25 @@ function cpAcceptSuccess(e, c) {
     // Vest says no after saying yes (a REJECTED frame can come before the answer): do not copy it
     if (cpAcceptRefused(rec.commandId) || cpAcceptRefused(rec.orderId)) {
         cpLog('info', { note: 'accept: not copied, Vest refused the leader\'s ' + kind + ' on ' + symbol });
+        typeof cpDev === 'function' && cpDev('plan', () => ({ msg: 'Not copied: Vest answered OK to your ' + kind + ' on ' + symbol + ' but had already REJECTED it on its private socket', symbol, kind, order: cpAcceptShort(rec.orderId) }));
         return;
     }
     // the click path already sent this one (FLAT, 50% or REV press): sending it again would act on the followers twice
     const ck = CPA.click;
     if (ck && ck.symbol === symbol && CP.now() - ck.t < CP_ACCEPT_ECHO_MS && (ck.kind === 'flat' || ck.kind === 'half' || ck.kind === 'rev')) {
         cpLog('info', { note: 'accept: not copied again, the click already sent it (' + ck.kind + ' on ' + symbol + ')' });
+        typeof cpDev === 'function' && cpDev('plan', () => ({ msg: 'Not sent again: your ' + ck.kind + ' click on ' + symbol + ' already moved the followers ' + cpaDevN(CP.now() - ck.t) + ' ms ago; this is Vest\'s OK of the same order', symbol, kind, clickKind: ck.kind, sinceClickMs: CP.now() - ck.t }));
         return;
     }
     let it = null;
     if (kind === 'open' || kind === 'append') {
         const side = kind === 'open' ? cpSide(v.side) : v.isBuy === false ? 'short' : 'long';
-        if (!side || !(qty > 0)) { cpLog('info', { note: 'accept: the leader\'s ' + kind + ' has no usable side or size, the reconciler will copy it' }); cpAcceptWake(symbol, false); return; }
+        if (!side || !(qty > 0)) {
+            cpLog('info', { note: 'accept: the leader\'s ' + kind + ' has no usable side or size, the reconciler will copy it' });
+            typeof cpDev === 'function' && cpDev('plan', () => ({ msg: 'Your ' + kind + ' on ' + symbol + ' has no usable side or size (side ' + (v.side || v.isBuy) + ', size ' + v.quantity + '): the reconciler copies it from the books', symbol, kind }));
+            cpAcceptWake(symbol, false);
+            return;
+        }
         // the leader's own leverage, from the order's own variables: a fast open from flat has no position to read it from
         const lev = Number(v.leverage) > 0 ? Number(v.leverage) : 0;
         if (lev > 0) CP.lev[symbol] = lev;
@@ -14169,7 +15245,13 @@ function cpAcceptSuccess(e, c) {
         const over = kind === 'reduce' ? qty : Math.min(qty, Number(pos.qty));
         it = { kind: 'order', side: cpAcceptOpposite(cpSide(pos.side)), qty: over, reduceOnly: true };
         if (Number(v.leverage) > 0) it.leverage = Number(v.leverage);
-    } else { cpLog('info', { note: 'accept: the leader position of the ' + kind + ' is not known, the reconciler will copy it' }); cpAcceptWake(symbol, false); return; }
+    } else {
+        cpLog('info', { note: 'accept: the leader position of the ' + kind + ' is not known, the reconciler will copy it' });
+        typeof cpDev === 'function' && cpDev('plan', () => ({ msg: 'Your ' + kind + ' on ' + symbol + ' names a position the copier does not know (id ' + cpAcceptShort(v.positionId) + '): the reconciler copies it from the books', symbol, kind }));
+        cpAcceptWake(symbol, false);
+        return;
+    }
+    typeof cpDev === 'function' && cpDev('plan', () => ({ msg: 'At Vest\'s OK of your ' + kind + ' on ' + symbol + ' the copier asks the fast path to copy it: ' + (it.kind === 'flat' ? 'flatten the followers' : it.side + ' ' + cpaDevN(it.qty) + (it.reduceOnly ? ' (reduce-only)' : '') + (it.leverage ? ' at ' + it.leverage + 'x' : '')), symbol, kind, intent: it.kind, side: it.side, qty: it.qty, reduceOnly: it.reduceOnly, leverage: it.leverage, order: cpAcceptShort(rec.orderId) }));
     cpIntent(Object.assign(it, { symbol, src: 'accept', acceptAt: e.at, rec }));
 }
 
@@ -14203,6 +15285,8 @@ function cpAcceptRefused(id) { return id != null && CPA.rejected.has(String(id))
 function cpAcceptRejected(ids, rec, why) {
     for (const id of ids) if (id != null && id !== '') CPA.rejected.set(String(id), CP.now());
     while (CPA.rejected.size > CP_RING_MAX) CPA.rejected.delete(CPA.rejected.keys().next().value);
+    typeof cpDev === 'function' && cpDev('vest', () => ({ msg: 'Vest REJECTED your ' + (rec ? rec.kind + ' on ' + rec.symbol : 'order') + ' (' + why + ')' + (!rec ? ': it is not one the copier copied, so it is only remembered' : !rec.sent ? ': nothing was sent for it, so nothing is undone' : rec.undone ? ': the followers were already moved back' : ''),
+        symbol: rec ? rec.symbol : undefined, kind: rec ? rec.kind : undefined, order: rec ? cpAcceptShort(rec.orderId) : undefined, ids: ids.filter((x) => x != null && x !== '').map(cpAcceptShort), copied: rec ? !!rec.sent : false }));
     if (!rec || !rec.sent || rec.undone || !CP.running || CP.killed) return;
     rec.undone = true;
     CPA.pred = null;
@@ -14210,6 +15294,7 @@ function cpAcceptRejected(ids, rec, why) {
     for (const f of c.followers || []) if (f) CP.floor.delete(f.accountId + '|' + rec.symbol);
     cpLog('info', { note: 'Vest refused the leader\'s ' + rec.kind + ' on ' + rec.symbol + ' after accepting it (' + why + '): correcting the followers', ord: cpAcceptShort(rec.orderId) });
     cpToast('Copy: Vest refused the leader\'s ' + rec.symbol + ' order after accepting it. Correcting the followers.', 'warn');
+    typeof cpDev === 'function' && cpDev('plan', () => ({ msg: 'Moving the followers back on ' + rec.symbol + ': their copy floors are dropped, the prediction is cleared and the market is woken so the reconciler closes what the refused ' + rec.kind + ' opened', symbol: rec.symbol, kind: rec.kind, followers: (c.followers || []).filter(Boolean).map((f) => cpName(f.accountId)) }));
     cpAcceptWake(rec.symbol, true, true);
 }
 
@@ -14218,11 +15303,37 @@ function cpAcceptCommand(e) {
     try {
         const d = e && e.data;
         const c = cpCfg();
-        if (!d || typeof d !== 'object' || !c.leaderId || String(e.accountId) !== String(c.leaderId)) return;
+        if (!d || typeof d !== 'object' || !c.leaderId) return;
+        if (String(e.accountId) !== String(c.leaderId)) { cpAcceptFollowerCommand(e, d); return; }
         const rec = cpAcceptFind(d.command_id, d.order_id);
         if (rec && !rec.tCmd) rec.tCmd = e.at || CP.now();
+        typeof cpDev === 'function' && cpDev('vest', () => ({ msg: 'Vest\'s command frame for your ' + (rec ? rec.kind + ' on ' + rec.symbol : 'order (not one the copier tracks)') + ': ' + String(d.status == null ? '?' : d.status) + (d.error_code != null ? ' (error code ' + d.error_code + (CP_VEST_CODES[d.error_code] ? ', ' + CP_VEST_CODES[d.error_code] : '') + ')' : '') + (rec && rec.tSuccess ? ', ' + cpaDevN((e.at || CP.now()) - rec.tSuccess) + ' ms after Vest\'s OK' : ''),
+            symbol: rec ? rec.symbol : undefined, kind: rec ? rec.kind : undefined, status: d.status, errorCode: d.error_code, command: cpAcceptShort(d.command_id), order: cpAcceptShort(d.order_id), seq: e.seq }));
         if (/reject/i.test(String(d.status == null ? '' : d.status))) cpAcceptRejected([d.command_id, d.order_id], rec, 'error code ' + (d.error_code == null ? '?' : d.error_code));
     } catch (x) {}
+}
+
+// A follower's order that Vest answered 200 and then rejected in its order system: a command_events REJECTED frame, and no account_state row
+// comes for it. Its fate goes where cpFateOf looks (CP.tfate), so the reconciler sends it again at once instead of waiting about 5 s to
+// believe it missing, and the pair's last error names Vest's reason, so a pause says it (the owner's DEV test, 2026-10-06: every follower
+// add was rejected with 10004 invalid leverage and sat out 5.5 s). The market is woken for the next pass.
+function cpAcceptFollowerCommand(e, d) {
+    if (!/reject/i.test(String(d.status == null ? '' : d.status))) return;
+    const at = e.at || CP.now();
+    const ids = [d.order_id, d.command_id].filter((x) => x != null && x !== '').map(String);
+    if (!ids.length) return;
+    for (const id of ids) CP.tfate.set(id, { type: 'REJECTED', at });
+    while (CP.tfate.size > 600) CP.tfate.delete(CP.tfate.keys().next().value);
+    const text = cpWords('Vest rejected the order' + (d.error_code != null ? ': ' + d.error_code : '')).slice(0, 120);
+    const pairs = Object.keys(CP.acks).filter((p) => { const a = CP.acks[p]; return a && Array.isArray(a.ids) && a.ids.some((x) => ids.indexOf(String(x)) >= 0); });
+    for (const p of pairs) {
+        CP.lastErr[p] = { at, text };
+        const sym = p.slice(p.indexOf('|') + 1);
+        if (sym && CP.running) CP.wake.set(sym, CP.now() + CP_INTENT_MS);
+    }
+    typeof cpDev === 'function' && cpDev('vest', () => ({ msg: cpName(e.accountId) + ': ' + text + (pairs.length ? ' (' + pairs.map((p) => p.slice(p.indexOf('|') + 1)).join(', ') + ': sent again on the next pass, no wait)' : ' (not an order the copier is waiting on)'),
+        acc: e.accountId, errorCode: d.error_code, order: cpAcceptShort(d.order_id), command: cpAcceptShort(d.command_id), pairs }));
+    if (pairs.length && CP.running && !CP.killed) { if (CP.looping) CP.again = true; else cpSchedule(0); }
 }
 
 // account_state frames of the leader: an order row that is REJECTED, or CANCELLED with nothing executed, is a refusal (an IOC that did not
@@ -14237,7 +15348,10 @@ function cpAcceptState(e) {
             for (const p of d.positions) {
                 if (p && p.position_id != null && p.symbol) cpRememberId(p.position_id, p.symbol, p.side, p.quantity);
                 const rec = p && p.position_id != null ? CPA.recs.find((r) => r.positionId != null && String(r.positionId) === String(p.position_id) && !r.tPos) : null;
-                if (rec) rec.tPos = at;
+                if (rec) {
+                    rec.tPos = at;
+                    typeof cpDev === 'function' && cpDev('leader', () => ({ msg: 'Vest\'s position frame for your ' + rec.kind + ' on ' + rec.symbol + ': ' + cpaDevN((at - rec.tSuccess)) + ' ms after Vest\'s OK (size now ' + cpaDevN(p.quantity) + ')', symbol: rec.symbol, kind: rec.kind, qty: Number(p.quantity), order: cpAcceptShort(rec.orderId), okToPositionMs: at - rec.tSuccess }));
+                }
             }
         }
         for (const o of Array.isArray(d.orders) ? d.orders : []) {
@@ -14245,7 +15359,12 @@ function cpAcceptState(e) {
             const ev = String(o.event_type || '');
             const rec = cpAcceptFind(o.command_id, o.order_id);
             if (/REJECTED/.test(ev) || (/CANCELLED/.test(ev) && !(Number(o.executed_quantity) > 0) && rec)) cpAcceptRejected([o.order_id, o.command_id], rec, /REJECTED/.test(ev) ? 'order rejected' : 'order cancelled unfilled');
-            else if (rec && /FILLED/.test(ev) && !rec.tFill) { rec.tFill = at; cpAcceptConfirmed(rec); }
+            else if (rec && /FILLED/.test(ev) && !rec.tFill) {
+                rec.tFill = at;
+                typeof cpDev === 'function' && cpDev('vest', () => ({ msg: 'Your ' + rec.kind + ' on ' + rec.symbol + ' FILLED, ' + cpaDevN(at - rec.tSuccess) + ' ms after Vest\'s OK' + (rec.tClick ? ' (' + cpaDevN(at - rec.tClick) + ' ms after your click)' : '') + (Number(o.executed_quantity) > 0 ? ': ' + cpaDevN(o.executed_quantity) + ' filled' : '') + (o.avg_price != null || o.price != null ? ' @ ' + cpaDevN(o.avg_price != null ? o.avg_price : o.price) : ''),
+                    symbol: rec.symbol, kind: rec.kind, order: cpAcceptShort(rec.orderId), okToFillMs: at - rec.tSuccess, executed: Number(o.executed_quantity) || undefined }));
+                cpAcceptConfirmed(rec);
+            }
         }
     } catch (x) {}
 }
@@ -14255,9 +15374,13 @@ function cpAcceptConfirmed(rec) {
     if (rec.confirmed) return;
     rec.confirmed = true;
     const from = (t) => (t ? t - rec.tSuccess : null);
+    typeof cpDev === 'function' && cpDev('vest', () => ({ msg: 'Your ' + rec.kind + ' on ' + rec.symbol + ' is confirmed by Vest: command ' + (rec.tCmd ? cpaDevN(from(rec.tCmd)) + ' ms' : '-') + ', fill ' + (rec.tFill ? cpaDevN(from(rec.tFill)) + ' ms' : '-') + ', position ' + (rec.tPos ? cpaDevN(from(rec.tPos)) + ' ms' : '-') + ' after Vest\'s OK; ' +
+        (rec.sent ? 'the followers were copied at Vest\'s OK' + (rec.tAck ? ' and answered ' + cpaDevN(rec.tAck - rec.tSuccess) + ' ms after it' : '') : 'the copier did not send for it from here (the reconciler or the click path did)'),
+        symbol: rec.symbol, kind: rec.kind, order: cpAcceptShort(rec.orderId), copied: !!rec.sent, okToCommandMs: from(rec.tCmd), okToFillMs: from(rec.tFill), okToPositionMs: from(rec.tPos) }));
     cpLog('timing', { stage: 'confirmed', kind: rec.kind, symbol: rec.symbol, ord: cpAcceptShort(rec.orderId), okToCommandMs: from(rec.tCmd), okToFillMs: from(rec.tFill), okToPositionMs: from(rec.tPos), clickToFillMs: rec.tClick && rec.tFill ? rec.tFill - rec.tClick : null,
         copied: rec.sent, okToAckMs: rec.tAck ? rec.tAck - rec.tSuccess : null });
 }
+
 // ---- 17-account.js ----
 // ---------- live P&L and account details (round 2, A data side) ----------
 // What the widget and the sub dock show per account: its positions with their unrealized P&L, its account value and its balance. All of it
@@ -14277,12 +15400,22 @@ function cpAccountInfo(accountId) {
     // the copier's own last read, for an account whose position store holds nothing
     const snap = id === String(c.leaderId) ? CP.snap.leader : CP.snap.followers[id];
     let view = null;
-    try { view = v.accountView(id, snap && Array.isArray(snap.positions) ? snap.positions : null); } catch (e) { return null; }
-    if (!view || !Array.isArray(view.positions)) return null;
+    try { view = v.accountView(id, snap && Array.isArray(snap.positions) ? snap.positions : null); } catch (e) {
+        typeof cpDvOnce === 'function' && cpDvOnce('pnl|' + id, 'throw:' + cpScrub(e && e.message || e)) && cpDev('error', () => ({ msg: 'reading the P&L of ' + cpName(id) + ' failed: ' + cpScrub(e && e.message || e), acc: id }));
+        return null;
+    }
+    if (!view || !Array.isArray(view.positions)) {
+        typeof cpDvOnce === 'function' && cpDvOnce('pnl|' + id, 'none') && cpDev('state', () => ({ msg: 'P&L of ' + cpName(id) + ': its positions cannot be read from Vest\'s stores right now, the widget shows "-"', acc: id }));
+        return null;
+    }
     const positions = view.positions.map((p) => ({ symbol: cpCanonSym(p.symbol), side: cpSide(p.side), qty: Number(p.qty), entry: Number(p.entry),
         mark: p.mark == null ? null : Number(p.mark), upnl: p.upnl == null ? null : Number(p.upnl) }));
     const srcs = new Set(view.positions.map((p) => p.src).filter(Boolean));
     const source = srcs.size > 1 ? 'mixed' : srcs.size === 1 ? Array.from(srcs)[0] : view.upnl != null ? 'vest' : '';
+    // the widget asks every 450 ms: one line when what the numbers come from changes
+    typeof cpDvOnce === 'function' && cpDvOnce('pnl|' + id, 'ok:' + source + ':' + !!view.live + ':' + (view.equity != null) + ':' + (view.balance != null), 300000) && cpDev('state', () => ({
+        msg: 'P&L of ' + cpName(id) + ' is read from ' + (source === 'vest' ? 'Vest\'s own numbers' : source === 'computed' ? 'the market price (Vest gave none)' : source === 'mixed' ? 'Vest\'s numbers and the market price' : 'nothing readable') + ', ' + (view.live ? 'live' : 'not live (at most Vest\'s own 60 s refetch old)')
+            + ', ' + positions.length + ' position' + (positions.length === 1 ? '' : 's') + (view.equity != null ? '' : ', no account value') + (view.balance != null ? '' : ', no balance'), acc: id, source, live: !!view.live, positions: positions.length }));
     return { positions, upnl: view.upnl == null ? null : cpCents(view.upnl), equity: view.equity == null ? null : cpCents(view.equity),
         balance: view.balance == null ? null : cpCents(view.balance), source, live: !!view.live };
 }
@@ -14340,12 +15473,21 @@ function cpTodayPnl(accountId, now) {
     if (!id || !v || typeof v.dayFigures !== 'function') return null;
     let f = null;
     try { f = v.dayFigures(id); } catch (e) { return null; }
-    if (!f) return null;
+    if (!f) {
+        typeof cpDvOnce === 'function' && cpDvOnce('day|' + id, 'none') && cpDev('state', () => ({ msg: 'today\'s P&L of ' + cpName(id) + ': Vest\'s day figures cannot be read right now, the widget shows "-"', acc: id }));
+        return null;
+    }
     const t = typeof now === 'number' ? now : Date.now();
     const eq = typeof f.equity === 'number' && Number.isFinite(f.equity) && f.equity > 0 ? f.equity : null; // 0 is Vest's page still loading
     if (eq != null && typeof f.resetEquity === 'number' && Number.isFinite(f.resetEquity) && f.resetEquity > 0 && typeof f.resetAt === 'number'
-        && f.resetAt <= t + 60000 && t - f.resetAt < CP_DAY_VEST_MAX_MS) return cpCents(eq - f.resetEquity);
-    if (eq == null) return null;
+        && f.resetAt <= t + 60000 && t - f.resetAt < CP_DAY_VEST_MAX_MS) {
+        typeof cpDvOnce === 'function' && cpDvOnce('day|' + id, 'vest', 600000) && cpDev('state', () => ({ msg: 'today\'s P&L of ' + cpName(id) + ' is Vest\'s own day (the account value now minus the value at its last daily reset, ' + Math.round((t - f.resetAt) / 3600000 * 10) / 10 + ' h ago)', acc: id, source: 'vest' }));
+        return cpCents(eq - f.resetEquity);
+    }
+    if (eq == null) {
+        typeof cpDvOnce === 'function' && cpDvOnce('day|' + id, 'noequity') && cpDev('state', () => ({ msg: 'today\'s P&L of ' + cpName(id) + ': no account value yet (Vest\'s page is still loading), the widget shows "-"', acc: id }));
+        return null;
+    }
     const key = cpDayKey(t);
     if (!key) return null;
     const rec = cpDayLoad();
@@ -14353,6 +15495,7 @@ function cpTodayPnl(accountId, now) {
     if (!r || typeof r !== 'object' || r.key !== key || !Number.isFinite(r.base)) {
         r = rec[id] = { key, base: eq };
         for (const k of Object.keys(rec)) if (!rec[k] || rec[k].key !== key) delete rec[k]; // yesterday's bases are gone: that is the reset
+        typeof cpDev === 'function' && cpDev('state', () => ({ msg: 'today\'s P&L of ' + cpName(id) + ': Vest gave no usable daily reset, so this browser takes the account value now (' + cpDvN(eq) + ') as the base of the trading day ' + key, acc: id, source: 'local', base: eq, day: key }));
         try { localStorage.setItem(CP_DAY_KEY, JSON.stringify(rec)); } catch (e) {}
     }
     return cpCents(eq - r.base);
@@ -14381,6 +15524,7 @@ function cpRestSlot() {
     const tat = Math.max(CPB.tat, t);
     const wait = Math.max(0, tat - t - gap * (CP_REST_BURST - 1));
     CPB.tat = tat + gap;
+    wait > 0 && typeof cpDvOnce === 'function' && cpDvOnce('budget', 'wait', 1000) && cpDev('net', () => ({ msg: 'a position read through the GET waits ' + Math.ceil(wait) + ' ms for a slot (the budget is ' + CP_REST_PER_SEC + ' a second after a burst of ' + CP_REST_BURST + ')', waitMs: Math.ceil(wait), perSec: CP_REST_PER_SEC }));
     return wait > 0 ? new Promise((res) => CP.set(res, Math.ceil(wait))) : Promise.resolve();
 }
 
@@ -14390,6 +15534,8 @@ function cpReadCount(source) {
     CPB.rest++;
     CPB.times.push(CP.now());
     if (CPB.times.length > 400) CPB.times.splice(0, CPB.times.length - 400);
+    // (at most one line every 10 s: with no store to read from, every pass makes several reads)
+    typeof cpDvOnce === 'function' && cpDvOnce('budget-read', 'x', 10000) && cpDev('net', () => { const s = cpReadStats(); return { msg: 'position read #' + CPB.rest + ' went out to Vest as a GET (' + s.restLast10s + ' in the last 10 s; ' + CPB.store + ' reads came from Vest\'s own stores and cost nothing)', rest: CPB.rest, store: CPB.store, restLast10s: s.restLast10s, restPerSec: s.restPerSec, source }; });
 }
 
 // For the battery and the log: how many reads came from the store and from the GET since the page loaded, and the GET rate over the last 10 s.
@@ -14466,7 +15612,7 @@ const CE_T = {
     posMs: 3000,    // switch engine: the follower position must show within this
     pollMs: 100,    // switch engine: pause between position reads
     openMs: 10000,  // tabs engine: the worker answering a tabs-open (it creates the tabs; they announce themselves later)
-    slackMs: 2000,  // tabs engine: on top of actionMs per action, for the hop through the worker and back
+    slackMs: 4000,  // tabs engine: on top of actionMs per action, for the hop through the worker and back. Above the worker's own base (COPY_EXEC_BASE_MS 3000 + 5000 per action in sw.js), so the worker ends a hung tab first
     readyMs: 30000, // tabs engine: the longest the flatten waits for the follower tabs
     idleMs: 1500,   // switch engine: the leader tab's own order mutations must be done within this before the tab is switched
     snapGapMs: 250, // tabs engine, follower tab: its own account is pushed to the leader tab at most this often (four a second) ...
@@ -14486,6 +15632,7 @@ function cePermit(opts, a) {
     try { return String(opts.permit(a) || ''); } catch (e) { return 'permit check failed'; }
 }
 const ceIdOf = (f) => String(f && typeof f === 'object' ? (f.accountId != null ? f.accountId : f.id) : f);
+
 
 // One turn of the page's event loop (a frame while the tab is visible, a message otherwise): the poll step of the
 // ticket wait. Message events are not throttled in a hidden tab; a frame is what lets React render.
@@ -14758,9 +15905,65 @@ const ceLock = () => {
     return (fn) => { const run = tail.then(() => fn()); tail = run.catch(() => {}); return run; };
 };
 
+// ----- Vest's own gateway requests, seen through Resource Timing (read only) -----
+// PerformanceResourceTiming says when a request of the page started and ended and which URL it was; no header, body or token is in it. The Direct
+// engine uses it to know when the first account-token answer of a batch is in (ceOnFirstMint, used by ceWarmLeader above) and, after a batch,
+// to write one 'net' line to the copy log (below): how many mints and orders Vest made, how long they took, and the protocol, so one export
+// shows what a batch really cost. It also times the account switches (the synchronous stretch).
+const CE_NET = { obs: null, ring: [], waiters: [], batchT0: null }; // batchT0: when the last batch started (the debug log times requests against it)
+const CE_NET_URL = /\/(account-token|refresh|positions\/[a-z-]+)(?:[?#]|$)/;
+function ceNetStart() {
+    if (CE_NET.obs || typeof PerformanceObserver === 'undefined') return;
+    try {
+        CE_NET.obs = new PerformanceObserver((list) => {
+            for (const x of list.getEntries()) {
+                const m = CE_NET_URL.exec(String(x.name));
+                if (!m) continue;
+                const k = m[1] === 'account-token' ? 'mint' : m[1] === 'refresh' ? 'refresh' : m[1].slice(10);
+                CE_NET.ring.push({ k, s: x.startTime, d: x.duration, p: x.nextHopProtocol || '' });
+                typeof cpDev === 'function' && cpDev('net', () => ceDevNetLine(x, k));
+                if (CE_NET.ring.length > 300) CE_NET.ring.splice(0, CE_NET.ring.length - 300);
+                if (k === 'mint') {
+                    for (const w of CE_NET.waiters.splice(0)) {
+                        if (x.startTime >= w.t0 - 5) { try { w.fn(); } catch (e) {} } else CE_NET.waiters.push(w);
+                    }
+                }
+            }
+        });
+        CE_NET.obs.observe({ type: 'resource', buffered: false });
+    } catch (e) { CE_NET.obs = null; }
+}
+function ceNetStop() { try { if (CE_NET.obs) CE_NET.obs.disconnect(); } catch (e) {} CE_NET.obs = null; CE_NET.ring = []; CE_NET.waiters = []; }
+// fn() runs once, when an account-token request that started at or after t0 has been answered; the returned function cancels it
+function ceOnFirstMint(t0, fn) {
+    if (!CE_NET.obs) return () => {};
+    const w = { t0, fn };
+    CE_NET.waiters.push(w);
+    return () => { const i = CE_NET.waiters.indexOf(w); if (i >= 0) CE_NET.waiters.splice(i, 1); };
+}
+
+// after a batch: let the last entries land, then one 'net' line (relative times, ms)
+function ceNetLog(t0, n, stretchMs, flips) {
+    setTimeout(() => {
+        try {
+            if (typeof cpLog !== 'function') return;
+            const rows = CE_NET.ring.filter((r) => r.s >= t0 - 50 && r.s <= t0 + 15000);
+            if (!rows.length) return;
+            const by = (k) => rows.filter((r) => r.k === k).map((r) => r.d).sort((a, b) => a - b);
+            const q = (a, f) => (a.length ? Math.round(a[Math.min(a.length - 1, Math.floor(f * a.length))]) : null);
+            const kinds = {};
+            for (const r of rows) kinds[r.k] = (kinds[r.k] || 0) + 1;
+            const mint = by('mint');
+            cpLog('timing', { stage: 'net', engine: 'direct', actions: n, stretchMs: Math.round(stretchMs * 10) / 10, flips, requests: kinds, mintMs: { p50: q(mint, 0.5), max: q(mint, 1) },
+                orderMs: { p50: q(rows.filter((r) => r.k !== 'mint' && r.k !== 'refresh').map((r) => r.d).sort((a, b) => a - b), 0.5) },
+                protocol: Array.from(new Set(rows.map((r) => r.p))).join(','), first: rows.slice(0, 40).map((r) => [r.k, Math.round(r.s - t0), Math.round(r.d)]) });
+        } catch (e) {}
+    }, 400);
+}
+
 // ----- shared engine state and checks -----
 function ceMakeState() {
-    return { on: false, halted: false, leader: null, cfg: {}, T: Object.assign({}, CE_T), restores: 0 };
+    return { on: false, halted: false, leader: null, cfg: {}, T: Object.assign({}, CE_T), restores: 0, devLabel: '' }; // devLabel: the debug log's name of the engine
 }
 
 // The follower list and the leader as they are NOW: the core's live settings (cpCfg, same IIFE) when it exists, else the cfg that
@@ -14824,8 +16027,30 @@ function ceAssertLeader(st) {
     try { vx.setActive(st.leader); back = vx.active() === st.leader; } catch (e) {}
     st.restores++;
     if (!back) st.halted = true;
+    typeof cpDev === 'function' && cpDev('guard', () => ({ msg: 'The leader tab was on ' + ceDevName(a) + ', not on the leader ' + ceDevName(st.leader) + ': ' + (back ? 'switched back' : 'COULD NOT switch back, copying is stopped'), engine: st.devLabel, found: a, leader: st.leader, back, restores: st.restores }));
     ceAlert(st, 'Copy trader: the tab was left on another account (' + a + '). ' + (back ? 'Switched back to the leader.' : 'Could not switch back, check the account in Vest now. Copying is stopped.'));
     return back;
+}
+
+// Vest keeps ONE account token (pn.currentAccount): every follower's order replaces it, so after a batch the leader's own next order has to mint
+// its token first, about a round trip on the leader's own click (the owner's log: 240 to 400 ms from click to Vest's OK, 120 ms when the
+// leader's token was still there). Vest's own account-change code mints the token of whatever account the store switches to (the eager mint,
+// index-CJODWSU8.js 870547), so a switch to another account and back to the leader mints the leader's token again, with Vest's own code, no
+// request of ours and no token read. Nothing is written by the switch. Two things have to be right:
+//   - the account switched to must cost no request itself: one whose mint is still in flight (Vest joins it) or that holds the token. The
+//     follower whose writer started LAST is the one: its mint is the last to settle, so it is still in flight when the first answer is in.
+//   - the leader's mint must settle AFTER every follower's mint, or the slot ends on a follower: so it starts when the FIRST follower mint of
+//     the batch has been answered (the slot then holds a follower and the eager mint is a real request, which takes a whole round trip, longer
+//     than the answers of the other mints are apart). A batch with one round does it that way (ceOnFirstMint); a batch with several rounds
+//     (a reverse's close and open) and one that sees no answer do it after the last order, through the follower whose answer was good last.
+function ceWarmLeader(st, via, why) {
+    try {
+        if (!st.on || st.halted || !via || via === st.leader || typeof vx.withAccount !== 'function') return false;
+        vx.withAccount(String(via), () => {});
+        st.warms = (st.warms || 0) + 1;
+        typeof cpDev === 'function' && cpDev('engine', () => ({ msg: 'Renewing the leader token so your next order is fast: switched to ' + ceDevName(via) + ' and back (Vest mints the leader token itself), ' + (why || ''), engine: st.devLabel, via, why, warms: st.warms }));
+        return true;
+    } catch (e) { return false; }
 }
 
 function ceFailAll(list, results, t0, error) {
@@ -14837,7 +16062,11 @@ function ceGroup(st, list, results, t0) {
     const groups = new Map();
     list.forEach((a, i) => {
         const why = cePre(st, a);
-        if (why) { results[i] = { action: a, ok: false, ms: ceRound(ceNow() - t0), error: why }; return; }
+        if (why) {
+            results[i] = { action: a, ok: false, ms: ceRound(ceNow() - t0), error: why };
+            typeof cpDev === 'function' && cpDev('guard', () => ({ msg: st.devLabel + ' refused to ' + ceDevAct(a) + ' for ' + ceDevName(a && a.accountId) + ': ' + why, symbol: a && a.symbol, acc: a && a.accountId, engine: st.devLabel, kind: a && a.kind, why }));
+            return;
+        }
         const id = String(a.accountId);
         if (!groups.has(id)) groups.set(id, []);
         groups.get(id).push(i);
@@ -14851,11 +16080,19 @@ function ceGroup(st, list, results, t0) {
 // ===== 1. direct =====
 function ceMakeDirect() {
     const st = ceMakeState();
+    st.devLabel = 'Light engine';
     const engine = {
         id: 'direct',
         state: st,
-        async start(cfg) { return ceInit(st, cfg); }, // throws when it cannot
+        async start(cfg) {
+            const r = ceInit(st, cfg); ceNetStart();
+            typeof cpDev === 'function' && cpDev('engine', () => ({ msg: 'Light engine started: leader ' + ceDevName(r.leader) + ', ' + (r.followers ? r.followers.length + ' follower(s) (' + r.followers.map(ceDevName).join(', ') + ')' : 'follower list read live'),
+                engine: 'direct', leader: r.leader, followers: r.followers, timing: st.T, netWatch: !!CE_NET.obs }));
+            return r;
+        }, // throws when it cannot
         stop() {
+            typeof cpDev === 'function' && cpDev('engine', () => ({ msg: 'Light engine stopped (' + (st.on ? 'was running' : 'was already off') + ', the leader tab ' + (st.restores ? 'had to be put back ' + st.restores + ' time(s)' : 'never left the leader account') + ')', engine: 'direct', restores: st.restores, warms: st.warms || 0 }));
+            ceNetStop();
             st.on = false;
             if (st.leader) ceAssertLeader(st);
         },
@@ -14863,67 +16100,109 @@ function ceMakeDirect() {
             const t0 = ceNow();
             const list = Array.isArray(actions) ? actions : [];
             const results = new Array(list.length);
+            CE_NET.batchT0 = t0;
+            typeof cpDev === 'function' && cpDev('engine', () => ({ msg: 'Light engine got a batch of ' + list.length + ' action(s): ' + ceDevBatchText(list), symbol: ceDevSymbol(list), engine: 'direct', n: list.length, actions: list.slice(0, 30).map((a) => ({ acc: a && a.accountId, kind: a && a.kind, seq: a && a.seq })), hasPermit: !!(opts && typeof opts.permit === 'function') }));
             const groups = ceGroup(st, list, results, t0);
             if (!groups.size) return results;
             let writers = null;
             try { writers = vx.ready() ? ceWriters() : null; } catch (e) { writers = null; }
-            if (!writers || writers.why) { ceFailAll(list, results, t0, (writers && writers.why) || 'Vest is not ready'); return results; }
+            if (!writers || writers.why) {
+                typeof cpDev === 'function' && cpDev('error', () => ({ msg: 'Light engine cannot send: ' + ((writers && writers.why) || 'Vest is not ready') + ' (no order was started)', symbol: ceDevSymbol(list), engine: 'direct', ready: (() => { try { return !!vx.ready(); } catch (e) { return false; } })() }));
+                ceFailAll(list, results, t0, (writers && writers.why) || 'Vest is not ready'); return results;
+            }
             // something changed the account behind our back (Vest itself, or the owner): do not guess, say so and write nothing
             if (vx.active() !== st.leader) {
+                typeof cpDev === 'function' && cpDev('guard', () => ({ msg: 'Light engine stopped the batch: the tab shows ' + ceDevName(vx.active()) + ', not the leader ' + ceDevName(st.leader) + '. Nothing was sent', symbol: ceDevSymbol(list), engine: 'direct', found: vx.active(), leader: st.leader }));
                 ceAlert(st, 'Copy trader: this tab is not on the leader account, so nothing was copied.');
                 ceFailAll(list, results, t0, 'the tab is not on the leader account');
                 return results;
             }
             const queues = [...groups.values()];
             const dead = new Set(); // accounts whose earlier action failed: their later actions (a reverse's open) are skipped
-            try {
-                for (let round = 0; ; round++) {
-                    const batch = [];
-                    for (const q of queues) {
-                        if (round >= q.length) continue;
-                        const i = q[round];
-                        const a = list[i];
-                        if (dead.has(String(a.accountId))) { results[i] = { action: a, ok: false, ms: ceRound(ceNow() - t0), error: 'skipped: an earlier action for this account failed' }; continue; }
-                        // a Kill (or master off, Demo) during the previous round's wait stops the rest of a reverse
-                        const no = cePermit(opts, a);
-                        if (no) { results[i] = { action: a, ok: false, ms: ceRound(ceNow() - t0), error: 'stopped: ' + no }; dead.add(String(a.accountId)); continue; }
-                        try {
-                            const plan = ceCloseFallback(cePlan(a, st.cfg), a, writers, st.cfg);
-                            batch.push({ i, a, plan });
-                        } catch (e) {
-                            results[i] = { action: a, ok: false, ms: ceRound(ceNow() - t0), error: ceErr(e) };
-                            dead.add(String(a.accountId));
-                        }
-                    }
-                    if (!batch.length) {
-                        if (queues.every((q) => round + 1 >= q.length)) break;
+            // One chain per account: the first action of every account starts in this one synchronous stretch (an async function runs up to its
+            // first await at once), and an account's next action starts the moment ITS OWN previous one has settled. The old rounds waited for the
+            // slowest account of the round (a reverse's open for everybody waited for the slowest close, a leg waited for the slowest leg).
+            // withAccount flips stay one synchronous turn each, so two switches never interleave. One account's actions stay in their order, one
+            // after another (its TP and SL changes too: running them at the same moment was left out, Vest's server order for that is unknown).
+            const chains = queues.map((q) => ({ key: String(list[q[0]].accountId), q }));
+            const started = []; // the actions in the order their writers were started
+            let stretchMs = 0, flips = 0;
+            let warmed = false, cancelWarm = () => {};
+            const warmNow = (via, why) => { if (!warmed) { warmed = true; ceWarmLeader(st, via, why); ceAssertLeader(st); } };
+            const run = async ({ key, q }) => {
+                for (const i of q) {
+                    const a = list[i];
+                    const id = String(a.accountId);
+                    if (dead.has(key)) {
+                        results[i] = { action: a, ok: false, ms: ceRound(ceNow() - t0), error: 'skipped: an earlier action for this account failed' };
+                        typeof cpDev === 'function' && cpDev('guard', () => ({ msg: 'Skipped ' + ceDevAct(a) + ' for ' + ceDevName(id) + ': an earlier action for this account failed', symbol: a.symbol, acc: id, engine: 'direct', kind: a.kind }));
                         continue;
                     }
-                    // every writer of the round starts in this one synchronous stretch: an open names its account,
-                    // anything else runs inside withAccount (the writer reads the account first thing)
-                    for (const it of batch) {
-                        it.t = ceNow();
-                        const id = String(it.a.accountId);
-                        try {
-                            it.ps = it.plan.calls[0].fn === 'open'
-                                ? it.plan.calls.map((c) => ceCall(writers, c))
-                                : vx.withAccount(id, () => it.plan.calls.map((c) => ceCall(writers, c)));
-                        } catch (e) {
-                            it.ps = [Promise.reject(e)];
-                        }
+                    // a Kill (or master off, Demo) while the previous action of this account was waiting stops the rest of a reverse
+                    const no = cePermit(opts, a);
+                    if (no) {
+                        results[i] = { action: a, ok: false, ms: ceRound(ceNow() - t0), error: 'stopped: ' + no }; dead.add(key);
+                        typeof cpDev === 'function' && cpDev('guard', () => ({ msg: 'Stopped ' + ceDevAct(a) + ' for ' + ceDevName(id) + ' just before sending: ' + no, symbol: a.symbol, acc: id, engine: 'direct', kind: a.kind, why: no }));
+                        continue;
                     }
-                    await Promise.all(batch.map(async (it) => {
-                        const r = await ceSettle(it.ps, st.T.actionMs);
-                        const done = ceNow();
-                        results[it.i] = Object.assign({ action: it.a, ok: r.ok, ms: ceRound(done - t0), own: ceRound(done - it.t) }, r.ok ? { resp: r.resp } : { error: r.error }, it.plan.warn ? { warn: it.plan.warn } : {});
-                        if (!r.ok) dead.add(String(it.a.accountId));
-                    }));
+                    if (st.halted) {
+                        results[i] = { action: a, ok: false, ms: ceRound(ceNow() - t0), error: 'engine stopped: the leader account was not restored' }; dead.add(key);
+                        typeof cpDev === 'function' && cpDev('guard', () => ({ msg: 'Not sending ' + ceDevAct(a) + ' for ' + ceDevName(id) + ': the engine halted (the leader account was not restored)', symbol: a.symbol, acc: id, engine: 'direct', kind: a.kind }));
+                        continue;
+                    }
+                    let plan;
+                    try {
+                        plan = ceCloseFallback(cePlan(a, st.cfg), a, writers, st.cfg);
+                    } catch (e) {
+                        results[i] = { action: a, ok: false, ms: ceRound(ceNow() - t0), error: ceErr(e) };
+                        dead.add(key);
+                        typeof cpDev === 'function' && cpDev('error', () => ({ msg: 'Could not build the order for ' + ceDevName(id) + ' (' + ceDevAct(a) + '): ' + ceErr(e), symbol: a.symbol, acc: id, engine: 'direct', kind: a.kind }));
+                        continue;
+                    }
+                    // an open names its account; anything else runs inside withAccount (the writer reads the account first thing)
+                    const t = ceNow();
+                    started.push(i);
+                    let ps;
+                    if (plan.calls[0].fn !== 'open') flips++;
+                    try {
+                        ps = plan.calls[0].fn === 'open'
+                            ? plan.calls.map((c) => ceCall(writers, c))
+                            : vx.withAccount(id, () => plan.calls.map((c) => ceCall(writers, c)));
+                    } catch (e) {
+                        ps = [Promise.reject(e)];
+                    }
+                    stretchMs += ceNow() - t;
+                    typeof cpDev === 'function' && cpDev('send', () => ({ msg: 'Light: sending ' + ceDevAct(a) + ' to ' + ceDevName(id) + ' with Vest\'s own writer ' + plan.calls.map((c) => c.fn).join('+') + ' (' + (plan.calls[0].fn === 'open' ? 'named the account in the order' : 'inside a switch to the follower and back') + '), ' + ceDevMs(t - t0) + ' into the batch, ' + ceDevMs(ceNow() - t) + ' to start the writer'
+                        + (plan.warn ? ' [' + plan.warn + ']' : ''), symbol: a.symbol, acc: id, engine: 'direct', kind: a.kind, seq: a.seq, writers: plan.calls.map((c) => c.fn), vars: plan.calls.map(ceDevVars), warn: plan.warn, startedMs: ceRound(t - t0), startStretchMs: ceRound(ceNow() - t) }));
                     ceAssertLeader(st);
+                    const r = await ceSettle(ps, st.T.actionMs);
+                    const done = ceNow();
+                    results[i] = Object.assign({ action: a, ok: r.ok, ms: ceRound(done - t0), own: ceRound(done - t) }, r.ok ? { resp: r.resp } : { error: r.error }, plan.warn ? { warn: plan.warn } : {});
+                    typeof cpDev === 'function' && cpDev('vest', () => ({ msg: ceDevName(id) + ': ' + ceDevAct(a) + (r.ok ? ' accepted by Vest' : ' FAILED: ' + r.error) + ', ' + ceDevMs(done - t) + ' after it was sent (' + ceDevMs(done - t0) + ' after the batch started)',
+                        symbol: a.symbol, acc: id, engine: 'direct', kind: a.kind, ok: r.ok, ms: ceRound(done - t0), ownMs: ceRound(done - t), resp: r.ok ? r.resp : undefined, error: r.ok ? undefined : r.error, timedOut: !r.ok && /^timeout after/.test(String(r.error)), limitMs: st.T.actionMs }));
+                    if (!r.ok) dead.add(key);
                 }
+            };
+            try {
+                const running = chains.map(run); // the first action of every chain has started when this returns
+                // one action per chain: the leader's token is renewed as soon as the first follower mint is answered (see ceWarmLeader)
+                if (started.length && chains.every((c) => c.q.length === 1)) { const via = String(list[started[started.length - 1]].accountId); cancelWarm = ceOnFirstMint(t0, () => warmNow(via, 'the first account token of the batch was answered')); }
+                await Promise.all(running);
             } catch (e) {
+                typeof cpDev === 'function' && cpDev('error', () => ({ msg: 'Light engine batch broke: ' + ceErr(e), symbol: ceDevSymbol(list), engine: 'direct' }));
                 ceFailAll(list, results, t0, ceErr(e));
             } finally {
                 ceAssertLeader(st);
+                cancelWarm();
+                // not done yet (several actions per account, or no answer was seen): after the last order, through the last follower whose answer was good
+                const lastGood = started.slice().reverse().find((i) => results[i] && results[i].ok);
+                warmNow(lastGood !== undefined ? String(list[lastGood].accountId) : '', 'after the last order of the batch');
+                typeof cpDev === 'function' && cpDev('engine', () => {
+                    const ok = results.filter((r) => r && r.ok).length;
+                    return { msg: 'Light batch finished in ' + ceDevMs(ceNow() - t0) + ': ' + ok + ' accepted, ' + (list.length - ok) + ' not. ' + flips + ' account switch(es) took ' + ceDevMs(stretchMs) + ' of synchronous time on the page'
+                        + (st.restores ? '; the leader tab had to be put back ' + st.restores + ' time(s) so far' : ''), symbol: ceDevSymbol(list), engine: 'direct', n: list.length, ok, failed: list.length - ok, totalMs: ceRound(ceNow() - t0), stretchMs: ceRound(stretchMs), flips, restores: st.restores, warmed };
+                });
+                ceNetLog(t0, list.length, stretchMs, flips);
             }
             return results;
         }
@@ -14972,11 +16251,13 @@ const CE_TAB_WATCH_MS = 500;       // the leader's check that the tabs match the
 const CE_WARM_GAP_MS = 2500;       // follower: between two tries to catch a writer that Vest only mounts in a window
 const CE_MARKET_RE = /^[A-Za-z0-9._-]{1,40}$/;
 
+
 const ceRpcs = new Map(); // rid -> resolve
 let ceRpcSeq = 0;
 let ceListening = false;
 let ceTabsHandler = null; // the leader engine's listener for follower-* notices
 let ceFollower = null;
+let ceBatchSeq = 0;
 
 function cePost(msg) {
     try { window.postMessage(Object.assign({ bv: 1, dir: 'toExt', type: 'copy' }, msg), location.origin); return true; } catch (e) { return false; }
@@ -14985,9 +16266,23 @@ function cePost(msg) {
 function ceRpc(op, fields, ms) {
     return new Promise((resolve) => {
         const rid = 'p' + (++ceRpcSeq) + '-' + Date.now().toString(36);
-        const timer = setTimeout(() => { if (ceRpcs.delete(rid)) resolve({ ok: false, error: 'no answer from the extension within ' + ms + ' ms' }); }, ms);
-        ceRpcs.set(rid, (d) => { clearTimeout(timer); resolve(d); });
-        if (!cePost(Object.assign({ op, rid }, fields))) { ceRpcs.delete(rid); clearTimeout(timer); resolve({ ok: false, error: 'could not post to the extension' }); }
+        const sentAt = Date.now();
+        const timer = setTimeout(() => {
+            if (ceRpcs.delete(rid)) {
+                typeof cpDev === 'function' && cpDev('error', () => ({ msg: 'No answer from the extension to ' + op + ' within ' + ms + ' ms (the service worker may be asleep, busy or reloaded)', op, rid, timeoutMs: ms }));
+                resolve({ ok: false, error: 'no answer from the extension within ' + ms + ' ms' });
+            }
+        }, ms);
+        ceRpcs.set(rid, (d) => {
+            clearTimeout(timer);
+            typeof cpDev === 'function' && cpDev(d && d.ok === true ? 'tabs' : 'error', () => ({ msg: 'Extension answered ' + op + ' in ' + ceDevMs(Date.now() - sentAt) + (d && d.ok === true ? '' : ': ' + (d && d.error ? d.error : 'not ok')), op, rid, ms: Date.now() - sentAt, ok: !!(d && d.ok === true), error: d && d.ok !== true ? d && d.error : undefined }));
+            resolve(d);
+        });
+        if (!cePost(Object.assign({ op, rid }, fields))) {
+            ceRpcs.delete(rid); clearTimeout(timer);
+            typeof cpDev === 'function' && cpDev('error', () => ({ msg: 'Could not post ' + op + ' to the extension', op, rid }));
+            resolve({ ok: false, error: 'could not post to the extension' });
+        }
     });
 }
 
@@ -15000,6 +16295,8 @@ function ceOnMessage(ev) {
         return;
     }
     if (d.op === 'exec' && ceFollower) { ceFollowerExec(d); return; }
+    // the worker found this tab alive but marked it not ready (it cleared the flag when the tab loaded or an exec failed): say again that it is ready
+    if (d.op === 'announce' && ceFollower) { if (ceFollower.booted) ceFollowerAnnounce(ceFollower).catch(() => {}); return; }
     if (ceTabsHandler) ceTabsHandler(d);
 }
 
@@ -15058,6 +16355,8 @@ function ceMakeTabs() {
     st.timer = 0;
     st.syncing = null;
     st.opened = false;     // a tabs-open was ever sent: stop() has tabs to close
+    st.partial = new Map(); // batch id -> Map(accountId -> the tab's own result as the worker relayed it): what a batch that the leader gave up on still has
+    st.partial = new Map(); // batch id -> Map(accountId -> the tab's own result as the worker relayed it): what a batch that the leader gave up on still has
     const lock = ceLock();
     const notices = [];
     const fire = () => notices.slice().forEach((f) => { try { f(); } catch (e) {} });
@@ -15080,9 +16379,17 @@ function ceMakeTabs() {
     const handler = (d) => {
         const id = d.accountId != null ? String(d.accountId) : null;
         if (!id) return;
-        if (d.op === 'follower-snap') { try { if (typeof cpTabSnap === 'function') cpTabSnap(id, d.snap, 'push'); } catch (e) {} return; }
+        if (d.op === 'follower-result') {
+            const m = st.partial.get(String(d.bid));
+            if (m && Array.isArray(d.results)) m.set(id, d);
+            return;
+        }
+        if (d.op === 'follower-snap') {
+            try { if (typeof cpTabSnap === 'function') cpTabSnap(id, d.snap, 'push'); } catch (e) {}
+            return;
+        }
         if (d.op === 'follower-ready') { st.tabs.set(id, 'ready'); ceKeepLeaderKey(st); fire(); }
-        else if (d.op === 'follower-lost') { st.tabs.set(id, 'opening'); fire(); } // the worker opens it again by itself
+        else if (d.op === 'follower-lost') { st.tabs.set(id, 'opening'); fire(); } // the tab was closed, is loading, was discarded or did not answer: its actions are refused (not attempted) until it announces itself
         else if (d.op === 'follower-failed') {
             st.tabs.set(id, 'failed');
             fire();
@@ -15102,7 +16409,10 @@ function ceMakeTabs() {
         st.opened = true;
         st.syncing = (async () => {
             const r = await ceRpc('tabs-open', { market: st.market, followers: ids.map((id) => ({ accountId: id, label: label(id) })), specs: ceSpecs(ceManagedMarkets([st.market])) }, st.T.openMs);
-            if (!r || r.ok !== true) { st.asked = null; st.retryAt = Date.now() + 3000; return r || { ok: false, error: 'no answer' }; } // tried again after a few seconds
+            if (!r || r.ok !== true) {
+                typeof cpDev === 'function' && cpDev('error', () => ({ msg: 'The extension did not set the follower tabs up (' + ((r && r.error) || 'no answer') + '): Turbo tries again in 3 s', error: r && r.error, retryInMs: 3000 }));
+                st.asked = null; st.retryAt = Date.now() + 3000; return r || { ok: false, error: 'no answer' };
+            } // tried again after a few seconds
             st.retryAt = 0;
             const keep = new Set(ids);
             for (const id of [...st.tabs.keys()]) if (!keep.has(id)) st.tabs.delete(id);
@@ -15110,9 +16420,10 @@ function ceMakeTabs() {
                 if (!f || f.accountId == null) continue;
                 const id = String(f.accountId);
                 if (!keep.has(id)) continue;
-                st.tabs.set(id, f.failed ? 'failed' : f.ready ? 'ready' : st.tabs.get(id) === 'ready' ? 'ready' : 'opening');
+                st.tabs.set(id, f.failed ? 'failed' : f.ready ? 'ready' : 'opening'); // the worker's own flag: a tab it marked not ready is not ready, whatever this side believed
             }
             for (const id of ids) if (!st.tabs.has(id)) st.tabs.set(id, 'opening');
+            typeof cpDev === 'function' && cpDev('tabs', () => ({ msg: 'Follower tabs after the ask: ' + ids.map((id) => ceDevName(id) + ' ' + st.tabs.get(id)).join(', ') + ' (' + (ids.filter((id) => st.tabs.get(id) === 'ready').length) + ' of ' + ids.length + ' ready)', states: Object.fromEntries(st.tabs), group: r.groupId, window: r.windowId, workerView: (r.followers || []).map((f) => ({ acc: f && f.accountId, tabId: f && f.tabId, ready: !!(f && f.ready), failed: !!(f && f.failed), reopens: f && f.reopens })) }));
             fire();
             return r;
         })();
@@ -15141,16 +16452,22 @@ function ceMakeTabs() {
             st.market = (cfg && cfg.market && CE_MARKET_RE.test(String(cfg.market))) ? String(cfg.market) : ceLeaderMarket();
             ceListen();
             ceTabsHandler = handler;
+            typeof cpDev === 'function' && cpDev('engine', () => ({ msg: 'Turbo engine starting: leader ' + ceDevName(st.leader) + ', market ' + st.market + ', one background tab per follower', engine: 'tabs', leader: st.leader, market: st.market, timing: st.T }));
             const r = await sync(true);
-            if (!r || r.ok !== true) { st.on = false; ceTabsHandler = null; throw new Error((r && r.error) || 'the extension did not open the tabs'); }
+            if (!r || r.ok !== true) {
+                typeof cpDev === 'function' && cpDev('error', () => ({ msg: 'Turbo could not start: ' + ((r && r.error) || 'the extension did not open the tabs'), engine: 'tabs', error: r && r.error }));
+                st.on = false; ceTabsHandler = null; throw new Error((r && r.error) || 'the extension did not open the tabs');
+            }
             if (!st.timer) st.timer = setTimeout(watch, CE_TAB_WATCH_MS);
             // not waiting for the tabs: a tab takes seconds to load Vest, and copying must not wait for the slowest. An action for a tab that is
             // not ready yet is refused (refusal), not failed, so the reconciler brings that follower in line the moment its tab announces itself.
             const ids = wanted();
+            typeof cpDev === 'function' && cpDev('engine', () => ({ msg: 'Turbo engine started: ' + ids.filter((id) => st.tabs.get(id) === 'ready').length + ' of ' + ids.length + ' tabs ready' + (ids.some((id) => st.tabs.get(id) !== 'ready') ? ' (still loading: ' + ids.filter((id) => st.tabs.get(id) !== 'ready').map(ceDevName).join(', ') + '; actions for them are refused until they say ready)' : ''), engine: 'tabs', ready: ids.filter((id) => st.tabs.get(id) === 'ready'), missing: ids.filter((id) => st.tabs.get(id) !== 'ready') }));
             return { ok: true, leader: st.leader, followers: ids, ready: ids.filter((id) => st.tabs.get(id) === 'ready'), missing: ids.filter((id) => st.tabs.get(id) !== 'ready') };
         },
         async stop() {
             const was = st.on || st.opened;
+            typeof cpDev === 'function' && cpDev('engine', () => ({ msg: 'Turbo engine stopping' + (was ? ': the follower tabs are closed' : ' (it was not running)'), engine: 'tabs', states: Object.fromEntries(st.tabs) }));
             st.on = false;
             st.opened = false;
             if (st.timer) { clearTimeout(st.timer); st.timer = 0; }
@@ -15165,14 +16482,19 @@ function ceMakeTabs() {
         refusal(accountId) {
             if (!st.on) return '';
             const s = st.tabs.get(String(accountId));
-            if (s === 'ready') return '';
-            return s === 'failed' ? 'its tab could not be kept open' : 'its tab is still opening';
+            const why = s === 'ready' ? '' : s === 'failed' ? 'its tab could not be kept open' : 'its tab is still opening';
+            return why;
         },
         // resolves true when every wanted tab is ready, false after ms
         whenReady(ms) {
             return new Promise((resolve) => {
                 let timer = 0;
-                const done = (v) => { clearTimeout(timer); const i = notices.indexOf(check); if (i >= 0) notices.splice(i, 1); resolve(v); };
+                const t0 = Date.now();
+                const done = (v) => {
+                    clearTimeout(timer); const i = notices.indexOf(check); if (i >= 0) notices.splice(i, 1);
+                    typeof cpDev === 'function' && cpDev('tabs', () => ({ msg: 'Waited ' + ceDevMs(Date.now() - t0) + ' (limit ' + ceDevMs(ms) + ') for the follower tabs: ' + (v ? 'all ready' : 'not all ready'), ok: v, waitedMs: Date.now() - t0, limitMs: ms, states: Object.fromEntries(st.tabs) }));
+                    resolve(v);
+                };
                 const check = () => { if (!st.on || allReady()) done(st.on); };
                 timer = setTimeout(() => done(false), ms);
                 notices.push(check);
@@ -15186,6 +16508,7 @@ function ceMakeTabs() {
                 const t0 = ceNow();
                 const list = Array.isArray(actions) ? actions : [];
                 const results = new Array(list.length);
+                typeof cpDev === 'function' && cpDev('engine', () => ({ msg: 'Turbo engine got a batch of ' + list.length + ' action(s): ' + ceDevBatchText(list), symbol: ceDevSymbol(list), engine: 'tabs', n: list.length, tabs: Object.fromEntries(st.tabs), hasPermit: !!(opts && typeof opts.permit === 'function') }));
                 const groups = ceGroup(st, list, results, t0);
                 if (!groups.size) return results;
                 const sendIdx = [];
@@ -15193,10 +16516,18 @@ function ceMakeTabs() {
                 const warns = new Map();
                 const maxLen = Math.max(...[...groups.values()].map((q) => q.length));
                 for (const [id, idxs] of groups) {
-                    if (st.tabs.get(id) !== 'ready') { idxs.forEach((i) => { results[i] = { action: list[i], ok: false, ms: ceRound(ceNow() - t0), error: 'the follower tab is not ready' }; }); continue; }
+                    if (st.tabs.get(id) !== 'ready') {
+                        idxs.forEach((i) => { results[i] = { action: list[i], ok: false, ms: ceRound(ceNow() - t0), error: 'the follower tab is not ready' }; });
+                        typeof cpDev === 'function' && cpDev('guard', () => ({ msg: 'Turbo could not send to ' + ceDevName(id) + ': its tab is ' + (st.tabs.get(id) || 'not known') + ', not ready (' + idxs.length + ' action(s): ' + idxs.map((i) => ceDevAct(list[i])).join('; ') + ')', symbol: ceDevSymbol(idxs.map((i) => list[i])), acc: id, engine: 'tabs', state: st.tabs.get(id) || null, n: idxs.length }));
+                        continue;
+                    }
                     for (const i of idxs) {
                         const no = cePermit(opts, list[i]);
-                        if (no) { results[i] = { action: list[i], ok: false, ms: ceRound(ceNow() - t0), error: 'stopped: ' + no }; continue; }
+                        if (no) {
+                            results[i] = { action: list[i], ok: false, ms: ceRound(ceNow() - t0), error: 'stopped: ' + no };
+                            typeof cpDev === 'function' && cpDev('guard', () => ({ msg: 'Stopped ' + ceDevAct(list[i]) + ' for ' + ceDevName(id) + ' just before sending: ' + no, symbol: list[i].symbol, acc: id, engine: 'tabs', kind: list[i].kind, why: no }));
+                            continue;
+                        }
                         // checked here so a bad action fails with its reason; the follower tab gets the defaults it cannot know
                         try {
                             const plan = cePlan(list[i], st.cfg);
@@ -15208,27 +16539,70 @@ function ceMakeTabs() {
                             send.push(a);
                         } catch (e) {
                             results[i] = { action: list[i], ok: false, ms: ceRound(ceNow() - t0), error: ceErr(e) };
+                            typeof cpDev === 'function' && cpDev('error', () => ({ msg: 'Could not build the order for ' + ceDevName(id) + ' (' + ceDevAct(list[i]) + '): ' + ceErr(e), symbol: list[i].symbol, acc: id, engine: 'tabs', kind: list[i].kind }));
                         }
                     }
                 }
                 if (!sendIdx.length) return results;
                 // the worker groups by account itself and runs each tab's actions in order; ours only has to be plain data
-                const reply = await ceRpc('tabs-exec', { actions: send, specs: ceSpecs(ceManagedMarkets(send.map((a) => a.symbol))) }, st.T.actionMs * maxLen + st.T.slackMs);
+                typeof cpDev === 'function' && cpDev('send', () => ({ msg: 'Turbo: handing ' + send.length + ' action(s) to the extension for ' + new Set(send.map((a) => a.accountId)).size + ' follower tab(s), ' + ceDevMs(ceNow() - t0) + ' after the batch started; waiting at most ' + ceDevMs(st.T.actionMs * maxLen + st.T.slackMs) + ' (' + ceDevMs(st.T.actionMs) + ' per action x ' + maxLen + ' + ' + ceDevMs(st.T.slackMs) + ' slack for the hop through the worker)',
+                    symbol: ceDevSymbol(send), engine: 'tabs', n: send.length, perAccount: maxLen, limitMs: st.T.actionMs * maxLen + st.T.slackMs, slackMs: st.T.slackMs, sentMs: ceRound(ceNow() - t0), actions: send.map((a) => ({ acc: a.accountId, kind: a.kind, seq: a.seq, qty: a.qty, side: a.side, leg: a.leg, trigger: a.trigger != null ? a.trigger : a.triggerPrice })) }));
+                const bid = 'b' + (++ceBatchSeq) + '-' + Date.now().toString(36);
+                const part = new Map();
+                st.partial.set(bid, part);
+                let reply;
+                try { reply = await ceRpc('tabs-exec', { actions: send, specs: ceSpecs(ceManagedMarkets(send.map((a) => a.symbol))), bid }, st.T.actionMs * maxLen + st.T.slackMs); } finally { setTimeout(() => st.partial.delete(bid), 15000); }
                 const done = ceNow();
-                if (!reply || reply.ok !== true || !Array.isArray(reply.results)) {
-                    sendIdx.forEach((i) => { results[i] = { action: list[i], ok: false, ms: ceRound(done - t0), error: (reply && reply.error) || 'no result from the follower tabs' }; });
-                    return results;
+                typeof cpDev === 'function' && cpDev('tabs', () => ({ msg: 'Turbo: the extension answered after ' + ceDevMs(done - t0) + ' (worker total ' + ceDevMs(reply && reply.timings && reply.timings.totalMs) + '): ' + Object.keys((reply && reply.timings && reply.timings.followers) || {}).map((id) => { const f = reply.timings.followers[id]; return ceDevName(id) + ' handed over in ' + ceDevMs(f.sendMs) + ', tab answered ' + ceDevMs(f.rtMs) + ' later' + (f.error ? ' (' + f.error + ')' : ''); }).join('; '),
+                    symbol: ceDevSymbol(send), engine: 'tabs', ok: !!(reply && reply.ok === true), error: reply && reply.ok !== true ? reply.error : undefined, totalMs: ceRound(done - t0), timings: reply && reply.timings }));
+                let rows = reply && reply.ok === true && Array.isArray(reply.results) ? reply.results : null;
+                if (!rows) {
+                    // The whole answer did not come (the leader's limit, or the worker went away): every tab that did answer was relayed on its own, and
+                    // its order is on the exchange. Taking those results keeps their acknowledgements; only the silent tabs fail.
+                    const why = (reply && reply.error) || 'no result from the follower tabs';
+                    const seen = new Map();
+                    rows = send.map((a) => {
+                        const id = String(a.accountId);
+                        const k = seen.get(id) || 0;
+                        seen.set(id, k + 1);
+                        const p = part.get(id);
+                        return p && p.results[k] ? p.results[k] : { ok: false, error: why };
+                    });
+                    typeof cpDev === 'function' && cpDev(part.size ? 'tabs' : 'error', () => ({ msg: 'Turbo: no usable answer for the whole batch (' + why + '). ' + (part.size ? 'Kept the results the worker had relayed from ' + part.size + ' tab(s) (' + [...part.keys()].map(ceDevName).join(', ') + '); the other ' + (new Set(send.map((a) => String(a.accountId))).size - part.size) + ' tab(s) are reported as failed, although a tab may still run them' : 'no tab had answered by then: ' + send.length + ' action(s) are reported as failed, although a tab may still have run them'), symbol: ceDevSymbol(send), engine: 'tabs', error: why, relayed: [...part.keys()], bid }));
+                    try { if (typeof cpTabSnap === 'function') for (const [id, p] of part) if (p.snap) cpTabSnap(id, p.snap, 'exec'); } catch (e) {}
+                    if (!part.size) {
+                        sendIdx.forEach((i) => { results[i] = { action: list[i], ok: false, ms: ceRound(done - t0), error: why }; });
+                        return results;
+                    }
                 }
                 sendIdx.forEach((i, n) => {
-                    const r = reply.results[n] || {};
+                    const r = rows[n] || {};
                     results[i] = Object.assign({ action: list[i], ok: r.ok === true, ms: ceRound(done - t0) },
                         typeof r.ms === 'number' ? { own: r.ms } : {}, r.ok === true ? { resp: r.resp === undefined ? null : r.resp } : { error: typeof r.error === 'string' ? r.error.slice(0, 200) : 'failed' },
                         typeof r.warn === 'string' ? { warn: r.warn } : warns.has(i) ? { warn: warns.get(i) } : {});
                 });
+                // A tab the worker found not ready (it was reloading or gone while this side still believed it ready): from now on its actions are refused
+                // here, which is not an attempt, so a tab that reloads between two orders never costs its follower a pause.
+                for (const i of sendIdx) {
+                    const r = results[i];
+                    if (!r.ok && /follower-not-ready|unknown-follower|Receiving end does not exist|message port closed/i.test(String(r.error || ''))) {
+                        const id = String(list[i].accountId);
+                        if (st.tabs.get(id) === 'ready') {
+                            st.tabs.set(id, 'opening'); fire();
+                            cpDev('tabs', () => ({ msg: ceDevName(id) + "'s tab answered an order with '" + String(r.error).slice(0, 80) + "': Turbo now treats it as not ready (actions are refused, not attempted) until it says ready again", acc: id, state: 'opening', error: String(r.error).slice(0, 120) }));
+                        }
+                    }
+                }
                 // Each follower tab's own account as it saw it right after its orders, and what each order did in the tab (the log of the next live
                 // test: an Export shows every follower tab's own view). The snapshot goes in before the core notes the acknowledgement.
                 try {
-                    if (reply.snaps && typeof reply.snaps === 'object' && typeof cpTabSnap === 'function') for (const id of Object.keys(reply.snaps)) cpTabSnap(id, reply.snaps[id], 'exec');
+                    if (reply && reply.snaps && typeof reply.snaps === 'object' && typeof cpTabSnap === 'function') for (const id of Object.keys(reply.snaps)) cpTabSnap(id, reply.snaps[id], 'exec');
+                    typeof cpDev === 'function' && sendIdx.forEach((i) => {
+                        const r = results[i];
+                        const a = list[i];
+                        cpDev('vest', () => ({ msg: ceDevName(a.accountId) + ': ' + ceDevAct(a) + (r.ok ? ' accepted by Vest in its tab' : ' FAILED: ' + r.error) + (typeof r.own === 'number' ? ', ' + ceDevMs(r.own) + ' inside the tab' : '') + ', ' + ceDevMs(done - t0) + ' after the batch started' + (r.warn ? ' [' + r.warn + ']' : ''),
+                            symbol: a.symbol, acc: a.accountId, engine: 'tabs', kind: a.kind, ok: r.ok, ms: r.ms, ownMs: r.own, resp: r.ok ? r.resp : undefined, error: r.ok ? undefined : r.error, warn: r.warn, timedOut: !r.ok && /timeout/.test(String(r.error)) }));
+                    });
                     if (typeof cpLog === 'function') sendIdx.forEach((i) => {
                         const r = results[i];
                         const a = list[i];
@@ -15298,6 +16672,36 @@ function ceTap(el) {
     if (typeof el.click === 'function') el.click();
 }
 
+// A hidden tab fires every setTimeout only about once a second (Chrome's background throttling, which the keep-awake channel does not lift: it only
+// avoids the once-a-minute throttling after five minutes). A message event is not throttled. So a wait that polls for something to appear (a writer
+// that Vest mounts a moment after a click) must not be made of ceSleep(60) steps: in a hidden tab 40 of them take 40 s, not 2.4 s. This one checks
+// `pred` at most every `gap` ms of real time and spends the time between in message turns (a visible tab just sleeps: no need to spin there).
+// True when pred came true, false at the deadline.
+function ceTurn() {
+    return new Promise((resolve) => {
+        try { const mc = new MessageChannel(); mc.port1.onmessage = () => { mc.port1.close(); resolve(); }; mc.port2.postMessage(0); } catch (e) { setTimeout(resolve, 0); }
+    });
+}
+async function ceWaitUntil(pred, ms, gap, F, what) {
+    const t0 = ceNow();
+    const end = t0 + ms;
+    const hidden = typeof document !== 'undefined' && document.visibilityState === 'hidden';
+    for (;;) {
+        let v = false;
+        try { v = await pred(); } catch (e) { v = false; }
+        if (v) { ceDevWait(F, what, true, hidden, ceNow() - t0, ms); return true; }
+        const left = end - ceNow();
+        if (left <= 0) { ceDevWait(F, what, false, hidden, ceNow() - t0, ms); return false; }
+        if (!hidden) { await ceSleep(Math.min(gap, left)); continue; }
+        const until = ceNow() + Math.min(gap, left);
+        while (ceNow() < until) await ceTurn();
+    }
+}
+
+// DEV: what a wait for a writer came to, said when it differs from the last time (the warm timer repeats the same wait every 2.5 s)
+function ceDevWait(F, what, ok, hidden, took, limit) {
+}
+
 const ceHave = (fn) => { try { return typeof vx.available()[fn] === 'function'; } catch (e) { return false; } };
 
 // Vest's Cancel button (its writer) is only mounted while an open-orders row is on the page. This tab shows its own account, so the row is
@@ -15314,14 +16718,12 @@ async function ceFollowerWarmCancel(F, force) {
             const tab = document.querySelector('[data-testid="account-tab-open-orders"]');
             if (!tab) return;
             F.warmCancelAt = Date.now();
+            typeof ceFDev === 'function' && ceFDev(F, 'tabs', () => ({ msg: 'catching Vest\'s cancel writer: showing the Open Orders tab for a moment (nothing is clicked in a dialog)' }));
             const list = tab.closest ? tab.closest('[role="tablist"]') : null;
             const prev = list ? Array.from(list.querySelectorAll('[role="tab"], button')).find((b) => b !== tab && (b.getAttribute('data-state') === 'active' || b.getAttribute('aria-selected') === 'true')) : null;
             const wasActive = tab.getAttribute('data-state') === 'active' || tab.getAttribute('aria-selected') === 'true';
             if (!wasActive) ceTap(tab);
-            for (let i = 0; i < 40 && !ceHave('cancel'); i++) {
-                await ceSleep(60);
-                if (typeof vx.writers === 'function') vx.writers(true, []);
-            }
+            await ceWaitUntil(() => { if (typeof vx.writers === 'function') vx.writers(true, []); return ceHave('cancel'); }, 2400, 60, F, 'Vest\'s cancel writer');
             if (!wasActive && prev) ceTap(prev);
         } catch (e) {}
     })();
@@ -15338,7 +16740,7 @@ async function ceFollowerWarm(F, kinds) {
     if (needCancel || F.wantCancel) {
         let ok = await ceFollowerWarmCancel(F, needCancel);
         // a cancel that is waiting: the order's row may not be on this page yet (the order shows a moment after its placement), so look a little longer
-        for (let i = 0; needCancel && !ok && i < 25; i++) { await ceSleep(60); try { if (typeof vx.writers === 'function') vx.writers(true, []); } catch (e) {} ok = ceHave('cancel'); }
+        if (needCancel && !ok) ok = await ceWaitUntil(() => { try { if (typeof vx.writers === 'function') vx.writers(true, []); } catch (e) {} return ceHave('cancel'); }, 1500, 60, F, 'Vest\'s cancel writer (the order\'s row was not on the page yet)');
         if (ok) F.wantCancel = false;
     }
 }
@@ -15381,6 +16783,7 @@ function ceFollowerEvent(F, id, type, code) {
     F.seen.add(key);
     if (F.seen.size > 400) F.seen.delete(F.seen.keys().next().value);
     F.events.push({ id, type, at: Date.now(), code: code != null && typeof code !== 'object' ? code : undefined });
+    typeof ceFDev === 'function' && ceFDev(F, 'vest', () => ({ msg: 'Vest says order ...' + String(id).slice(-6) + ' is ' + type + (code != null && typeof code !== 'object' ? ' (code ' + code + ')' : ''), order: String(id).slice(-6), type, code: code != null && typeof code !== 'object' ? code : undefined, ev: 'order-event' }));
     if (F.events.length > 60) F.events.shift();
 }
 
@@ -15406,7 +16809,12 @@ function ceFollowerWatch(F) {
     };
     try { if (typeof vx.onAccountState === 'function') F.unsub.push(vx.onAccountState(onFrame)); } catch (e) {}
     try { if (typeof vx.onPrivate === 'function') F.unsub.push(vx.onPrivate('command_events', onCommand)); } catch (e) {}
-    const beat = () => { F.beatT = setTimeout(() => { ceFollowerSend(F); if (!F.stopped) beat(); }, CE_T.beatMs); };
+    const beat = () => {
+        F.beatT = setTimeout(() => {
+            ceFollowerSend(F);
+            if (!F.stopped) beat();
+        }, CE_T.beatMs);
+    };
     beat();
 }
 
@@ -15423,36 +16831,65 @@ function ceFollowerStop() {
     ceFollower = null;
 }
 
+// Tells the worker (and through it the leader) that this tab can take actions. At boot, and again whenever the worker asks ('announce'): the
+// worker clears its ready flag when the tab loads, or an exec could not reach it, and used to rely on this one boot call to set it again.
+async function ceFollowerAnnounce(F) {
+    if (F.announcing) return F.announcing;
+    F.announcing = (async () => {
+        const again = F.announcedAt > 0; // an announce the worker asked for, after the boot one
+        for (let i = 0; i < 6; i++) {
+            const r = await ceRpc('follower-ready', { accountId: F.id }, 4000);
+            typeof ceFDev === 'function' && ceFDev(F, r && r.ok === true ? 'tabs' : 'error', () => ({ msg: (r && r.ok === true ? 'told the extension it is ready' + (again ? ' again, because the extension asked (it had marked this tab not ready)' : '') + ' (try ' + (i + 1) + (F.bootAt ? ', ' + ceDevMs(Date.now() - F.bootAt) + ' after the tab started' : '') + ')' : 'the extension did not accept "ready" (try ' + (i + 1) + ' of 6): ' + ((r && r.error) || 'no answer') + (i < 5 ? ', trying again in 0.5 s' : '')), tries: i + 1, ok: !!(r && r.ok === true), again, error: r && r.ok !== true ? r.error : undefined, readyAtMs: F.bootAt ? Date.now() - F.bootAt : undefined }));
+            if (r && r.ok === true) { F.announcedAt = Date.now(); if (r.specs && typeof vx.setSpecs === 'function') { try { vx.setSpecs(r.specs); } catch (e) {} } return true; }
+            await ceSleep(500);
+        }
+        return false;
+    })();
+    try { return await F.announcing; } finally { F.announcing = null; }
+}
+
 async function ceFollowerBoot() {
     const id = ceFollowerId();
     if (!id || ceFollower) return;
-    const F = ceFollower = { id, ready: false, keep: null, pin: null, haltAt: 0, bus: null, busy: false, chain: Promise.resolve(), wantCancel: false, warmTimer: 0,
+    const F = ceFollower = { id, ready: false, booted: false, announcing: null, announcedAt: 0, bootAt: 0, keep: null, pin: null, haltAt: 0, bus: null, busy: false, chain: Promise.resolve(), wantCancel: false, warmTimer: 0,
         events: [], seen: new Set(), unsub: [], beatT: 0, pushT: 0, afterT: 0, lastPush: 0, stopped: false };
     ceListen();
+    const bootAt = Date.now();
+    typeof ceFDev === 'function' && ceFDev(F, 'tabs', () => ({ msg: 'follower tab started: loading Vest, then pinning its account', visibility: typeof document !== 'undefined' ? document.visibilityState : '', url: typeof location !== 'undefined' ? location.pathname : '' }));
     // the leader tab's Kill / master off: an exec message sent before this moment stops after the action it is on
     try {
         const BC = typeof window !== 'undefined' ? window.BroadcastChannel : null;
         if (typeof BC === 'function') {
             F.bus = new BC(CE_BUS);
-            F.bus.onmessage = (e) => { const m = e && e.data; if (m && (m.t === 'halt' || m.t === 'kill' || m.t === 'stop')) F.haltAt = Date.now(); };
+            F.bus.onmessage = (e) => {
+                const m = e && e.data;
+                if (m && (m.t === 'halt' || m.t === 'kill' || m.t === 'stop')) {
+                    F.haltAt = Date.now();
+                    typeof ceFDev === 'function' && ceFDev(F, 'guard', () => ({ msg: 'the leader tab said "' + m.t + '": an exec message sent before now stops after the action it is on', what: m.t }));
+                }
+            };
         }
     } catch (e) { F.bus = null; }
-    for (let i = 0; i < 240 && !F.ready; i++) {
+    // the deadline is wall-clock: in a hidden tab each 250 ms sleep takes a second, so 240 rounds were up to four minutes
+    for (const end = Date.now() + 60000; Date.now() < end && !F.ready;) {
         let ok = false;
         try { ok = vx.ready() && !!vx.user() && (await ceFollowerPin(F)); } catch (e) { ok = false; }
         if (ok) { F.ready = true; break; }
         await ceSleep(250);
     }
-    if (!F.ready) return;
+    if (!F.ready) {
+        typeof ceFDev === 'function' && ceFDev(F, 'error', () => ({ msg: 'gave up waiting for Vest to load and show this account after ' + ceDevNum((Date.now() - bootAt) / 1000) + ' s: this tab will never say ready (logged out, an error page, or the account is not on this login)', waitedMs: Date.now() - bootAt, active: (() => { try { return vx.active(); } catch (e) { return null; } })() }));
+        return;
+    }
+    typeof ceFDev === 'function' && ceFDev(F, 'tabs', () => ({ msg: 'Vest is loaded and the account is pinned (' + ceDevMs(Date.now() - bootAt) + ' after the tab started)', loadMs: Date.now() - bootAt, pin: F.pin && typeof F.pin.status === 'function' ? F.pin.status() : null }));
     // Vest's script text tells its writers apart: have it before the first action arrives
     if (typeof vx.prepare === 'function') { try { await vx.prepare(); } catch (e) {} }
     F.keep = await ceKeepAwake();
+    typeof ceFDev === 'function' && ceFDev(F, 'tabs', () => ({ msg: F.keep ? 'keep-awake channel is open (Chrome should not throttle this background tab)' : 'could not open the keep-awake channel: Chrome may throttle this background tab', keepAwake: !!F.keep }));
     // the worker only accepts this from the tab it opened for this account, and may still be saving its state: retry
-    for (let i = 0; i < 6; i++) {
-        const r = await ceRpc('follower-ready', { accountId: id }, 4000);
-        if (r && r.ok === true) { if (r.specs && typeof vx.setSpecs === 'function') { try { vx.setSpecs(r.specs); } catch (e) {} } break; }
-        await ceSleep(500);
-    }
+    F.booted = true;
+    F.bootAt = bootAt;
+    await ceFollowerAnnounce(F);
     ceFollowerWatch(F); // the tab's own account goes to the leader tab on every change, and as a heartbeat
     // The close and TP/SL delete writers only exist while Vest's own window for them is open: once this tab holds a position, that
     // window is opened for a moment (vx.warm) and the writers are kept. Not while an exec message is running.
@@ -15478,10 +16915,17 @@ async function ceFollowerRun(F, d) {
     const list = Array.isArray(d.actions) ? d.actions : [];
     const results = [];
     let broken = null;
+    typeof ceFDev === 'function' && ceFDev(F, 'tabs', () => ({ msg: 'got ' + list.length + ' action(s) from the extension' + (Number(d.sentAt) > 0 ? ', ' + ceDevMs(Date.now() - Number(d.sentAt)) + ' after the worker sent them' : '') + ': ' + list.map(ceDevAct).join('; '), n: list.length, rid: d.rid, hopMs: Number(d.sentAt) > 0 ? Date.now() - Number(d.sentAt) : null }));
     for (const a of list) {
         const t = ceNow();
-        const fail = (error) => results.push({ ok: false, ms: ceRound(ceNow() - t), error });
+        const fail = (error) => {
+            results.push({ ok: false, ms: ceRound(ceNow() - t), error });
+            typeof ceFDev === 'function' && ceFDev(F, 'vest', () => ({ msg: ceDevAct(a) + ' FAILED: ' + error, symbol: a && a.symbol, kind: a && a.kind, ok: false, error, ms: ceRound(ceNow() - t) }));
+        };
         if (broken) { fail('skipped: ' + broken); continue; }
+        // The worker gave up on this exec when its limit passed (this tab was busy): the leader has already been told it failed, and may have sent
+        // the follower's delta again. Running it now would place the order twice (an append or a reduce is a delta; only an open is protected by Vest).
+        if (Number(d.sentAt) > 0 && Number(d.limitMs) > 0 && Date.now() - Number(d.sentAt) > Number(d.limitMs)) { fail('expired: the worker gave up on this exec before the tab ran it'); broken = 'the exec was too late'; continue; }
         if (F.haltAt && F.haltAt >= (Number(d.sentAt) || Date.now() - 10000)) { fail('stopped: the leader tab halted copying'); broken = 'the leader tab halted copying'; continue; }
         try {
             if (!a || String(a.accountId) !== F.id) { fail('refused: this tab trades ' + F.id + ' only'); broken = 'an earlier action was refused'; continue; }
@@ -15491,18 +16935,28 @@ async function ceFollowerRun(F, d) {
             // a writer that Vest mounts only in a window: catch it now (this is the follower's own window), at most a moment of delay
             const need = plan.calls.map((c) => c.fn).filter((fn) => typeof writers[fn] !== 'function');
             if (need.length && !(need.length === 1 && need[0] === 'close' && typeof writers.reduce === 'function')) {
+                typeof ceFDev === 'function' && ceFDev(F, 'tabs', () => ({ msg: 'Vest has not mounted its ' + need.join('+') + ' writer in this tab yet: opening its window for a moment to catch it', need }));
+                const tw = ceNow();
                 await ceFollowerWarm(F, need);
                 writers = ceWriters();
+                typeof ceFDev === 'function' && ceFDev(F, 'tabs', () => ({ msg: 'writer catch took ' + ceDevMs(ceNow() - tw) + ': ' + need.map((fn) => fn + (typeof writers[fn] === 'function' ? ' found' : ' STILL MISSING')).join(', '), need, waitMs: ceRound(ceNow() - tw) }));
             }
+            const before = plan;
             plan = ceCloseFallback(plan, a, writers, {});
+            typeof ceFDev === 'function' && plan !== before && ceFDev(F, 'tabs', () => ({ msg: 'no close writer here: closing with a full-size reduce instead', warn: plan.warn }));
             // the pin normally keeps this true; if not, the plain store call puts it back with no timer and no await, so the
             // check and the writer calls below stay one synchronous stretch (the writers read the account first thing)
-            if (vx.active() !== F.id) { try { vx.setActive(F.id); } catch (e) {} }
+            if (vx.active() !== F.id) {
+                typeof ceFDev === 'function' && ceFDev(F, 'guard', () => ({ msg: 'this tab was on ' + vx.active() + ' instead of its follower account just before the order: putting it back', found: vx.active() }));
+                try { vx.setActive(F.id); } catch (e) {}
+            }
             if (vx.active() !== F.id) { fail('could not pin the follower account'); broken = 'the account is not pinned'; continue; }
             const ps = plan.calls.map((c) => ceCall(writers, c));
+            typeof ceFDev === 'function' && ceFDev(F, 'send', () => ({ msg: 'calling Vest\'s own ' + plan.calls.map((c) => c.fn).join('+') + ' writer for ' + ceDevAct(a) + ' (' + ceDevMs(ceNow() - t) + ' after this action was picked up)', symbol: a.symbol, kind: a.kind, writers: plan.calls.map((c) => c.fn), vars: plan.calls.map(ceDevVars), warn: plan.warn, pickedUpMs: ceRound(ceNow() - t) }));
             const r = await ceSettle(ps, CE_T.actionMs);
             if (!r.ok) { fail(r.error); broken = 'an earlier action failed'; continue; }
             results.push(Object.assign({ ok: true, ms: ceRound(ceNow() - t), resp: r.resp === undefined ? null : r.resp }, plan.warn ? { warn: plan.warn } : {}));
+            typeof ceFDev === 'function' && ceFDev(F, 'vest', () => ({ msg: ceDevAct(a) + ' accepted by Vest in ' + ceDevMs(ceNow() - t), symbol: a.symbol, kind: a.kind, ok: true, ms: ceRound(ceNow() - t), resp: r.resp, warn: plan.warn }));
             // a resting order of ours needs its Cancel button: catch the writer once the order shows (the periodic check keeps trying)
             if (a.orderType === 'limit' && !ceHave('cancel')) { F.wantCancel = true; setTimeout(() => { if (F.wantCancel && !F.busy) ceFollowerWarmCancel(F, true).then((ok) => { if (ok) F.wantCancel = false; }).catch(() => {}); }, 300); }
         } catch (e) {
@@ -15515,6 +16969,7 @@ async function ceFollowerRun(F, d) {
     // effect usually shows a moment later, so a second snapshot follows, tagged with this exec.
     let snap = null;
     try { snap = ceFollowerSnapshot(F); } catch (e) { snap = null; }
+    typeof ceFDev === 'function' && ceFDev(F, 'tabs', () => ({ msg: 'answering the extension: ' + results.filter((r) => r.ok).length + ' of ' + results.length + ' accepted' + (snap ? ', own account attached' : ', no snapshot to attach (its store is not readable)'), rid: d.rid, ok: results.filter((r) => r.ok).length, n: results.length }));
     cePost(Object.assign({ op: 'reply', rid: d.rid, ok: true, accountId: F.id, results }, snap ? { snap } : {}));
     if (snap && !F.stopped) {
         if (F.afterT) clearTimeout(F.afterT);
@@ -15622,6 +17077,11 @@ function cuName(id) {
     }
     const a = cuAccounts().find((x) => String(x.id) === String(id));
     return a && a.name ? a.name : String(id == null ? '?' : id).slice(0, 8);
+}
+// What the owner did in the widget goes into the DEV log (cpDev does nothing in the shipped builds); `what` is plain words.
+// `what` and `fields` may be functions: they run only in the DEV build, so a shipped build builds no strings here.
+function cuLog(cat, what, fields) {
+    typeof cpDev === 'function' && cpDev(cat, () => Object.assign({ msg: 'widget: ' + (typeof what === 'function' ? what() : what), ui: 'widget' }, (typeof fields === 'function' ? fields() : fields) || {}));
 }
 function cuDevOn() { try { return localStorage.getItem('ax4p-dev') === '1'; } catch (e) { return false; } }
 // "NQ-PERP" -> "NQ", "ETH-USD-PERP" -> "ETH"
@@ -16286,7 +17746,13 @@ function cuBuildPanel() {
         cuEl('div', { id: 'ax4p-copy-eng', class: 'cu-eng' }, [
             cuEl('div', { class: 'cu-lab', text: 'Mode' }),
             cuEl('div', { id: 'ax4p-copy-eng-seg', class: 'cu-seg', role: 'group', 'aria-label': 'Mode' }, [seg('tabs', 'Turbo'), seg('direct', 'Light')]),
-            cuEl('div', { id: 'ax4p-copy-eng-hint', class: 'cu-mkhint' })
+            cuEl('div', { id: 'ax4p-copy-eng-hint', class: 'cu-mkhint' }),
+            // Ultra-fast (c.sendAtPending): opens and adds go out with the leader's order instead of at Vest's OK
+            cuEl('label', { id: 'ax4p-copy-ultra-row', class: 'cu-auto', title: 'On: your opens and adds go to the followers as your order goes out, about one round trip sooner. If Vest refuses your order, the followers are closed again.' }, [
+                cuEl('span', { text: 'Ultra-fast' }),
+                cuEl('input', { id: 'ax4p-copy-ultra', type: 'checkbox', 'aria-label': 'Ultra-fast', onchange: cuOnUltra })
+            ]),
+            cuEl('div', { id: 'ax4p-copy-ultra-hint', class: 'cu-mkhint', text: 'Opens and adds go out with your order, about one round trip sooner. If Vest refuses your order, the followers are closed again.' })
         ]),
         // the market selector: every market the leader trades (switch), or only the ones picked here
         cuEl('div', { class: 'cu-mkbox' }, [
@@ -16371,6 +17837,7 @@ function cuBuildPanel() {
 }
 
 function cuSetTab(t) {
+    if (CU.panel && t !== CU.tab) cuLog('ui', 'widget tab: ' + t, { control: 'tab' });
     CU.tab = t === 'test' ? 'test' : 'log';
     ['log', 'test'].forEach((id) => {
         const b = cuById('ax4p-copy-tab-' + id), pane = cuById('ax4p-copy-pane-' + id);
@@ -16460,6 +17927,7 @@ function cuDrag(panel, handle) {
 
 function cuToggle() { if (CU.open) cuClose(); else cuOpen(); }
 function cuOpen() {
+    cuLog('ui', 'widget opened', { control: 'open' });
     cuBuildPanel();
     CU.open = true;
     CU.panel.classList.add('open');
@@ -16468,6 +17936,7 @@ function cuOpen() {
     cuRender();
 }
 function cuClose() {
+    cuLog('ui', 'widget closed', { control: 'close' });
     CU.open = false;
     if (CU.panel) CU.panel.classList.remove('open');
     if (CU.unsubRun) { try { CU.unsubRun(); } catch (e) {} CU.unsubRun = null; }
@@ -16580,6 +18049,11 @@ function cuPaintEngine(m) {
     });
     cuById('ax4p-copy-eng-seg').className = 'cu-seg' + (ov.running ? ' locked' : '');
     cuText(cuById('ax4p-copy-eng-hint'), CU_MODES[ov.engine].hint + (turboOff && ov.engine === 'direct' ? ' Turbo is off for now.' : ''));
+    const uw = cuById('ax4p-copy-ultra');
+    const hasUltra = typeof cpSetUltraFast === 'function' && !CU.demo;
+    cuById('ax4p-copy-ultra-row').hidden = !hasUltra;
+    cuById('ax4p-copy-ultra-hint').hidden = !hasUltra;
+    if (hasUltra && document.activeElement !== uw) { try { uw.checked = cpUltraFastOn(); } catch (e) {} }
 }
 function cuOnEngine(id) {
     const m = cuCurrent();
@@ -16587,6 +18061,7 @@ function cuOnEngine(id) {
     if (m.overall.running) { cuNote('Switch copying off to change the mode.'); return; }
     if (CU.demo) { cuDemoAct('engine', id); return; }
     if (typeof cpSetEngine !== 'function') return;
+    cuLog('you', 'mode changed to ' + (CU_MODES[id] ? CU_MODES[id].word : id), { control: 'engine', engine: id });
     let r = null;
     try { r = cpSetEngine(id); } catch (e) { r = { ok: false, why: cuMsg(e) }; }
     if (r === false || (r && r.ok === false)) cuNote((r && r.why) || 'Could not change the mode.');
@@ -17310,7 +18785,9 @@ async function cuPreviewGate(ids, what) {
     const text = cuPreviewText(p);
     const n = Array.isArray(p.actions) ? p.actions.length : 0;
     if (!text && !n) return true;
-    return cuAsk(text || 'Orders to send now: ' + n, 'Copy now', 'This goes out now');
+    const yes = await cuAsk(text || 'Orders to send now: ' + n, 'Copy now', 'This goes out now');
+    cuLog('you', () => 'preview for ' + what + ': ' + (yes ? 'pressed Copy now' : 'cancelled'), () => ({ control: 'preview', yes, orders: n, text: text.slice(0, 600) }));
+    return yes;
 }
 // The core's own sentence. When it has none, the actions say it: one line per kind of action, with the followers it goes to
 // ("Place NQ-PERP buy limit 2 @ 31,000 on 9 followers", "Cancel NQ-PERP buy limit 2 @ 31,000 on 3 followers").
@@ -17337,6 +18814,7 @@ async function cuOnMaster(e) {
     if (CU.demo) { cuDemoAct('master', want); return; }
     const cfg = cuCfg();
     if (!cfg) return;
+    cuLog('you', 'Copying switch turned ' + (want ? 'ON' : 'OFF'), { control: 'master', on: want });
     if (!want) {
         if (typeof cpStop === 'function') await cpStop('master switch');
         cuNote('');
@@ -17359,6 +18837,7 @@ async function cuSwitchOn(box, cfg) {
     try { needAck = typeof cpAckNeeded === 'function' && cpAckNeeded(); } catch (x) {}
     if (needAck) {
         const yes = await cuAsk(typeof CP_ACK_TEXT === 'string' ? CP_ACK_TEXT : '', 'I understand, switch it on', 'Before you copy');
+        cuLog('you', 'risk note: ' + (yes ? 'accepted' : 'declined'), { control: 'ack', yes });
         if (!yes) { box.checked = false; cuRender(); return; }
         if (typeof cpAck === 'function') cpAck();
     }
@@ -17374,6 +18853,7 @@ function cuOnLeader(e) {
     const cfg = cuCfg();
     if (!cfg || cuOverall().running) return;
     const id = e.target.value;
+    cuLog('you', () => 'leader changed ' + (cfg.leaderId ? cuName(cfg.leaderId) : 'none') + ' -> ' + cuName(id), () => ({ control: 'leader', from: cfg.leaderId, to: String(id) }));
     cfg.leaderId = String(id);
     cfg.resume = null;
     // the leader is never its own follower
@@ -17384,6 +18864,7 @@ function cuOnLeader(e) {
 async function cuOnFollowerOn(id, box) {
     const want = !!box.checked;
     if (CU.demo) { cuDemoAct('follower', id, want); return; }
+    cuLog('you', () => cuName(id) + ' switched ' + (want ? 'ON' : 'OFF') + ' as a follower', { control: 'follower', acc: id, on: want });
     cuNote('');
     if (want && cuOnCount(id) >= CU_MAX_FOLLOWERS) {
         cuNote('Up to ' + CU_MAX_FOLLOWERS + ' accounts can copy at once. Switch one off first.');
@@ -17416,11 +18897,13 @@ function cuOnRatio(id, n, box) {
     cuNote('');
     if (box) box.value = String(n);
     if (CU.demo) { cuDemoAct('ratio', id, n); return; }
+    cuLog('you', () => cuName(id) + ' ratio set to ' + n, { control: 'ratio', acc: id, ratio: n });
     cuEditFollower(id, { ratio: n });
     cuRender();
 }
 function cuOnForget(sym) {
     if (CU.demo) { cuDemoAct('forget', sym); return; }
+    cuLog('you', 'market ' + sym + ' removed from the copied markets', { control: 'forget', market: sym });
     let r = null;
     try { r = typeof cpForgetMarket === 'function' ? cpForgetMarket(sym) : null; } catch (e) { r = { ok: false, why: cuMsg(e) }; }
     if (r && r.ok === false) cuNote(r.why || 'Could not forget ' + sym + '.');
@@ -17431,17 +18914,27 @@ function cuOnAuto(e) {
     const want = !!e.target.checked;
     if (CU.demo) { cuDemoAct('auto', want); return; }
     if (typeof cpSetAutoMarkets !== 'function') return;
+    cuLog('you', 'Every market the leader trades switched ' + (want ? 'ON' : 'OFF'), { control: 'auto-markets', on: want });
     try { cpSetAutoMarkets(want); cuNote(''); } catch (x) { cuNote('Could not change that: ' + cuMsg(x)); }
+    cuRender();
+}
+function cuOnUltra(e) {
+    const want = !!e.target.checked;
+    if (CU.demo || typeof cpSetUltraFast !== 'function') return;
+    cuLog('you', 'Ultra-fast switched ' + (want ? 'ON' : 'OFF'), { control: 'ultra-fast', on: want });
+    try { cpSetUltraFast(want); cuNote(want ? 'Ultra-fast is on: opens and adds go out with your order.' : ''); } catch (x) { cuNote('Could not change that: ' + cuMsg(x)); }
     cuRender();
 }
 function cuOnMirror(e) {
     const want = !!e.target.checked;
     if (CU.demo || typeof cpSetMirrorLimits !== 'function') return;
+    cuLog('you', 'Mirror limit orders switched ' + (want ? 'ON' : 'OFF'), { control: 'mirror-limits', on: want });
     try { cpSetMirrorLimits(want); cuNote(want ? '' : 'Limit orders are not mirrored. Positions are still copied.'); } catch (x) { cuNote('Could not change that: ' + cuMsg(x)); }
     cuRender();
 }
 function cuOnAddMarket(sym) {
     if (CU.demo) { cuDemoAct('addMarket', sym); cuClosePicker(); return; }
+    cuLog('you', 'market ' + sym + ' added to the copied markets', { control: 'add-market', market: sym });
     let r = null;
     try { r = typeof cpAddMarket === 'function' ? cpAddMarket(sym) : null; } catch (e) { r = { ok: false, why: cuMsg(e) }; }
     if (r && r.ok === false) { cuNote(r.why || 'Could not add ' + cuSym(sym) + '.'); cuRender(); return; }
@@ -17451,17 +18944,19 @@ function cuOnAddMarket(sym) {
 }
 function cuOnChip(id) {
     if (CU.demo) return;
-    if (CU.live[id] === 'paused' && typeof cpResume === 'function') { cpResume(id); cuNote(cuName(id) + ' resumed.'); cuRender(); }
+    if (CU.live[id] === 'paused' && typeof cpResume === 'function') { cuLog('you', () => 'pressed resume on ' + cuName(id), { control: 'resume', acc: id }); cpResume(id); cuNote(cuName(id) + ' resumed.'); cuRender(); }
 }
 async function cuOnKill() {
     if (CU.demo) { cuDemoAct('kill'); return; }
     if (typeof crStop === 'function') crStop();
+    cuLog('you', () => (cuOverall().killed ? 'pressed KILL again (flatten the followers)' : 'pressed KILL'), () => ({ control: 'kill', again: !!cuOverall().killed }));
     if (!cuOverall().killed) {
         try { if (typeof cpKillPress === 'function') await cpKillPress(); } catch (e) { cuNote('Kill failed: ' + cuMsg(e)); }
         cuRender();
         return;
     }
     const yes = await cuAsk('Close every follower position in the copied markets now? The leader is not touched.', 'Flatten followers', 'Flatten followers');
+    cuLog('you', 'flatten followers: ' + (yes ? 'confirmed' : 'cancelled'), { control: 'flatten', yes });
     if (!yes) return;
     try { if (typeof cpFlatten === 'function') await cpFlatten(); } catch (e) { cuNote('Flatten failed: ' + cuMsg(e)); }
     cuRender();
@@ -17482,12 +18977,14 @@ async function cuOnTest() {
     const names = (cfg.followers || []).filter((f) => f && f.on && String(f.accountId) !== String(cfg.leaderId)).map((f) => cuName(f.accountId));
     const yes = await cuAsk('REAL ORDERS on the leader (' + cuName(cfg.leaderId) + '): ' + sym + ' long ' + size + (chk.cap > 0 ? ' (test limit ' + chk.cap + ')' : '') + ' with TP and SL, move TP, add a TP, reduce 50%, reverse, close. '
         + 'Copied to ' + (names.join(', ') || 'no one') + '. Stops on Kill.', 'Run the test', 'Real orders');
+    cuLog('you', 'test run (REAL orders) on ' + sym + ' size ' + size + ': ' + (yes ? 'started' : 'cancelled'), { control: 'test-run', yes, market: sym, size });
     if (!yes) { msg.textContent = 'Cancelled.'; return; }
     const rep = await crRun({ symbol: sym, size });
     if (rep && rep.why) msg.textContent = rep.why;
 }
 
 function cuOnExport() {
+    cuLog('ui', 'pressed Export (the normal copy log)', { control: 'export' });
     let text = '';
     if (CU.demo) text = JSON.stringify(CU.demo.log, null, 2);
     else {
@@ -17888,6 +19385,7 @@ function cuOnKey(e) {
     } catch (x) {}
 }
 
+
 // ---------- start ----------
 function cuPaintAll() {
     if (CU.open) cuLeaderDefault();
@@ -17926,6 +19424,12 @@ const CR_POLL_MS = 250;
 
 const CR = { running: false, stop: false, msg: '', steps: [], report: null, listeners: [], wake: null };
 
+// the debug log of the DEV build (cpDev does nothing in the shipped ones): what the test run decides and sees, in words.
+// `msg` and `fields` may be functions: they run only in the DEV build, so the send path builds no strings in a shipped one.
+function crDev(msg, fields, cat) {
+    typeof cpDev === 'function' && cpDev(cat || 'state', () => Object.assign({ msg: 'test run: ' + (typeof msg === 'function' ? msg() : msg) }, (typeof fields === 'function' ? fields() : fields) || {}));
+}
+
 function crOnChange(cb) {
     CR.listeners.push(cb);
     return () => { const i = CR.listeners.indexOf(cb); if (i >= 0) CR.listeners.splice(i, 1); };
@@ -17939,9 +19443,11 @@ function crEmit() {
 // the Kill button calls this; the step machine looks at it between every await
 function crStop() {
     CR.stop = true;
+    crDev('stop requested' + (CR.running ? ': it stops before its next step' : ' (no run was going)'), { running: CR.running });
     if (CR.running) { CR.msg = 'Stopping...'; crEmit(); }
 }
 
+const crName = (id) => (typeof cpName === 'function' ? cpName(id) : String(id));
 function crRound(n, d) {
     const k = Math.pow(10, d == null ? 8 : d);
     return Math.round(n * k) / k;
@@ -18125,6 +19631,8 @@ async function crSend(deps, pre, writers, action) {
     if (CR.stop || deps.killed()) throw new Error('stopped');
     if (String(deps.active()) !== pre.leader) throw new Error('the active account is not the leader, nothing was sent');
     const plan = deps.plan(action);
+    // the order that goes to the leader: the owner started the run, so this starts a chain like a click would
+    crDev(() => 'sending to the leader: ' + (typeof cpDvAct === 'function' ? cpDvAct(action) : action.kind + ' ' + action.symbol), () => ({ symbol: pre.sym, kind: action.kind, side: action.side, qty: action.qty, calls: plan.calls.length }), 'you');
     return Promise.all(plan.calls.map((c) => deps.call(writers, c)));
 }
 
@@ -18184,19 +19692,22 @@ async function crBattery(deps, pre, rep) {
         for (const st of plan.steps) {
             const rec = { name: st.name, status: 'run', ackMs: null, leaderMs: null, followers: {} };
             CR.steps.push(rec); crEmit();
-            if (CR.stop || deps.killed()) { rec.status = 'skipped'; rep.killed = true; crEmit(); break; }
+            crDev('step "' + st.name + '" starts (expects ' + (st.exp.side ? st.exp.side + ' ' + st.exp.qty : 'flat') + ' on the leader and, times each ratio, on ' + pre.followers.length + ' follower' + (pre.followers.length === 1 ? '' : 's') + ')', { symbol: pre.sym, step: st.name, expect: st.exp });
+            if (CR.stop || deps.killed()) { rec.status = 'skipped'; rep.killed = true; crDev('step "' + st.name + '" skipped: ' + (deps.killed() ? 'the kill switch is on' : 'stopped'), { symbol: pre.sym, step: st.name }); crEmit(); break; }
             const t0 = deps.now();
             try {
                 await st.run(send);
             } catch (e) {
                 const msg = (e && e.message) || String(e);
-                if (msg === 'stopped') { rec.status = 'stopped'; rep.killed = true; crEmit(); break; }
+                if (msg === 'stopped') { rec.status = 'stopped'; rep.killed = true; crDev('step "' + st.name + '" stopped before its order went out', { symbol: pre.sym, step: st.name }); crEmit(); break; }
                 rec.status = 'error'; rec.error = msg;
+                crDev('step "' + st.name + '" failed to send: ' + msg, { symbol: pre.sym, step: st.name, error: msg }, 'error');
                 rep.errors.push({ step: st.name, error: msg });
                 crEmit();
                 break;
             }
             rec.ackMs = Math.round(deps.now() - t0);
+            crDev('step "' + st.name + '": the leader\'s order was acknowledged after ' + rec.ackMs + ' ms, now waiting for the leader and every follower to show it (up to ' + deps.timeoutMs + ' ms)', { symbol: pre.sym, step: st.name, ackMs: rec.ackMs });
             try { deps.nudge(pre.sym); } catch (e) {}
             let r;
             if (st.exp.follow) {
@@ -18210,11 +19721,12 @@ async function crBattery(deps, pre, rep) {
                     r = { res: Object.assign({}, rl.res, rf.res), killed: rf.killed };
                 }
             } else r = await crWaitMatch(deps, targets, st.exp, t0, pre.sym, mk);
-            if (r.killed) { rec.status = 'stopped'; rep.killed = true; crEmit(); break; }
+            if (r.killed) { rec.status = 'stopped'; rep.killed = true; crDev('step "' + st.name + '" stopped while waiting for the books', { symbol: pre.sym, step: st.name }); crEmit(); break; }
             const lead = r.res[pre.leader];
             rec.leaderMs = lead.ok ? lead.ms : null;
             if (!lead.ok) {
                 rec.status = 'error'; rec.error = 'the leader never showed the result: ' + lead.why;
+                crDev('step "' + st.name + '": ' + rec.error, { symbol: pre.sym, step: st.name, why: lead.why }, 'error');
                 rep.errors.push({ step: st.name, error: rec.error });
                 crEmit();
                 break;
@@ -18232,6 +19744,8 @@ async function crBattery(deps, pre, rep) {
                 else { bad++; rep.mismatches.push({ step: st.name, follower: f.id, why: x.why }); }
             });
             rec.status = bad ? 'mismatch' : 'ok';
+            crDev(() => 'step "' + st.name + '" ' + (bad ? 'MISMATCH' : 'ok') + ': the leader showed it after ' + rec.leaderMs + ' ms; ' + pre.followers.map((x) => crName(x.id) + ' ' + (rec.followers[x.id].ms != null ? rec.followers[x.id].ms + ' ms' : 'never (' + rec.followers[x.id].why + ')')).join(', '),
+                () => ({ symbol: pre.sym, step: st.name, status: rec.status, leaderMs: rec.leaderMs, followers: rec.followers }), bad ? 'error' : 'state');
             crEmit();
             if (bad) break; // never pile more orders on top of followers that are out of line
         }
@@ -18274,7 +19788,9 @@ async function crRun(opts) {
     } catch (e) {
         pre = { ok: false, why: 'Pre-flight failed: ' + ((e && e.message) || e) };
     }
-    if (!pre.ok) { CR.running = false; CR.msg = pre.why; crEmit(); return { ok: false, why: pre.why }; }
+    if (!pre.ok) { CR.running = false; CR.msg = pre.why; crDev('refused before any order: ' + pre.why, { why: pre.why, symbol: o.symbol, size: o.size }); crEmit(); return { ok: false, why: pre.why }; }
+    crDev(() => 'pre-flight passed: ' + pre.sym + ' size ' + pre.size + ' (cap ' + pre.cap + ') at about ' + pre.px + ', leader ' + crName(pre.leader) + ', followers ' + pre.followers.map((x) => crName(x.id) + ' x' + x.ratio).join(', ') + ', engine ' + pre.engine + '. It walks open, TP move, TP add, reduce, reverse, close and times every follower',
+        () => ({ symbol: pre.sym, size: pre.size, price: pre.px, engine: pre.engine }));
     const rep = { ok: false, startedAt: Date.now(), endedAt: 0, symbol: pre.sym, size: pre.size, engine: pre.engine, leader: pre.leader,
         followers: pre.followers.map((f) => f.id), killed: false, completed: false, steps: [], samples: [], stats: {}, mismatches: [], errors: [] };
     CR.msg = 'Running ' + pre.sym + ' ' + pre.size;
@@ -18287,6 +19803,8 @@ async function crRun(opts) {
     rep.steps = CR.steps.map((s) => Object.assign({}, s));
     rep.endedAt = Date.now();
     rep.ok = rep.completed && !rep.mismatches.length && !rep.errors.length && !rep.killed;
+    crDev(() => 'finished: ' + (rep.ok ? 'every follower matched every step' : rep.killed ? 'stopped before the end' : 'with problems (' + rep.mismatches.length + ' mismatch' + (rep.mismatches.length === 1 ? '' : 'es') + ', ' + rep.errors.length + ' error' + (rep.errors.length === 1 ? '' : 's') + ')')
+        + (rep.completed ? '' : '. A stopped or failed run can leave the test position open: check the leader and followers by hand'), () => ({ symbol: rep.symbol, ok: rep.ok, killed: rep.killed, stats: rep.stats, mismatches: rep.mismatches, errors: rep.errors }));
     try { rep.savedTo = deps.save(rep); } catch (e) {}
     CR.report = rep;
     CR.running = false;
