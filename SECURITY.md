@@ -20,7 +20,7 @@ People keep asking, and they should. Anything that sits next to your trading acc
 |---|---|
 | `storage` | To keep your settings and the update status. |
 | `alarms` | For the update check every 30 minutes. |
-| `tabGroups` | Only for the copy trader's Turbo mode: its hidden follower tabs go into one collapsed group called Copy, out of your way. Turbo is switched off in 8.0.4, so nothing uses it right now. |
+| `tabGroups` | Only for the copy trader's Turbo mode: its hidden follower tabs go into one collapsed group called Copy, out of your way. Light, the default, doesn't use it. |
 | Site access: `https://next.vestmarkets.com/*` | That's where the dock, the card and the chart tools live. It doesn't run on any other site. |
 
 That's the full list. It can't read your browsing history or cookies, and it doesn't touch your other tabs or downloads. You can see the same list yourself on `chrome://extensions` → Better Vest → **Details**.
@@ -63,7 +63,7 @@ It's off until you open it and switch it on. Then:
 
 - **What it watches:** your leader account's positions and resting limit orders, in the data Vest already keeps on the page and in Vest's own live feed. It also watches Vest's own order system, read-only, to see the moment Vest accepts one of your orders, so it can copy right away. It never sends anything through it.
 - **How it copies:** when a follower needs an order to match the leader, it calls Vest's own order functions (the ones Vest's order ticket, its Close window and its TP/SL windows call) with that follower's account. Vest's code gets that account's login for the order and sends it, exactly as if you'd traded that account yourself.
-- **Turbo (switched off in 8.0.4):** one hidden Vest tab per follower, grouped and collapsed as "Copy". Each one is set to its follower account in that tab only, with Vest's own account switch, and without changing which account Vest opens by default for you. Your leader tab sends it what to copy through the extension itself (nothing leaves your computer for that), and the follower tab calls Vest's own order code for its own account. The tabs close when you switch copying off.
+- **Turbo:** one hidden Vest tab per follower, grouped and collapsed as "Copy". Each one is set to its follower account in that tab only, with Vest's own account switch, and without changing which account Vest opens by default for you. Your leader tab sends it what to copy through the extension itself (nothing leaves your computer for that), and the follower tab calls Vest's own order code for its own account. The tabs close when you switch copying off.
 - **Light (the default): the account switch you don't see.** In Light mode everything runs from your leader tab. A new position names the follower's account directly. For everything else (adding, closing, TP and SL, limit orders), Vest's functions take the account from the page's active account. So for each of those orders Better Vest sets the follower as active, starts the order and sets the leader back, all in one step of the page's code. The screen never shows the follower.
 - **Cancelling copied limit orders:** Vest's cancel function only exists while its Open Orders tab is on the page. So the first time a copied limit order may need cancelling after the page loads, Better Vest opens that tab for a moment and puts your previous tab back.
 - **What it never does:** it never trades the leader account, never reads or keeps your login token, never changes an account setting (a follower's leverage comes from the leader's position, inside the order), never withdraws. It only ever cancels orders it placed itself.
@@ -108,13 +108,13 @@ If anything is off, nothing changes. If writing fails halfway, the old files go 
 ## Check it yourself
 
 1. **Read the code.** The [`extension`](extension) folder in this repo is the zip, file for file. It isn't minified or obfuscated, so you can read it in your browser.
-2. **Check the zip is that code.** The SHA-256 of `better-vest-8.0.4.zip` is:
+2. **Check the zip is that code.** The SHA-256 of `better-vest-8.0.5.zip` is:
 
-   `688672587534d531ae81f904ed35a51bf488706e9c1fefa634c39f748ccc45de`
+   `9a053c88f0117554e8967bf496c193baf456f686b0c5846d601b82d69ae0cd45`
 
-   - On Mac: `shasum -a 256 better-vest-8.0.4.zip`
-   - On Windows: `certutil -hashfile better-vest-8.0.4.zip SHA256`
-3. **Scan it.** VirusTotal checks a file with more than 60 antivirus engines. Upload the zip at [virustotal.com](https://www.virustotal.com) and you get the result for that exact file. The last version I scanned there, 8.0.4, came back with 0 of 64 engines flagging it ([report](https://www.virustotal.com/gui/file/688672587534d531ae81f904ed35a51bf488706e9c1fefa634c39f748ccc45de)).
+   - On Mac: `shasum -a 256 better-vest-8.0.5.zip`
+   - On Windows: `certutil -hashfile better-vest-8.0.5.zip SHA256`
+3. **Scan it.** VirusTotal checks a file with more than 60 antivirus engines. Upload the zip at [virustotal.com](https://www.virustotal.com) and you get the result for that exact file. The last version I scanned there, 8.0.5, came back with 0 of 65 engines flagging it ([report](https://www.virustotal.com/gui/file/9a053c88f0117554e8967bf496c193baf456f686b0c5846d601b82d69ae0cd45)).
 
    Reports for earlier versions also had an AI summary, "Code insights", which marked two things as suspicious. Both are on this page: the WICK code switch ([The WICK code](#the-wick-code)) and the updater writing its own files ([Updates are signed](#updates-are-signed)).
 4. **Watch it work.** Open Chrome's DevTools on the Vest tab (F12), go to Network, and use Better Vest. You'll only see the addresses listed above.

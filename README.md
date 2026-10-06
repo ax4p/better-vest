@@ -38,7 +38,13 @@ It doesn't send orders of its own. It calls Vest's own order code, the same code
 
 Two speeds:
 - **Light** (the default) runs everything from your own tab, with no extra tabs.
-- **Turbo** keeps one hidden Vest tab per follower, grouped and collapsed, each set to its own account, so every copy is a single trip to Vest. It's switched off in 8.0.4 while I make it more stable.
+- **Turbo** keeps one hidden Vest tab per follower, grouped and collapsed, each set to its own account, so every copy is a single trip to Vest. Keep those tabs open while you copy.
+
+**Ultra-fast** is a switch under the mode, off by default. Your opens and adds go out to the followers the moment your order leaves, about one round trip sooner. If Vest refuses your order, the followers are closed again.
+
+Rough speeds with nine followers on my own accounts, from Vest accepting your order to the last follower's answer: about 0.35 to 0.45 seconds on Light, about 0.2 to 0.35 seconds with Ultra-fast, and about 0.1 to 0.25 seconds on Turbo with Ultra-fast. Your connection and Vest's load change these.
+
+If one follower has a sign-in problem at Vest, it waits a moment and tries again (after 1, 2, 4, then 6 seconds) while the others keep copying.
 
 You stay in charge:
 - The first time, it tells you plainly that it places real orders.
