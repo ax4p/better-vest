@@ -695,23 +695,30 @@ const COPY_MAX_ACTIONS = 256;
 const COPY_SNAP_BYTES = 200 * 1024; // a follower tab's snapshot of its own account (positions, orders, events) is small; anything bigger is not one
 const COPY_MARKET_RE = /^[A-Za-z0-9._-]{1,40}$/;
 const COPY_ID_RE = /^[\w.:-]{1,128}$/;
-const COPY_EXEC_BASE_MS = 4000;   // an exec message gets this plus COPY_EXEC_PER_MS for each of its actions (the page's own limit is 5 s per action)
-const COPY_EXEC_PER_MS = 6000;
+// An exec message gets BASE plus PER for each of its actions (the page's own limit is 5 s per action). The leader tab's own limit for the batch is
+// CE_T.actionMs per action plus CE_T.slackMs (20-engines.js): it must stay ABOVE this one, so that the worker, not the leader, ends a hung tab
+// and every other follower's result still reaches the leader. The tab drops an exec that is older than this when it finally runs it.
+const COPY_EXEC_BASE_MS = 3000;
+const COPY_EXEC_PER_MS = 5000;
 const COPY_EXEC_MAX_MS = 60000;
-const COPY_PING_MS = 3000;
+const COPY_PING_MS = 8000;        // a tab's main thread can be busy for seconds (eleven Vest tabs on one machine): that is not a crash
+const COPY_ALIVE_MS = 10000;      // a tab that pushed a snapshot or answered an exec this lately is alive: the watch does not ping it
+const COPY_RELOAD_GRACE_MS = 30000; // a tab that became ready this lately is not reloaded by the watch
 const COPY_STAGGER_MS = 250;      // tabs are opened this far apart: nine tabs refreshing a login at one instant could log each other out
 const COPY_REOPEN_MAX = 5;
 const COPY_REOPEN_WINDOW_MS = 2 * 60 * 1000;
 const COPY_ORIGIN = 'https://next.vestmarkets.com/';
 const COPY_LOG_KEY = 'copy:log';
-const COPY_LOG_MAX = 1000;
-const COPY_LOG_BYTES = 400 * 1024;
+const COPY_LOG_MAX = 3000; // 8.0.5: a 10-follower order writes about 20 to 50 lines; 1000 held only about 20 orders
+const COPY_LOG_BYTES = 2 * 1024 * 1024; // 8.0.5: 3000 lines, and trouble lines carry their debug trail (code + state); storage.local allows 10 MB
 
 const copyBlank = () => ({ on: false, market: null, leaderTabId: null, windowId: null, groupId: null, followers: {}, specs: {} });
 let copyState = null;
 let copyLoading = null;
 let copyChain = Promise.resolve();
 let copySeq = 0;
+const copyAlive = new Map();     // tabId -> when the tab last pushed a snapshot, answered an exec or announced itself (memory only: a restart pings once)
+const copyInflight = new Map();  // tabId -> exec messages on their way to the tab: a busy tab is never taken for a dead one
 
 function copyLoad() {
     if (copyState) return Promise.resolve(copyState);
@@ -749,6 +756,35 @@ const copyTabAlive = (tabId) => (tabId == null ? Promise.resolve(false) : chrome
 function copyNotifyLeader(st, payload) {
     if (st.leaderTabId == null) return;
     chrome.tabs.sendMessage(st.leaderTabId, Object.assign({ type: 'copy' }, payload)).catch(() => {});
+}
+
+
+// Chrome frees a hidden tab that has not been used for a while (memory saver) unless it is told not to; the flag is set when a tab is created, and
+// set again whenever the worker hears from it or looks at it (it costs nothing, and a tab that was replaced, restored or discarded and reloaded
+// keeps it only because Chrome says so).
+const copyKeep = (tabId) => { if (tabId != null) chrome.tabs.update(tabId, { autoDiscardable: false }).catch(() => {}); };
+
+// A tab that did not receive an exec (no receiver: it was discarded, crashed or is on an error page) is reloaded at once, not at the next 30 s watch.
+// A tab that is merely loading is left alone, and one tab is reloaded at most every 10 s. The leader has already been told (copyUnready).
+async function copyRecover(st, id, tabId) {
+    const f = copyFollower(st, id);
+    if (!f || f.tabId !== tabId || Date.now() - (f.reloadAt || 0) < 10000) return;
+    const tab = await chrome.tabs.get(tabId).catch(() => null);
+    if (!tab || (!tab.discarded && tab.status !== 'complete')) return;
+    f.reloadAt = Date.now();
+    chrome.tabs.reload(tabId).catch(() => {});
+}
+
+// A follower tab that cannot take actions now. The leader is told at once (its engine then refuses that follower's actions, which is not an
+// attempt): until now only a closed tab was reported, so the leader kept sending, got 'follower-not-ready' (counted as an attempt) and paused the
+// follower after two tries with a text that hid the cause. `why` is for the log.
+function copyUnready(st, id, why) {
+    const f = copyFollower(st, id);
+    if (!f) return;
+    f.ready = false;
+    f.readyAt = 0;
+    copySave();
+    copyNotifyLeader(st, { op: 'follower-lost', accountId: id, why });
 }
 
 async function copyArmWatch(on) {
@@ -800,7 +836,9 @@ async function copyCreateTabs(st, accountIds) {
         gid = await chrome.tabs.group(gid != null ? { groupId: gid, tabIds: made.map((t) => t.id) } : { tabIds: made.map((t) => t.id), createProperties: { windowId: winId } });
         st.groupId = gid;
         await chrome.tabGroups.update(gid, { title: 'Copy', color: 'blue', collapsed: true });
-    } catch (e) { /* the tabs work ungrouped too */ }
+    } catch (e) {
+        /* the tabs work ungrouped too */
+    }
 }
 
 async function copyShutdown(st) {
@@ -933,6 +971,7 @@ async function copyExec(sender, msg) {
         if (!groups.has(a.accountId)) groups.set(a.accountId, []);
         groups.get(a.accountId).push(i);
     }
+    const bid = typeof msg.bid === 'string' && COPY_ID_RE.test(msg.bid) ? msg.bid : null; // the leader's name for this batch: each tab's result is relayed under it
     const specs = copySpecsOf(msg.specs);
     if (Object.keys(specs).length) st.specs = Object.assign(isObj(st.specs) ? st.specs : {}, specs); // kept in memory, saved with the next save
     const startedAt = Date.now();
@@ -944,12 +983,15 @@ async function copyExec(sender, msg) {
     await Promise.all([...groups].map(async ([id, idxs]) => {
         const f = copyFollower(st, id);
         if (!f) return fail(idxs, 'unknown-follower');
-        if (f.tabId == null || !f.ready || f.failed) return fail(idxs, 'follower-not-ready');
+        if (f.tabId == null || !f.ready || f.failed) { copyNotifyLeader(st, { op: 'follower-lost', accountId: id, why: 'not-ready' }); return fail(idxs, 'follower-not-ready'); }
         const sent = performance.now();
+        const tabId = f.tabId;
+        copyInflight.set(tabId, (copyInflight.get(tabId) || 0) + 1);
+        const limitMs = Math.min(COPY_EXEC_MAX_MS, COPY_EXEC_BASE_MS + COPY_EXEC_PER_MS * idxs.length);
         try {
             const resp = await copyTimeout(chrome.tabs.sendMessage(f.tabId, {
-                type: 'copy', op: 'exec', rid: 'x' + (++copySeq) + '-' + startedAt.toString(36), sentAt: Date.now(), actions: idxs.map((i) => actions[i]), specs
-            }), Math.min(COPY_EXEC_MAX_MS, COPY_EXEC_BASE_MS + COPY_EXEC_PER_MS * idxs.length));
+                type: 'copy', op: 'exec', rid: 'x' + (++copySeq) + '-' + startedAt.toString(36), sentAt: Date.now(), limitMs, actions: idxs.map((i) => actions[i]), specs
+            }), limitMs);
             const back = performance.now();
             const arr = resp && Array.isArray(resp.results) ? resp.results : null;
             idxs.forEach((i, n) => {
@@ -958,11 +1000,18 @@ async function copyExec(sender, msg) {
             });
             followers[id] = { sendMs: Math.round((sent - t0) * 10) / 10, rtMs: Math.round((back - sent) * 10) / 10 };
             if (resp && copySnapOk(resp.snap)) snaps[id] = resp.snap;
+            copyAlive.set(tabId, Date.now());
+            // this follower's answer goes to the leader now, not with the whole batch: the leader may give up on the batch (a slow tab, a worker that
+            // went away) and would lose the acknowledgements of every tab that did answer
+            if (bid && arr) copyNotifyLeader(st, { op: 'follower-result', bid, accountId: id, results: arr, snap: resp && copySnapOk(resp.snap) ? resp.snap : undefined });
         } catch (e) {
-            // no receiver means the tab is reloading or gone: stop sending until it announces itself again
-            if (!/timeout/.test(copyErr(e))) f.ready = false;
+            // no receiver means the tab is reloading or gone: stop sending until it announces itself again, and say so to the leader
+            if (!/timeout/.test(copyErr(e))) { copyUnready(st, id, 'send-failed'); copyRecover(st, id, tabId).catch(() => {}); }
             fail(idxs, copyErr(e));
             followers[id] = { sendMs: Math.round((sent - t0) * 10) / 10, rtMs: Math.round((performance.now() - sent) * 10) / 10, error: copyErr(e) };
+        } finally {
+            const n = (copyInflight.get(tabId) || 1) - 1;
+            if (n > 0) copyInflight.set(tabId, n); else copyInflight.delete(tabId);
         }
     }));
     return { ok: true, results, snaps, timings: { startedAt, totalMs: Math.round((performance.now() - t0) * 10) / 10, followers } };
@@ -977,6 +1026,8 @@ function copyReady(sender, msg) {
         f.ready = true;
         f.readyAt = Date.now();
         f.failed = false;
+        copyAlive.set(sender.tab.id, Date.now());
+        copyKeep(sender.tab.id);
         await copySave();
         copyNotifyLeader(st, { op: 'follower-ready', accountId: msg.accountId, label: f.label, tabId: f.tabId });
         return { ok: true, specs: isObj(st.specs) ? st.specs : {} };
@@ -995,6 +1046,7 @@ async function copySnap(sender, msg) {
     const f = st.on ? copyFollower(st, msg.accountId) : null;
     if (!f || !sender.tab || f.tabId !== sender.tab.id) return { ok: false, error: 'unknown-tab' };
     if (!copySnapOk(msg.snap)) return { ok: false, error: 'shape' };
+    copyAlive.set(sender.tab.id, Date.now());
     copyNotifyLeader(st, { op: 'follower-snap', accountId: msg.accountId, snap: msg.snap });
     return { ok: true };
 }
@@ -1007,7 +1059,7 @@ async function copyReopen(st, accountId) {
     const t = Date.now();
     f.reopens = (f.reopens || []).filter((x) => t - x < COPY_REOPEN_WINDOW_MS);
     f.tabId = null;
-    f.ready = false;
+    copyUnready(st, accountId, 'reopen');
     if (f.reopens.length >= COPY_REOPEN_MAX) {
         f.failed = true;
         await copySave();
@@ -1019,25 +1071,61 @@ async function copyReopen(st, accountId) {
     await copySave();
 }
 
-function copyWatch() {
-    return copyLock(async () => {
+// Every 30 s: the tabs match the state, a tab that is gone is opened again, a discarded one is reloaded, a silent one is pinged. The lock is held
+// only for the look at the tabs and for the decision, never across the pings (ten pings in turn held it for up to 30 s, and the follower tabs'
+// own 'follower-ready' needs it). A tab is alive when it pushed a snapshot or answered an exec in the last COPY_ALIVE_MS: only the silent ones are
+// pinged, all at once, and a tab is reloaded only after two missed pings (so 16 s of a busy main thread is forgiven), never with an exec on its way.
+async function copyWatch() {
+    const plan = await copyLock(async () => {
         const st = await copyLoad();
-        if (!st.on) { await copyArmWatch(false); return; }
-        if (!(await copyTabAlive(st.leaderTabId))) { await copyShutdown(st); return; }
+        if (!st.on) { await copyArmWatch(false); return null; }
+        if (!(await copyTabAlive(st.leaderTabId))) { await copyShutdown(st); return null; }
+        const ping = [];
+        const announce = [];
         for (const id of Object.keys(st.followers)) {
             const f = st.followers[id];
             if (f.failed) continue;
             const tab = f.tabId == null ? null : await chrome.tabs.get(f.tabId).catch(() => null);
             if (!tab) { await copyReopen(st, id); continue; }
-            if (tab.discarded) { f.ready = false; chrome.tabs.reload(tab.id).catch(() => {}); continue; }
-            if (tab.status !== 'complete') continue;
-            // the bridge answers a ping without the page: no answer on a finished tab means a crashed or error page
-            try {
-                await copyTimeout(chrome.tabs.sendMessage(tab.id, { type: 'copy', op: 'ping' }), COPY_PING_MS);
-            } catch (e) {
-                f.ready = false;
-                chrome.tabs.reload(tab.id).catch(() => {});
+            if (tab.autoDiscardable !== false) copyKeep(tab.id);
+            if (tab.discarded) { copyUnready(st, id, 'discarded'); chrome.tabs.reload(tab.id).catch(() => {}); continue; }
+            if (tab.status !== 'complete' || copyInflight.has(tab.id)) continue;
+            const heard = Date.now() - (copyAlive.get(tab.id) || 0) < COPY_ALIVE_MS;
+            if (heard) { if (!f.ready) announce.push(tab.id); continue; }
+            ping.push({ id, tabId: tab.id, ready: !!f.ready });
+        }
+        await copySave();
+        return { announce, ping };
+    });
+    if (!plan) return;
+    const quiet = [];
+    await Promise.all([
+        ...plan.announce.map((tabId) => chrome.tabs.sendMessage(tabId, { type: 'copy', op: 'announce' }).catch(() => {})),
+        ...plan.ping.map(async (p) => {
+            // the bridge answers a ping without the page: no answer twice in a row on a finished tab means a crashed or error page
+            for (let k = 0; k < 2; k++) {
+                try {
+                    await copyTimeout(chrome.tabs.sendMessage(p.tabId, { type: 'copy', op: 'ping' }), COPY_PING_MS);
+                    copyAlive.set(p.tabId, Date.now());
+                    if (!p.ready) chrome.tabs.sendMessage(p.tabId, { type: 'copy', op: 'announce' }).catch(() => {});
+                    return;
+                } catch (e) {
+                }
             }
+            quiet.push(p);
+        })
+    ]);
+    if (!quiet.length) return;
+    await copyLock(async () => {
+        const st = await copyLoad();
+        if (!st.on) return;
+        for (const p of quiet) {
+            const f = copyFollower(st, p.id);
+            // judged again: it may have spoken, been replaced or been given an exec while the pings were out
+            if (!f || f.tabId !== p.tabId || copyInflight.has(p.tabId) || Date.now() - (copyAlive.get(p.tabId) || 0) < COPY_ALIVE_MS) continue;
+            if (f.ready && Date.now() - (f.readyAt || 0) < COPY_RELOAD_GRACE_MS) continue;
+            copyUnready(st, p.id, 'ping');
+            chrome.tabs.reload(p.tabId).catch(() => {});
         }
         await copySave();
     });
@@ -1117,7 +1205,7 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
         if (tabId === st.leaderTabId) { await copyShutdown(st); return; }
         const id = copyIdOf(st, tabId);
         if (id === undefined || !st.followers[id].ready) return;
-        st.followers[id].ready = false;
+        copyUnready(st, id, 'loading');
         await copySave();
     }).catch(() => {});
 }); // no filter argument: Chrome's tabs.onUpdated takes none (a filter throws and the whole worker fails to register)

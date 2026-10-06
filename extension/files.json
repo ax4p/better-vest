@@ -1,7 +1,7 @@
 {
  "edition": "standard",
  "files": {
-  "bridge.js": "1dcc0d17176892ba75cb1e754a02d55ba8d1d395e8f0d8f7fcdfe66b5c315d73",
+  "bridge.js": "5b37c728027b94df2eb69f21832f1fa036cd2fae9037c556d1b6bb69b1c0f147",
   "cert/assets/bottom-glow.svg": "102b8d6705faa2d3abf42e4905d72802dc8b70a4db3d857bd2784a816b5c9749",
   "cert/assets/edge-shadow.svg": "ffe946ddd553a866df6a9eca1fb1438e1fd5216200c03226be170e0735501211",
   "cert/assets/green-glow.svg": "9f37a33066466454f697d584cf22fec9b5f2722ab1a7d68df7e110df11a5dfb0",
@@ -39,12 +39,12 @@
   "journal/views/shared.js": "30b1c9b67dd07d7f61ca6e86ed06805b3800b31c8aeeb03de1ce952c199a68aa",
   "journal/views/stats.js": "1bddadc7bd33f9d42854320fe3c9fc68e68cc9102787db5b7d5e215bbcbdcd3f",
   "journal/views/trades.js": "c266b799a68e14b68d912efdcbc81ba541671cc8b99e394eec719c7443404e83",
-  "manifest.json": "5defb4329a09bdb9c102a7f46bfa79c44b5f7ad9969609221342237b6c0960fa",
-  "page/better-vest.js": "bd80408370464f88107f4c255738ddcf91ff9e97b6154cbeb9d31c9da81a5f0a",
+  "manifest.json": "7a05ccd089f9f508383a46b8c7007bbb8e1c5b64e4ed5dc5190d0c03cb39c1a2",
+  "page/better-vest.js": "09620757b121ab7e8be856b104d4d4b56d0874d390d1386066a4fdf77e22a1d9",
   "popup.css": "0153bf508f4bfdb53158ce4b51cd189b21e745ed07a00f1051b5e8d10b3cd231",
   "popup.html": "de23e9701c459ab80096aac695ba89dd0c7bf069810745b6aaaed41ea883ce42",
   "popup.js": "05cd059e1e3502d101d0fae41597302d7d13db15d36a2a64abe121cffac5f49f",
-  "sw.js": "e9fff8ff16dd5cc4fbc95d6e82aa6dc19c5681593ff334cc4ad6965760316628",
+  "sw.js": "ebd1991b47592ee7b1e36c5110ed642ea80d497a89f807efcfb5dbd76ac0a978",
   "update.html": "18cf2bb253387723c49885c9c7c57339278a2ecc0b70374173a0ca70fc1d7797",
   "update/core.js": "3ac2ebbec7a1575237bcce8c6f76b21fdeb007e8aa7ca51276d87bb6bbec200c",
   "update/key.js": "8669c2e8d9b8937ad5ecde2060a44b0758fc69e88dd3d491f794431893e83f7c",
@@ -52,5 +52,5 @@
   "update/update.css": "1266c1d8451787f7a58055e04b7a0def2252cbb3200dd7f4862176b1ca0cbf1a"
  },
  "name": "Better Vest by Astral",
- "version": "8.0.4"
+ "version": "8.0.5"
 }
