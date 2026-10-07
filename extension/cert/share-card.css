@@ -103,8 +103,8 @@
 .card .rp-svg { display: block; overflow: visible; font-family: Inter, sans-serif; }
 .rp-svg .gl { stroke: var(--k-grid); stroke-width: 1; }
 .rp-svg .ax { fill: var(--k-dim); font-size: 10px; }
-.rp-svg .wu { stroke: var(--k-cu); stroke-width: 1; }
-.rp-svg .wd { stroke: var(--k-cd); stroke-width: 1; }
+.rp-svg .wu { stroke: var(--k-wu, var(--k-cu)); stroke-width: 1; }
+.rp-svg .wd { stroke: var(--k-wd, var(--k-cd)); stroke-width: 1; }
 .rp-svg .cu { fill: var(--k-cu); }
 .rp-svg .cd { fill: var(--k-cd); }
 .rp-svg .zw { fill: var(--k-up); fill-opacity: .11; }
@@ -127,3 +127,46 @@
 .card .rp-legend { font-size: 10px; color: var(--k-dim); white-space: nowrap; }
 .card .rp-legend .ia { color: var(--k-up); }
 .card .rp-legend .ie { color: var(--k-text); }
+
+/* ---------------------------------------------------------------- 8.2: the Summary's options (share-card.js cardHtml with a model) */
+.card .amt .hpct { font-size: .34em; letter-spacing: -.01em; margin-left: .35em; font-weight: 700; opacity: .92; }
+.card .panel .pchip { display: inline-flex; align-items: center; height: 22px; padding: 0 9px; border-radius: 999px; background: var(--k-badge); font-size: 11px; font-weight: 700; }
+.card .panel .thr { display: inline-flex; align-items: center; }
+.card .panel .tn { width: 58px; margin-right: 18px; text-align: right; font-size: 13px; font-weight: 600; color: var(--k-mut); }
+.card .panel .th .tn { font-size: 10px; font-weight: 700; color: var(--k-dim); }
+.card .panel .r .nm .mk { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; color: #fff; font-size: 6.5px; font-weight: 800; letter-spacing: 0; flex: none; }
+.card .panel .r .nm .gs { font-size: 11px; font-weight: 500; letter-spacing: 0; color: var(--k-mut); }
+.card .panel .r .nm .tm { min-width: 38px; font-size: 12px; font-weight: 600; letter-spacing: 0; color: var(--k-mut); }
+.card .xs { flex: none; margin-top: 12px; font-size: 13px; line-height: 18px; color: var(--k-mut); }
+.card .xs b { color: var(--k-text); font-weight: 700; }
+.card .xs b.up { color: var(--k-up); } .card .xs b.dn { color: var(--k-down); }
+
+/* ---------------------------------------------------------------- 8.2: the Replay's options (share-card.js replayScene) */
+.rp-svg .px { fill: var(--k-mut); font-size: 9.5px; font-weight: 600; paint-order: stroke; stroke: var(--k-bg); stroke-width: 3px; stroke-linejoin: round; }
+.rp-svg .ss { fill: var(--k-text); fill-opacity: .035; }
+.rp-svg .sl { fill: var(--k-dim); font-size: 9px; font-weight: 700; letter-spacing: .08em; }
+.rp-svg .zb { fill-opacity: .26; }
+.rp-svg .pb { fill: var(--k-text); font-size: 9px; letter-spacing: .1em; }
+.rp-svg .pz { stroke: var(--k-grid); stroke-width: 1; stroke-dasharray: 2 3; }
+.rp-svg .pn { fill: none; stroke-width: 2; stroke-linejoin: round; }
+.rp-svg .pnu { stroke: var(--k-up); }
+.rp-svg .pnd { stroke: var(--k-down); }
+.rp-svg .pt { fill: var(--k-dim); font-size: 10px; font-weight: 700; }
+.rp-svg .pt.pw { fill: var(--k-up); } .rp-svg .pt.pd { fill: var(--k-down); }
+/* 8.2: points (a row whose trades mix markets, or have none, has no points; several markets: each market's points under the amount) */
+.card .r b.mx { color: var(--k-dim); font-weight: 600; }
+.card .sec.pm { font-size: 15px; color: var(--k-mut); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* 8.2 round 2: the Replay's chart options (share-card.js replayScene: types, borders, markers, volume; colours set on the card) */
+.rp-svg .cu.cb { stroke: var(--k-bu, var(--k-cu)); stroke-width: 1; }
+.rp-svg .cd.cb { stroke: var(--k-bd, var(--k-cd)); stroke-width: 1; }
+.rp-svg .cu.ch { fill: none; stroke: var(--k-bu, var(--k-cu)); stroke-width: 1; }
+.rp-svg .ou, .rp-svg .od { fill: none; stroke-width: 1.4; }
+.rp-svg .ou { stroke: var(--k-cu); }
+.rp-svg .od { stroke: var(--k-cd); }
+.rp-svg .ln { fill: none; stroke: var(--k-cu); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.rp-svg .ar { fill: var(--k-cu); fill-opacity: .1; }
+.rp-svg .vu { fill: var(--k-cu); fill-opacity: .32; }
+.rp-svg .vd { fill: var(--k-cd); fill-opacity: .32; }
+.rp-svg .db, .rp-svg .ds { stroke: var(--k-bg); stroke-width: 1.4; }
+.rp-svg .db { fill: var(--k-up); }
+.rp-svg .ds { fill: var(--k-down); }

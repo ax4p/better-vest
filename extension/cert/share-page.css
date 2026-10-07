@@ -95,6 +95,9 @@ button { font: inherit; color: inherit; }
     background: radial-gradient(60% 70% at 50% 45%, #151515 0%, #080808 70%), var(--pg); }
 .stage::before { content: ""; position: absolute; inset: 0; background-image: radial-gradient(rgba(255, 255, 255, .045) 1px, transparent 1px); background-size: 22px 22px; mask-image: radial-gradient(70% 70% at 50% 50%, #000, transparent); pointer-events: none; }
 .stage .fit { position: relative; transform-origin: center; }
+/* 8.2: the card is placed by its centre, so a card taller than the stage (9:16) is still centred once scaled (a grid item taller than its
+   cell was pushed down, under the caption) */
+.stage .fit { position: absolute; left: 50%; top: calc(50% - 8px); translate: -50% -50%; }
 .stage .cap { position: absolute; left: 0; right: 0; bottom: 14px; text-align: center; font-size: 11.5px; color: var(--dim); }
 .stage .empty { max-width: 440px; padding: 28px; border-radius: 16px; background: #101010; box-shadow: 0 0 0 1px var(--line); text-align: center; font-size: 14px; line-height: 21px; color: var(--mut); }
 /* the note after Copy or Download: the stage's top-right corner, under those buttons, never over a control */
@@ -102,3 +105,73 @@ button { font: inherit; color: inherit; }
 .toast.on { opacity: 1; transform: translateY(0); }
 .toast.bad { color: #ff8da1; }
 @media (max-width: 980px) { .brand span#sub { display: none; } .bar { flex-wrap: wrap; } }
+
+/* ---------- 8.2: the new controls (Summary rows, period, markets; Replay accounts, market, labels) ---------- */
+.ctl .k2 { font-size: 10.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--dim); }
+.dd .row input[type="radio"] { width: 16px; height: 16px; margin: 0; accent-color: #22C55E; flex: none; }
+.dd .row .hint { margin-left: auto; font-size: 11.5px; color: var(--dim); white-space: nowrap; }
+.dd .row.off .hint { color: var(--dim); }
+.dd .field.duo { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.dd .field.duo label { margin: 0; }
+.dd .field.duo .txt { margin-top: 6px; }
+.dd input[type="date"].txt { color-scheme: dark; }
+#sumopts[hidden], #rpopts[hidden], #rplab-g[hidden], .grp[hidden], .btn[hidden], .seg button[hidden] { display: none; }
+.btn.rec { background: rgba(255, 59, 92, .12); box-shadow: inset 0 0 0 1px rgba(255, 59, 92, .45); color: #ff8da1; }
+.btn svg path[d^="M8 5.5"] { fill: currentColor; stroke: none; }
+/* 8.2: more controls in the top bar: it wraps instead of pushing the actions off the page */
+.bar { flex-wrap: wrap; row-gap: 10px; }
+.brand span#sub { white-space: nowrap; }
+
+/* ---------- 8.2 round 2: the Replay's Chart drop-down (page-only names: cx-*) ---------- */
+.ctl .cx-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--up); }
+.ctl .cx-dot[hidden] { display: none; }
+.dd.cxp { width: 404px; max-width: 404px; max-height: calc(100vh - 160px); overflow: auto; }
+.cx-sec { padding: 8px 8px 10px; border-top: 1px solid var(--line); }
+.ddh + .cx-sec { border-top: 0; }
+.cx-k { margin-bottom: 8px; font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--dim); }
+.seg.cx-wrap { flex-wrap: wrap; }
+.cx-sw { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.cx-sw button { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px 4px 7px; border: 0; border-radius: 9px; background: var(--ctl); box-shadow: inset 0 0 0 1px var(--line); color: var(--mut); font-size: 11.5px; font-weight: 600; cursor: pointer; }
+.cx-sw button:hover:not(:disabled) { color: var(--text); background: var(--ctl-h); }
+.cx-sw button.on { color: var(--text); box-shadow: inset 0 0 0 1.5px #22C55E; background: rgba(34, 197, 94, .07); }
+.cx-sw button:disabled { opacity: .35; cursor: not-allowed; }
+.cx-sw .cx-c { display: flex; gap: 3px; height: 22px; align-items: flex-end; }
+.cx-sw .cx-c i { display: block; width: 7px; border-radius: 1.5px; }
+.cx-sw .cx-c i:nth-child(1) { height: 14px; } .cx-sw .cx-c i:nth-child(2) { height: 20px; } .cx-sw .cx-c i:nth-child(3) { height: 11px; }
+.cx-pick { display: flex; gap: 14px; padding: 10px 2px 0; }
+.cx-pick label { display: flex; align-items: center; gap: 8px; color: var(--mut); font-size: 12px; font-weight: 600; }
+.cx-pick input[type="color"] { width: 34px; height: 24px; padding: 0; border: 0; border-radius: 6px; background: none; cursor: pointer; }
+.cx-pick[hidden] { display: none; }
+.cx-tfs { display: flex; flex-wrap: wrap; gap: 5px; }
+.cx-tfs button { min-width: 40px; height: 28px; padding: 0 9px; border: 0; border-radius: 7px; background: var(--ctl); box-shadow: inset 0 0 0 1px var(--line); color: var(--mut); font-size: 12px; font-weight: 600; cursor: pointer; font-variant-numeric: tabular-nums; }
+.cx-tfs button:hover:not(:disabled) { color: var(--text); }
+.cx-tfs button.on { color: #fff; background: #2b2b2b; box-shadow: inset 0 0 0 1.5px #22C55E; }
+.cx-tfs button:disabled { opacity: .3; cursor: not-allowed; }
+.cx-row { display: flex; gap: 6px; margin-top: 8px; }
+.cx-row .txt { flex: 1; height: 30px; padding: 0 10px; border: 0; border-radius: 8px; background: var(--ctl); box-shadow: inset 0 0 0 1px var(--line); color: var(--text); font: inherit; }
+.cx-go { height: 30px; padding: 0 14px; border: 0; border-radius: 8px; background: var(--ctl-h); box-shadow: inset 0 0 0 1px var(--line2); color: var(--text); font-weight: 600; cursor: pointer; }
+.cx-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.cx-chips .chip { height: 28px; }
+
+/* ---------- 8.2 round 2: the video preview (page-only names: vm-*) ---------- */
+.vm { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; padding: 24px; background: rgba(0, 0, 0, .72); backdrop-filter: blur(6px); }
+.vm[hidden] { display: none; }
+.vm-box { display: flex; flex-direction: column; max-width: min(92vw, 1100px); max-height: calc(100vh - 48px); border-radius: 16px; background: #101010; box-shadow: 0 0 0 1px var(--line2), 0 30px 90px rgba(0, 0, 0, .7); overflow: hidden; }
+.vm-hd { display: flex; align-items: center; gap: 12px; padding: 12px 12px 12px 18px; border-bottom: 1px solid var(--line); }
+.vm-hd b { font-size: 14px; }
+.vm-info { color: var(--dim); font-size: 12px; font-variant-numeric: tabular-nums; }
+.vm-x { margin-left: auto; display: grid; place-items: center; width: 32px; height: 32px; border: 0; border-radius: 8px; background: none; color: var(--mut); cursor: pointer; }
+.vm-x:hover { background: var(--ctl-h); color: var(--text); }
+.vm-x svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+.vm-stage { min-height: 0; display: grid; place-items: center; padding: 16px; background: #070707; }
+.vm-stage video { display: block; max-width: 100%; max-height: calc(100vh - 240px); border-radius: 10px; background: #000; cursor: pointer; }
+.vm-bar { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-top: 1px solid var(--line); }
+.vm-play { display: grid; place-items: center; width: 36px; height: 36px; flex: none; border: 0; border-radius: 50%; background: #fafafa; color: #000; cursor: pointer; }
+.vm-play svg { width: 16px; height: 16px; fill: currentColor; }
+.vm-play .vm-pp, .vm-play.on .vm-pi { display: none; }
+.vm-play.on .vm-pp { display: inline; }
+.vm-seek { flex: 1; min-width: 160px; accent-color: #22C55E; }
+.vm-time { min-width: 86px; text-align: right; color: var(--mut); font-size: 12px; font-variant-numeric: tabular-nums; }
+.vm-ft { display: flex; align-items: center; gap: 8px; padding: 12px 16px 14px; border-top: 1px solid var(--line); }
+.vm-note { flex: 1; color: var(--dim); font-size: 12px; }
+.vm-note.warn { color: #fbbf24; }

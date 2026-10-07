@@ -20,6 +20,29 @@
         <button type="button" class="ctl" id="pick-btn" aria-haspopup="true" aria-expanded="false"><span id="pick-t">Accounts</span><b id="pick-count"></b><svg class="chev" viewBox="0 0 12 12"><path d="M3 4.5 6 7.5 9 4.5"/></svg></button>
         <div class="dd" id="pick-panel" hidden><div class="ddh"><span id="pick-head"></span><span class="links"><button type="button" id="pick-all">All</button><button type="button" id="pick-none">None</button></span></div><div class="list" id="pick"></div><div class="note" id="pick-note"></div></div>
     </div>
+    <!-- Summary (8.2): what each row is, which days, which markets -->
+    <div class="pop" id="rows-pop">
+        <button type="button" class="ctl" id="rows-btn" aria-haspopup="true" aria-expanded="false"><span class="k2">Rows</span><span id="rows-t">Accounts</span><svg class="chev" viewBox="0 0 12 12"><path d="M3 4.5 6 7.5 9 4.5"/></svg></button>
+        <div class="dd" id="rows-panel" hidden><div class="ddh"><span>One row per</span></div><div class="list" id="rows"></div><div class="note" id="rows-note"></div></div>
+    </div>
+    <div class="pop" id="per-pop">
+        <button type="button" class="ctl" id="per-btn" aria-haspopup="true" aria-expanded="false"><span class="k2">Period</span><span id="per-t">Today</span><svg class="chev" viewBox="0 0 12 12"><path d="M3 4.5 6 7.5 9 4.5"/></svg></button>
+        <div class="dd" id="per-panel" hidden><div class="ddh"><span>Which days</span></div><div class="list" id="per"></div>
+            <div class="field"><label for="per-day">A day</label><input class="txt" type="date" id="per-day"></div><div class="note" id="per-note"></div></div>
+    </div>
+    <div class="pop" id="mkts-pop">
+        <button type="button" class="ctl" id="mkts-btn" aria-haspopup="true" aria-expanded="false"><span class="k2">Markets</span><span id="mkts-t">All</span><b id="mkts-count"></b><svg class="chev" viewBox="0 0 12 12"><path d="M3 4.5 6 7.5 9 4.5"/></svg></button>
+        <div class="dd" id="mkts-panel" hidden><div class="ddh"><span>Markets on the card</span><span class="links"><button type="button" id="mkts-all">All</button></span></div><div class="list" id="mkts"></div><div class="note" id="mkts-note"></div></div>
+    </div>
+    <!-- Replay (8.2): whose P&amp;L, which market -->
+    <div class="pop" id="rpa-pop" hidden>
+        <button type="button" class="ctl" id="rpa-btn" aria-haspopup="true" aria-expanded="false"><span class="k2">Accounts</span><span id="rpa-t">This account</span><svg class="chev" viewBox="0 0 12 12"><path d="M3 4.5 6 7.5 9 4.5"/></svg></button>
+        <div class="dd" id="rpa-panel" hidden><div class="ddh"><span>Whose P&amp;L</span></div><div class="list" id="rpa"></div><div class="note" id="rpa-note"></div></div>
+    </div>
+    <div class="pop" id="rpm-pop" hidden>
+        <button type="button" class="ctl" id="rpm-btn" aria-haspopup="true" aria-expanded="false"><span class="k2">Market</span><span id="rpm-t"></span><svg class="chev" viewBox="0 0 12 12"><path d="M3 4.5 6 7.5 9 4.5"/></svg></button>
+        <div class="dd" id="rpm-panel" hidden><div class="ddh"><span>Market</span></div><div class="list" id="rpm"></div></div>
+    </div>
     <!-- Replay only: which trades, and which time, the card shows -->
     <div class="pop" id="rpt-pop" hidden>
         <button type="button" class="ctl" id="rpt-btn" aria-haspopup="true" aria-expanded="false"><span>Trades</span><b id="rpt-count"></b><svg class="chev" viewBox="0 0 12 12"><path d="M3 4.5 6 7.5 9 4.5"/></svg></button>
@@ -34,6 +57,7 @@
         </div>
     </div>
     <div class="grow"></div>
+    <button type="button" class="btn" id="video" hidden title="The day plays out: a short video of this card. It plays here first; nothing is saved until you press Save"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l10.5-6.5z"/></svg>Video</button>
     <button type="button" class="btn" id="copy" title="Copy the image (⌘C / Ctrl+C), then paste it into your post"><svg viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>Copy image</button>
     <button type="button" class="btn primary" id="save" title="Save the image as a PNG (⌘S / Ctrl+S)"><svg viewBox="0 0 24 24"><path d="M12 4v11"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/></svg>Download PNG</button>
 </header>
@@ -41,9 +65,30 @@
     <div class="grp"><span class="k">Theme</span><div class="seg sm" id="theme"><button type="button" data-v="dark">Dark</button><button type="button" data-v="light">Light</button></div></div>
     <div class="grp"><span class="k">Style</span><div class="seg sm" id="style"><button type="button" data-v="vest">Vest</button><button type="button" data-v="silver">Silver</button><button type="button" data-v="oled">OLED</button><button type="button" data-v="neon">Neon</button></div></div>
     <div class="grp"><span class="k">Format</span><div class="seg sm" id="format"><button type="button" data-v="feed" title="4:5, for the feed">4:5</button><button type="button" data-v="square" title="1:1">1:1</button><button type="button" data-v="wide" title="16:9, best on X">16:9</button><button type="button" data-v="story" title="9:16, for a story">9:16</button></div></div>
-    <div class="grp"><span class="k">Number</span><div class="seg sm" id="hero"><button type="button" data-v="usd">$</button><button type="button" data-v="pct">%</button></div></div>
+    <div class="grp"><span class="k">Number</span><div class="seg sm" id="hero"><button type="button" data-v="usd">$</button><button type="button" data-v="pct">%</button><button type="button" data-v="both" title="The amount, with the % return beside it">$ and %</button><button type="button" data-v="pts" title="Price moved in your favor, sizes left out. Several markets: each market's own points">Points</button></div></div>
     <span class="vsep"></span>
     <div class="toggles" id="listopts"></div>
+    <!-- Summary (8.2): fees in or out -->
+    <div class="toggles" id="sumopts"><button type="button" class="chip" id="fees-chip" title="On: the P&amp;L after Vest's fees, as Vest books it. Off: before fees."><i></i>After fees</button></div>
+    <!-- Replay (8.2): what the chart says -->
+    <div class="grp" id="rplab-g" hidden><span class="k">Labels</span><div class="seg sm" id="rplab"><button type="button" data-v="usd">$</button><button type="button" data-v="pts">Points</button><button type="button" data-v="r" title="Only on trades whose stop was set with them">R</button><button type="button" data-v="off">Off</button></div></div>
+    <div class="toggles" id="rpopts" hidden></div>
+    <!-- Replay (8.2 round 2): the chart's own look: colours, type, timeframe, what is drawn -->
+    <div class="pop" id="cx-pop" hidden>
+        <button type="button" class="ctl sm" id="cx-btn" aria-haspopup="true" aria-expanded="false"><svg class="ic" viewBox="0 0 24 24"><path d="M7 4v16M17 4v16"/><rect x="4.5" y="8" width="5" height="7" rx="1"/><rect x="14.5" y="6" width="5" height="9" rx="1"/></svg>Chart<span class="cx-dot" id="cx-dot" hidden></span><svg class="chev" viewBox="0 0 12 12"><path d="M3 4.5 6 7.5 9 4.5"/></svg></button>
+        <div class="dd right cxp" id="cx-panel" hidden>
+            <div class="ddh"><span>The chart</span><span class="links"><button type="button" id="cx-reset" title="Back to the card's own chart">Reset</button></span></div>
+            <div class="cx-sec"><div class="cx-k">Candle colors</div><div class="cx-sw" id="cx-colors"></div>
+                <div class="cx-pick" id="cx-custom" hidden><label>Up<input type="color" id="cx-up" value="#26a69a"></label><label>Down<input type="color" id="cx-down" value="#ef5350"></label></div>
+                <div class="note" id="cx-colors-note"></div></div>
+            <div class="cx-sec"><div class="cx-k">Type</div><div class="seg sm cx-wrap" id="cx-type"><button type="button" data-v="candles">Candles</button><button type="button" data-v="hollow">Hollow</button><button type="button" data-v="bars" title="Open, high, low, close bars">Bars</button><button type="button" data-v="line">Line</button><button type="button" data-v="area">Area</button><button type="button" data-v="ha" title="Heikin Ashi: smoothed candles; the trades stay at their real prices">Heikin Ashi</button></div></div>
+            <div class="cx-sec"><div class="cx-k">Timeframe</div><div class="cx-tfs" id="cx-tf"></div>
+                <div class="cx-row"><input class="txt" type="number" id="cx-n" min="1" max="1440" step="1" placeholder="Any minutes, e.g. 7" aria-label="Custom timeframe in minutes"><button type="button" class="cx-go" id="cx-n-go">Use</button></div>
+                <div class="note" id="cx-tf-note"></div></div>
+            <div class="cx-sec"><div class="cx-k">On the chart</div><div class="cx-chips" id="cx-show"></div><div class="note" id="cx-show-note"></div></div>
+            <div class="cx-sec"><div class="cx-k">Entries</div><div class="seg sm" id="cx-marks"><button type="button" data-v="arrows">Arrows</button><button type="button" data-v="dots">Dots</button><button type="button" data-v="off">Off</button></div></div>
+        </div>
+    </div>
     <div class="pop" id="show-pop">
         <button type="button" class="ctl sm" id="show-btn" aria-haspopup="true" aria-expanded="false">Show<svg class="chev" viewBox="0 0 12 12"><path d="M3 4.5 6 7.5 9 4.5"/></svg></button>
         <div class="dd right" id="show-panel" hidden><div class="ddh"><span>On the card</span></div><div class="list" id="show"></div>
@@ -56,6 +101,23 @@
     <div class="cap" id="cap"></div>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
 </main>
+<!-- 8.2 round 2: the recorded video plays here first; nothing downloads until Save -->
+<div class="vm" id="vm" hidden>
+    <div class="vm-box" role="dialog" aria-modal="true" aria-labelledby="vm-t">
+        <div class="vm-hd"><b id="vm-t">Video preview</b><span class="vm-info" id="vm-info"></span><button type="button" class="vm-x" id="vm-x" aria-label="Close" title="Close (Esc)"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+        <div class="vm-stage"><video id="vm-video" playsinline muted></video></div>
+        <div class="vm-bar">
+            <button type="button" class="vm-play" id="vm-play" aria-label="Play or pause (space)"><svg viewBox="0 0 24 24"><path class="vm-pi" d="M8 5.5v13l10.5-6.5z"/><path class="vm-pp" d="M8 5h3v14H8zM13 5h3v14h-3z"/></svg></button>
+            <input type="range" class="vm-seek" id="vm-seek" min="0" max="1000" step="1" value="0" aria-label="Scrub">
+            <span class="vm-time" id="vm-time">0:00 / 0:00</span>
+            <button type="button" class="chip on" id="vm-loop" aria-pressed="true"><i></i>Loop</button>
+        </div>
+        <div class="vm-ft"><span class="vm-note" id="vm-note"></span>
+            <button type="button" class="btn" id="vm-again" hidden title="The card changed since this video: record it again">Record again</button>
+            <button type="button" class="btn" id="vm-close">Close</button>
+            <button type="button" class="btn primary" id="vm-save"><svg viewBox="0 0 24 24"><path d="M12 4v11"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/></svg>Save video</button></div>
+    </div>
+</div>
 <script type="module" src="share-page.js"></script>
 </body>
 </html>
