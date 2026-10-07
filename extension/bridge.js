@@ -21,7 +21,7 @@
     // The page asks the service worker to open and drive the follower tabs; the service worker drives this tab's page when it is a
     // follower. Requests carry an `rid`: the answer goes back to whoever asked (the page gets {op, rid, reply: true, ...}; the
     // service worker's sendResponse gets the page's {op: 'reply', rid, ...}). The copy log rides the same way.
-    const COPY_PAGE_OPS = new Set(['tabs-open', 'tabs-close', 'tabs-exec', 'tabs-status', 'follower-ready', 'follower-snap', 'reply', 'log-save', 'log-load']);
+    const COPY_PAGE_OPS = new Set(['tabs-open', 'tabs-close', 'tabs-exec', 'tabs-status', 'follower-ready', 'follower-snap', 'reply', 'log-save', 'log-load', 'lead-open', 'lead-show']); // 8.2: lead-*: a copy group's leader tab
     const COPY_SW_OPS = new Set(['exec', 'follower-ready', 'follower-lost', 'follower-failed', 'follower-snap', 'follower-result', 'announce']);
     const COPY_RID_RE = /^[\w.:-]{1,64}$/;
     const COPY_MAX_BYTES = 512 * 1024;
