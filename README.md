@@ -18,12 +18,12 @@
 
 <br>
 
-Drag your stop and target right on the chart. Trade from a one-click card with your stop, target and risk in dollars. Place stop and limit orders by clicking the chart, cancel them all in one press, trail your stop, copy your trades to up to ten other accounts, and lock yourself out on a bad day. Everything runs in your own browser, on the Vest tab you already have open.
+Drag your stop and target right on the chart. Trade from a one-click card with your stop, target and risk in dollars. Place stop and limit orders by clicking the chart, cancel them all in one press, trail your stop, copy your trades to your other accounts in groups, see every account's limits at a glance, claim your payouts in one go, and lock yourself out on a bad day. Everything runs in your own browser, on the Vest tab you already have open.
 
 | | |
 |---|---|
 | **Price** | Free. No sign-up, no subscription, no account with me. |
-| **Antivirus** | 0 of 66 engines flag the current zip on VirusTotal. [See the report](https://www.virustotal.com/gui/file/2fc074e74f942cf09cbd6ec7a615eb7318f2820f8a6b2b0b94d2c72b49067bc9). |
+| **Antivirus** | 0 of 66 engines flag the current zip on VirusTotal. [See the report](https://www.virustotal.com/gui/file/b949d5355c3272b4b9a0c41741051d6598351184499324a6e1ec6194211c8737). |
 | **Code** | Every file is in this repo, readable, not minified, and the same as the zip. |
 | **Updates** | Signed. A changed file is refused. |
 | **Permissions** | `storage`, `alarms` and `tabGroups`. Nothing else. |
@@ -36,7 +36,7 @@ Drag your stop and target right on the chart. Trade from a one-click card with y
 - [Is it allowed on Vest?](#is-it-allowed-on-vest)
 - [Why I made it](#why-i-made-it)
 - [What you get](#what-you-get)
-- [The tools](#the-tools): [Execute card](#the-execute-card) · [Stop and limit orders](#stop-and-limit-orders) · [Cancel all orders](#cancel-all-orders) · [TP and SL on the chart](#tp-and-sl-on-the-chart) · [Trailing stop and auto breakeven](#trailing-stop-and-auto-breakeven) · [Copy trader](#copy-trader) · [Daily loss limit](#daily-loss-limit) · [Hotkeys](#hotkeys) · [Focus mode](#focus-mode) · [Themes](#themes) · [MNQ view](#mnq-view) · [Calendar](#calendar) · [P&L card](#pl-card) · [Payout certificate and toolbar](#payout-certificate-and-toolbar)
+- [The tools](#the-tools): [Execute card](#the-execute-card) · [Stop and limit orders](#stop-and-limit-orders) · [Cancel all orders](#cancel-all-orders) · [TP and SL on the chart](#tp-and-sl-on-the-chart) · [Trailing stop and auto breakeven](#trailing-stop-and-auto-breakeven) · [Copy trader](#copy-trader) · [Daily loss limit](#daily-loss-limit) · [Accounts and limits](#accounts-and-limits) · [Hotkeys](#hotkeys) · [Focus mode](#focus-mode) · [Themes](#themes) · [MNQ view](#mnq-view) · [Calendar](#calendar) · [P&L card](#pl-card) · [Payout certificate and toolbar](#payout-certificate-and-toolbar)
 - [How it works](#how-it-works)
 - [Install](#install)
 - [FAQ](#faq)
@@ -46,16 +46,16 @@ Drag your stop and target right on the chart. Trade from a one-click card with y
 
 Anything that sits next to your trading account deserves the question, so here is how to check it without taking my word for it.
 
-**Scan the zip.** The current release, `better-vest-8.1.5.zip`, was scanned on VirusTotal by 66 antivirus engines and none of them flagged it: [VirusTotal report](https://www.virustotal.com/gui/file/2fc074e74f942cf09cbd6ec7a615eb7318f2820f8a6b2b0b94d2c72b49067bc9). Its SHA-256 is:
+**Scan the zip.** The current release, `better-vest-8.2.0.zip`, was scanned on VirusTotal by 66 antivirus engines and none of them flagged it: [VirusTotal report](https://www.virustotal.com/gui/file/b949d5355c3272b4b9a0c41741051d6598351184499324a6e1ec6194211c8737). Its SHA-256 is:
 
-`2fc074e74f942cf09cbd6ec7a615eb7318f2820f8a6b2b0b94d2c72b49067bc9`
+`b949d5355c3272b4b9a0c41741051d6598351184499324a6e1ec6194211c8737`
 
-Check yours with `shasum -a 256 better-vest-8.1.5.zip` on a Mac or `certutil -hashfile better-vest-8.1.5.zip SHA256` on Windows. Same number, same file.
+Check yours with `shasum -a 256 better-vest-8.2.0.zip` on a Mac or `certutil -hashfile better-vest-8.2.0.zip SHA256` on Windows. Same number, same file.
 
 **What it can and can't do:**
 - It only runs on next.vestmarkets.com.
 - It never sees your password or your wallet's keys, and never stores your Vest login.
-- It never withdraws, never changes account settings, and never claims anything.
+- It never withdraws and never changes account settings. The one account action it has is Request payouts, which claims only after you press Claim, through Vest's own Claim profit window.
 - It has no server and sends me nothing: no data, no stats, no account details.
 - Besides Vest, the only addresses in the code are GitHub (the update check, and the update's files when you click Update) and Google Fonts if you pick a Google font.
 
@@ -70,7 +70,7 @@ I read Vest's [Terms of Service](https://next.vestmarkets.com/terms) and the [Ve
 - **They don't mention browser extensions, trading tools or copy trading.**
 - **The automation they rule out is manipulation.** Under "No Manipulation" the terms forbid using "automated tools, contracts, or bots to artificially inflate or deflate prices or volumes". Better Vest doesn't do that. It places the orders you ask for, at the size you set.
 - **API trading isn't available on Vest Capital accounts.** Better Vest doesn't use an API. It works inside Vest's own page, through Vest's own buttons and order code, the same way you would by hand.
-- **Vest allows up to 10 live funded accounts per user.** The copy trader copies between your own accounts, under your one Vest login, up to ten followers.
+- **Vest allows up to 10 live funded accounts per user.** The copy trader copies between your own accounts, under your one Vest login, up to ten followers in each group.
 
 Better Vest is independent. Vest can change its terms at any time, and your account is yours, so read them yourself, especially before you copy trades on funded accounts.
 
@@ -87,11 +87,12 @@ I trade NQ on Vest every day. The platform is fast and the funded program is goo
 | [Cancel all orders](#cancel-all-orders) | One press cancels every waiting order on the account and leaves your TP, SL and positions alone |
 | [TP and SL on the chart](#tp-and-sl-on-the-chart) | Drag them with the dollar amount, the points and the R live, with Undo and a breakeven button |
 | [Trailing stop and auto BE](#trailing-stop-and-auto-breakeven) | Your stop follows the price, or jumps to breakeven once you're in profit |
-| [Copy trader](#copy-trader) | Trade one account and up to ten others follow it, live |
+| [Copy trader](#copy-trader) | Trade one account and up to ten others follow it, live, in as many groups as you like |
 | [Daily loss limit](#daily-loss-limit) | Locks new trades at your own limit and can close your positions |
+| [Accounts and limits](#accounts-and-limits) | Every account's daily loss, max loss and goal at a glance, and your payouts claimed in one go |
 | [Hotkeys](#hotkeys) | W, S, E, Q and H for market, limit and breakeven, all remappable |
 | [Focus mode](#focus-mode), [themes](#themes), [MNQ view](#mnq-view) | Hide what you don't use, seven themes, NQ shown as MNQ |
-| [Calendar](#calendar), [P&L card](#pl-card), [certificate](#payout-certificate-and-toolbar) | Your P&L by day across all accounts, an image of your day to post, your lifetime payouts |
+| [Calendar](#calendar), [P&L card](#pl-card), [certificate](#payout-certificate-and-toolbar) | Your P&L by day across all accounts, an image or a video of your day to post, your lifetime payouts |
 
 ## The tools
 
@@ -144,7 +145,9 @@ Two switches on the Execute card, next to Partials.
 
 Trade one account and up to ten of your other Vest accounts follow it, live. Open **Copy** in the dock, pick the leader, switch on the accounts that should follow and give each one a ratio: 1 copies the same size, 0.5 copies half.
 
-<p align="center"><img src="docs/media/copier.png" alt="The copy trader: the leader, nine followers in sync with their value, today's P&L, ratio and status, the mode, the markets and the log" width="100%"></p>
+Run several of these at once with **groups**: one leader with its own followers per group, say account 3 leading 5, 6 and 7 while account 4 leads 9 and 10. An account copies in one group at a time, and switching it on in another group moves it there. A group whose leader isn't the account in front of you copies from its own Vest tab, which Better Vest opens and keeps awake, and you trade that group there.
+
+<p align="center"><img src="docs/media/copier.png" alt="The copy trader with two groups: group A's leader and followers in sync with their value, today's P&L, ratio and status, and group B, whose follower sat out a trade opposite to group A" width="100%"></p>
 
 Everything you do on the leader is copied: opening and adding (from the card, Vest's own ticket or the hotkeys), closing part or all of it, every TP and SL including partial targets, and limit orders you leave resting. It copies the moment Vest accepts your order and checks every second, so a follower that drifts is brought back in line.
 
@@ -158,6 +161,7 @@ Rough speeds with nine followers on my own accounts, from Vest accepting your or
 - **It doesn't send orders of its own.** It calls Vest's own order code, the same code Vest's ticket and TP/SL windows run, with each follower's account. It never touches your login token.
 - **Two speeds.** **Light** (the default) runs everything from your own tab. **Turbo** keeps one hidden Vest tab per follower, grouped and collapsed, so every copy is a single trip to Vest.
 - **Ultra-fast** (off by default) sends your opens and adds to the followers the moment your order leaves. If Vest refuses your order, the followers are closed again.
+- **Opposite sides.** Vest's rules forbid taking opposite sides of the same market on different funded accounts. So by default a follower sits out a copy that would put it against an account of another group, and your own leader trade gets a heads-up instead. A switch lets you allow it.
 - **Markets.** By default it copies every market the leader trades. Switch that off to pick them, and a follower's position on a market that isn't copied is left alone.
 - **Sign-in hiccups.** If one follower has a sign-in problem at Vest, it waits and tries again (after 1, 2, 4, then 6 seconds) while the others keep copying.
 - **You stay in charge.** The first time, it tells you plainly that it places real orders. Every time you switch it on, it shows what it's about to do first, like "Open NQ-PERP long 2 on 9 followers", and waits for your OK. **Alt+Shift+K** stops copying at once, and pressing it again within five seconds closes the followers' positions. After a reload, copying only comes back by itself when copied positions are still open, and it tells you so.
@@ -175,6 +179,18 @@ Your own limit for the days that go wrong. Turn it on in Settings > Risk and set
 - **Close my positions at the limit** (on by default) also closes every open position of that account, on every market, through Vest's own Close button the way FLAT does, and keeps you flat until the reset.
 - **Getting out is never locked.** FLAT, 50%, BE, dragging TP and SL and Vest's own close buttons always work.
 - Today's number is your Account Value now minus the first one it saw after the reset, for each account, read from the page. A deposit, withdrawal or transfer counts too. A lock stays until the reset hour, even through a settings reset. It's separate from any rule Vest has, and it can only act while your Vest tab is open.
+
+### Accounts and limits
+
+Every account in one menu, where Vest's account button was: its value, today, and three bars, how much of today's loss limit is left, the room above your max loss, and how far you are from the profit goal. Amber from half used, red from 80%. Search, filters, pins and nicknames, and a click switches accounts through Vest's own menu.
+
+<p align="center"><img src="docs/media/accounts.png" alt="The account menu with sample accounts (value, today, day left, max room and goal for each, grouped by type) and the limits panel of one account" width="100%"></p>
+
+The same three numbers sit in the thin bar under Vest's header. Click them for a panel with the line from your floor to your target, today's loss next to your own limit and Vest's reset, and the room in points at your card's size.
+
+**Request payouts** in Manage accounts claims 100% of what your funded accounts have available, all of them or the ones you pick. It shows what each one would claim and what you receive first, then goes through Vest's own Claim profit window, one account at a time, and brings you back. It stops at the first refusal and tells you why.
+
+Every part has its own switch in Settings > Layout. Off, Vest's own menu and numbers come back as they were.
 
 ### Hotkeys
 
@@ -217,7 +233,9 @@ Every trade from every account as a daily P&L calendar, with win rate, profit fa
 
 ### P&L card
 
-**P&L** in the dock turns today's P&L into an image to post, with Vest's logo on it: one account, several added up, or your whole copy group as a list. Dark or light, four styles, four sizes. **Replay** draws your session on Vest's own candles, every entry and exit where it filled, and you pick which trades and which part of the session go on the card.
+**P&L** in the dock turns your day into an image to post, with Vest's logo on it: one account, several added up, or your whole copy group as a list, in dollars, percent or points. Rows by account, market, copy group, trade or session, for today, yesterday, this week, this month or any day. Dark or light, four styles, four sizes.
+
+**Replay** draws your session on Vest's own candles, every entry and exit where it filled. Style the chart the way you like it: your own chart's candle colors or a preset, candles, hollow, bars, line, area or Heikin Ashi, any timeframe, and the grid, axes, boxes and lines on or off. **Video** plays the day right in the page, and you save it only if you like it.
 
 <table>
   <tr>
@@ -243,7 +261,7 @@ When your payouts add up, make a certificate of your lifetime total and save it 
 
 Better Vest only runs on next.vestmarkets.com. When you open Vest it adds its tools to the page: the dock at the top, the Execute card and the labels on the chart.
 
-It doesn't have its own way to trade. When you press LONG, it fills in Vest's own order ticket and presses Vest's own Buy button, the way you would, and a limit order from the chart goes through the same ticket. Moving a TP or SL goes through Vest's own TP/SL handler. FLAT, 50%, REV and Partials use Vest's own windows, and Cancel all orders presses Vest's own Cancel buttons. The copy trader calls the same order code Vest's ticket runs, with each follower's account. Prices come from Vest's public market feed. The Calendar and the P&L card read your history with read-only requests and keep everything on your computer.
+It doesn't have its own way to trade. When you press LONG, it fills in Vest's own order ticket and presses Vest's own Buy button, the way you would, and a limit order from the chart goes through the same ticket. Moving a TP or SL goes through Vest's own TP/SL handler. FLAT, 50%, REV and Partials use Vest's own windows, and Cancel all orders presses Vest's own Cancel buttons. The account menu switches accounts with Vest's own menu, and Request payouts fills in Vest's own Claim profit window. The copy trader calls the same order code Vest's ticket runs, with each follower's account. Prices come from Vest's public market feed. The Calendar and the P&L card read your history with read-only requests and keep everything on your computer.
 
 There's no server behind it. Updates come from this repo, signed.
 
@@ -277,10 +295,10 @@ It's scanned (0 of 66 on VirusTotal), signed, readable and asks for three permis
 No. Better Vest holds them in your tab and sends a market order when the price gets there, so keep the tab open on the trade page. LIMIT orders are real orders on Vest.
 
 **How many accounts can the copy trader follow?**
-One leader and up to ten followers, each with its own ratio.
+One leader and up to ten followers per group, each with its own ratio. You can run several groups.
 
 **Does the copy trader need the tab open?**
-Yes. Copying runs in the Vest tab that's on the leader account. It keeps that tab awake while copying is on.
+Yes. Each group copies from a Vest tab on its leader account. Better Vest opens one for a group whose leader isn't the account in front of you, and keeps it awake while copying is on.
 
 **Does it work on trade.vestmarkets.com?**
 No, only on next.vestmarkets.com.
