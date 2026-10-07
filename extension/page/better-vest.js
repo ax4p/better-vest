@@ -20,7 +20,7 @@
 (function () {
     'use strict';
 
-    const VERSION = '8.1.5';
+    const VERSION = '8.2.0';
     // true only in the Chrome extension build (tools/build.py defines BV_EXT there)
     const IS_EXT = typeof BV_EXT !== 'undefined' && !!BV_EXT;
     // 'standard' = the shareable build; anything else = WICKED, the author's own full build.
@@ -223,6 +223,9 @@
         // Daily loss limit (7.7, extension): a soft lockout for new trades. limit in dollars, reset hour in local time.
         // flat (8.1.5): at the limit, also close every open position of the account.
         dll: { on: false, limit: 200, hour: 0, vest: true, flat: true },
+        // Accounts and limits (8.2, src/vest-accounts.js): Vest's account menu, limits and Claim profit, redone; every part on by default.
+        // nick / pins / hidden: this device's names and marks per account id; sort: the lists' order; panelOpen: the limits panel stays up
+        vestui: { menu: true, panel: true, strip: true, points: true, warn: true, nick: {}, pins: {}, hidden: {}, sort: 'limit', panelOpen: false },
         tpsl: { enabled: true, showR: true, demo: false, followBars: true, makeRoom: true, labelScale: 1.15, be: { show: true, pct: 5, mode: 'pctProfit', ticks: 1, points: 0, minProfitTicks: 2, allowAtEntry: false },
             // Auto trailing SL (8.1, set on the Execute card): starts once `start` in profit (pt, or startUsd with unit 'usd'), or at once with
             // `now`; trails `dist` (pt, or distUsd) behind the best price, moves of at least `step` pt. `auto` (the card's TRAIL switch) arms the
@@ -254,6 +257,10 @@
     }
 
     const stored = readStore('ax4p_settings', {}) || {};
+    // 8.2, saving across tabs (see persistNow): seen = each key as this tab last read or wrote it; stopIds = the client stops this tab knew
+    // stopSeen: each client stop as this tab last read or wrote it (a stop this tab changed since wins the merge; see stMergeStops)
+    const PERSIST = { seen: {}, stopIds: new Set(), stopSeen: {}, all: false };
+    try { const l = stored.tpsl && stored.tpsl.stops && stored.tpsl.stops.list; if (Array.isArray(l)) l.forEach((x) => { if (x && x.id != null) { PERSIST.stopIds.add(String(x.id)); PERSIST.stopSeen[String(x.id)] = JSON.stringify(x); } }); } catch (e) {}
     let S = Object.assign({}, DEFAULTS, stored);
     S.widgets = Object.assign({}, DEFAULTS.widgets, S.widgets || {});
     S.hide = Object.assign({}, DEFAULTS.hide, S.hide || {});
@@ -300,8 +307,10 @@
     S.tpsl.stops.show = S.tpsl.stops.show !== false;
     S.tpsl.limit = Object.assign({}, DEFAULTS.tpsl.limit, S.tpsl.limit && typeof S.tpsl.limit === 'object' ? S.tpsl.limit : {});
     S.tpsl.limit.show = S.tpsl.limit.show !== false;
+    // gone (8.2): stops removed in any tab, id -> when, so another tab's older list never brings one back (stMergeStops)
+    S.tpsl.stops.gone = stGone(S.tpsl.stops.gone);
     S.tpsl.stops.list = (Array.isArray(S.tpsl.stops.list) ? S.tpsl.stops.list : []).filter((x) => x && typeof x === 'object' && (x.side === 'buy' || x.side === 'sell')
-        && Number(x.price) > 0 && Number(x.size) > 0 && typeof x.sym === 'string' && x.acc && x.acc !== 'demo' && x.state !== 'fired').slice(0, 20)
+        && Number(x.price) > 0 && Number(x.size) > 0 && typeof x.sym === 'string' && x.acc && x.acc !== 'demo' && x.state !== 'fired' && !S.tpsl.stops.gone[String(x.id)]).slice(0, 20)
         .map((x) => Object.assign({}, x, x.state === 'firing' ? { state: 'failed', why: 'the page reloaded while it was being sent: check Vest' } : {}));
     // breakeven settings come from storage: keep them in range whatever was saved
     (function sanitizeBe(b) {
@@ -359,6 +368,21 @@
     S.dll.flat = S.dll.flat !== false;
     if (!(Number(S.dll.limit) > 0)) S.dll.limit = DEFAULTS.dll.limit;
     S.dll.hour = Number.isInteger(Number(S.dll.hour)) && Number(S.dll.hour) >= 0 && Number(S.dll.hour) <= 23 ? Number(S.dll.hour) : 0;
+    // accounts and limits from storage: the switches on unless saved off; names and marks plain maps of account id, at most 200 each
+    S.vestui = Object.assign({}, DEFAULTS.vestui, S.vestui && typeof S.vestui === 'object' && !Array.isArray(S.vestui) ? S.vestui : {});
+    ['menu', 'panel', 'strip', 'points', 'warn'].forEach((k) => { S.vestui[k] = S.vestui[k] !== false; });
+    S.vestui.panelOpen = S.vestui.panelOpen === true;
+    S.vestui.sort = ['limit', 'name', 'value', 'today'].indexOf(S.vestui.sort) >= 0 ? S.vestui.sort : 'limit';
+    ['nick', 'pins', 'hidden'].forEach((k) => {
+        const src = S.vestui[k] && typeof S.vestui[k] === 'object' && !Array.isArray(S.vestui[k]) ? S.vestui[k] : {};
+        const out = {};
+        Object.keys(src).slice(0, 200).forEach((id) => {
+            const v = src[id];
+            if (!/^[\w.:-]{1,128}$/.test(id)) return;
+            if (k === 'nick') { if (typeof v === 'string' && v.trim()) out[id] = v.trim().slice(0, 32); } else if (v === true) out[id] = true;
+        });
+        S.vestui[k] = out;
+    });
     // Partials take any number of targets since 7.5.2; 7.5.1 kept one (tp1Pts / tp1Pct), which becomes TP1
     if (!Array.isArray(S.xc.targets) || !S.xc.targets.length) S.xc.targets = [{ pts: Number(S.xc.tp1Pts) || 20, pct: Number(S.xc.tp1Pct) || 50 }];
     if (!(S.v >= 7.2)) {
@@ -367,11 +391,84 @@
     if (!(S.v >= 7.3)) S.v = 7.3;
 
     let saveTimer = null;
+    // 8.2: every Vest tab keeps its own S, and copy groups make a second tab common (a group's leader tab saves its copier every minute).
+    // Saving all of S let a tab's older copy undo another tab's change: a daily loss limit, a switch, a nickname, a client stop's state (a
+    // fired stop could come back armed after a reload). A save now writes only the keys this tab changed since it last read or wrote them,
+    // keeps every other key as storage holds it, and merges the client stops' list stop by stop (stMergeStops).
+    function persistNow() {
+        let cur = null;
+        try { cur = readStore('ax4p_settings', null); } catch (e) {}
+        const out = cur && typeof cur === 'object' && !Array.isArray(cur) ? Object.assign({}, cur) : {};
+        const all = PERSIST.all;
+        PERSIST.all = false;
+        for (const k of Object.keys(S)) {
+            let j;
+            try { j = JSON.stringify(S[k]); } catch (e) { continue; }
+            if (!all && j === PERSIST.seen[k]) continue;
+            out[k] = S[k];
+            PERSIST.seen[k] = j;
+        }
+        // the upgrade's full save writes the cleaned settings: a key the load removed (6.2's hideBook) goes from storage too
+        if (all) for (const k of Object.keys(out)) if (!Object.prototype.hasOwnProperty.call(S, k)) delete out[k];
+        const wroteTpsl = out.tpsl === S.tpsl;
+        if (wroteTpsl && S.tpsl && S.tpsl.stops) {
+            const cs = cur && cur.tpsl && cur.tpsl.stops ? cur.tpsl.stops : {};
+            const m = stMergeStops(cs.list, cs.gone, S.tpsl.stops.list, S.tpsl.stops.gone, PERSIST.stopIds, Date.now(), PERSIST.stopSeen);
+            out.tpsl = Object.assign({}, S.tpsl, { stops: Object.assign({}, S.tpsl.stops, { list: m.list, gone: m.gone }) });
+            S.tpsl.stops.gone = Object.assign({}, m.gone);
+            PERSIST.seen.tpsl = JSON.stringify(S.tpsl);
+        }
+        (S.tpsl && S.tpsl.stops && Array.isArray(S.tpsl.stops.list) ? S.tpsl.stops.list : []).forEach((x) => {
+            if (x && x.id != null) { PERSIST.stopIds.add(String(x.id)); if (PERSIST.stopSeen && wroteTpsl) PERSIST.stopSeen[String(x.id)] = JSON.stringify(x); }
+        });
+        writeStore('ax4p_settings', out);
+        postState();
+    }
     function persist() {
         clearTimeout(saveTimer);
-        saveTimer = setTimeout(() => { writeStore('ax4p_settings', S); postState(); }, 100);
+        saveTimer = setTimeout(persistNow, 100);
     }
-    if (upgrading) persist();
+    // the first save after an upgrade writes every key (the cleaned settings)
+    function persistAll() { PERSIST.all = true; persist(); }
+    // removed stops, cleaned: id -> when, the newest 200 within 7 days
+    function stGone(g) {
+        const out = {};
+        if (!g || typeof g !== 'object' || Array.isArray(g)) return out;
+        const t = Date.now();
+        Object.keys(g).filter((id) => /^[\w.:-]{1,64}$/.test(id) && Number(g[id]) > 0 && t - Number(g[id]) < 7 * 864e5)
+            .sort((a, b) => Number(g[b]) - Number(g[a])).slice(0, 200).forEach((id) => { out[id] = Number(g[id]); });
+        return out;
+    }
+    // The client stops' list is shared by every tab (8.2): merged by id. A stop this tab knew and no longer has was removed here: it is
+    // remembered in `gone`, so no tab's older list brings it back. A stop only storage has (another tab's new one) stays. For a stop both
+    // have: with `seen` (each stop as this tab last read or wrote it), a stop this tab has not changed since takes storage's (as new or newer),
+    // one it changed wins (a re-armed stop stays armed), except over one another tab sent or is sending, which never comes back; without
+    // `seen`, the further state wins (fired or failed over firing over armed), else this tab's.
+    function stMergeStops(theirList, theirGone, myList, myGone, known, t, seen) {
+        const rank = (x) => (x && (x.state === 'fired' || x.state === 'failed') ? 3 : x && x.state === 'firing' ? 2 : 1);
+        const gone = Object.assign({}, stGone(theirGone), stGone(myGone));
+        const mine = new Map();
+        for (const x of Array.isArray(myList) ? myList : []) if (x && x.id != null) mine.set(String(x.id), x);
+        if (known) for (const id of known) if (!mine.has(id) && !gone[id]) gone[id] = t;
+        const out = [];
+        for (const [id, x] of mine) {
+            if (gone[id]) continue;
+            const o = (Array.isArray(theirList) ? theirList : []).find((y) => y && String(y.id) === id);
+            if (!o) { out.push(x); continue; }
+            if (seen && typeof seen === 'object') {
+                if (seen[id] === JSON.stringify(x)) out.push(o);
+                else out.push(x.state !== 'fired' && (o.state === 'fired' || (o.state === 'firing' && o.tab && o.tab !== x.tab)) ? o : x);
+            } else out.push(rank(o) > rank(x) ? o : x);
+        }
+        for (const o of Array.isArray(theirList) ? theirList : []) {
+            const id = o && o.id != null ? String(o.id) : '';
+            if (id && !mine.has(id) && !gone[id] && !(known && known.has(id))) out.push(o);
+        }
+        return { list: out, gone: stGone(gone) };
+    }
+    // what this tab saw: its own (cleaned) settings now; from here on only its own changes are written
+    for (const k of Object.keys(S)) { try { PERSIST.seen[k] = JSON.stringify(S[k]); } catch (e) {} }
+    if (upgrading) persistAll();
 
     function presetList() {
         return S.presets[S.account] || ACCOUNT_PRESETS.custom;
@@ -4140,6 +4237,7 @@
                     ${FOCUS_ITEMS.map(([k, label]) => `<label class="ax4p-row"><span>${label}</span><input type="checkbox" data-hide="${k}"></label>`).join('')}
                     <div class="ax4p-hint"><b>Alt+F</b> switches your whole Focus setup off and back on. The order ticket stays loaded off-screen, so LONG, SHORT and FLAT keep working. Uncheck to restore.</div>
                 </div>
+                ${IS_EXT ? vuSettingsHtml() : ''}
             </div>
             <div class="ax4p-tabpane" data-pane="market">
                 <div class="ax4p-pane-h"><div class="ax4p-pane-t">Market</div><div class="ax4p-pane-d">The gap between Vest's mid price and the index.</div></div>
@@ -4252,6 +4350,7 @@
         tpWireSettings();
         mcWireSettings();
         dllWireSettings();
+        vuWireSettings();
         document.getElementById('ax4p-ch-reset').onclick = () => {
             S.chart.upColor = '';
             S.chart.downColor = '';
@@ -5041,9 +5140,10 @@
             if (!tp || !sl) return null;
             const entry = tpScaled(p.openPrice, info.dec);
             if (!(entry > 0)) continue;
-            // the liquidation price is not in this store: the last server read's, else none, as a REST row without one (the checks then read Vest's own liquidation line)
+            // the liquidation price is not in this store: the last server read's, else none, as a REST row without one (the checks then read Vest's own liquidation line).
+            // Only while the position is the one that read saw: an add or a partial close moves it, and a stale one would decide the SL check (8.2)
             const was = TP.model.positions.find((x) => x.id === String(p.id));
-            out.push({ id: String(p.id), symbol: String(p.symbol), isLong: p.isLong, qty, entry, legs: { tp, sl }, liq: was ? was.liq : null });
+            out.push({ id: String(p.id), symbol: String(p.symbol), isLong: p.isLong, qty, entry, legs: { tp, sl }, liq: was && was.qty === qty && was.entry === entry ? was.liq : null });
         }
         return out;
     }
@@ -6975,7 +7075,11 @@
 
     function tpTrailCopying() {
         const c = S.copy;
-        return !!(c && c.on && Array.isArray(c.followers) && c.followers.some((f) => f && f.on));
+        if (!c || typeof c !== 'object') return false;
+        // 8.2: the copy groups; the one that copies this account's trades (an older save is one group at the top)
+        const acc = tpActiveAccount();
+        const gs = Array.isArray(c.groups) ? c.groups : [c];
+        return gs.some((g) => g && g.on && (!acc || !g.leaderId || String(g.leaderId) === String(acc)) && Array.isArray(g.followers) && g.followers.some((f) => f && f.on));
     }
 
     // armed positions that are gone are forgotten: the demo once it is removed, a real one once its account's positions load without it for 20 s
@@ -7269,6 +7373,35 @@
         } finally { CS.firing = false; }
     }
 
+    // ---------- a client stop is sent by one tab, once (8.2) ----------
+    // Every Vest tab loads the stops from storage. A second tab on the same account and market that loaded one while it was armed would
+    // send it again after the first tab did, or send one the first tab removed. So a stop is claimed in storage right before it goes out,
+    // one tab at a time (a Web Lock): a stop storage holds as fired, as firing in another tab, or as removed is never sent here.
+    const CS_TAB = 't' + Date.now().toString(36) + Math.floor(Math.random() * 1e6).toString(36);
+    function csClaimIn(stored, id, tab) {
+        const st = stored && stored.tpsl && stored.tpsl.stops ? stored.tpsl.stops : null;
+        id = String(id);
+        if (st && st.gone && typeof st.gone === 'object' && st.gone[id]) return { ok: false, state: 'removed' };
+        const s = st && Array.isArray(st.list) ? st.list.find((y) => y && String(y.id) === id) : null;
+        if (s && (s.state === 'fired' || (s.state === 'firing' && s.tab && s.tab !== tab))) return { ok: false, state: s.state };
+        if (s) { s.state = 'firing'; s.tab = tab; }
+        return { ok: true, write: !!s };
+    }
+    async function csClaim(x) {
+        const run = () => {
+            let stored = null;
+            try { stored = readStore('ax4p_settings', null); } catch (e) {}
+            const r = csClaimIn(stored, x.id, CS_TAB);
+            if (r.ok) { x.tab = CS_TAB; if (r.write) writeStore('ax4p_settings', stored); }
+            return r;
+        };
+        try {
+            const nl = typeof navigator !== 'undefined' && navigator ? navigator.locks : null;
+            if (nl && typeof nl.request === 'function') return await nl.request('ax4p-cs-claim', run);
+        } catch (e) {}
+        return run();
+    }
+
     async function csSend(x) {
         const side = x.side;
         const t0 = now();
@@ -7292,6 +7425,8 @@
                 || (!(x.size > 0) ? 'no size' : '');
             let why = gate();
             if (why) return done('failed', why);
+            const claim = await csClaim(x);
+            if (!claim.ok) return claim.state === 'removed' ? done('failed', 'it was removed in another Vest tab', 'warn') : done('fired', 'sent from another Vest tab', 'warn');
             if (!(await mcEnsureTab('market'))) return done('failed', 'the ticket could not be switched to Market');
             why = gate() || (xcDemoOn() ? 'Demo was switched on' : '');
             if (why) return done('failed', why);
@@ -10339,6 +10474,1700 @@
     applyThemeEarly();
     mcStart(); // the macro keys are live from the first moment, before the suite's UI exists
 
+    // ---------- Accounts and limits (8.2) ----------
+    // Vest's account menu, its limits (daily loss, max loss, profit goal) and its Claim profit flow, redone on Vest's own data. Every number
+    // comes from Vest's zustand stores (read only, found through React's fibers like the positions store) and follows Vest's own formulas
+    // (its bundle, 2026-10-06); every action is Vest's own UI: a switch is Vest's own menu row, a claim is Vest's own Claim profit window.
+    // Nothing here builds a request or writes one of Vest's stores. Each part has its own switch (S.vestui, all on by default) and, off,
+    // leaves Vest's page exactly as Vest drew it. tools/build.py splices this file into the suite where the suite names it; it is extension only.
+    // docs/superpowers/specs/2026-10-06-8.2-accounts-design.md
+
+    // ---- vu pure: begin ----
+    // No DOM, no suite state: the model, the order, the formats. tests/vestui/ runs this block as it is.
+    const VU_GROUP_HUES = ['#4c8dff', '#ff9f43', '#2dd4bf', '#f472b6', '#a78bfa', '#facc15'];
+    const VU_HOUR = 3600000;
+    const VU_TAGS = { primary: 'PRIMARY', eval: 'EVAL', funded: 'FUNDED', instant: 'INSTANT', passed: 'PASSED', closed: 'CLOSED', other: '' };
+    // Vest's account status and kind enums (its bundle): status 2 active, 3 goal passed, 4 / 5 failed (max drawdown / daily loss), 6 claimed
+    // (an evaluation step moved on), 7 blocked; type 2 eval, 3 funded; stage 1 eval, 2 funded
+    const VU_ST = { created: 1, active: 2, passed: 3, failDd: 4, failDay: 5, claimed: 6, blocked: 7 };
+
+    // Vest keeps money as bigints with 6 decimals (USDC); a plain number is taken as dollars already
+    function vuUsd(v) {
+        if (typeof v === 'bigint') return Number(v) / 1e6;
+        if (typeof v === 'number' && Number.isFinite(v)) return v;
+        return null;
+    }
+    // a time Vest gave as ms, seconds or an ISO string; null when it is none of them
+    function vuMs(v) {
+        if (v == null || v === '') return null;
+        if (typeof v === 'bigint') v = Number(v);
+        if (typeof v === 'number') return Number.isFinite(v) && v > 0 ? (v < 1e12 ? v * 1000 : v) : null;
+        const t = Date.parse(String(v));
+        return Number.isFinite(t) ? t : null;
+    }
+    const vuClamp = (x) => (Number.isFinite(x) ? Math.max(0, Math.min(1, x)) : 0);
+    const vuCents = (n) => Math.round(n * 100) / 100;
+    // 25000 -> "25K", 500 -> "$500"
+    function vuK(n) {
+        if (!(n > 0)) return '';
+        if (n >= 1000) { const k = n / 1000; return (Number.isInteger(k) ? k : Math.round(k * 10) / 10) + 'K'; }
+        return '$' + Math.round(n);
+    }
+    // "$25,690", "$612", "$14", "$7.50"; signed "+$64", "-$188", "$0"; exact (claims): always cents, "$1,234.56"
+    function vuMoney(n, signed, exact) {
+        if (n == null || !Number.isFinite(n)) return '-';
+        const a = Math.abs(n);
+        const c = Math.round(a * 100) / 100;
+        const body = exact ? '$' + c.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+            : a >= 99.995 || Number.isInteger(c) ? '$' + Math.round(a).toLocaleString('en-US') : '$' + c.toFixed(2);
+        if (!signed) return (n < 0 && c > 0 ? '-' : '') + body;
+        if (c === 0) return exact ? '$0.00' : '$0';
+        return (n > 0 ? '+' : '-') + body;
+    }
+    // "3h 12m", "45m", "under a minute"
+    function vuDur(ms) {
+        if (!(ms > 0)) return 'now';
+        const m = Math.floor(ms / 60000);
+        if (m < 1) return 'under a minute';
+        const h = Math.floor(m / 60);
+        return h ? h + 'h ' + String(m % 60).padStart(2, '0') + 'm' : m + 'm';
+    }
+    // The next 20:00 in New York after `ms` (Vest's daily reset, its FAQ). Daylight saving is read from the moment itself.
+    function vuNextReset(ms, hour) {
+        const h = hour == null ? 20 : hour;
+        try {
+            const f = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const o = {};
+            for (const p of f.formatToParts(new Date(ms))) o[p.type] = p.value;
+            const wall = Date.UTC(+o.year, +o.month - 1, +o.day, +o.hour, +o.minute, +o.second);
+            const off = wall - Math.floor(ms / 1000) * 1000;
+            let t = Date.UTC(+o.year, +o.month - 1, +o.day, h, 0, 0) - off;
+            if (t <= ms) t += 24 * VU_HOUR;
+            return t;
+        } catch (e) { return null; }
+    }
+    // dollars of room as points at `size` (Vest's perps move $1 a point for each unit of size); null without a size
+    function vuPts(usd, size) {
+        if (usd == null || !(size > 0)) return null;
+        return Math.max(0, Math.floor(usd / size * 4) / 4);
+    }
+    // "$1,234.56" or "1,234.56 USDC" as a number; null when there is none
+    function vuParseUsd(s) {
+        const m = /-?\$?\s*([0-9][0-9,]*(?:\.[0-9]+)?)/.exec(String(s == null ? '' : s));
+        if (!m) return null;
+        const n = Number(m[1].replace(/,/g, ''));
+        return Number.isFinite(n) ? (/-\s*\$?\s*[0-9]/.test(m[0]) ? -n : n) : null;
+    }
+
+    function vuKind(cap, primary) {
+        if (!cap) return primary ? 'primary' : 'other';
+        const st = Number(cap.status);
+        const blocked = cap.blockedAt != null;
+        const isEval = cap.type === 2 || cap.stage === 1;
+        const isFunded = cap.type === 3 || cap.stage === 2;
+        if (blocked || st === VU_ST.failDd || st === VU_ST.failDay || st === VU_ST.blocked) return 'closed';
+        if (isEval && st === VU_ST.passed) return 'passed';
+        if (isFunded && cap.planProductType === 'instant_funded') return 'instant';
+        if (isFunded) return 'funded';
+        if (isEval) return 'eval';
+        return 'other';
+    }
+
+    // One account as the menu, the strip, the panel and Manage accounts show it. r = { id, primary, active, cap (Vest's capital record or
+    // null), bal (the account store's balance), eq (the equity store's row), dayBase (this browser's first value of the trading day, or null),
+    // busy (holds a position or an order: true / false / null unknown) }; t = now. Every number is null when Vest has not given it.
+    function vuAccountModel(r, t) {
+        const cap = r.cap || null;
+        const kind = vuKind(cap, !!r.primary);
+        const equity = r.eq && r.eq.value != null ? vuUsd(r.eq.value) : null;
+        const start = cap ? vuUsd(cap.startingBalance) : null;
+        const st = cap ? Number(cap.status) : 0;
+        const isEval = !!cap && (cap.type === 2 || cap.stage === 1);
+        const isFunded = !!cap && (cap.type === 3 || cap.stage === 2);
+        const live = kind !== 'closed';
+        let day = null, max = null, goal = null, claim = null;
+        if (cap && live && equity != null) {
+            // daily loss: Vest's floor for the day and the allowance it was set from (its sT: remaining = equity - floor, used = base - remaining)
+            const dFloor = vuUsd(cap.dailyLossFloor);
+            const base = vuUsd(cap.dailyResetBaseLimit);
+            if (Number(cap.maxDailyLossPct) > 0 && cap.dailyResetAt != null && dFloor != null) {
+                const left = equity - dFloor;
+                const limit = base != null && base > 0 ? base : null;
+                const used = limit != null ? Math.max(0, limit - left) : null;
+                day = { floor: dFloor, limit, left: Math.max(0, left), used, ratio: limit ? vuClamp(used / limit) : (left <= 0 ? 1 : 0), resetAt: vuMs(cap.dailyResetAt), hit: left <= 0 };
+            }
+            // max loss: a fixed floor (maxDrawdownLimit); the allowance is start - floor, the drawdown start - equity (0 above the start)
+            const mFloor = vuUsd(cap.maxDrawdownLimit);
+            if (mFloor != null && mFloor > 0 && start != null && start > mFloor) {
+                const allowance = start - mFloor;
+                const used = equity >= start ? 0 : start - equity;
+                max = { floor: mFloor, allowance, used, room: Math.max(0, equity - mFloor), ratio: vuClamp(used / allowance), hit: equity <= mFloor };
+            }
+            // profit goal: evaluations only, target - start to make
+            const target = vuUsd(cap.targetBalance);
+            if (isEval && target != null && start != null && target > start) {
+                const need = target - start, done = equity - start;
+                goal = { target, need, done, toGo: Math.max(0, target - equity), ratio: vuClamp(done / need) };
+            }
+        }
+        // to claim (Vest's lZ): balance - starting balance, never below 0; the split is a bigint with 4 decimals of a fraction (8000 = 80%)
+        if (cap && isFunded && st === VU_ST.active && cap.blockedAt == null) {
+            const bal = vuUsd(r.bal);
+            if (bal != null && start != null) {
+                const avail = Math.max(0, Math.floor((bal - start) * 100) / 100);
+                const sp = cap.maxProfitSplitPct != null ? Number(cap.maxProfitSplitPct) / 10000 : null;
+                const split = sp > 0 && sp <= 1 ? sp : null;
+                claim = { avail, split, receive: split != null ? vuCents(avail * split) : null };
+            }
+        }
+        // today: Vest's own day (equity now - its value at the last daily reset) while that reset is under 30 h old, else this browser's base
+        let today = null;
+        const rEq = cap ? vuUsd(cap.dailyResetEquity) : null;
+        const rAt = cap ? vuMs(cap.dailyResetAt) : null;
+        if (equity != null && rEq != null && rEq > 0 && rAt != null && rAt <= t + 60000 && t - rAt < 30 * VU_HOUR) today = vuCents(equity - rEq);
+        else if (equity != null && r.dayBase != null && Number.isFinite(r.dayBase)) today = vuCents(equity - r.dayBase);
+        const ratios = [day && day.ratio, max && max.ratio].filter((x) => x != null);
+        const closest = ratios.length ? Math.max.apply(null, ratios) : -1;
+        const planName = cap && typeof cap.planName === 'string' ? cap.planName.trim() : '';
+        const plan = kind === 'primary' ? 'Wallet' : /\d/.test(planName) ? planName : [planName, vuK(start)].filter(Boolean).join(' ');
+        const name = cap && typeof cap.name === 'string' && cap.name.trim() ? cap.name.trim() : r.primary ? 'Primary' : String(r.id).slice(0, 8);
+        return {
+            id: String(r.id), kind, tag: VU_TAGS[kind] || '', name, plan,
+            step: cap && Number(cap.stepsTotal) > 1 ? 'Step ' + cap.step + ' of ' + cap.stepsTotal : '',
+            active: !!r.active, primary: !!r.primary, equity, start, today,
+            open: r.eq && r.eq.unrealizedPnl != null ? vuUsd(r.eq.unrealizedPnl) : null,
+            profit: equity != null && start != null && isFunded ? vuCents(equity - start) : null,
+            day, max, goal, claim, busy: r.busy == null ? null : !!r.busy,
+            closest, level: closest >= 0.8 ? 'bad' : closest >= 0.5 ? 'warn' : 'ok'
+        };
+    }
+
+    // The menu's and Manage accounts' orders: closest to a limit first (accounts without a limit last), by name (Account 2 before 10),
+    // by equity, by today
+    function vuCompare(sort) {
+        const byName = (a, b) => String(a.name).localeCompare(String(b.name), 'en', { numeric: true }) || String(a.id).localeCompare(String(b.id));
+        const num = (v, d) => (v == null ? d : v);
+        if (sort === 'name') return byName;
+        if (sort === 'value') return (a, b) => num(b.equity, -Infinity) - num(a.equity, -Infinity) || byName(a, b);
+        if (sort === 'today') return (a, b) => num(b.today, -Infinity) - num(a.today, -Infinity) || byName(a, b);
+        return (a, b) => num(b.closest, -1) - num(a.closest, -1) || byName(a, b);
+    }
+
+    // Vest's stores by their own shape (member names survive minification): 'acct' (the active account), 'cap' (the capital accounts),
+    // 'eq' (equity per account), 'ind' (the numbers behind Vest's own bars), 'pos' (positions), 'ord' (orders); null for anything else
+    function vuClassify(api) {
+        let st = null;
+        try {
+            if (!api || typeof api.getState !== 'function' || typeof api.subscribe !== 'function') return null;
+            st = api.getState();
+        } catch (e) { return null; }
+        if (!st || typeof st !== 'object') return null;
+        const fn = (k) => typeof st[k] === 'function';
+        const obj = (k) => !!st[k] && typeof st[k] === 'object';
+        if (fn('setActiveAccountId') && 'activeAccountId' in st) return 'acct';
+        if (fn('upsertAccount') && fn('clearCapitalStore') && obj('accounts') && 'limits' in st) return 'cap';
+        if (fn('getRegistry') && fn('setPositions') && fn('getById') && obj('accounts')) return 'pos';
+        if (fn('getRegistry') && fn('setOrders') && fn('dropOrder') && obj('accounts')) return 'ord';
+        if (fn('get') && fn('set') && fn('clear') && obj('accounts')) {
+            const rows = Object.values(st.accounts);
+            if (rows.some((x) => x && typeof x === 'object' && typeof x.value === 'bigint' && 'positionsCollateral' in x)) return 'eq';
+            if (fn('remove') && rows.some((x) => x && typeof x === 'object' && 'drawdownRatio' in x && 'goalRatio' in x)) return 'ind';
+        }
+        return null;
+    }
+
+    // Copy groups (overview contract 1): the copier's own list when it offers one (contract 2), else S.copy.groups, else the 8.1 single setup as
+    // group A. [{ id, leaderId, followerIds }]
+    function vuGroupsFrom(copy, hooked) {
+        const norm = (list) => (Array.isArray(list) ? list : []).filter((g) => g && g.id != null).map((g) => ({
+            id: String(g.id), leaderId: g.leaderId == null ? '' : String(g.leaderId),
+            followerIds: (Array.isArray(g.followerIds) ? g.followerIds : (Array.isArray(g.followers) ? g.followers : []))
+                .map((f) => (f && typeof f === 'object' ? f.accountId : f)).filter((x) => x != null && x !== '').map(String)
+        }));
+        if (Array.isArray(hooked)) return norm(hooked);
+        const c = copy && typeof copy === 'object' ? copy : null;
+        if (c && Array.isArray(c.groups)) return norm(c.groups);
+        if (c && c.leaderId) return norm([{ id: 'A', leaderId: c.leaderId, followers: c.followers }]);
+        return [];
+    }
+    // accountId -> { id, lead, hue } for every account in a group
+    function vuGroupMap(groups) {
+        const m = {};
+        groups.forEach((g, i) => {
+            const hue = VU_GROUP_HUES[i % VU_GROUP_HUES.length];
+            if (g.leaderId) m[g.leaderId] = { id: g.id, lead: true, hue };
+            g.followerIds.forEach((f) => { if (!m[f]) m[f] = { id: g.id, lead: false, hue }; });
+        });
+        return m;
+    }
+
+    // Request payouts, the check before it runs: the accounts asked for, each ready or not and why. Only a funded account with at least
+    // 1 USDC to claim (Vest's minimum) and no position or order is ready.
+    function vuPayPlan(models, ids) {
+        const want = new Set((ids || []).map(String));
+        return models.filter((m) => want.has(m.id)).map((m) => {
+            const row = { id: m.id, name: m.name, claim: m.claim ? m.claim.avail : 0, receive: m.claim ? m.claim.receive : null, split: m.claim ? m.claim.split : null };
+            if (!m.claim) return Object.assign(row, { state: 'skip', why: 'Not a funded account' });
+            if (!(m.claim.avail >= 1)) return Object.assign(row, { state: 'skip', why: 'Nothing to claim' });
+            if (m.busy === true) return Object.assign(row, { state: 'skip', why: 'Holds a position or an order: Vest refuses the claim' });
+            return Object.assign(row, { state: 'ready', why: '' });
+        });
+    }
+    // Why Request payouts must wait, or '' (8.2 review). live: the copier's groups with `running` (its hook; the saved switch of a group whose
+    // tab was closed can still say on), null without the hook: then the saved switches decide. stops: the client stops (a claim switches
+    // accounts and pages, so an armed one would not be watched and its entry missed).
+    function vuBusyFrom(o) {
+        const live = Array.isArray(o.live) ? o.live : null;
+        const c = o.copy;
+        const on = live ? live.filter((g) => g && g.running).map((g) => String(g.id))
+            : c && Array.isArray(c.groups) ? c.groups.filter((g) => g && g.on === true).map((g) => String(g.id)) : [];
+        if (on.length || (!live && c && c.on === true)) return 'Copying is on' + (on.length ? ' (group ' + on.join(', ') + ')' : '') + '. Switch it off first: a claim switches accounts and moves money, which must not happen while copies can go out.';
+        if (o.dll) return 'Your loss limit is closing positions right now.';
+        if (o.xc) return 'The Execute card is sending an order right now.';
+        const st = Array.isArray(o.stops) ? o.stops.filter((x) => x && (x.state === 'armed' || x.state === 'firing') && x.acc !== 'demo') : [];
+        if (st.length) return 'A STOP order is armed. Remove it first: a claim switches accounts, so the stop would not be watched.';
+        if (o.pay) return 'Request payouts is running.';
+        return '';
+    }
+    // Vest's banner slot shows the limits (always with dollar amounts), or, during an evaluation's step change, a notice ("Step 1 completed",
+    // "preparing step 2") with none: only the limits are ours to cover (8.2 review)
+    function vuSlotIsLimits(text) { return /\$\s?[0-9]/.test(String(text || '')); }
+    // ---- vu pure: end ----
+
+    // ---- vu run: begin ----
+    // Switching and claiming through Vest's own UI. Everything outside comes in through `env`, so the tests drive a fake Vest:
+    // env = { doc, active(), sleep(ms), click(el), setInput(el, v), submit(btn), openMenu(trigger), closeMenu(), hideMenu(on), closeDialog(dlg),
+    //         path(), goto(path), cancelled() }
+
+    // The account a row of Vest's menu switches to: its row component's `account` prop (the rows' test ids name the kind, not the account)
+    function vuRowAccountId(el) {
+        let k = null;
+        try { k = Object.keys(el).find((x) => x.indexOf('__reactFiber$') === 0); } catch (e) {}
+        let f = k ? el[k] : null;
+        for (let i = 0; f && i < 25; i++, f = f.return) {
+            const a = f.memoizedProps && f.memoizedProps.account;
+            if (a && typeof a === 'object' && a.id != null) return String(a.id);
+        }
+        return null;
+    }
+
+    // Vest's menu, opened out of sight, its row for `id` pressed with Vest's own click handler, and the switch waited for
+    async function vuSwitchVia(env, id) {
+        id = String(id);
+        if (String(env.active() || '') === id) return { ok: true };
+        // a copy group's leader tab (?bvLead=) stays on its leader: its copier reads that account's own socket (8.2)
+        const lk = typeof env.locked === 'function' ? env.locked() : null;
+        if (lk && lk.accountId != null && String(lk.accountId) !== id) return { ok: false, why: lk.why || 'this tab stays on its copy group\'s leader' };
+        const trig = env.doc.querySelector('[data-testid="account-selector-trigger"]');
+        if (!trig) return { ok: false, why: 'Vest\'s account menu is not on the page' };
+        env.hideMenu(true);
+        try {
+            env.openMenu(trig);
+            let row = null;
+            for (let i = 0; i < 40 && !row; i++) {
+                for (const el of env.doc.querySelectorAll('[data-testid^="account-item-"]')) if (vuRowAccountId(el) === id) { row = el; break; }
+                if (!row) await env.sleep(50);
+            }
+            if (!row) { env.closeMenu(); return { ok: false, why: 'the account is not in Vest\'s menu' }; }
+            env.click(row);
+            for (let i = 0; i < 80; i++) {
+                if (String(env.active() || '') === id) {
+                    if (env.doc.querySelector('[data-testid^="account-item-"]')) env.closeMenu();
+                    return { ok: true };
+                }
+                await env.sleep(50);
+            }
+            env.closeMenu();
+            return { ok: false, why: 'Vest did not switch to the account' };
+        } finally { env.hideMenu(false); }
+    }
+
+    function vuShown(el) { try { return !!el && el.getClientRects().length > 0; } catch (e) { return !!el; } }
+    // Vest's own "Claim profit" button (withdraw-open: on a funded account it opens the Claim profit window)
+    function vuClaimButton(doc) {
+        for (const b of doc.querySelectorAll('[data-testid="withdraw-open"]')) if (vuShown(b) && !(b.closest && b.closest('[id^="ax4p"]'))) return b;
+        return null;
+    }
+    // the amount box of the Claim profit window (the decimal input that is not the percentage)
+    function vuClaimAmount(dlg) {
+        for (const i of dlg.querySelectorAll('input')) {
+            if (i.getAttribute('data-testid') === 'claim-profit-amount-slider-percentage') continue;
+            if ((i.getAttribute('inputmode') || '') !== 'decimal') continue;
+            const v = vuParseUsd(i.value);
+            return v;
+        }
+        return null;
+    }
+    // Vest's answer: its confirmation (a window that opened after the submit, with one button, "Got it") or an error (the form's message, or
+    // an error toast that was not there before). A window that was already open (an update notice...) is never taken for the answer.
+    function vuClaimOutcome(doc, toastsBefore, dialogsBefore) {
+        // on success Vest puts its confirmation in place of the claim window: while that window is still there, no window is the answer
+        const claimOpen = !!doc.querySelector('[data-testid="claim-profit-submit"]');
+        for (const d of claimOpen ? [] : doc.querySelectorAll('[role="dialog"]')) {
+            if (d.querySelector('[data-testid="claim-profit-submit"]') || (d.id || '').indexOf('ax4p') === 0) continue;
+            if (dialogsBefore && dialogsBefore.has(d)) continue;
+            const btns = [...d.querySelectorAll('button')].filter((b) => vuShown(b));
+            const got = btns.find((b) => /got it/i.test(b.textContent || '')) || (btns.length === 1 ? btns[0] : null);
+            if (got) return { ok: true, button: got, text: d.textContent || '' };
+        }
+        const msg = doc.querySelector('[data-testid="claim-profit-submit"]') ? (doc.querySelector('[role="dialog"] [data-slot="form-message"]') || doc.querySelector('[role="dialog"] [id$="-form-item-message"]')) : null;
+        if (msg && (msg.textContent || '').trim()) return { ok: false, why: msg.textContent.trim() };
+        for (const t of doc.querySelectorAll('[data-sonner-toast][data-type="error"]')) {
+            if (toastsBefore && toastsBefore.has(t)) continue;
+            const s = (t.textContent || '').trim();
+            if (s) return { ok: false, why: s };
+        }
+        return null;
+    }
+
+    // One claim, all of it, through Vest's own window. The account is checked again right before the submit; a submit is never repeated.
+    async function vuClaimOne(env, id) {
+        const doc = env.doc;
+        const sure = () => String(env.active() || '') === String(id);
+        if (!sure()) return { state: 'error', why: 'the account changed before its claim' };
+        const btn = vuClaimButton(doc);
+        if (!btn) return { state: 'error', why: 'Vest\'s Claim profit button is not on this page' };
+        env.click(btn);
+        let submit = null;
+        for (let i = 0; i < 60 && !submit; i++) { submit = doc.querySelector('[data-testid="claim-profit-submit"]'); if (!submit) await env.sleep(50); }
+        if (!submit) return { state: 'error', why: 'Vest\'s Claim profit window did not open' };
+        const dlg = submit.closest('[role="dialog"]') || doc;
+        const close = () => env.closeDialog(dlg === doc ? null : dlg);
+        const avail = vuParseUsd((dlg.querySelector('[data-testid="claim-profit-available"]') || {}).textContent);
+        if (avail == null) { close(); return { state: 'error', why: 'Vest\'s window shows no amount to claim' }; }
+        if (avail < 1) { close(); return { state: 'nothing', amount: avail }; }
+        const pct = dlg.querySelector('[data-testid="claim-profit-amount-slider-percentage"]');
+        if (!pct) { close(); return { state: 'error', why: 'Vest\'s percentage box is not in its window' }; }
+        env.setInput(pct, '100');
+        let amt = null;
+        for (let i = 0; i < 40; i++) { amt = vuClaimAmount(dlg); if (amt != null && amt > 0) break; await env.sleep(50); }
+        if (!sure()) { close(); return { state: 'error', why: 'the account changed before its claim' }; }
+        if (!(amt > 0)) { close(); return { state: 'error', why: 'Vest did not take 100%' }; }
+        // 100% is all of it: anything else means the window is not what this code knows, so nothing is sent
+        if (Math.abs(amt - avail) > 0.01 + avail * 1e-6) { close(); return { state: 'error', why: 'Vest\'s amount (' + amt + ') is not all of ' + avail }; }
+        submit = dlg.querySelector('[data-testid="claim-profit-submit"]');
+        if (!submit || submit.disabled) {
+            const why = submit ? (submit.textContent || '').trim() : '';
+            close();
+            return { state: 'refused', why: why || 'Vest refused the claim' };
+        }
+        if (!sure()) { close(); return { state: 'error', why: 'the account changed before its claim' }; }
+        const before = new Set(doc.querySelectorAll('[data-sonner-toast][data-type="error"]'));
+        const dlgs = new Set(doc.querySelectorAll('[role="dialog"]'));
+        env.submit(submit);
+        for (let i = 0; i < 200; i++) {
+            await env.sleep(50);
+            const o = vuClaimOutcome(doc, before, dlgs);
+            if (!o) continue;
+            if (o.ok) {
+                const recv = vuParseUsd((/\$\s*[0-9][0-9,]*(?:\.[0-9]+)?/.exec(o.text) || [''])[0]);
+                env.click(o.button);
+                return { state: 'claimed', amount: avail, receive: recv };
+            }
+            if (doc.querySelector('[data-testid="claim-profit-submit"]')) close();
+            return { state: 'refused', why: o.why };
+        }
+        return { state: 'error', why: 'no answer from Vest in 10 s: check this account on Vest before anything else' };
+    }
+
+    // The whole run: one account at a time, stopped at the first refusal; the account and the page you started on come back at the end.
+    // list = [{ id }]; onStep(id, state, result)
+    async function vuPayRun(env, list, onStep) {
+        const step = typeof onStep === 'function' ? onStep : () => {};
+        const start = { acc: env.active(), path: env.path() };
+        const results = [];
+        let stop = null;
+        try {
+            for (const it of list) {
+                if (env.cancelled()) { stop = { id: it.id, why: 'stopped by you' }; break; }
+                step(it.id, 'switching');
+                const sw = await vuSwitchVia(env, it.id);
+                if (!sw.ok) { results.push({ id: it.id, state: 'error', why: sw.why }); stop = { id: it.id, why: sw.why }; step(it.id, 'error', results[results.length - 1]); break; }
+                if (!vuClaimButton(env.doc)) {
+                    step(it.id, 'opening');
+                    await env.goto('/portfolio');
+                    for (let i = 0; i < 80 && !vuClaimButton(env.doc); i++) await env.sleep(50);
+                }
+                if (env.cancelled()) { stop = { id: it.id, why: 'stopped by you' }; break; }
+                step(it.id, 'claiming');
+                const r = Object.assign({ id: it.id }, await vuClaimOne(env, it.id));
+                results.push(r);
+                step(it.id, r.state, r);
+                if (r.state !== 'claimed' && r.state !== 'nothing') { stop = { id: it.id, why: r.why || r.state }; break; }
+            }
+        } finally {
+            try { if (start.acc && String(env.active() || '') !== String(start.acc)) await vuSwitchVia(env, start.acc); } catch (e) {}
+            try { if (start.path && env.path() !== start.path) await env.goto(start.path); } catch (e) {}
+        }
+        return { results, stop };
+    }
+    // ---- vu run: end ----
+
+    // ---------- the live side ----------
+    const VU = {
+        st: { acct: null, cap: null, eq: null, pos: null, ord: null, ind: null }, unsub: {}, findAt: 0,
+        hooks: null, list: [], at: 0, dirty: true, soon: null, booted: false,
+        btn: null, menu: null, menuOpen: false, q: '', filter: 'all', strip: null, stripHost: null, panel: null,
+        manage: null, mq: '', mfilter: 'all', showHidden: false, sel: new Set(), pay: null,
+        demoActive: 'demo-03', warned: {}, dayRec: null, ownMenu: false, pillKey: '', pill: null
+    };
+    const VU_DAY_KEY = 'ax4p_vu_day';
+
+    const vuDemo = () => !!xcDemoOn();
+    const vuOn = (k) => !!(S.vestui && S.vestui[k] !== false);
+
+    // Vest's stores, found through React's fibers from the root: the account, capital and equity stores are needed, the rest are extras.
+    // Looked for at most every 3 s while one of the needed three is missing; every store found is subscribed so the UI follows Vest.
+    function vuFindStores() {
+        const ok = (k) => VU.st[k] && vuClassify(VU.st[k]) === k;
+        const t = now();
+        // the three needed ones: every 3 s until found; the extras (positions, orders: the payout check) every 30 s after that
+        const haveNeed = ['acct', 'cap', 'eq'].every(ok);
+        if (haveNeed && ((ok('pos') && ok('ord')) || t - VU.findAt < 30000)) return;
+        if (!haveNeed && t - VU.findAt < 3000) return;
+        VU.findAt = t;
+        let root = null;
+        try {
+            const el = document.getElementById('root');
+            for (const k of Object.keys(el || {})) {
+                if (k.indexOf('__reactContainer$') !== 0 || !el[k]) continue;
+                root = (el[k].stateNode && el[k].stateNode.current) || el[k];
+                break;
+            }
+        } catch (e) {}
+        if (!root) return;
+        const found = {};
+        const stack = [root];
+        for (let n = 0; stack.length && n < 60000; n++) {
+            const f = stack.pop();
+            if (!f) continue;
+            for (let h = f.memoizedState, i = 0; h && typeof h === 'object' && i < 100; h = h.next, i++) {
+                const m = h.memoizedState;
+                const a = Array.isArray(m) && Array.isArray(m[1]) ? m[1][0] : null;
+                if (!a || typeof a !== 'object' && typeof a !== 'function') continue;
+                const k = vuClassify(a);
+                if (k && !found[k]) found[k] = a;
+            }
+            if (Object.keys(found).length >= 6) break;
+            if (f.sibling) stack.push(f.sibling);
+            if (f.child) stack.push(f.child);
+        }
+        Object.keys(found).forEach((k) => {
+            if (VU.st[k] === found[k]) return;
+            if (VU.unsub[k]) { try { VU.unsub[k](); } catch (e) {} }
+            VU.st[k] = found[k];
+            try { VU.unsub[k] = found[k].subscribe(vuChanged); } catch (e) { VU.unsub[k] = null; }
+        });
+        vuChanged();
+    }
+    // Vest changed a store (the equity one on every price tick): one render a quarter second at most
+    function vuChanged() {
+        VU.dirty = true;
+        if (VU.soon) return;
+        VU.soon = setTimeout(() => { VU.soon = null; try { vuRender(); } catch (e) {} }, 250);
+    }
+
+    function vuActiveId() {
+        if (vuDemo()) return VU.demoActive;
+        try { const a = VU.st.acct && VU.st.acct.getState().activeAccountId; if (a) return String(a); } catch (e) {}
+        try { return tpActiveAccount(true) || null; } catch (e) { return null; }
+    }
+
+    // this browser's first equity of the trading day (20:00 New York), per account, for the accounts Vest gives no daily reset for
+    function vuDayBase(id, equity, t) {
+        if (equity == null || !(equity > 0)) return null;
+        const reset = vuNextReset(t);
+        if (!reset) return null;
+        const key = String(reset);
+        if (!VU.dayRec) { try { VU.dayRec = JSON.parse(localStorage.getItem(VU_DAY_KEY) || 'null'); } catch (e) {} }
+        if (!VU.dayRec || typeof VU.dayRec !== 'object' || VU.dayRec.key !== key) VU.dayRec = { key, base: {} };
+        const b = VU.dayRec.base;
+        if (!(id in b)) {
+            b[id] = equity;
+            try { localStorage.setItem(VU_DAY_KEY, JSON.stringify(VU.dayRec)); } catch (e) {}
+        }
+        return b[id];
+    }
+
+    // every account, read from Vest's stores now (or the demo's ten)
+    function vuRead() {
+        const t = now();
+        if (vuDemo()) return vuDemoList(t);
+        const A = VU.st.acct, C = VU.st.cap, E = VU.st.eq, P = VU.st.pos, O = VU.st.ord;
+        if (!A) return [];
+        let as = null, cs = {}, es = {};
+        try { as = A.getState(); } catch (e) { return []; }
+        try { cs = (C && C.getState().accounts) || {}; } catch (e) {}
+        try { es = (E && E.getState().accounts) || {}; } catch (e) {}
+        const primary = as.primaryAccountId ? String(as.primaryAccountId) : '';
+        const active = as.activeAccountId ? String(as.activeAccountId) : '';
+        const ids = new Set();
+        if (primary) ids.add(primary);
+        Object.keys(cs).forEach((id) => {
+            const c = cs[id];
+            // Vest's own menu leaves out records it has no status for and evaluation steps that moved on
+            if (c && Number(c.status) !== 0 && Number(c.status) !== VU_ST.claimed) ids.add(String(id));
+        });
+        const busyOf = (id) => {
+            let any = false, known = false;
+            try { if (P) { const reg = P.getState().getRegistry(id); if (reg && reg.hasHydrated) { known = true; any = Object.values(reg.positions || {}).some((p) => p && (typeof p.quantity !== 'bigint' || p.quantity > 0n) && !p.closedAt); } } } catch (e) {}
+            try { if (O) { const reg = O.getState().getRegistry(id); if (reg && reg.hasHydrated) { known = true; any = any || (reg.orders && reg.orders.size > 0); } } } catch (e) {}
+            return known ? any : null;
+        };
+        const out = [];
+        ids.forEach((id) => {
+            const eq = es[id] || null;
+            const bal = as.accounts && as.accounts[id] ? as.accounts[id].balance : null;
+            const equity = eq && eq.value != null ? vuUsd(eq.value) : null;
+            const m = vuAccountModel({ id, primary: id === primary, active: id === active, cap: cs[id] || null, bal, eq, dayBase: vuDayBase(id, equity, t), busy: busyOf(id) }, t);
+            // a closed account (failed or blocked) is on Vest's own closed list (the menu's Closed accounts), not in ours
+            if (m.kind !== 'closed' || m.active) out.push(m);
+        });
+        return out;
+    }
+
+    // ten sample accounts (the mockups' own): the demo shows every part, logged out, with nothing read and nothing sent
+    function vuDemoList(t) {
+        const big = (n) => BigInt(Math.round(n * 1e6));
+        const resetAt = vuNextReset(t) - 24 * VU_HOUR;
+        const mk = (id, name, kind, startUsd, equity, o) => {
+            o = o || {};
+            const isEval = kind === 'eval';
+            const cap = kind === 'primary' ? null : {
+                name, planName: o.plan || '', planProductType: kind === 'instant' ? 'instant_funded' : 'eval', type: isEval ? 2 : 3, stage: isEval ? 1 : 2,
+                status: VU_ST.active, step: 1, stepsTotal: 1, blockedAt: null, startingBalance: big(startUsd),
+                targetBalance: isEval ? big(startUsd * 1.1) : 0n, maxDrawdownLimit: big(startUsd * (kind === 'instant' ? 0.96 : 0.94)),
+                maxDailyLossPct: kind === 'instant' ? 0 : 3, dailyResetAt: kind === 'instant' ? null : resetAt,
+                dailyLossFloor: kind === 'instant' ? null : big(o.dayStart - startUsd * 0.03), dailyResetBaseLimit: kind === 'instant' ? null : big(startUsd * 0.03),
+                dailyResetEquity: kind === 'instant' ? null : big(o.dayStart), maxProfitSplitPct: 8000n
+            };
+            const r = { id, primary: kind === 'primary', active: id === VU.demoActive, cap, bal: big(o.bal != null ? o.bal : equity), eq: { value: big(equity), unrealizedPnl: big(o.open || 0) },
+                dayBase: kind === 'instant' || kind === 'primary' ? equity - (o.today || 0) : null, busy: !!o.busy };
+            const m = vuAccountModel(r, t);
+            if (kind === 'primary') m.name = 'Primary';
+            return m;
+        };
+        return [
+            mk('demo-p', 'Primary', 'primary', 0, 1240.55, { today: 0 }),
+            mk('demo-05', 'Account 05', 'funded', 10000, 9705, { plan: 'Gold', dayStart: 9893 }),
+            mk('demo-01', 'Account 01', 'funded', 10000, 10412, { plan: 'Gold', dayStart: 10348 }),
+            mk('demo-02', 'Account 02', 'instant', 5000, 5118, { plan: 'Instant', today: -22 }),
+            mk('demo-09', 'Account 09', 'eval', 5000, 4880, { plan: 'Silver', dayStart: 5016 }),
+            mk('demo-10', 'Account 10', 'eval', 5000, 4962, { plan: 'Silver', dayStart: 5062 }),
+            mk('demo-03', 'Account 03', 'eval', 25000, 25690, { plan: 'Platinum', dayStart: 25828, open: -74 }),
+            mk('demo-04', 'Account 04', 'eval', 5000, 5226, { plan: 'Silver', dayStart: 5164 }),
+            mk('demo-06', 'Account 06', 'eval', 10000, 10365, { plan: 'Gold', dayStart: 10421 }),
+            mk('demo-07', 'Account 07', 'eval', 10000, 10341, { plan: 'Gold', dayStart: 10395 })
+        ];
+    }
+    const VU_DEMO_GROUPS = [{ id: 'A', leaderId: 'demo-03', followerIds: ['demo-05', 'demo-06', 'demo-07'] }, { id: 'B', leaderId: 'demo-04', followerIds: ['demo-09'] }];
+
+    function vuGroups() {
+        if (vuDemo()) return VU_DEMO_GROUPS;
+        let hooked = null;
+        try { if (VU.hooks && typeof VU.hooks.groups === 'function') hooked = VU.hooks.groups(); } catch (e) {}
+        return vuGroupsFrom(S.copy, Array.isArray(hooked) ? hooked : null);
+    }
+    // the suite API's accountsHooks (overview contract 2): the copier hands over its groups and its setter
+    function vuSetHooks(h) {
+        VU.hooks = h && typeof h === 'object' ? { groups: typeof h.groups === 'function' ? h.groups : null, setGroup: typeof h.setGroup === 'function' ? h.setGroup : null,
+            lockedTo: typeof h.lockedTo === 'function' ? h.lockedTo : null } : null;
+        vuChanged();
+    }
+
+    // our own loss limit's lock on an account (Settings > Risk): its until-hour, or null
+    function vuLockOf(id) {
+        try {
+            if (!S.dll || !S.dll.on) return null;
+            const rec = dllStore()[id];
+            return rec && dllRecLocked(rec, now(), S.dll.hour) ? dllHm(dllRecHour(rec, S.dll.hour)) : null;
+        } catch (e) { return null; }
+    }
+
+    // the list with this device's nicknames, pins and hidden marks, the groups and the locks
+    function vuList() {
+        const t = now();
+        if (!VU.dirty && t - VU.at < 900) return VU.list;
+        const list = vuRead();
+        const vu = S.vestui || {};
+        const gm = vuGroupMap(vuGroups());
+        list.forEach((m) => {
+            m.nick = vu.nick && typeof vu.nick[m.id] === 'string' ? vu.nick[m.id] : '';
+            m.pinned = !!(vu.pins && vu.pins[m.id]);
+            m.hidden = !!(vu.hidden && vu.hidden[m.id]);
+            m.group = gm[m.id] || null;
+            m.lock = vuDemo() ? (m.id === 'demo-10' ? '00:00' : null) : vuLockOf(m.id);
+        });
+        VU.list = list;
+        VU.at = t;
+        VU.dirty = false;
+        return list;
+    }
+    const vuActive = () => { const id = vuActiveId(); return vuList().find((m) => m.id === id) || null; };
+
+    // the card's size as points (NQ only: the card sizes NQ), and its label
+    function vuCardSize() {
+        try {
+            if (!/^(NQ|NDX)\b/.test(tpSymbol() || '') || !(activeSelectedSize > 0)) return null;
+            return { size: activeSelectedSize, label: xcSizeShown(activeSelectedSize) + ' ' + (mnqExecOn() ? 'MNQ' : 'NQ') };
+        } catch (e) { return null; }
+    }
+    function vuPtsText(usd) {
+        if (!vuOn('points')) return '';
+        const c = vuCardSize();
+        const p = c ? vuPts(usd, c.size) : null;
+        return p == null ? '' : (p >= 100 ? Math.floor(p).toLocaleString('en-US') : fmtSize(p)) + ' pt at ' + c.label;
+    }
+
+    // ---------- the look ----------
+    function vuCss() {
+        return `
+            html.ax4p-vu-menu-on [data-testid="account-selector-trigger"] { display: none !important; }
+            html.ax4p-vu-switching [data-radix-popper-content-wrapper] { opacity: 0 !important; pointer-events: none !important; }
+            [data-ax4p-vu-hide] { display: none !important; }
+            .ax4p-vu { font-family: var(--ax-font, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif); font-variant-numeric: tabular-nums; color: var(--ax-text); box-sizing: border-box; letter-spacing: 0; }
+            .ax4p-vu *, .ax4p-vu *::before, .ax4p-vu *::after { box-sizing: border-box; }
+            .ax4p-vu button { font: inherit; color: inherit; }
+            .ax4p-vu .vu-tag { font-size: 9px; font-weight: 800; letter-spacing: .07em; color: var(--ax-dim); white-space: nowrap; }
+            .ax4p-vu .vu-grp { font-size: 9px; font-weight: 800; letter-spacing: .06em; color: var(--g); background: color-mix(in srgb, var(--g) 16%, transparent); border-radius: 4px; padding: 2px 5px; white-space: nowrap; }
+            .ax4p-vu .vu-bar { display: block; height: 3px; border-radius: 2px; background: color-mix(in srgb, var(--ax-text) 10%, transparent); overflow: hidden; }
+            .ax4p-vu .vu-bar > i { display: block; height: 100%; border-radius: 2px; background: color-mix(in srgb, var(--ax-text) 55%, transparent); }
+            .ax4p-vu .lv-warn { color: var(--ax-warn) !important; }
+            .ax4p-vu .lv-bad { color: var(--ax-down) !important; font-weight: 600; }
+            .ax4p-vu .vu-bar > i.lv-warn { background: var(--ax-warn); }
+            .ax4p-vu .vu-bar > i.lv-bad { background: var(--ax-down); }
+            .ax4p-vu .vu-bar > i.goal { background: var(--ax-up); }
+            .ax4p-vu .up { color: var(--ax-up); }
+            .ax4p-vu .dn { color: var(--ax-down); }
+            .ax4p-vu .dim { color: var(--ax-dim); }
+            .ax4p-vu .mut { color: var(--ax-muted); }
+            .ax4p-vu .none { color: color-mix(in srgb, var(--ax-dim) 60%, transparent); }
+
+            /* the account button, where Vest's was */
+            #ax4p-vu-btn { display: inline-flex; align-items: center; gap: 9px; height: 36px; padding: 0 8px 0 10px; margin: 0 4px; border-radius: 10px; cursor: pointer;
+                background: var(--ax-btn); border: 1px solid var(--ax-line); max-width: 300px; min-width: 0; flex: 0 1 auto; }
+            #ax4p-vu-btn:hover, #ax4p-vu-btn[aria-expanded="true"] { border-color: color-mix(in srgb, var(--ax-text) 45%, var(--ax-line)); }
+            #ax4p-vu-btn:focus-visible { outline: 2px solid var(--ax-accent); outline-offset: 2px; }
+            #ax4p-vu-btn .rail { width: 3px; height: 20px; border-radius: 2px; background: var(--g, var(--ax-line)); flex: none; }
+            #ax4p-vu-btn .who { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; line-height: 1.15; }
+            #ax4p-vu-btn .nm { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 210px; }
+            #ax4p-vu-btn .sub { font-size: 10px; color: var(--ax-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 230px; }
+            #ax4p-vu-btn svg { flex: none; color: var(--ax-muted); }
+
+            /* the menu */
+            #ax4p-vu-menu { position: fixed; z-index: 1000010; width: min(680px, calc(100vw - 16px)); max-height: min(78vh, 760px); display: flex; flex-direction: column;
+                background: linear-gradient(var(--ax-raised), var(--ax-raised)) var(--ax-inset); border: 1px solid var(--ax-line); border-radius: 14px; box-shadow: 0 24px 70px var(--ax-shadow); overflow: hidden; }
+            #ax4p-vu-menu .hd { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--ax-line); flex-wrap: wrap; }
+            #ax4p-vu-menu .hd b { font-size: 13px; }
+            #ax4p-vu-menu .hd .tot { margin-left: auto; display: flex; gap: 14px; font-size: 12px; color: var(--ax-muted); }
+            #ax4p-vu-menu .hd .tot span b { color: var(--ax-text); font-weight: 600; }
+            .ax4p-vu .vu-tools { display: flex; flex-direction: column; gap: 9px; padding: 10px 16px; }
+            .ax4p-vu .vu-search { display: flex; gap: 8px; align-items: center; }
+            .ax4p-vu .vu-search label { flex: 1; display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 10px; border: 1px solid var(--ax-line); border-radius: 9px; background: var(--ax-inset); }
+            .ax4p-vu .vu-search input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--ax-text); font: inherit; font-size: 13px; }
+            .ax4p-vu .vu-search select { height: 34px; border-radius: 9px; border: 1px solid var(--ax-line); background: var(--ax-btn); color: var(--ax-muted); font: inherit; font-size: 12px; padding: 0 8px; }
+            .ax4p-vu .vu-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+            .ax4p-vu .vu-chip { height: 26px; padding: 0 10px; border-radius: 999px; border: 1px solid var(--ax-line); background: transparent; color: var(--ax-muted); font-size: 11px; cursor: pointer; white-space: nowrap; }
+            .ax4p-vu .vu-chip[aria-pressed="true"] { background: var(--ax-text); color: var(--ax-inset, #000); border-color: var(--ax-text); font-weight: 600; }
+            .ax4p-vu .vu-chip .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--g); margin-right: 5px; vertical-align: 0; }
+            #ax4p-vu-menu .cols, #ax4p-vu-menu .row { display: grid; grid-template-columns: 3px minmax(0, 1fr) 92px 92px 92px 92px; gap: 12px; align-items: center; }
+            #ax4p-vu-menu .cols { padding: 6px 16px; font-size: 10px; font-weight: 700; letter-spacing: .08em; color: var(--ax-dim); border-top: 1px solid var(--ax-line); }
+            #ax4p-vu-menu .list { overflow-y: auto; min-height: 0; padding-bottom: 6px; }
+            #ax4p-vu-menu .sec { padding: 9px 16px 3px 31px; font-size: 11px; font-weight: 600; color: var(--ax-dim); display: flex; gap: 6px; }
+            #ax4p-vu-menu .row { width: 100%; min-height: 48px; padding: 5px 16px; border: 0; background: transparent; text-align: left; cursor: pointer; }
+            #ax4p-vu-menu .row:hover, #ax4p-vu-menu .row:focus-visible { background: color-mix(in srgb, var(--ax-text) 5%, transparent); outline: 0; }
+            #ax4p-vu-menu .row.on { background: color-mix(in srgb, var(--ax-text) 8%, transparent); }
+            .ax4p-vu .rl { align-self: stretch; width: 3px; border-radius: 2px; background: var(--g, color-mix(in srgb, var(--ax-text) 12%, transparent)); }
+            .ax4p-vu .acc { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+            .ax4p-vu .acc .l1 { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; min-width: 0; }
+            .ax4p-vu .acc .l1 .n { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            .ax4p-vu .acc .l2 { font-size: 11px; color: var(--ax-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            .ax4p-vu .acc .l2.lock { color: var(--ax-warn); }
+            .ax4p-vu .val { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; font-size: 13px; }
+            .ax4p-vu .val small { font-size: 11px; }
+            .ax4p-vu .cell { display: flex; flex-direction: column; gap: 5px; font-size: 12px; min-width: 0; }
+            .ax4p-vu .cell > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            .ax4p-vu .ck { width: 13px; height: 13px; color: var(--ax-text); }
+            #ax4p-vu-menu .ft { display: flex; align-items: center; gap: 8px; padding: 10px 16px; border-top: 1px solid var(--ax-line); flex-wrap: wrap; }
+            .ax4p-vu .vu-b { height: 32px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--ax-line); background: var(--ax-btn); color: var(--ax-text); font-size: 12px; cursor: pointer; white-space: nowrap; }
+            .ax4p-vu .vu-b.pri { background: var(--ax-text); color: var(--ax-inset, #000); border-color: var(--ax-text); font-weight: 600; }
+            .ax4p-vu .vu-b.go { background: var(--ax-up-btn, var(--ax-up)); color: #fff; border-color: transparent; font-weight: 700; }
+            .ax4p-vu .vu-b:disabled { opacity: .45; cursor: default; }
+            .ax4p-vu .vu-b:focus-visible, .ax4p-vu .vu-chip:focus-visible { outline: 2px solid var(--ax-accent); outline-offset: 1px; }
+            .ax4p-vu .vu-link { background: none; border: 0; color: var(--ax-muted); font-size: 12px; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; padding: 0; }
+            .ax4p-vu .vu-empty { padding: 26px 16px; text-align: center; color: var(--ax-dim); font-size: 12px; }
+
+            /* the strip, in Vest's account banner */
+            #ax4p-vu-strip { display: inline-flex; align-items: center; gap: 14px; height: 20px; padding: 0 4px; margin-left: 16px; border-radius: 6px; cursor: pointer; flex: none; font-size: 11px; white-space: nowrap; }
+            #ax4p-vu-strip:hover, #ax4p-vu-strip:focus-visible { background: color-mix(in srgb, var(--ax-text) 6%, transparent); outline: 0; }
+            #ax4p-vu-strip .it { display: inline-flex; align-items: center; gap: 6px; }
+            #ax4p-vu-strip .k { font-size: 9.5px; font-weight: 800; letter-spacing: .08em; color: var(--ax-dim); }
+            #ax4p-vu-strip .vu-bar { width: 34px; }
+            #ax4p-vu-strip .sep { width: 1px; height: 11px; background: var(--ax-line); }
+            #ax4p-vu-strip.pill { gap: 10px; padding: 0 8px; border: 1px solid var(--ax-line); border-radius: 999px; }
+            #ax4p-vu-strip.free { height: 26px; margin: 0 0 0 auto; padding: 0 10px; border: 1px solid var(--ax-line); border-radius: 8px; background: linear-gradient(var(--ax-raised), var(--ax-raised)) var(--ax-inset); align-self: center; }
+
+            /* the limits panel */
+            #ax4p-vu-panel { position: fixed; z-index: 999995; width: 330px; max-width: calc(100vw - 12px); background: linear-gradient(var(--ax-raised), var(--ax-raised)) var(--ax-inset); border: 1px solid var(--ax-line); border-radius: 14px;
+                box-shadow: 0 18px 50px var(--ax-shadow); padding: 14px 16px 12px; display: flex; flex-direction: column; gap: 12px; }
+            #ax4p-vu-panel .ph { display: flex; align-items: center; gap: 8px; }
+            #ax4p-vu-panel .ph .n { font-size: 15px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            #ax4p-vu-panel .ph .sp { flex: 1; }
+            #ax4p-vu-panel .x { width: 26px; height: 26px; border-radius: 7px; border: 0; background: transparent; color: var(--ax-muted); cursor: pointer; font-size: 17px; line-height: 1; }
+            #ax4p-vu-panel .x:hover { background: color-mix(in srgb, var(--ax-text) 8%, transparent); color: var(--ax-text); }
+            #ax4p-vu-panel .eqrow { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; }
+            #ax4p-vu-panel .eq { display: flex; flex-direction: column; }
+            #ax4p-vu-panel .eq span { font-size: 11px; color: var(--ax-dim); }
+            #ax4p-vu-panel .eq b { font-size: 24px; font-weight: 700; letter-spacing: -.01em; }
+            #ax4p-vu-panel .eqside { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; font-size: 12px; }
+            #ax4p-vu-panel .trk { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border: 1px solid var(--ax-line); border-radius: 10px; background: var(--ax-inset); }
+            #ax4p-vu-panel .trk .t { display: flex; justify-content: space-between; font-size: 9.5px; font-weight: 700; letter-spacing: .08em; color: var(--ax-dim); }
+            #ax4p-vu-panel .line { position: relative; height: 22px; }
+            #ax4p-vu-panel .line .base { position: absolute; left: 0; right: 0; top: 9px; height: 5px; border-radius: 3px; background: color-mix(in srgb, var(--ax-text) 9%, transparent); }
+            #ax4p-vu-panel .line .red { position: absolute; left: 0; top: 9px; height: 5px; border-radius: 3px 0 0 3px; background: color-mix(in srgb, var(--ax-down) 26%, transparent); }
+            #ax4p-vu-panel .line .grn { position: absolute; top: 9px; height: 5px; background: var(--ax-up); }
+            #ax4p-vu-panel .line .grn.loss { background: var(--ax-down); }
+            #ax4p-vu-panel .line .tick { position: absolute; top: 5px; width: 2px; height: 13px; border-radius: 1px; margin-left: -1px; }
+            #ax4p-vu-panel .line .now { position: absolute; top: 1px; width: 4px; height: 21px; border-radius: 2px; margin-left: -2px; background: var(--ax-text); box-shadow: 0 0 0 2px var(--ax-inset); }
+            #ax4p-vu-panel .lab { position: relative; height: 26px; font-size: 10px; color: var(--ax-muted); }
+            #ax4p-vu-panel .lab span { position: absolute; top: 0; display: flex; flex-direction: column; white-space: nowrap; }
+            #ax4p-vu-panel .lab b { font-weight: 700; }
+            #ax4p-vu-panel .lim { display: flex; flex-direction: column; gap: 6px; }
+            #ax4p-vu-panel .lim .a { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+            #ax4p-vu-panel .lim .a span { font-size: 12px; font-weight: 600; }
+            #ax4p-vu-panel .lim .a b { font-size: 14px; font-weight: 700; }
+            #ax4p-vu-panel .lim .vu-bar { height: 6px; border-radius: 3px; position: relative; overflow: visible; }
+            #ax4p-vu-panel .lim .vu-bar > i { border-radius: 3px; }
+            #ax4p-vu-panel .lim .mk { position: absolute; top: -3px; width: 2px; height: 12px; background: var(--ax-warn); border-radius: 1px; }
+            #ax4p-vu-panel .lim .c { display: flex; justify-content: space-between; gap: 8px; font-size: 10.5px; color: var(--ax-dim); }
+            #ax4p-vu-panel .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+            #ax4p-vu-panel .chips span { font-size: 10.5px; color: var(--ax-muted); border: 1px solid var(--ax-line); border-radius: 999px; padding: 3px 9px; }
+            #ax4p-vu-panel .pf { display: flex; justify-content: space-between; align-items: center; font-size: 10.5px; color: var(--ax-dim); }
+
+            /* Manage accounts and Request payouts */
+            .ax4p-vu-scrim { pointer-events: auto; position: fixed; inset: 0; z-index: 1000020; background: color-mix(in srgb, #000 55%, transparent); display: flex; align-items: center; justify-content: center; padding: 16px; }
+            #ax4p-vu-manage { width: min(1360px, 100%); max-height: min(900px, 100%); display: flex; flex-direction: column; gap: 14px; padding: 20px 22px;
+                background: linear-gradient(var(--ax-raised), var(--ax-raised)) var(--ax-inset); border: 1px solid var(--ax-line); border-radius: 16px; box-shadow: 0 30px 90px var(--ax-shadow); }
+            #ax4p-vu-manage .mh { display: flex; align-items: flex-start; gap: 14px; flex-wrap: wrap; }
+            #ax4p-vu-manage .mh .ttl { display: flex; flex-direction: column; gap: 3px; margin-right: auto; }
+            #ax4p-vu-manage .mh .ttl b { font-size: 19px; }
+            #ax4p-vu-manage .mh .ttl span { font-size: 12px; color: var(--ax-dim); }
+            #ax4p-vu-manage .tiles { display: flex; gap: 10px; flex-wrap: wrap; }
+            #ax4p-vu-manage .tile { display: flex; flex-direction: column; gap: 2px; padding: 8px 14px; border: 1px solid var(--ax-line); border-radius: 10px; min-width: 110px; }
+            #ax4p-vu-manage .tile span { font-size: 9.5px; font-weight: 700; letter-spacing: .08em; color: var(--ax-dim); }
+            #ax4p-vu-manage .tile b { font-size: 16px; }
+            #ax4p-vu-manage .tile.alert { border-color: var(--ax-down); background: color-mix(in srgb, var(--ax-down) 8%, transparent); }
+            #ax4p-vu-manage .tile.alert span { color: var(--ax-down); }
+            #ax4p-vu-manage .tile.alert b { font-size: 13px; font-weight: 600; }
+            #ax4p-vu-manage .bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+            #ax4p-vu-manage .bar .vu-search { flex: 0 1 300px; }
+            #ax4p-vu-manage .bar .sp { flex: 1; }
+            #ax4p-vu-manage .tbl { border: 1px solid var(--ax-line); border-radius: 12px; overflow: auto; min-height: 0; }
+            #ax4p-vu-manage .tr { display: grid; grid-template-columns: 22px 22px minmax(220px, 1fr) 64px 96px 92px 78px 112px 112px 120px 92px 128px; gap: 10px; align-items: center; min-width: 1180px; padding: 0 14px; }
+            #ax4p-vu-manage .th { height: 34px; font-size: 10px; font-weight: 700; letter-spacing: .08em; color: var(--ax-dim); background: var(--ax-inset); position: sticky; top: 0; z-index: 1; }
+            #ax4p-vu-manage .td { min-height: 52px; border-top: 1px solid color-mix(in srgb, var(--ax-line) 70%, transparent); }
+            #ax4p-vu-manage .td.on { background: color-mix(in srgb, var(--ax-text) 6%, transparent); }
+            #ax4p-vu-manage .td.cl { background: color-mix(in srgb, var(--ax-up) 5%, transparent); }
+            #ax4p-vu-manage .td.hid { opacity: .55; }
+            #ax4p-vu-manage .r { text-align: right; }
+            #ax4p-vu-manage input[type="checkbox"] { width: 14px; height: 14px; accent-color: var(--ax-up); margin: 0; }
+            #ax4p-vu-manage .pin { width: 22px; height: 22px; padding: 0; border: 0; background: transparent; cursor: pointer; color: var(--ax-dim); }
+            #ax4p-vu-manage .pin.on { color: var(--ax-big, #ffe08a); }
+            #ax4p-vu-manage .nm { display: flex; align-items: center; gap: 10px; min-width: 0; }
+            #ax4p-vu-manage .nm .rl { height: 22px; flex: none; }
+            #ax4p-vu-manage .nm b { font-size: 13px; white-space: nowrap; }
+            #ax4p-vu-manage .nm input { flex: 1; min-width: 0; height: 26px; padding: 0 8px; border: 1px solid color-mix(in srgb, var(--ax-line) 80%, transparent); border-radius: 7px; background: transparent; color: var(--ax-muted); font: inherit; font-size: 12px; }
+            #ax4p-vu-manage .nm input:focus { outline: 0; border-color: var(--ax-accent); color: var(--ax-text); }
+            #ax4p-vu-manage select.grp { height: 26px; border-radius: 7px; border: 1px solid var(--ax-line); background: var(--ax-btn); color: var(--ax-text); font: inherit; font-size: 11px; max-width: 92px; }
+            #ax4p-vu-manage .acts { display: flex; gap: 6px; justify-content: flex-end; }
+            #ax4p-vu-manage .acts .vu-b { height: 26px; padding: 0 9px; font-size: 11px; }
+            #ax4p-vu-manage .mf { display: flex; justify-content: space-between; gap: 12px; font-size: 11px; color: var(--ax-dim); flex-wrap: wrap; }
+            #ax4p-vu-pay { width: min(580px, 100%); max-height: 100%; overflow: auto; display: flex; flex-direction: column; gap: 14px; padding: 20px;
+                background: linear-gradient(var(--ax-raised), var(--ax-raised)) var(--ax-inset); border: 1px solid var(--ax-line); border-radius: 16px; box-shadow: 0 30px 90px var(--ax-shadow); }
+            #ax4p-vu-pay h3 { margin: 0; font-size: 18px; }
+            #ax4p-vu-pay p { margin: 0; font-size: 12px; color: var(--ax-muted); line-height: 1.45; }
+            #ax4p-vu-pay .pt { border: 1px solid var(--ax-line); border-radius: 12px; overflow: hidden; }
+            #ax4p-vu-pay .pr { display: grid; grid-template-columns: minmax(0, 1fr) 84px 96px 128px; gap: 10px; align-items: center; padding: 9px 12px; border-top: 1px solid color-mix(in srgb, var(--ax-line) 70%, transparent); font-size: 13px; }
+            #ax4p-vu-pay .pr.h { border-top: 0; background: var(--ax-inset); font-size: 10px; font-weight: 700; letter-spacing: .08em; color: var(--ax-dim); padding: 7px 12px; }
+            #ax4p-vu-pay .pr.skip { opacity: .55; }
+            #ax4p-vu-pay .st { justify-self: end; font-size: 10px; font-weight: 700; letter-spacing: .04em; padding: 3px 8px; border-radius: 999px; text-align: right; background: color-mix(in srgb, var(--ax-text) 7%, transparent); color: var(--ax-muted); }
+            #ax4p-vu-pay .st.ok { background: color-mix(in srgb, var(--ax-up) 14%, transparent); color: var(--ax-up); }
+            #ax4p-vu-pay .st.bad { background: color-mix(in srgb, var(--ax-down) 14%, transparent); color: var(--ax-down); }
+            #ax4p-vu-pay .st.run { background: color-mix(in srgb, var(--ax-accent) 16%, transparent); color: var(--ax-accent-text, var(--ax-accent)); }
+            #ax4p-vu-pay .tot { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; font-size: 12px; color: var(--ax-dim); }
+            #ax4p-vu-pay .tot b { color: var(--ax-text); font-size: 14px; }
+            #ax4p-vu-pay .tot b.big { color: var(--ax-up); font-size: 19px; }
+            #ax4p-vu-pay ul { margin: 0; padding-left: 16px; font-size: 11px; color: var(--ax-dim); line-height: 1.45; display: flex; flex-direction: column; gap: 3px; }
+            #ax4p-vu-pay .pbtns { display: flex; gap: 10px; justify-content: flex-end; }
+            #ax4p-vu-pay .pbtns .vu-b { height: 38px; padding: 0 16px; font-size: 13px; }
+            #ax4p-vu-pay .prog { height: 3px; border-radius: 2px; background: color-mix(in srgb, var(--ax-text) 10%, transparent); overflow: hidden; }
+            #ax4p-vu-pay .prog i { display: block; height: 100%; background: var(--ax-up); transition: width .3s; }
+        `;
+    }
+
+    // ---------- small builders ----------
+    const vuE = (s) => escHtml(s);
+    const vuGrpStyle = (m) => (m.group ? ' style="--g:' + m.group.hue + '"' : '');
+    function vuGrpPill(m) { return m.group ? `<span class="vu-grp" style="--g:${m.group.hue}">${vuE(m.group.id)}${m.group.lead ? ' LEAD' : ''}</span>` : ''; }
+    function vuBar(ratio, cls) { return `<span class="vu-bar"><i class="${cls || ''}" style="width:${Math.round(vuClamp(ratio) * 100)}%"></i></span>`; }
+    const vuLv = (r) => (r >= 0.8 ? 'lv-bad' : r >= 0.5 ? 'lv-warn' : '');
+    // the three limit cells of a row: [day, max, goal or profit]
+    function vuCells(m) {
+        const cell = (txt, bar, cls) => `<span class="cell"><span class="${cls || ''}">${txt}</span>${bar}</span>`;
+        const none = (txt) => cell(txt || 'none', vuBar(0), 'none');
+        const day = m.day ? cell(vuMoney(m.day.left), vuBar(m.day.ratio, vuLv(m.day.ratio)), vuLv(m.day.ratio)) : none(m.kind === 'instant' ? 'no limit' : 'none');
+        const max = m.max ? cell(vuMoney(m.max.room), vuBar(m.max.ratio, vuLv(m.max.ratio)), vuLv(m.max.ratio)) : none();
+        let third;
+        if (m.goal) third = cell(m.goal.toGo > 0 ? vuMoney(m.goal.toGo) + ' to go' : 'reached', vuBar(m.goal.ratio, 'goal'), 'mut');
+        else if (m.profit != null) third = cell(vuMoney(m.profit, true), vuBar(0), m.profit > 0 ? 'up' : m.profit < 0 ? 'dn' : 'mut');
+        else third = none(m.kind === 'passed' ? 'passed' : 'none');
+        return [day, max, third];
+    }
+    const vuTodayCls = (n) => (n == null ? 'dim' : n > 0.004 ? 'up' : n < -0.004 ? 'dn' : 'dim');
+    function vuMeta(m) {
+        if (m.lock) return { text: 'Locked by your loss limit until ' + m.lock, cls: 'lock' };
+        const bits = [];
+        if (m.nick) bits.push(m.nick);
+        if (m.plan) bits.push(m.plan);
+        if (m.step) bits.push(m.step);
+        if (m.group && !m.group.lead) {
+            const g = vuGroups().find((x) => x.id === m.group.id);
+            const lead = g && VU.list.find((x) => x.id === g.leaderId);
+            if (lead) bits.push('follows ' + lead.name);
+        }
+        if (m.claim && m.claim.avail >= 1) bits.push(vuMoney(m.claim.avail, false, true) + ' to claim');
+        return { text: bits.join(' · '), cls: '' };
+    }
+    function vuSubLine(m) {
+        if (!m) return '';
+        const b = [];
+        if (m.day) b.push('Day ' + vuMoney(m.day.left));
+        if (m.max) b.push('Max ' + vuMoney(m.max.room));
+        if (m.goal) b.push('Goal ' + Math.round(m.goal.ratio * 100) + '%');
+        else if (m.profit != null) b.push('Profit ' + vuMoney(m.profit, true));
+        if (!b.length && m.equity != null) b.push(vuMoney(m.equity));
+        return b.join(' · ');
+    }
+    const VU_CHEV = '<svg width="14" height="14" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 4.5 6 7.5 9 4.5"/></svg>';
+    const VU_CHECK = '<svg class="ck" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-label="current account"><path d="m5 12 5 5 9-10"/></svg>';
+    const VU_FIND = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>';
+    const VU_STAR = '<svg width="14" height="14" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/></svg>';
+
+    // the filters both lists offer: all, funded, eval, one per copy group, pinned, near a limit (counts of the shown accounts)
+    function vuFilters(list) {
+        const f = [{ k: 'all', t: 'All', n: list.length }, { k: 'funded', t: 'Funded', n: list.filter((m) => m.kind === 'funded' || m.kind === 'instant').length },
+            { k: 'eval', t: 'Eval', n: list.filter((m) => m.kind === 'eval' || m.kind === 'passed').length }];
+        vuGroups().forEach((g, i) => {
+            const n = list.filter((m) => m.group && m.group.id === g.id).length;
+            if (n) f.push({ k: 'g:' + g.id, t: 'Group ' + g.id, n, hue: VU_GROUP_HUES[i % VU_GROUP_HUES.length] });
+        });
+        const pins = list.filter((m) => m.pinned).length;
+        if (pins) f.push({ k: 'pinned', t: 'Pinned', n: pins });
+        const near = list.filter((m) => m.closest >= 0.5).length;
+        if (near) f.push({ k: 'near', t: 'Near a limit', n: near });
+        return f;
+    }
+    function vuFilterFn(k) {
+        if (k === 'funded') return (m) => m.kind === 'funded' || m.kind === 'instant';
+        if (k === 'eval') return (m) => m.kind === 'eval' || m.kind === 'passed';
+        if (k === 'pinned') return (m) => m.pinned;
+        if (k === 'near') return (m) => m.closest >= 0.5;
+        if (k === 'claim') return (m) => !!(m.claim && m.claim.avail >= 1);
+        if (k === 'hidden') return (m) => m.hidden;
+        if (k && k.indexOf('g:') === 0) { const id = k.slice(2); return (m) => !!(m.group && m.group.id === id); }
+        return () => true;
+    }
+    function vuMatch(m, q) {
+        if (!q) return true;
+        const s = q.toLowerCase();
+        return [m.name, m.nick, m.id, m.plan, m.tag, m.group ? 'group ' + m.group.id : ''].some((x) => String(x || '').toLowerCase().indexOf(s) >= 0);
+    }
+
+    // ---------- 1. the account button and the menu ----------
+    // Our button takes the place of Vest's trigger (in the same header row; Vest's own is hidden, still mounted, so its menu can still be
+    // opened, out of sight, to switch). Logged out, the demo puts it before Vest's Sign Up.
+    function vuPlaceButton() {
+        const want = vuOn('menu');
+        const trig = document.querySelector('[data-testid="account-selector-trigger"]');
+        let anchor = null;
+        if (want && trig && !vuDemo()) anchor = trig;
+        else if (want && vuDemo()) {
+            anchor = trig || [...document.querySelectorAll('header button, header a')].find((b) => !isOurs(b) && /^(sign up|log in)$/i.test((b.textContent || '').trim())) || null;
+            if (anchor && anchor !== trig) { const p = anchor.parentElement; if (p && p.parentElement && p.children.length <= 3 && !isOurs(p)) anchor = p; }
+        }
+        if (!anchor) {
+            if (VU.btn) { VU.btn.remove(); VU.btn = null; }
+            document.documentElement.classList.remove('ax4p-vu-menu-on');
+            if (VU.menuOpen) vuCloseMenu();
+            return;
+        }
+        if (!VU.btn) {
+            const b = document.createElement('button');
+            b.type = 'button';
+            b.id = 'ax4p-vu-btn';
+            b.className = 'ax4p-vu';
+            b.setAttribute('aria-haspopup', 'true');
+            b.setAttribute('aria-expanded', 'false');
+            b.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); VU.menuOpen ? vuCloseMenu() : vuOpenMenu(); });
+            VU.btn = b;
+        }
+        if (VU.btn.nextElementSibling !== anchor || VU.btn.parentElement !== anchor.parentElement) {
+            try { anchor.parentElement.insertBefore(VU.btn, anchor); } catch (e) { return; }
+        }
+        document.documentElement.classList.toggle('ax4p-vu-menu-on', anchor === trig);
+        vuPaintButton();
+    }
+    function vuPaintButton() {
+        const b = VU.btn;
+        if (!b) return;
+        const m = vuActive();
+        const sig = m ? [m.id, m.name, m.nick, vuSubLine(m), m.group && m.group.hue, VU.menuOpen].join('|') : 'none|' + VU.menuOpen;
+        if (b.dataset.sig === sig) return;
+        b.dataset.sig = sig;
+        b.setAttribute('aria-expanded', VU.menuOpen ? 'true' : 'false');
+        b.setAttribute('aria-label', (m ? (m.nick || m.name) : 'Accounts') + ', switch account');
+        b.style.setProperty('--g', m && m.group ? m.group.hue : 'var(--ax-line)');
+        b.innerHTML = `<span class="rail"></span><span class="who"><span class="nm">${vuE(m ? (m.nick || m.name) : 'Accounts')}</span><span class="sub">${vuE(m ? vuSubLine(m) || m.plan || m.tag : 'Loading your accounts')}</span></span>${VU_CHEV}`;
+    }
+
+    function vuOpenMenu() {
+        if (!VU.btn) return;
+        if (!VU.menu) {
+            const m = document.createElement('div');
+            m.id = 'ax4p-vu-menu';
+            m.className = 'ax4p-vu';
+            m.setAttribute('role', 'dialog');
+            m.setAttribute('aria-label', 'Accounts');
+            m.innerHTML = `<div class="hd"></div>
+                <div class="vu-tools"><div class="vu-search"><label>${VU_FIND}<input type="text" id="ax4p-vu-q" placeholder="Find an account, a nickname or an id" aria-label="Find an account" autocomplete="off" spellcheck="false"></label>
+                <select id="ax4p-vu-sort" aria-label="Order"><option value="limit">Closest to a limit</option><option value="name">Name</option><option value="value">Equity</option><option value="today">Today</option></select></div>
+                <div class="vu-chips" id="ax4p-vu-chips"></div></div>
+                <div class="cols"><span></span><span>ACCOUNT</span><span style="text-align:right">VALUE</span><span>DAY LEFT</span><span>MAX ROOM</span><span>GOAL</span></div>
+                <div class="list" id="ax4p-vu-list"></div>
+                <div class="ft"><button type="button" class="vu-b pri" data-act="manage">Manage accounts</button><button type="button" class="vu-b" data-act="closed">Closed accounts</button><span style="flex:1"></span><button type="button" class="vu-link" data-act="vest">Vest's own menu</button></div>`;
+            m.addEventListener('click', vuMenuClick);
+            m.addEventListener('keydown', vuMenuKeys);
+            m.querySelector('#ax4p-vu-q').addEventListener('input', (e) => { VU.q = e.target.value; vuPaintMenu(true); });
+            m.querySelector('#ax4p-vu-sort').addEventListener('change', (e) => { S.vestui.sort = e.target.value; persist(); vuPaintMenu(true); });
+            document.body.appendChild(m);
+            VU.menu = m;
+        }
+        VU.menuOpen = true;
+        VU.menu.hidden = false;
+        VU.menu.querySelector('#ax4p-vu-sort').value = S.vestui.sort || 'limit';
+        vuPosMenu();
+        vuPaintMenu(true);
+        vuPaintButton();
+        setTimeout(() => { const q = document.getElementById('ax4p-vu-q'); if (q) q.focus({ preventScroll: true }); }, 0);
+    }
+    function vuCloseMenu() {
+        VU.menuOpen = false;
+        if (VU.menu) VU.menu.hidden = true;
+        vuPaintButton();
+    }
+    function vuPosMenu() {
+        if (!VU.menu || !VU.btn) return;
+        const r = VU.btn.getBoundingClientRect();
+        const w = Math.min(680, window.innerWidth - 16);
+        VU.menu.style.top = Math.round(r.bottom + 8) + 'px';
+        VU.menu.style.left = Math.round(Math.max(8, Math.min(window.innerWidth - w - 8, r.right - w))) + 'px';
+    }
+    function vuPaintMenu(force) {
+        const box = VU.menu;
+        if (!box || !VU.menuOpen) return;
+        const all = vuList();
+        const shown = all.filter((m) => !m.hidden);
+        const eqSum = shown.reduce((a, m) => a + (m.equity || 0), 0);
+        const tdKnown = shown.filter((m) => m.today != null);
+        const tdSum = tdKnown.reduce((a, m) => a + m.today, 0);
+        const hd = `<b>Accounts</b><span class="dim" style="font-size:12px">${shown.length} open${vuDemo() ? ' · sample accounts' : ''}</span><span class="tot"><span>Equity <b>${vuMoney(eqSum)}</b></span><span>Today <b class="${vuTodayCls(tdKnown.length ? tdSum : null)}">${tdKnown.length ? vuMoney(tdSum, true) : '-'}</b></span></span>`;
+        const fl = vuFilters(shown);
+        if (!fl.some((f) => f.k === VU.filter)) VU.filter = 'all';
+        const chips = fl.map((f) => `<button type="button" class="vu-chip" data-f="${vuE(f.k)}" aria-pressed="${VU.filter === f.k}"${f.hue ? ` style="--g:${f.hue}"` : ''}>${f.hue ? '<span class="dot"></span>' : ''}${vuE(f.t)} ${f.n}</button>`).join('');
+        const list = shown.filter(vuFilterFn(VU.filter)).filter((m) => vuMatch(m, VU.q));
+        const cmp = vuCompare(S.vestui.sort || 'limit');
+        const pinFirst = (a, b) => (b.pinned - a.pinned) || cmp(a, b);
+        const SECS = [['Primary', (m) => m.kind === 'primary' || m.kind === 'other'], ['Funded', (m) => m.kind === 'funded' || m.kind === 'instant'], ['Evaluation', (m) => m.kind === 'eval'], ['Passed', (m) => m.kind === 'passed']];
+        let rows = '';
+        SECS.forEach(([title, fn]) => {
+            const part = list.filter(fn).sort(pinFirst);
+            if (!part.length) return;
+            rows += `<div class="sec">${vuE(title)} <span>${part.length}</span></div>`;
+            part.forEach((m) => {
+                const meta = vuMeta(m);
+                const [d, x, g] = vuCells(m);
+                rows += `<button type="button" class="row${m.active ? ' on' : ''}" data-id="${vuE(m.id)}"${vuGrpStyle(m)} title="${vuE(m.active ? 'The account this tab is on' : 'Switch to ' + (m.nick || m.name))}">
+                    <span class="rl"></span>
+                    <span class="acc"><span class="l1"><span class="n">${vuE(m.name)}</span><span class="vu-tag">${vuE(m.tag)}</span>${vuGrpPill(m)}${m.active ? VU_CHECK : ''}</span><span class="l2 ${meta.cls}">${vuE(meta.text)}</span></span>
+                    <span class="val"><span>${vuMoney(m.equity)}</span><small class="${vuTodayCls(m.today)}">${m.today == null ? '-' : vuMoney(m.today, true)}</small></span>
+                    ${d}${x}${g}</button>`;
+            });
+        });
+        if (!rows) rows = `<div class="vu-empty">${all.length ? 'No account matches.' : 'Your accounts show here once Vest has loaded them.'}</div>`;
+        const sig = hd + chips + rows;
+        if (!force && box.dataset.sig === sig) return;
+        box.dataset.sig = sig;
+        const listEl = box.querySelector('#ax4p-vu-list');
+        const top = listEl.scrollTop;
+        const focused = document.activeElement && document.activeElement.closest && document.activeElement.closest('#ax4p-vu-list .row');
+        const fid = focused ? focused.getAttribute('data-id') : null;
+        box.querySelector('.hd').innerHTML = hd;
+        box.querySelector('#ax4p-vu-chips').innerHTML = chips;
+        listEl.innerHTML = rows;
+        listEl.scrollTop = top;
+        if (fid) { const r = listEl.querySelector(`.row[data-id="${CSS.escape(fid)}"]`); if (r) r.focus({ preventScroll: true }); }
+    }
+    function vuMenuClick(e) {
+        const chip = e.target.closest('.vu-chip');
+        if (chip) { VU.filter = chip.getAttribute('data-f'); vuPaintMenu(true); return; }
+        const row = e.target.closest('.row[data-id]');
+        if (row) { vuCloseMenu(); vuSwitch(row.getAttribute('data-id')); return; }
+        const act = e.target.closest('[data-act]');
+        if (!act) return;
+        const a = act.getAttribute('data-act');
+        vuCloseMenu();
+        if (a === 'manage') vuOpenManage();
+        else if (a === 'closed') vuGo('/accounts?category=closed');
+        else if (a === 'vest') vuOpenVestMenu();
+    }
+    function vuMenuKeys(e) {
+        if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); vuCloseMenu(); if (VU.btn) VU.btn.focus(); return; }
+        if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+        const rows = [...VU.menu.querySelectorAll('#ax4p-vu-list .row')];
+        if (!rows.length) return;
+        e.preventDefault();
+        const i = rows.indexOf(document.activeElement);
+        const n = e.key === 'ArrowDown' ? (i < 0 ? 0 : Math.min(rows.length - 1, i + 1)) : (i <= 0 ? -1 : i - 1);
+        if (n < 0) { const q = document.getElementById('ax4p-vu-q'); if (q) q.focus(); } else rows[n].focus();
+    }
+    // Vest's own menu, as Vest draws it (our button steps aside until it closes)
+    function vuOpenVestMenu() {
+        const trig = document.querySelector('[data-testid="account-selector-trigger"]');
+        if (!trig) { tpToast('Vest\'s account menu is not on this page.', 'warn'); return; }
+        document.documentElement.classList.remove('ax4p-vu-menu-on');
+        VU.ownMenu = true;
+        vuPress(trig);
+        const back = () => {
+            if (document.querySelector('[data-testid^="account-item-"]')) { setTimeout(back, 300); return; }
+            VU.ownMenu = false;
+            vuPlaceButton();
+        };
+        setTimeout(back, 600);
+    }
+
+    // ---------- switching (Vest's own menu) ----------
+    function vuPress(el) {
+        try { el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true, button: 0, buttons: 1, pointerType: 'mouse', isPrimary: true, view: win })); } catch (e) {}
+        // a Radix trigger toggles on pointerdown; if that did not open it, Enter does
+        setTimeout(() => {
+            if (document.querySelector('[data-testid^="account-item-"]')) return;
+            try { el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', bubbles: true, cancelable: true })); } catch (e) {}
+        }, 120);
+    }
+    function vuEscape() {
+        const tgt = document.activeElement || document.body;
+        try { tgt.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true, cancelable: true })); } catch (e) {}
+    }
+    let vuHideT = null;
+    function vuHideVestMenu(on) {
+        clearTimeout(vuHideT);
+        if (on) document.documentElement.classList.add('ax4p-vu-switching');
+        else vuHideT = setTimeout(() => document.documentElement.classList.remove('ax4p-vu-switching'), 300);
+    }
+    // a Vest dialog closed the way its own Escape does
+    function vuCloseDialog(dlg) {
+        const t = (dlg && dlg.querySelector && dlg.querySelector('input, button')) || document.activeElement || document.body;
+        try { t.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true, cancelable: true })); } catch (e) {}
+    }
+    // In-app navigation: Vest's own link when the page has one, else the router's own history entry (what its links do)
+    async function vuGo(path) {
+        const here = () => location.pathname + location.search;
+        if (here() === path) return true;
+        const link = [...document.querySelectorAll('a[href]')].find((a) => !isOurs(a) && a.getAttribute('href') === path);
+        if (link) { try { link.click(); } catch (e) {} }
+        else {
+            try { history.pushState(history.state, '', path); win.dispatchEvent(new PopStateEvent('popstate', { state: history.state })); } catch (e) {}
+        }
+        for (let i = 0; i < 80; i++) { if (location.pathname === path.split('?')[0]) return true; await sleep(50); }
+        return location.pathname === path.split('?')[0];
+    }
+    function vuEnv(ctl) {
+        return {
+            doc: document,
+            active: () => vuActiveId(),
+            sleep,
+            click: (el) => { if (!invokeReactClick(el)) { try { el.click(); } catch (e) {} } },
+            setInput: (el, v) => setReactInputValue(el, v),
+            submit: (btn) => { const f = btn.form || (btn.closest && btn.closest('form')); try { if (f && f.requestSubmit) f.requestSubmit(btn); else btn.click(); } catch (e) { try { btn.click(); } catch (x) {} } },
+            openMenu: (el) => vuPress(el),
+            closeMenu: () => vuEscape(),
+            hideMenu: (on) => vuHideVestMenu(on),
+            closeDialog: (dlg) => vuCloseDialog(dlg),
+            path: () => location.pathname + location.search,
+            goto: (p) => vuGo(p),
+            cancelled: () => !!(ctl && ctl.stop),
+            locked: () => { try { return VU.hooks && VU.hooks.lockedTo ? VU.hooks.lockedTo() : null; } catch (e) { return null; } }
+        };
+    }
+    // the copier, the loss limit's close and the Execute card each need this tab to stay on its account while they run
+    function vuBusyWhy() {
+        let live = null, dll = false, xc = false;
+        try { live = VU.hooks && VU.hooks.groups ? VU.hooks.groups() : null; } catch (e) { live = null; }
+        try { dll = typeof DLLF !== 'undefined' && !!DLLF.busy; } catch (e) {}
+        try { xc = typeof XC !== 'undefined' && !!XC.busy; } catch (e) {}
+        let stops = [];
+        try { stops = S.tpsl && S.tpsl.stops && Array.isArray(S.tpsl.stops.list) ? S.tpsl.stops.list : []; } catch (e) {}
+        return vuBusyFrom({ copy: S.copy, live, dll, xc, stops, pay: !!(VU.pay && VU.pay.running) });
+    }
+    // For the copier (8.2 round 2, the suite API's switchAccount): this tab to `id` through Vest's own menu, with the same waits as our menu.
+    // { ok, why }
+    async function vuSwitchTo(id) {
+        id = String(id || '');
+        if (!id) return { ok: false, why: 'no account' };
+        if (vuDemo()) return { ok: false, why: 'This is the demo: nothing is switched on Vest.' };
+        if (String(vuActiveId() || '') === id) return { ok: true, why: '' };
+        const busy = vuBusyWhy();
+        if (busy && !/^(Copying|A STOP)/.test(busy)) return { ok: false, why: busy };
+        let r = null;
+        try { r = await vuSwitchVia(vuEnv(), id); } catch (e) { r = { ok: false, why: String(e && e.message || e).slice(0, 120) }; }
+        vuChanged();
+        return r && r.ok ? { ok: true, why: '' } : { ok: false, why: (r && r.why) || 'Vest did not switch' };
+    }
+    async function vuSwitch(id) {
+        const m = vuList().find((x) => x.id === id);
+        if (!m || m.active) return;
+        if (vuDemo()) { VU.demoActive = id; vuChanged(); tpToast('Demo: on ' + (m.nick || m.name) + '. Nothing sent, nothing switched on Vest.', 'good'); return; }
+        const busy = vuBusyWhy();
+        if (busy && !/^(Copying|A STOP)/.test(busy)) { tpToast(busy, 'warn'); return; }
+        const r = await vuSwitchVia(vuEnv(), id);
+        if (!r.ok) tpToast('Could not switch to ' + (m.nick || m.name) + ': ' + r.why + '. Vest\'s own menu still works.', 'warn');
+        vuChanged();
+    }
+
+    // ---------- 2. the strip ----------
+    // In Vest's account banner (the 24 px bar under the header) in place of its own limits text; that text comes back with the switch off.
+    // With no banner (logged out, the demo) at the end of the market bar.
+    function vuBannerSlot() {
+        const ban = document.querySelector('div.sticky.top-14.h-6');
+        const row = ban && ban.firstElementChild;
+        if (!row || isOurs(row)) return null;
+        const slot = [...row.children].find((c) => !isOurs(c));
+        return slot ? { row, slot } : null;
+    }
+    function vuPlaceStrip() {
+        const m = vuActive();
+        const want = vuOn('strip') && m && (m.day || m.max || m.goal);
+        const hidden = document.querySelector('[data-ax4p-vu-hide]');
+        if (!want) {
+            if (hidden) hidden.removeAttribute('data-ax4p-vu-hide');
+            if (VU.strip) { VU.strip.remove(); VU.strip = null; }
+            return;
+        }
+        if (!VU.strip) {
+            const s = document.createElement('div');
+            s.id = 'ax4p-vu-strip';
+            s.className = 'ax4p-vu';
+            s.setAttribute('role', 'button');
+            s.tabIndex = 0;
+            s.addEventListener('click', (e) => { e.stopPropagation(); vuTogglePanel(); });
+            s.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); vuTogglePanel(); } });
+            VU.strip = s;
+        }
+        const b = vuDemo() ? null : vuBannerSlot();
+        if (b) {
+            if (hidden && hidden !== b.slot) hidden.removeAttribute('data-ax4p-vu-hide');
+            if (vuSlotIsLimits(b.slot.textContent)) b.slot.setAttribute('data-ax4p-vu-hide', '1');
+            else b.slot.removeAttribute('data-ax4p-vu-hide');
+            if (VU.strip.parentElement !== b.row || VU.strip.nextElementSibling !== b.slot) b.row.insertBefore(VU.strip, b.slot);
+            VU.strip.classList.remove('free');
+        } else {
+            if (hidden) hidden.removeAttribute('data-ax4p-vu-hide');
+            // the market bar's first row (symbol, then the stats, which scroll and give up their room)
+            const bar = document.querySelector('[data-testid="market-info"]');
+            const row = bar && bar.firstElementChild && !isOurs(bar.firstElementChild) ? bar.firstElementChild : bar;
+            if (!row) { VU.strip.remove(); return; }
+            if (VU.strip.parentElement !== row || VU.strip !== row.lastElementChild) row.appendChild(VU.strip);
+            VU.strip.classList.add('free');
+        }
+        vuPaintStrip(m);
+    }
+    function vuPaintStrip(m) {
+        const s = VU.strip;
+        if (!s || !m) return;
+        // one pill when the row has no room: in Vest's banner when the full strip makes it scroll (its own right side keeps leverage and
+        // P&L), in the market bar when the stats would get under about 640 px. Measured once per window width and kind of account.
+        const row = s.parentElement;
+        const key = window.innerWidth + ':' + (row ? Math.round(row.clientWidth) : 0) + ':' + !!m.day + !!m.max + !!m.goal;
+        if (VU.pillKey !== key) { VU.pillKey = key; VU.pill = null; }
+        const free = s.classList.contains('free');
+        let pill = VU.pill != null ? VU.pill : free ? !!row && row.clientWidth < 1300 : false;
+        const it = (k, txt, ratio, cls) => `<span class="it"><span class="k">${k}</span><span class="${cls || ''}">${txt}</span>${ratio == null ? '' : vuBar(ratio, cls === 'goal' ? 'goal' : cls)}</span>`;
+        const parts = [];
+        if (pill) {
+            if (m.day) parts.push(`<span class="it"><span class="k">DAY</span><span class="${vuLv(m.day.ratio)}">${vuMoney(m.day.left)}</span></span>`);
+            if (m.max) parts.push(`<span class="it"><span class="k">MAX</span><span class="${vuLv(m.max.ratio)}">${vuMoney(m.max.room)}</span></span>`);
+            if (m.goal) parts.push(`<span class="it"><span class="k">GOAL</span><span class="up">${Math.round(m.goal.ratio * 100)}%</span></span>`);
+        } else {
+            if (m.day) parts.push(it('DAY', vuMoney(m.day.left) + ' left', m.day.ratio, vuLv(m.day.ratio)));
+            if (m.max) parts.push(it('MAX', vuMoney(m.max.room) + ' room', m.max.ratio, vuLv(m.max.ratio)));
+            if (m.goal) parts.push(it('GOAL', m.goal.toGo > 0 ? vuMoney(m.goal.toGo) + ' to go' : 'reached', m.goal.ratio, 'goal'));
+            else if (m.profit != null) parts.push(`<span class="it"><span class="k">PROFIT</span><span class="${m.profit > 0 ? 'up' : m.profit < 0 ? 'dn' : ''}">${vuMoney(m.profit, true)}</span></span>`);
+        }
+        let html = parts.join('<span class="sep"></span>');
+        s.classList.toggle('pill', pill);
+        if (VU.pill == null) {
+            if (!pill && !free && row) {
+                s.innerHTML = html;
+                if (row.scrollWidth > row.clientWidth + 1) { VU.pill = true; s.dataset.sig = ''; vuPaintStrip(m); return; }
+            }
+            VU.pill = pill;
+        }
+        const tip = (m.day ? 'Daily loss: ' + vuMoney(m.day.left) + ' left of ' + vuMoney(m.day.limit) + '. ' : '') + (m.max ? 'Max loss: ' + vuMoney(m.max.room) + ' above the floor of ' + vuMoney(m.max.floor) + '. ' : '') + (m.goal ? 'Goal: ' + vuMoney(m.goal.toGo) + ' to ' + vuMoney(m.goal.target) + '. ' : '') + 'Click for the limits panel.';
+        if (s.dataset.sig !== html + tip) { s.dataset.sig = html + tip; s.innerHTML = html; s.title = tip; s.setAttribute('aria-label', tip); }
+    }
+
+    // ---------- 3. the limits panel ----------
+    function vuTogglePanel(force) {
+        if (!vuOn('panel')) return;
+        const open = force == null ? !S.vestui.panelOpen : !!force;
+        S.vestui.panelOpen = open;
+        persist();
+        vuPlacePanel(true);
+    }
+    function vuPlacePanel(fresh) {
+        const m = vuActive();
+        const want = vuOn('panel') && S.vestui.panelOpen && m && (m.day || m.max || m.goal || m.profit != null);
+        if (!want) { if (VU.panel) VU.panel.hidden = true; return; }
+        if (!VU.panel) {
+            const p = document.createElement('div');
+            p.id = 'ax4p-vu-panel';
+            p.className = 'ax4p-vu';
+            p.setAttribute('role', 'dialog');
+            p.setAttribute('aria-label', 'Limits');
+            p.innerHTML = '<div class="ph" id="ax4p-vu-ph"></div><div id="ax4p-vu-pb"></div>';
+            p.addEventListener('click', (e) => {
+                const a = e.target.closest('[data-act]');
+                if (!a) return;
+                const k = a.getAttribute('data-act');
+                if (k === 'close') vuTogglePanel(false);
+                else if (k === 'manage') vuOpenManage();
+            });
+            document.body.appendChild(p);
+            makeMovable(p, p.querySelector('#ax4p-vu-ph'), 'vuPanel');
+            VU.panel = p;
+            const pos = S.pos && S.pos.vuPanel;
+            if (pos && pos.left) { p.style.left = pos.left; p.style.top = pos.top; } else fresh = true;
+        }
+        VU.panel.hidden = false;
+        if (fresh && !(S.pos && S.pos.vuPanel)) {
+            const r = (VU.strip || VU.btn || document.body).getBoundingClientRect();
+            VU.panel.style.left = Math.round(Math.max(8, Math.min(window.innerWidth - 338, r.left))) + 'px';
+            VU.panel.style.top = Math.round(Math.min(window.innerHeight - 200, (r.bottom || 90) + 8)) + 'px';
+        }
+        vuPaintPanel(m);
+        // a saved place from a bigger window: back inside this one
+        const r = VU.panel.getBoundingClientRect();
+        if (r.right > window.innerWidth - 4 || r.bottom > window.innerHeight - 4 || r.left < 0 || r.top < 0) {
+            VU.panel.style.left = Math.round(Math.max(6, Math.min(window.innerWidth - r.width - 6, r.left))) + 'px';
+            VU.panel.style.top = Math.round(Math.max(6, Math.min(window.innerHeight - r.height - 6, r.top))) + 'px';
+        }
+    }
+    function vuPaintPanel(m) {
+        const p = VU.panel;
+        if (!p || p.hidden || !m) return;
+        const t = now();
+        const head = `<span class="rl" style="height:20px;--g:${m.group ? m.group.hue : 'transparent'}"></span><span class="n">${vuE(m.nick || m.name)}</span><span class="vu-tag">${vuE(m.tag)}</span>${vuGrpPill(m)}<span class="sp"></span><button type="button" class="x" data-act="close" aria-label="Close the limits panel">×</button>`;
+        let body = `<div class="eqrow"><div class="eq"><span>Equity${m.plan ? ' · ' + vuE(m.plan) : ''}${m.step ? ' · ' + vuE(m.step) : ''}</span><b>${vuMoney(m.equity)}</b></div><div class="eqside"><span><span class="dim">Today </span><span class="${vuTodayCls(m.today)}">${m.today == null ? '-' : vuMoney(m.today, true)}</span></span><span><span class="dim">Open </span><span class="${vuTodayCls(m.open)}">${m.open == null ? '-' : vuMoney(m.open, true)}</span></span></div></div>`;
+        // the line: from the floor to the target (an evaluation) or to the start plus the room above it (funded), with today's floor and now
+        if (m.max && m.equity != null) {
+            const lo = m.max.floor;
+            const hi = m.goal ? m.goal.target : Math.max(m.start + m.max.allowance, m.equity * 1.001);
+            const X = (v) => Math.max(0, Math.min(100, (v - lo) / (hi - lo) * 100));
+            const xs = X(m.start), xn = X(m.equity);
+            const dayX = m.day ? X(m.day.floor) : null;
+            const grn = m.equity >= m.start ? `<span class="grn" style="left:${xs}%;width:${Math.max(0, xn - xs)}%"></span>` : `<span class="grn loss" style="left:${xn}%;width:${Math.max(0, xs - xn)}%"></span>`;
+            const labs = [`<span style="left:0"><b class="dn">Floor</b>${vuMoney(lo)}</span>`];
+            if (dayX != null && dayX > 14 && dayX < 70 && Math.abs(dayX - xn) > 16) labs.push(`<span style="left:${dayX}%;transform:translateX(-50%);align-items:center"><b class="lv-warn">Day floor</b>${vuMoney(m.day.floor)}</span>`);
+            labs.push(`<span style="left:${Math.min(Math.max(xn, 18), 74)}%;transform:translateX(-50%);align-items:center"><b>Now</b>${vuMoney(m.equity)}</span>`);
+            labs.push(m.goal ? `<span style="right:0;align-items:flex-end"><b class="up">Target</b>${vuMoney(hi)}</span>` : `<span style="right:0;align-items:flex-end"><b class="mut">Start + ${vuMoney(m.max.allowance)}</b>${vuMoney(hi)}</span>`);
+            body += `<div class="trk"><div class="t"><span>${m.goal ? 'FLOOR TO TARGET' : 'FLOOR, START AND NOW'}</span><span>${vuMoney(hi - lo)} wide</span></div>
+                <div class="line"><span class="base"></span><span class="red" style="width:${xs}%"></span>${grn}
+                <span class="tick" style="left:0;background:var(--ax-down)"></span><span class="tick" style="left:${xs}%;background:var(--ax-dim);height:11px;top:6px"></span>
+                ${dayX != null ? `<span class="tick" style="left:${dayX}%;background:var(--ax-warn);top:3px;height:17px"></span>` : ''}
+                ${m.goal ? '<span class="tick" style="left:100%;background:var(--ax-up)"></span>' : ''}<span class="now" style="left:${xn}%"></span></div>
+                <div class="lab">${labs.join('')}</div></div>`;
+        }
+        const lim = (title, big, bigCls, ratio, barCls, left, right, mark) => `<div class="lim"><div class="a"><span>${title}</span><b class="${bigCls || ''}">${big}</b></div>
+            <span class="vu-bar"><i class="${barCls || ''}" style="width:${Math.round(vuClamp(ratio) * 100)}%"></i>${mark != null ? `<span class="mk" style="left:${Math.round(vuClamp(mark) * 100)}%" title="Your own loss limit"></span>` : ''}</span>
+            <div class="c"><span>${left}</span><span>${right}</span></div></div>`;
+        if (m.day) {
+            const next = m.day.resetAt && m.day.resetAt + 24 * VU_HOUR > t ? m.day.resetAt + 24 * VU_HOUR : vuNextReset(t);
+            const own = S.dll && S.dll.on && m.day.limit ? S.dll.limit / m.day.limit : null;
+            body += lim('Daily loss', vuMoney(m.day.left) + ' left', vuLv(m.day.ratio), m.day.ratio, vuLv(m.day.ratio),
+                (m.day.used != null ? vuMoney(m.day.used) + ' of ' + vuMoney(m.day.limit) + ' used' : 'Floor ' + vuMoney(m.day.floor)) + (own != null && own < 1 ? ' · your limit ' + vuMoney(S.dll.limit) : ''),
+                next ? 'resets 20:00 ET, in ' + vuDur(next - t) : '', own != null && own < 1 ? own : null);
+        } else if (m.kind === 'instant') {
+            body += '<div class="lim"><div class="a"><span>Daily loss</span><b class="mut">no daily limit</b></div><div class="c"><span>Instant accounts have only the max loss.</span><span></span></div></div>';
+        }
+        if (m.max) body += lim('Max loss', vuMoney(m.max.room) + ' room', vuLv(m.max.ratio), m.max.ratio, vuLv(m.max.ratio), 'Floor ' + vuMoney(m.max.floor) + ' · fixed', Math.round(m.max.ratio * 100) + '% of ' + vuMoney(m.max.allowance) + ' used');
+        if (m.goal) body += lim('Profit goal', m.goal.toGo > 0 ? vuMoney(m.goal.toGo) + ' to go' : 'reached', 'up', m.goal.ratio, 'goal', vuMoney(m.goal.done, true) + ' of ' + vuMoney(m.goal.need), Math.round(m.goal.ratio * 100) + '%');
+        else if (m.claim) body += lim('Profit', vuMoney(m.profit, true), m.profit > 0 ? 'up' : m.profit < 0 ? 'dn' : '', 0, '', 'To claim ' + vuMoney(m.claim.avail, false, true), m.claim.split ? 'you keep ' + Math.round(m.claim.split * 100) + '%' : '');
+        const chips = [];
+        if (m.day) { const s = vuPtsText(m.day.left); if (s) chips.push('Day room ' + s); }
+        if (m.max) { const s = vuPtsText(m.max.room); if (s) chips.push('Max room ' + s); }
+        if (m.goal && m.goal.toGo > 0) { const s = vuPtsText(m.goal.toGo); if (s) chips.push('Target ' + s.replace(' pt at', ' pt away at')); }
+        if (chips.length) body += `<div class="chips">${chips.map((c) => `<span>${vuE(c)}</span>`).join('')}</div>`;
+        if (m.lock) body += `<div class="c lv-warn" style="font-size:11px">Locked by your loss limit until ${vuE(m.lock)}.</div>`;
+        body += `<div class="pf"><span>${vuDemo() ? 'Sample account (Demo)' : 'Vest\'s own numbers, live'}</span><button type="button" class="vu-link" data-act="manage">Manage accounts</button></div>`;
+        const sig = head + body;
+        if (p.dataset.sig === sig) return;
+        p.dataset.sig = sig;
+        p.querySelector('#ax4p-vu-ph').innerHTML = head;
+        p.querySelector('#ax4p-vu-pb').innerHTML = body;
+        p.querySelector('#ax4p-vu-pb').style.cssText = 'display:flex;flex-direction:column;gap:12px';
+    }
+
+    // ---------- 4. Manage accounts ----------
+    function vuOpenManage() {
+        if (VU.manage) { vuPaintManage(true); return; }
+        const sc = document.createElement('div');
+        sc.className = 'ax4p-vu-scrim ax4p-vu';
+        sc.id = 'ax4p-vu-scrim';
+        sc.innerHTML = `<div id="ax4p-vu-manage" class="ax4p-vu" role="dialog" aria-modal="true" aria-labelledby="ax4p-vu-mt">
+            <div class="mh"><div class="ttl"><b id="ax4p-vu-mt">Manage accounts</b><span id="ax4p-vu-mcount"></span></div><div class="tiles" id="ax4p-vu-tiles"></div>
+            <button type="button" class="vu-b go" data-act="pay" id="ax4p-vu-paybtn" style="height:40px;padding:0 16px;font-size:13px"></button>
+            <button type="button" class="vu-b" data-act="mclose" aria-label="Close" style="width:40px;height:40px;padding:0;font-size:17px">×</button></div>
+            <div class="bar"><div class="vu-search"><label>${VU_FIND}<input type="text" id="ax4p-vu-mq" placeholder="Find an account" aria-label="Find an account" autocomplete="off" spellcheck="false"></label></div>
+            <div class="vu-chips" id="ax4p-vu-mchips"></div><span class="sp"></span>
+            <select id="ax4p-vu-msort" aria-label="Order" class="vu-b"><option value="limit">Closest to a limit</option><option value="name">Name</option><option value="value">Equity</option><option value="today">Today</option></select>
+            <button type="button" class="vu-b" data-act="hidden" id="ax4p-vu-showhid"></button></div>
+            <div class="tbl" id="ax4p-vu-tbl"></div>
+            <div class="mf"><span>Nicknames, pins and hidden accounts stay on this device. The copy group column is the copier's own: a change here is a change there.</span><span>Switch and claims run Vest's own menu and Claim profit window.</span></div></div>`;
+        sc.addEventListener('click', vuManageClick);
+        sc.addEventListener('change', vuManageChange);
+        sc.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !VU.pay) { e.preventDefault(); e.stopPropagation(); vuCloseManage(); } });
+        sc.querySelector('#ax4p-vu-mq').addEventListener('input', (e) => { VU.mq = e.target.value; vuPaintManage(true); });
+        document.body.appendChild(sc);
+        VU.manage = sc;
+        sc.querySelector('#ax4p-vu-msort').value = S.vestui.sort || 'limit';
+        // every account ready to claim starts selected
+        VU.sel = new Set(vuList().filter((m) => m.claim && m.claim.avail >= 1).map((m) => m.id));
+        vuPaintManage(true);
+        setTimeout(() => { const q = document.getElementById('ax4p-vu-mq'); if (q) q.focus({ preventScroll: true }); }, 0);
+    }
+    function vuCloseManage() {
+        if (VU.pay && VU.pay.running) return;
+        if (VU.pay) vuClosePay();
+        if (VU.manage) { VU.manage.remove(); VU.manage = null; }
+    }
+    function vuPaintManage(force) {
+        const sc = VU.manage;
+        if (!sc) return;
+        // a nickname being typed is never redrawn under the cursor
+        const typing = document.activeElement && document.activeElement.matches && document.activeElement.matches('#ax4p-vu-tbl input[type="text"], #ax4p-vu-tbl select');
+        if (typing && !force) return;
+        const all = vuList();
+        const open = all.filter((m) => !m.hidden);
+        const nFund = open.filter((m) => m.kind === 'funded' || m.kind === 'instant').length, nEval = open.filter((m) => m.kind === 'eval' || m.kind === 'passed').length;
+        const count = `${open.length} open · ${nFund} funded · ${nEval} evaluation${open.some((m) => m.kind === 'primary') ? ' · 1 primary' : ''}${vuDemo() ? ' · sample accounts' : ''}`;
+        const eqSum = open.reduce((a, m) => a + (m.equity || 0), 0);
+        const td = open.filter((m) => m.today != null);
+        const tdSum = td.reduce((a, m) => a + m.today, 0);
+        const claimSum = open.reduce((a, m) => a + (m.claim && m.claim.avail >= 1 ? m.claim.avail : 0), 0);
+        const near = open.filter((m) => m.closest >= 0).sort(vuCompare('limit'))[0];
+        let tiles = `<div class="tile"><span>EQUITY</span><b>${vuMoney(eqSum)}</b></div><div class="tile"><span>TODAY</span><b class="${vuTodayCls(td.length ? tdSum : null)}">${td.length ? vuMoney(tdSum, true) : '-'}</b></div><div class="tile"><span>TO CLAIM</span><b class="${claimSum > 0 ? 'up' : 'dim'}">${vuMoney(claimSum, false, true)}</b></div>`;
+        if (near && near.closest >= 0.5) {
+            const what = near.day && near.day.ratio >= (near.max ? near.max.ratio : 0) ? vuMoney(near.day.left) + ' of today\'s loss left' : vuMoney(near.max.room) + ' above its floor';
+            tiles += `<div class="tile alert"><span>CLOSEST TO A LIMIT</span><b>${vuE(near.nick || near.name)} · ${vuE(what)}</b></div>`;
+        }
+        const list = (VU.showHidden ? all : open);
+        const fl = vuFilters(open).concat(open.some((m) => m.claim && m.claim.avail >= 1) ? [{ k: 'claim', t: 'Ready to claim', n: open.filter((m) => m.claim && m.claim.avail >= 1).length }] : []);
+        if (!fl.some((f) => f.k === VU.mfilter)) VU.mfilter = 'all';
+        const chips = fl.map((f) => `<button type="button" class="vu-chip" data-mf="${vuE(f.k)}" aria-pressed="${VU.mfilter === f.k}"${f.hue ? ` style="--g:${f.hue}"` : ''}>${f.hue ? '<span class="dot"></span>' : ''}${vuE(f.t)} ${f.n}</button>`).join('');
+        const shown = list.filter(vuFilterFn(VU.mfilter)).filter((m) => vuMatch(m, VU.mq)).sort((a, b) => (b.pinned - a.pinned) || vuCompare(S.vestui.sort || 'limit')(a, b));
+        const groups = vuGroups();
+        const canSet = !vuDemo() && VU.hooks && typeof VU.hooks.setGroup === 'function';
+        let rows = `<div class="tr th"><input type="checkbox" data-act="selall" aria-label="Select every account ready to claim"${shown.some((m) => m.claim && m.claim.avail >= 1) && shown.filter((m) => m.claim && m.claim.avail >= 1).every((m) => VU.sel.has(m.id)) ? ' checked' : ''}><span></span><span>ACCOUNT AND NICKNAME</span><span>TYPE</span><span>COPY GROUP</span><span class="r">EQUITY</span><span class="r">TODAY</span><span>DAY LEFT</span><span>MAX ROOM</span><span>GOAL</span><span class="r">TO CLAIM</span><span></span></div>`;
+        shown.forEach((m) => {
+            const can = !!(m.claim && m.claim.avail >= 1);
+            const [d, x, g] = vuCells(m);
+            const grp = canSet && !m.primary
+                ? `<select class="grp" data-grp="${vuE(m.id)}" aria-label="Copy group of ${vuE(m.name)}"${m.group && m.group.lead ? ' disabled title="Leads its group: change it in the copier"' : ''}><option value="">None</option>${groups.map((gg) => `<option value="${vuE(gg.id)}"${m.group && m.group.id === gg.id ? ' selected' : ''}>Group ${vuE(gg.id)}${m.group && m.group.id === gg.id && m.group.lead ? ' (lead)' : ''}</option>`).join('')}</select>`
+                : (m.group ? vuGrpPill(m) : '<span class="none" style="font-size:11px">None</span>');
+            rows += `<div class="tr td${m.active ? ' on' : can ? ' cl' : ''}${m.hidden ? ' hid' : ''}" data-id="${vuE(m.id)}"${vuGrpStyle(m)}>
+                <input type="checkbox" data-sel="${vuE(m.id)}"${can ? '' : ' disabled'}${VU.sel.has(m.id) && can ? ' checked' : ''} aria-label="Select ${vuE(m.name)} for Request payouts">
+                <button type="button" class="pin${m.pinned ? ' on' : ''}" data-pin="${vuE(m.id)}" aria-pressed="${m.pinned}" aria-label="${m.pinned ? 'Unpin' : 'Pin'} ${vuE(m.name)}" style="fill:${m.pinned ? 'currentColor' : 'none'}">${VU_STAR}</button>
+                <span class="nm"><span class="rl"></span><b>${vuE(m.name)}</b><input type="text" data-nick="${vuE(m.id)}" value="${vuE(m.nick)}" maxlength="32" placeholder="Add a nickname" aria-label="Nickname for ${vuE(m.name)}"></span>
+                <span class="vu-tag">${vuE(m.tag)}</span>
+                <span>${grp}</span>
+                <span class="r" style="font-size:13px">${vuMoney(m.equity)}</span>
+                <span class="r ${vuTodayCls(m.today)}" style="font-size:13px">${m.today == null ? '-' : vuMoney(m.today, true)}</span>
+                ${d}${x}${g}
+                <span class="r ${can ? 'up' : 'none'}" style="font-size:13px;font-weight:${can ? 600 : 400}">${can ? vuMoney(m.claim.avail, false, true) : m.claim ? 'none' : '-'}</span>
+                <span class="acts"><button type="button" class="vu-b" data-hide="${vuE(m.id)}" title="${m.hidden ? 'Show it in the menu again' : 'Hide it from the menu'}">${m.hidden ? 'Show' : 'Hide'}</button><button type="button" class="vu-b" data-switch="${vuE(m.id)}"${m.active ? ' disabled' : ''}>${m.active ? 'Current' : 'Switch'}</button></span></div>`;
+        });
+        if (!shown.length) rows += '<div class="vu-empty">No account matches.</div>';
+        const sel = all.filter((m) => VU.sel.has(m.id) && m.claim && m.claim.avail >= 1);
+        const selSum = sel.reduce((a, m) => a + m.claim.avail, 0);
+        const payTxt = sel.length ? 'Request payouts · ' + vuMoney(selSum, false, true) : 'Request payouts';
+        const hidN = all.filter((m) => m.hidden).length;
+        const sig = count + tiles + chips + rows + payTxt + hidN + VU.showHidden;
+        if (!force && sc.dataset.sig === sig) return;
+        sc.dataset.sig = sig;
+        sc.querySelector('#ax4p-vu-mcount').textContent = count;
+        sc.querySelector('#ax4p-vu-tiles').innerHTML = tiles;
+        sc.querySelector('#ax4p-vu-mchips').innerHTML = chips;
+        const tbl = sc.querySelector('#ax4p-vu-tbl');
+        const top = tbl.scrollTop;
+        tbl.innerHTML = rows;
+        tbl.scrollTop = top;
+        const pb = sc.querySelector('#ax4p-vu-paybtn');
+        pb.textContent = payTxt;
+        pb.disabled = !sel.length;
+        sc.querySelector('#ax4p-vu-showhid').textContent = VU.showHidden ? 'Hide hidden' : 'Hidden ' + hidN;
+        sc.querySelector('#ax4p-vu-showhid').disabled = !hidN && !VU.showHidden;
+    }
+    function vuSaveMap(key, id, val) {
+        const map = S.vestui[key] && typeof S.vestui[key] === 'object' ? S.vestui[key] : (S.vestui[key] = {});
+        if (val === '' || val === false || val == null) delete map[id]; else map[id] = val;
+        persist();
+        vuChanged();
+    }
+    function vuManageClick(e) {
+        if (e.target === VU.manage) { vuCloseManage(); return; }
+        const t = e.target;
+        const chip = t.closest('[data-mf]');
+        if (chip) { VU.mfilter = chip.getAttribute('data-mf'); vuPaintManage(true); return; }
+        const pin = t.closest('[data-pin]');
+        if (pin) { const id = pin.getAttribute('data-pin'); vuSaveMap('pins', id, !(S.vestui.pins && S.vestui.pins[id])); VU.at = 0; vuPaintManage(true); return; }
+        const hide = t.closest('[data-hide]');
+        if (hide) { const id = hide.getAttribute('data-hide'); vuSaveMap('hidden', id, !(S.vestui.hidden && S.vestui.hidden[id])); VU.at = 0; vuPaintManage(true); return; }
+        const sw = t.closest('[data-switch]');
+        if (sw) { vuSwitch(sw.getAttribute('data-switch')).then(() => { VU.at = 0; vuPaintManage(true); }); return; }
+        const act = t.closest('[data-act]');
+        if (!act) return;
+        const a = act.getAttribute('data-act');
+        if (a === 'mclose') vuCloseManage();
+        else if (a === 'hidden') { VU.showHidden = !VU.showHidden; vuPaintManage(true); }
+        else if (a === 'pay') vuOpenPay();
+    }
+    function vuManageChange(e) {
+        const t = e.target;
+        if (t.matches('[data-sel]')) { const id = t.getAttribute('data-sel'); if (t.checked) VU.sel.add(id); else VU.sel.delete(id); vuPaintManage(true); return; }
+        if (t.matches('[data-act="selall"]')) {
+            vuList().filter((m) => m.claim && m.claim.avail >= 1).forEach((m) => { if (t.checked) VU.sel.add(m.id); else VU.sel.delete(m.id); });
+            vuPaintManage(true);
+            return;
+        }
+        if (t.matches('[data-nick]')) { vuSaveMap('nick', t.getAttribute('data-nick'), String(t.value || '').trim().slice(0, 32)); VU.at = 0; vuPaintManage(true); return; }
+        if (t.matches('#ax4p-vu-msort')) { S.vestui.sort = t.value; persist(); vuPaintManage(true); return; }
+        if (t.matches('[data-grp]')) {
+            const id = t.getAttribute('data-grp');
+            let r = null;
+            try { r = VU.hooks && VU.hooks.setGroup ? VU.hooks.setGroup(id, t.value || null) : null; } catch (x) { r = { ok: false, why: String(x && x.message || x) }; }
+            const ok = r === true || (r && r.ok);
+            if (!ok) tpToast('Copy group not changed: ' + ((r && r.why) || 'the copier refused') + '.', 'warn');
+            VU.at = 0;
+            vuChanged();
+            vuPaintManage(true);
+        }
+    }
+
+    // ---------- 5. Request payouts ----------
+    function vuOpenPay() {
+        if (VU.pay) return;
+        const plan = vuPayPlan(vuList(), [...VU.sel]);
+        if (!plan.length) return;
+        const sc = document.createElement('div');
+        sc.className = 'ax4p-vu-scrim ax4p-vu';
+        sc.id = 'ax4p-vu-payscrim';
+        sc.style.zIndex = '1000030';
+        sc.innerHTML = '<div id="ax4p-vu-pay" class="ax4p-vu" role="dialog" aria-modal="true" aria-labelledby="ax4p-vu-pt"></div>';
+        sc.addEventListener('click', (e) => {
+            if (e.target === sc && !VU.pay.running) { vuClosePay(); return; }
+            const a = e.target.closest('[data-act]');
+            if (!a) return;
+            const k = a.getAttribute('data-act');
+            if (k === 'pcancel') vuClosePay();
+            else if (k === 'pgo') vuPayStart();
+            else if (k === 'pstop') { VU.pay.ctl.stop = true; vuPaintPay(); }
+        });
+        sc.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !VU.pay.running) { e.preventDefault(); e.stopPropagation(); vuClosePay(); } });
+        document.body.appendChild(sc);
+        VU.pay = { el: sc, plan, running: false, done: false, ctl: { stop: false }, state: {}, res: null };
+        vuPaintPay();
+        setTimeout(() => { const b = sc.querySelector('[data-act="pgo"]') || sc.querySelector('[data-act="pcancel"]'); if (b) b.focus(); }, 0);
+    }
+    function vuClosePay() {
+        if (!VU.pay || VU.pay.running) return;
+        VU.pay.el.remove();
+        VU.pay = null;
+        VU.at = 0;
+        vuPaintManage(true);
+    }
+    const VU_PAY_WORD = { switching: 'Switching', opening: 'Opening', claiming: 'Claiming', claimed: 'Claimed', nothing: 'Nothing to claim', refused: 'Refused', error: 'Stopped' };
+    function vuPaintPay() {
+        const P = VU.pay;
+        if (!P) return;
+        const ready = P.plan.filter((r) => r.state === 'ready');
+        const sum = ready.reduce((a, r) => a + r.claim, 0);
+        const recv = ready.reduce((a, r) => a + (r.receive || 0), 0);
+        const known = ready.every((r) => r.receive != null);
+        const busy = vuBusyWhy();
+        const rows = P.plan.map((r) => {
+            const st = P.state[r.id];
+            let chip, cls = '';
+            if (st) {
+                chip = VU_PAY_WORD[st.state] || st.state;
+                cls = st.state === 'claimed' ? 'ok' : st.state === 'refused' || st.state === 'error' ? 'bad' : st.state === 'nothing' ? '' : 'run';
+                if (st.state === 'claimed' && st.receive != null) chip = 'Claimed · ' + vuMoney(st.receive, false, true);
+            } else if (r.state === 'ready') { chip = P.running ? 'Waiting' : 'Ready'; cls = P.running ? '' : 'ok'; } else chip = r.why;
+            const why = st && st.why ? `<span class="dim" style="grid-column:1 / -1;font-size:11px">${vuE(st.why)}</span>` : '';
+            return `<div class="pr${r.state === 'ready' ? '' : ' skip'}"><span style="display:flex;flex-direction:column;gap:1px"><b style="font-size:13px">${vuE(r.name)}</b></span><span style="text-align:right">${vuMoney(r.claim, false, true)}</span><span style="text-align:right" class="${r.state === 'ready' ? 'up' : 'none'}">${r.state === 'ready' && r.receive != null ? vuMoney(r.receive, false, true) : '-'}</span><span class="st ${cls}" title="${vuE(chip)}">${vuE(chip)}</span>${why}</div>`;
+        }).join('');
+        const doneN = Object.values(P.state).filter((s) => ['claimed', 'nothing', 'refused', 'error'].indexOf(s.state) >= 0).length;
+        let foot;
+        if (P.running) foot = `<div class="prog"><i style="width:${ready.length ? Math.round(doneN / ready.length * 100) : 0}%"></i></div><div class="pbtns"><button type="button" class="vu-b" data-act="pstop"${P.ctl.stop ? ' disabled' : ''}>${P.ctl.stop ? 'Stopping after this account' : 'Stop after this account'}</button></div>`;
+        else if (P.done) {
+            const got = Object.values(P.state).filter((s) => s.state === 'claimed');
+            const msg = P.res && P.res.stop ? `Stopped at ${vuE((P.plan.find((r) => r.id === P.res.stop.id) || {}).name || '')}: ${vuE(P.res.stop.why || '')}.` : 'Done.';
+            foot = `<p>${msg} ${got.length} claimed${got.some((s) => s.receive != null) ? ', ' + vuMoney(got.reduce((a, s) => a + (s.receive || 0), 0), false, true) + ' to your Primary account' : ''}.${vuDemo() ? ' Demo: nothing was sent.' : ''}</p><div class="pbtns"><button type="button" class="vu-b pri" data-act="pcancel">Close</button></div>`;
+        } else {
+            foot = `<div class="tot"><span>${ready.length} account${ready.length === 1 ? '' : 's'} to your Primary account</span><span>Claim <b>${vuMoney(sum, false, true)}</b> &nbsp; You receive <b class="big">${known ? vuMoney(recv, false, true) : 'Vest\'s split'}</b></span></div>
+                <ul><li>Each account goes through Vest's own Claim profit window, one at a time: Vest's menu switches to it, Vest's button opens the window (on its Portfolio page), 100% goes in, Vest's Claim button sends it.</li>
+                <li>Vest refuses a claim while the account holds a position or an order. Those are left out above.</li>
+                <li>It stops at the first refusal and tells you which account and why, then brings back the account and page you were on.</li></ul>
+                ${busy ? `<p class="lv-warn">${vuE(busy)}</p>` : ''}
+                <div class="pbtns"><button type="button" class="vu-b" data-act="pcancel">Cancel</button><button type="button" class="vu-b go" data-act="pgo"${!ready.length || busy ? ' disabled' : ''}>Claim ${vuMoney(sum, false, true)}</button></div>`;
+        }
+        const html = `<h3 id="ax4p-vu-pt">Request payouts</h3><p>Claims 100% of what each account has available and sends it to your Primary account.${vuDemo() ? ' Demo: sample accounts, nothing is sent.' : ''}</p>
+            <div class="pt"><div class="pr h"><span>ACCOUNT</span><span style="text-align:right">CLAIM</span><span style="text-align:right">YOU RECEIVE</span><span style="text-align:right">STATE</span></div>${rows}</div>${foot}`;
+        P.el.querySelector('#ax4p-vu-pay').innerHTML = html;
+    }
+    async function vuPayStart() {
+        const P = VU.pay;
+        if (!P || P.running) return;
+        const list = P.plan.filter((r) => r.state === 'ready').map((r) => ({ id: r.id }));
+        if (!list.length || vuBusyWhy()) return;
+        P.running = true;
+        vuPaintPay();
+        const onStep = (id, state, r) => { P.state[id] = Object.assign({ state }, r || {}); vuPaintPay(); };
+        try {
+            if (vuDemo()) P.res = await vuPayDemo(list, onStep, P.ctl);
+            else P.res = await vuPayRun(vuEnv(P.ctl), list, onStep);
+        } catch (e) {
+            P.res = { stop: { id: '', why: 'something went wrong (' + String(e && e.message || e).slice(0, 80) + '): check your accounts on Vest' } };
+        }
+        P.running = false;
+        P.done = true;
+        VU.at = 0;
+        vuPaintPay();
+        const got = Object.values(P.state).filter((s) => s.state === 'claimed').length;
+        tpToast(P.res && P.res.stop ? 'Request payouts stopped: ' + P.res.stop.why + '.' : 'Request payouts: ' + got + ' claimed.', P.res && P.res.stop ? 'warn' : 'good');
+    }
+    // the demo's run: the same steps and words, nothing switched and nothing sent
+    async function vuPayDemo(list, onStep, ctl) {
+        const results = [];
+        for (const it of list) {
+            if (ctl.stop) return { results, stop: { id: it.id, why: 'stopped by you' } };
+            const m = vuList().find((x) => x.id === it.id);
+            onStep(it.id, 'switching'); await sleep(450);
+            onStep(it.id, 'claiming'); await sleep(650);
+            const r = { state: 'claimed', amount: m.claim.avail, receive: m.claim.receive };
+            results.push(Object.assign({ id: it.id }, r));
+            onStep(it.id, 'claimed', r);
+        }
+        return { results, stop: null };
+    }
+
+    // ---------- 6. the warning ----------
+    // one toast for each account, limit and trading day once it passes 80% (Settings > Layout > Warn near a limit)
+    function vuWarn() {
+        if (!vuOn('warn') || vuDemo()) return;
+        const t = now();
+        const day = String(vuNextReset(t) || '');
+        vuList().forEach((m) => {
+            [['day', 'daily loss', m.day], ['max', 'max loss', m.max]].forEach(([k, word, x]) => {
+                if (!x || x.ratio < 0.8) return;
+                const key = m.id + '|' + k + '|' + day;
+                if (VU.warned[key]) return;
+                VU.warned[key] = 1;
+                const left = k === 'day' ? x.left : x.room;
+                tpToast((m.nick || m.name) + ': ' + Math.round(x.ratio * 100) + '% of its ' + word + ' used, ' + vuMoney(left) + ' left.', 'warn', 7000);
+            });
+        });
+    }
+
+    // ---------- Settings > Layout ----------
+    function vuSettingsHtml() {
+        const row = (k, t, d) => `<label class="ax4p-row"><span style="display:flex;flex-direction:column;gap:2px;padding:3px 0">${t}<span class="ax4p-hint" style="margin:0">${d}</span></span><input type="checkbox" id="ax4p-vu-set-${k}"></label>`;
+        return `
+                <div class="ax4p-sec" id="ax4p-vu-sec">
+                    <div class="ax4p-sec-t">Accounts and limits</div>
+                    ${row('menu', 'Account menu', 'Ours in place of Vest\'s: limits on every row, search, groups, pins.')}
+                    ${row('panel', 'Limits panel', 'Floor to target in one line, the three limits, the reset countdown.')}
+                    ${row('strip', 'Limits strip', 'Day, max and goal in Vest\'s account bar, always in view.')}
+                    ${row('points', 'Room in points', 'Each limit also in points at the card\'s size (NQ).')}
+                    ${row('warn', 'Warn near a limit', 'One toast when an account passes 80% of its daily or max loss.')}
+                    <div class="ax4p-hint">Off, each part leaves Vest's own as it was. The numbers are Vest's own, read from the page. Nothing is sent.</div>
+                </div>`;
+    }
+    function vuWireSettings() {
+        ['menu', 'panel', 'strip', 'points', 'warn'].forEach((k) => {
+            const el = document.getElementById('ax4p-vu-set-' + k);
+            if (!el) return;
+            el.checked = vuOn(k);
+            el.onchange = () => { S.vestui[k] = el.checked; persist(); VU.at = 0; vuTick(); };
+        });
+    }
+
+    // ---------- the loop ----------
+    function vuRender() {
+        if (VU.menuOpen) vuPaintMenu(false);
+        vuPaintButton();
+        if (VU.strip) vuPaintStrip(vuActive());
+        if (VU.panel && !VU.panel.hidden) vuPaintPanel(vuActive());
+        if (VU.manage) vuPaintManage(false);
+        if (VU.pay && !VU.pay.running && !VU.pay.done) vuPaintPay();
+    }
+    function vuTick() {
+        try {
+            if (!vuDemo()) vuFindStores();
+            VU.dirty = true;
+            if (!VU.ownMenu) vuPlaceButton();
+            vuPlaceStrip();
+            vuPlacePanel(false);
+            if (VU.menuOpen) { vuPosMenu(); vuPaintMenu(false); }
+            if (VU.manage) vuPaintManage(false);
+            vuWarn();
+        } catch (e) {}
+    }
+    function vuBoot() {
+        if (VU.booted) return;
+        VU.booted = true;
+        const st = ensureStyle('ax4p-vu-css');
+        const css = vuCss();
+        if (st.textContent !== css) st.textContent = css;
+        setInterval(vuTick, 1000);
+        setTimeout(vuTick, 400);
+        // the menu closes on a press anywhere else, and with Escape
+        document.addEventListener('pointerdown', (e) => {
+            if (!VU.menuOpen) return;
+            const t = e.target;
+            if (t && t.closest && (t.closest('#ax4p-vu-menu') || t.closest('#ax4p-vu-btn'))) return;
+            vuCloseMenu();
+        }, true);
+        win.addEventListener('resize', () => { if (VU.menuOpen) vuPosMenu(); if (VU.strip) vuPaintStrip(vuActive()); });
+        // Alt+A opens the menu (and its search)
+        document.addEventListener('keydown', (e) => {
+            if (!e.altKey || e.shiftKey || e.ctrlKey || e.metaKey || e.code !== 'KeyA' || !vuOn('menu') || !VU.btn) return;
+            const a = document.activeElement;
+            if (a && (a.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) && !(a.id || '').startsWith('ax4p-vu')) return;
+            e.preventDefault();
+            VU.menuOpen ? vuCloseMenu() : vuOpenMenu();
+        }, true);
+    }
+
     function bootUi() {
         injectAstralTheme();
         connectOwnPublicWs();
@@ -10367,6 +12196,7 @@
         setTimeout(warnSecondCopy, 6000);
         relayFrameKeys();
         setInterval(relayFrameKeys, 2000);
+        vuBoot();
     }
 
     // ---------- the P&L card's Replay: Vest's own candles, read only (src/copy/35-share.js) ----------
@@ -10377,12 +12207,12 @@
         return c ? { w, c } : null;
     }
     // the market as Vest's datafeed describes it (its name, its time zone); null when it cannot be read
-    function rpSymbolInfo(w) {
+    function rpSymbolInfo(w, sym) {
         return new Promise((resolve) => {
             const df = w && w._options && w._options.datafeed;
             if (!df || typeof df.resolveSymbol !== 'function') { resolve(null); return; }
             const t = setTimeout(() => resolve(null), 3000);
-            try { df.resolveSymbol(apiSymbol(), (si) => { clearTimeout(t); resolve(si || null); }, () => { clearTimeout(t); resolve(null); }); } catch (e) { clearTimeout(t); resolve(null); }
+            try { df.resolveSymbol(sym || apiSymbol(), (si) => { clearTimeout(t); resolve(si || null); }, () => { clearTimeout(t); resolve(null); }); } catch (e) { clearTimeout(t); resolve(null); }
         });
     }
     // the time zone the chart shows its times in (TradingView's own setting; "exchange" is the market's own zone)
@@ -10393,26 +12223,50 @@
         if (!z || z === 'exchange') { const si = await rpSymbolInfo(w); z = (si && si.timezone) || 'Etc/UTC'; }
         return String(z);
     }
-    // The bars the chart holds now, at its own timeframe, as [time s, open, high, low, close]. No request.
+    // The bars the chart holds now, at its own timeframe, as [time s, open, high, low, close], and the volume (8.2 round 2) when the chart
+    // shows Vest's Volume study (it does unless Hide volume is on). No request.
     async function rpChartBars() {
         const h = rpChart();
         if (!h || typeof h.c.exportData !== 'function' || !tpSymbolsAgree()) return null;
-        const d = await h.c.exportData({ includeTime: true, includeSeries: true, includedStudies: [] });
+        let vol = null;
+        try { vol = (h.c.getAllStudies() || []).find(isVolumeStudy) || null; } catch (e) {}
+        const d = await h.c.exportData({ includeTime: true, includeSeries: true, includedStudies: vol ? [vol.id] : [] });
+        const vi = vol && d && Array.isArray(d.schema) ? d.schema.findIndex((f) => f && f.sourceType === 'study' && f.sourceId === vol.id && (f.plotId === 'vol' || /^volume$/i.test(String(f.plotTitle || '')))) : -1;
         const bars = [];
         for (const r of (d && d.data) || []) {
             const b = [r[0], r[1], r[2], r[3], r[4]].map(Number);
-            if (b.every(Number.isFinite)) bars.push(b);
+            if (!b.every(Number.isFinite)) continue;
+            if (vi > 4 && Number(r[vi]) >= 0) b.push(Number(r[vi]));
+            bars.push(b);
         }
         return { res: String(h.c.resolution()), tz: await rpTz(h.w, h.c), bars };
+    }
+    // The candle colours the chart draws now, from its main series' own style (the P&L card's "Match my chart", 8.2 round 2): the chart's
+    // own candle type (candles, hollow, Heikin Ashi, bars), else candles. Read only; null when the chart gives none.
+    function rpChartColors() {
+        const h = rpChart();
+        let st = null;
+        try {
+            const se = h && typeof h.c.getSeries === 'function' ? h.c.getSeries() : null;
+            const type = typeof h.c.chartType === 'function' ? Number(h.c.chartType()) : 1;
+            if (se && typeof se.chartStyleProperties === 'function') st = se.chartStyleProperties([0, 1, 8, 9].includes(type) ? type : 1);
+        } catch (e) {}
+        if (!st || typeof st.upColor !== 'string' || typeof st.downColor !== 'string') return null;
+        const or = (v, d) => (typeof v === 'string' && v ? v : d);
+        const border = st.drawBorder !== false;
+        return { up: st.upColor, down: st.downColor, borderUp: border ? or(st.borderUpColor, st.upColor) : st.upColor, borderDown: border ? or(st.borderDownColor, st.downColor) : st.downColor,
+            wickUp: or(st.wickUpColor, st.upColor), wickDown: or(st.wickDownColor, st.downColor) };
     }
     // One page of Vest's own datafeed for another timeframe (Vest's code makes the GET): `first` is its latest ~500 bars, every later call the
     // 500 before the last page (the datafeed keeps the place and ignores from / to; measured 2026-10-06). Never the chart's own timeframe: the
     // chart's later scroll-back would then skip bars (AGENTS.md). src/copy/35-share.js pages back from here.
-    async function rpFeedBars(res, first) {
+    // sym (8.2): another market's API symbol, for the Replay's other markets of the day. Its paging key is its own, so any timeframe is safe.
+    async function rpFeedBars(res, first, sym) {
         const h = rpChart();
-        if (!h || !/^\d+$/.test(String(res)) || String(res) === String(h.c.resolution()) || !tpSymbolsAgree()) return null;
-        const si = await rpSymbolInfo(h.w);
-        if (!si || !tpSameSym(si.name || si.ticker, apiSymbol())) return null;
+        const other = !!sym && /^[A-Z0-9-]{2,32}$/.test(String(sym)) && !tpSameSym(String(sym), apiSymbol());
+        if (!h || !/^\d+$/.test(String(res)) || (!other && String(res) === String(h.c.resolution())) || !tpSymbolsAgree()) return null;
+        const si = await rpSymbolInfo(h.w, other ? String(sym) : null);
+        if (!si || !tpSameSym(si.name || si.ticker, other ? String(sym) : apiSymbol())) return null;
         const df = h.w._options.datafeed;
         const now = Math.floor(Date.now() / 1000);
         const got = await new Promise((resolve) => {
@@ -10423,7 +12277,12 @@
             } catch (e) { clearTimeout(t); resolve(null); }
         });
         if (!got) return null;
-        const bars = got.map((b) => [Math.round(Number(b.time) / 1000), Number(b.open), Number(b.high), Number(b.low), Number(b.close)]).filter((b) => b.every(Number.isFinite));
+        const bars = got.map((b) => {
+            const x = [Math.round(Number(b.time) / 1000), Number(b.open), Number(b.high), Number(b.low), Number(b.close)];
+            // the volume (8.2 round 2), when Vest's datafeed sends one
+            if (x.every(Number.isFinite) && Number(b.volume) >= 0) x.push(Number(b.volume));
+            return x;
+        }).filter((b) => b.every(Number.isFinite));
         return { res: String(res), tz: await rpTz(h.w, h.c), bars };
     }
     // @@BV-SUITE-API-BEGIN
@@ -10480,8 +12339,14 @@
         positions: () => tpPositions().slice(),
         // read only, for the P&L card's Replay (src/copy/35-share.js): Vest's own candles, and whether a row's market is the chart's
         chartBars: () => rpChartBars(),
-        feedBars: (res, first) => rpFeedBars(res, first),
+        feedBars: (res, first, sym) => rpFeedBars(res, first, sym),
+        chartColors: () => rpChartColors(),
         sameMarket: (sym) => tpSameSym(sym, tpSymbol()),
+        // Accounts and limits (8.2, overview contract 2): the copier hands over its groups and its setter for Manage accounts'
+        // copy group column: { groups(): [{ id, leaderId, followerIds }], setGroup(accountId, groupId | null): { ok, why? } }
+        accountsHooks: (h) => vuSetHooks(h),
+        // 8.2 round 2: the copier's "Switch this tab to <leader>", through Vest's own account menu (src/vest-accounts.js vuSwitchTo)
+        switchAccount: (id) => (typeof vuSwitchTo === 'function' ? vuSwitchTo(id) : Promise.resolve({ ok: false, why: 'Switch accounts in Vest\'s own menu.' })),
         bridge: () => tpBridge()
     });
     // @@BV-SUITE-API-END
@@ -11630,7 +13495,8 @@
 
 var cpEngines = {}; // var: a second declaration in 20-engines.js stays harmless
 
-const CP_MAX_FOLLOWERS = 10; // up to 10 follower accounts
+const CP_MAX_FOLLOWERS = 10; // up to 10 follower accounts switched on in a group
+const CP_MAX_ROWS = 60;      // rows a group remembers (switched-off ones keep their ratio); only switched-on followers are the group's (8.2 round 2)
 const CP_TICK_MS = 1000;       // reconciler period
 const CP_FAST_MS = 250;        // reconciler period right after an intent of ours
 const CP_DRIFT_MS = 1500;      // drift must last this long before the reconciler acts (unless an intent woke it)
@@ -11719,11 +13585,28 @@ const CP = {
     paused: {},                           // accountId -> {why, at}
     holds: {},                            // 'account|symbol' -> why the planner or diff left it alone
     alerts: [], awake: null, booted: false, frames: new WeakSet(),
-    status: { state: 'off', at: 0, pending: 0, skipped: [], holds: {} }
+    status: { state: 'off', at: 0, pending: 0, skipped: [], holds: {} },
+    // 8.2, copy groups: the group this tab copies ('' when none; kept through a kill until the engine stops, so the second press can flatten it),
+    // the other groups as their tabs say (cpPeerSet), starts asked over the bus, log line ids (lines of other tabs arrive over the bus too),
+    // the opposite-sides guard's last sit-out and warning (for the widget), and the leader tab's pin
+    runGroup: '', peers: {}, gstartWait: {}, logIds: new Set(), logSeq: 0, groupWhy: '', oppSat: null, oppWarn: null, oppWarned: {}, oppAskAt: 0,
+    gstateAt: 0, gstateWord: '', hooked: false, leadPin: null, leadStart: false
 };
 CP.logAdd = (e) => cpLog(e && e.kind || 'info', e); // the test runner (40-runner.js) files its report here
 
 // ---------- settings (S.copy through the suite API) ----------
+// 8.2: S.copy is the root of the copy groups. A group is what 8.0 called the copier's settings (a leader, its followers, its engine, its
+// markets); the root holds the groups, the switches that are no group's own (allowOpposite, logOn), the risk note (ack, agreed once for
+// every group) and the group the widget shows (focus). cpCfg() is ONE group: the one this tab copies (CP.runGroup), else this tab's own
+// (cpTabGroupId: a leader tab's group, or the group whose leader is the tab's account), else the widget's. The planner, the guard, the
+// engines, the order mirror and the accept watch read cpCfg() as before: they see one group. An account is in at most one group, as
+// leader or follower (cpGroupCheck), and every write of the widget names the group it is for.
+
+const CP_GROUP_IDS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+const CP_ROOT_KEYS = ['v', 'groups', 'allowOpposite', 'logOn', 'ack', 'focus', 'subDock', 'engineAcks', 'cfgAt'];
+// what only the tab that copies a group writes (cpOnStorage keeps them from that tab); everything else of a group is the owner's settings,
+// stamped cfgAt when changed so the newer change wins when two tabs save close together
+const CP_RUNTIME_KEYS = ['on', 'resume', 'markets', 'orderMap', 'orderDone']; // the root's own fields: everything else of an older save is group A's
 
 function cpSuite() {
     try { return typeof bvSuite === 'function' ? bvSuite() || null : null; } catch (e) { return null; }
@@ -11733,88 +13616,413 @@ function cpNewFollower(accountId) {
     return { accountId: String(accountId), on: true, ratio: 1 };
 }
 
-// markets: the ones the copier manages (filled by itself, see cpManage, unless autoMarkets is off); ack: the version of the risk note the user agreed to;
+// A group's own settings. markets: the ones the copier manages (filled by itself, see cpManage, unless autoMarkets is off);
 // resume: { at, leaderId, accounts, markets } while copying runs and followers hold copied positions (see cpResumeTrack), else null
 function cpDefaults() {
-    return { on: false, leaderId: '', followers: [], markets: [], ack: 0, autoMarkets: true, engine: 'direct', resume: null, mirrorLimits: true, sendAtPending: false };
+    return { on: false, leaderId: '', followers: [], markets: [], autoMarkets: true, engine: 'direct', resume: null, mirrorLimits: true, sendAtPending: false };
 }
 
-// The live settings object: missing fields are filled in place, so an older saved S.copy keeps working. Fields that v8 dropped
-// (dryRun, keepAwake, a follower's maxQty) are removed when found: nothing reads them any more.
-function cpCfg() {
-    const su = cpSuite();
-    let c = null;
-    try { c = su && su.settings ? su.settings.get('copy') : CP.localCfg; } catch (e) {}
-    let fresh = false;
-    if (!c || typeof c !== 'object') { c = cpDefaults(); fresh = true; }
+function cpRootDefaults() {
+    return { v: 2, groups: [], allowOpposite: false, logOn: false, ack: 0, focus: '' };
+}
+
+// One group, filled and cleaned in place: an older save keeps working. Fields that v8 dropped (dryRun, keepAwake, a follower's maxQty) are
+// removed when found. An engine name is kept as saved (a build without that engine copies on Light, cpEngineId, and the choice survives
+// in the save); only a name that is not one is reset.
+function cpNormGroup(g, id, root) {
     const d = cpDefaults();
-    for (const k of Object.keys(d)) if (c[k] === undefined) c[k] = d[k];
-    delete c.dryRun;
-    // the engine choice (cpSetEngine); anything else is the default, Direct. While Turbo is off a saved 'tabs' (8.0.0's default) becomes Direct too.
-    if (CP.turboOff || c.engine !== 'tabs') c.engine = 'direct';
-    delete c.keepAwake;
-    if (c.resume && (typeof c.resume !== 'object' || !Array.isArray(c.resume.accounts))) c.resume = null;
-    if (!Array.isArray(c.followers)) c.followers = [];
-    if (!Array.isArray(c.markets)) c.markets = [];
-    if (typeof c.autoMarkets !== 'boolean') c.autoMarkets = true;
-    if (typeof c.mirrorLimits !== 'boolean') c.mirrorLimits = true;
-    if (typeof c.sendAtPending !== 'boolean') c.sendAtPending = false;
-    if (c.markets.some((m) => typeof m !== 'string' || m !== cpCanonSym(m))) c.markets = Array.from(new Set(c.markets.map(cpCanonSym).filter(Boolean)));
-    if (c.followers.length > CP_MAX_FOLLOWERS) c.followers.length = CP_MAX_FOLLOWERS;
-    for (const f of c.followers) if (f && f.maxQty !== undefined) delete f.maxQty;
-    if (fresh) cpSave(c);
-    else if (!su || !su.settings) CP.localCfg = c;
-    return c;
+    for (const k of Object.keys(d)) if (g[k] === undefined) g[k] = d[k];
+    if (typeof g.id !== 'string' || CP_GROUP_IDS.indexOf(g.id) < 0 || g.id.length !== 1) g.id = id;
+    delete g.dryRun;
+    delete g.keepAwake;
+    // a risk note agreed before 8.2 (or set on a group by a caller) counts for every group
+    if (g.ack !== undefined) { if (root && Number(g.ack) > Number(root.ack || 0)) root.ack = Number(g.ack); delete g.ack; }
+    // Light, Turbo, or an engine this build registered (8.2: Mint); anything else (Switch, parked) is Light
+    if (typeof g.engine !== 'string' || !cpEngineKnown(g.engine)) g.engine = 'direct';
+    if (g.engine === 'tabs' && CP.turboOff) g.engine = 'direct';
+    if (g.resume && (typeof g.resume !== 'object' || !Array.isArray(g.resume.accounts))) g.resume = null;
+    if (typeof g.leaderId !== 'string') g.leaderId = g.leaderId == null ? '' : String(g.leaderId);
+    if (!Array.isArray(g.followers)) g.followers = [];
+    if (!Array.isArray(g.markets)) g.markets = [];
+    if (typeof g.autoMarkets !== 'boolean') g.autoMarkets = true;
+    if (typeof g.mirrorLimits !== 'boolean') g.mirrorLimits = true;
+    if (typeof g.sendAtPending !== 'boolean') g.sendAtPending = false;
+    if (g.markets.some((m) => typeof m !== 'string' || m !== cpCanonSym(m))) g.markets = Array.from(new Set(g.markets.map(cpCanonSym).filter(Boolean)));
+    if (g.followers.length > CP_MAX_ROWS) g.followers.length = CP_MAX_ROWS;
+    let on = 0;
+    for (const f of g.followers) {
+        if (f && f.maxQty !== undefined) delete f.maxQty;
+        if (f && f.on && ++on > CP_MAX_FOLLOWERS) f.on = false;
+    }
+    return g;
 }
 
-function cpSave(c) {
+// The root, filled in place. A save from before 8.2 (the root WAS the one group) becomes group A once, with its leader, followers, engine,
+// markets and resume (a copier that was running with copied positions still comes back after the reload). There is always one group.
+function cpRoot() {
     const su = cpSuite();
-    try { if (su && su.settings) su.settings.set('copy', c || cpCfg()); else CP.localCfg = c || CP.localCfg; } catch (e) {}
+    let r = null;
+    try { r = su && su.settings ? su.settings.get('copy') : CP.localCfg; } catch (e) {}
+    let save = false;
+    if (!r || typeof r !== 'object') { r = cpRootDefaults(); save = true; }
+    if (!Array.isArray(r.groups)) {
+        const g = {};
+        let had = false;
+        for (const k of Object.keys(r)) if (CP_ROOT_KEYS.indexOf(k) < 0) { g[k] = r[k]; delete r[k]; had = true; }
+        g.id = 'A';
+        r.groups = [g];
+        if (had) { save = true; typeof cpDev === 'function' && cpDev('state', () => ({ msg: 'the copier settings from before 8.2 became group A (leader ' + (g.leaderId ? cpName(g.leaderId) : 'none') + ', ' + (Array.isArray(g.followers) ? g.followers.length : 0) + ' followers)', migrated: true })); }
+    }
+    const d = cpRootDefaults();
+    for (const k of Object.keys(d)) if (r[k] === undefined) r[k] = d[k];
+    r.v = 2;
+    if (typeof r.allowOpposite !== 'boolean') r.allowOpposite = false;
+    if (typeof r.logOn !== 'boolean') r.logOn = false;
+    if (!r.groups.length) r.groups.push({ id: 'A' });
+    const ids = new Set();
+    for (let i = 0; i < r.groups.length; i++) {
+        let g = r.groups[i];
+        if (!g || typeof g !== 'object') { g = r.groups[i] = {}; save = true; }
+        const free = CP_GROUP_IDS.split('').find((x) => !ids.has(x)) || 'Z';
+        cpNormGroup(g, free, r);
+        if (ids.has(g.id)) { g.id = free; save = true; }
+        ids.add(g.id);
+    }
+    if (r.groups.length > CP_GROUP_IDS.length) r.groups.length = CP_GROUP_IDS.length;
+    if (cpGroupRepair(r)) save = true;
+    if (typeof r.focus !== 'string' || !ids.has(r.focus)) r.focus = r.groups[0].id;
+    if (save) cpSaveRoot(r);
+    else if (!su || !su.settings) CP.localCfg = r;
+    return r;
 }
+
+// A save in which one account is in two groups (edited by hand, or two tabs that wrote at once): the later group gives it up. Only a group's
+// members count: its leader and its followers that are switched ON (8.2 round 2: the owner's 8.1 list of ten accounts, three switched on,
+// made every account "in A"). A switched-off row stays (it remembers the ratio) and never blocks another group; a row of a member of another
+// group is switched off, not removed. Returns true when something changed. Never runs on a group this tab copies right now.
+function cpGroupRepair(r) {
+    const seen = new Map();
+    let changed = false;
+    for (const g of r.groups) {
+        if (g.leaderId) {
+            if (seen.has(g.leaderId) && g.id !== CP.runGroup) { g.leaderId = ''; changed = true; }
+            else seen.set(g.leaderId, g.id);
+        }
+    }
+    for (const g of r.groups) {
+        const keep = [];
+        const rows = new Set();
+        for (const f of g.followers) {
+            const id = f && f.accountId != null ? String(f.accountId) : '';
+            if (!id || id === g.leaderId || rows.has(id)) { changed = true; continue; }
+            rows.add(id);
+            if (f.on) {
+                const at = seen.get(id);
+                if (at && at !== g.id && g.id !== CP.runGroup) { f.on = false; changed = true; }
+                else seen.set(id, g.id);
+            }
+            keep.push(f);
+        }
+        if (keep.length !== g.followers.length) g.followers = keep;
+    }
+    return changed;
+}
+
+function cpSaveRoot(r) {
+    const su = cpSuite();
+    try { if (su && su.settings) su.settings.set('copy', r); else CP.localCfg = r; } catch (e) {}
+}
+
+function cpGroups() { return cpRoot().groups; }
+
+function cpGroup(gid) {
+    const id = String(gid == null ? '' : gid);
+    return id ? cpRoot().groups.find((g) => g.id === id) || null : null;
+}
+
+// A group's members: its leader and its followers that are switched on. A switched-off row is a free account (8.2 round 2).
+function cpMemberIds(g) { return (g.followers || []).filter((f) => f && f.on && f.accountId != null).map((f) => String(f.accountId)); }
+
+// The accounts a stop of group `g` halts (the bus's halt): its rows, except one that copies in another group now. A row switched off here may
+// be another group's follower, and a Turbo follower tab drops the rest of its actions on a halt that names it (25-tabs.js).
+function cpHaltIds(g) {
+    return (g.followers || []).filter((f) => f && f.accountId != null).map((f) => String(f.accountId)).filter((id) => { const at = cpGroupOf(id); return !at || at.gid === g.id; });
+}
+
+// The group an account is a member of, as { gid, role: 'leader' | 'follower' }, or null (a switched-off row in a group is free).
+function cpGroupOf(accountId, root) {
+    const id = String(accountId == null ? '' : accountId);
+    if (!id) return null;
+    for (const g of (root || cpRoot()).groups) {
+        if (g.leaderId === id) return { gid: g.id, role: 'leader' };
+        if (g.followers.some((f) => f && f.on && String(f.accountId) === id)) return { gid: g.id, role: 'follower' };
+    }
+    return null;
+}
+
+// '' or why `accountId` may not move into group `to` right now. Moving takes it out of the group it copies in (switched off there: that
+// group stops copying to it and leaves what it holds alone, as a switch-off always did). The one case refused: the account holds a position
+// while group `to` copies right now, because `to` would bring it to its own leader's position at once, with nobody asked.
+function cpMoveWhy(accountId, to) {
+    const g = cpGroup(to);
+    if (!g || !(cpRunsHere(g.id) || cpPeerRunning(g.id))) return '';
+    const view = cpViewOf(accountId, g.id);
+    if (!view) return cpName(accountId) + '\'s positions cannot be read right now, and group ' + g.id + ' copies: switch group ' + g.id + ' off first, or try again in a moment.';
+    if ((view.positions || []).some((p) => p && Number(p.qty) > 0)) return cpName(accountId) + ' holds a position, and group ' + g.id + ' copies right now: it would bring it to its own leader\'s position at once. Close it or switch group ' + g.id + ' off first.';
+    return '';
+}
+// Takes `accountId` out of the group it copies in (switched off there, its row kept), for a move into `to`. Returns the group it left, or ''.
+// It looks in the other groups only: the caller may already have switched the account on in `to`, which can come first in the list.
+function cpMoveOut(accountId, to) {
+    const id = String(accountId);
+    const src = cpRoot().groups.find((g) => g.id !== String(to) && g.followers.some((f) => f && f.on && String(f.accountId) === id));
+    if (!src) return '';
+    for (const f of src.followers) if (f && String(f.accountId) === id) f.on = false;
+    cpTouch(src);
+    cpLog('info', { note: cpName(id) + ' moved from group ' + src.id + ' to group ' + to, acc: id, g: String(to) });
+    typeof cpDev === 'function' && cpDev('state', () => ({ msg: cpName(id) + ' moved from group ' + src.id + ' to group ' + to + ' (switched off in ' + src.id + ', its row kept)', acc: id, from: src.id, to: String(to) }));
+    return src.id;
+}
+
+// Why `accountId` cannot take `role` in group `gid`, or ''. An account is in one group at most, as its leader or as a follower.
+function cpGroupCheck(gid, accountId, role) {
+    const at = cpGroupOf(accountId);
+    if (!at || at.gid === String(gid)) {
+        const g = cpGroup(gid);
+        if (g && role === 'follower' && g.leaderId === String(accountId)) return cpName(accountId) + ' leads group ' + g.id;
+        return '';
+    }
+    return cpName(accountId) + (at.role === 'leader' ? ' leads group ' : ' copies in group ') + at.gid;
+}
+
+// The id of the group a leader tab was opened for (?bvLead=<id>), read once.
+function cpLeadTabGid() {
+    if (CP.leadGid !== undefined) return CP.leadGid;
+    let g = '';
+    try { const v = new URLSearchParams(location.search).get('bvLead'); if (v && /^[A-Z]$/.test(v)) g = v; } catch (e) {}
+    CP.leadGid = g;
+    return g;
+}
+
+// This tab's own group: a leader tab's, else the group whose leader is the account this tab is on. '' when none.
+function cpTabGroupId() {
+    const r = cpRoot();
+    const lt = cpLeadTabGid();
+    if (lt && r.groups.some((g) => g.id === lt)) return lt;
+    const act = cpActive();
+    if (act == null || act === '') return '';
+    const g = r.groups.find((x) => x.leaderId && x.leaderId === String(act));
+    return g ? g.id : '';
+}
+
+// The live settings of one group (see the section's head). Missing fields are filled in place.
+function cpCfg() {
+    const r = cpRoot();
+    const id = CP.runGroup || cpTabGroupId() || r.focus;
+    return r.groups.find((g) => g.id === id) || r.groups[0];
+}
+
+// A group by id when given (the widget's writes), else cpCfg().
+function cpCfgFor(gid) { return (gid != null && gid !== '' ? cpGroup(gid) : null) || cpCfg(); }
+
+// Saves the whole root: every group is in it.
+function cpSave() { cpSaveRoot(cpRoot()); }
+
+// An owner's change of a group's settings (or of the groups themselves): stamped, so another tab's older save does not undo it (cpOnStorage).
+function cpTouch(c) {
+    const t = CP.now();
+    if (c && typeof c === 'object') c.cfgAt = t;
+    const r = cpRoot();
+    r.cfgAt = Math.max(Number(r.cfgAt) || 0, t);
+}
+
+// Is this tab's copier state (its reads, waits, pauses) about group `c`? The group it copies, else the group cpCfg() names.
+function cpIsLocal(c) { return CP.runGroup ? CP.runGroup === c.id : cpCfg() === c; }
+
+// Is group `gid` copying in this tab right now?
+function cpRunsHere(gid) { return !!CP.running && CP.runGroup === String(gid); }
 
 function cpFollowerOf(c, accountId) {
     return (c.followers || []).find((f) => f && String(f.accountId) === String(accountId)) || null;
 }
 
-// For the UI: add a follower (up to ten, never the leader) or change one field set of it.
-function cpSetFollower(accountId, patch) {
-    const c = cpCfg();
+// For the UI: add a follower or change one field set of it. Never the leader, never a group's leader. Switching on an account that copies in
+// another group moves it here (switched off there: cpMoveOut, unless cpMoveWhy refuses); CP.groupMoved then says so. Up to ten switched on.
+function cpSetFollower(accountId, patch, gid) {
+    const c = cpCfgFor(gid);
     const id = String(accountId);
+    CP.groupWhy = '';
+    CP.groupMoved = null;
     if (!id || id === String(c.leaderId)) return null;
     let f = cpFollowerOf(c, id);
     const was = f ? { on: f.on, ratio: f.ratio } : null;
+    const at = cpGroupOf(id);
+    const no = (why) => { CP.groupWhy = why; typeof cpDev === 'function' && cpDev('state', () => ({ msg: 'follower ' + cpName(id) + ' not changed in group ' + c.id + ': ' + why, acc: id, group: c.id })); return null; };
+    if (at && at.gid !== c.id && at.role === 'leader') return no(cpName(id) + ' leads group ' + at.gid);
+    // a new row is switched on unless the patch says otherwise
+    const turnOn = (patch && 'on' in patch ? patch.on === true : !f || !!f.on) && !(f && f.on);
+    if (turnOn) {
+        if (c.followers.filter((x) => x && x.on).length >= CP_MAX_FOLLOWERS) return no('up to ' + CP_MAX_FOLLOWERS + ' accounts can copy at once in a group');
+        if (at && at.gid !== c.id) {
+            const why = cpMoveWhy(id, c.id);
+            if (why) return no(why);
+        }
+    }
+    if (!f && c.followers.length >= CP_MAX_ROWS && !c.followers.some((x) => x && !x.on)) return no('this group remembers ' + CP_MAX_ROWS + ' accounts at most');
+    // out of the other group first: cpRoot's repair runs on every read, and while the account was on in both, it would switch off the row
+    // of whichever group comes later in the list (this one, when it does)
+    if (turnOn && at && at.gid !== c.id) { const from = cpMoveOut(id, c.id); if (from) CP.groupMoved = { accountId: id, from, to: c.id }; }
     if (!f) {
-        if (c.followers.length >= CP_MAX_FOLLOWERS) { typeof cpDev === 'function' && cpDev('state', () => ({ msg: 'follower ' + cpName(id) + ' not added: the copier takes at most ' + CP_MAX_FOLLOWERS + ' followers', acc: id })); return null; }
+        if (c.followers.length >= CP_MAX_ROWS) c.followers.splice(c.followers.findIndex((x) => x && !x.on), 1);
         f = cpNewFollower(id);
+        if (!turnOn) f.on = false;
         c.followers.push(f);
     }
     if (patch) Object.assign(f, patch);
+    cpTouch(c);
     if (patch && patch.on === true) cpAuthClear(id); // switched on by hand: no old sign-in wait or sat-out trade holds it
     cpSave(c);
     typeof cpDev === 'function' && (!was || (patch && Object.keys(patch).some((k) => was[k] !== patch[k]))) && cpDev('state', () => ({
-        msg: !was ? cpName(id) + ' added as a follower (ratio ' + f.ratio + ', ' + (f.on ? 'on' : 'off') + ')'
+        msg: !was ? cpName(id) + ' added as a follower of group ' + c.id + ' (ratio ' + f.ratio + ', ' + (f.on ? 'on' : 'off') + ')'
             : cpName(id) + ' changed: ' + Object.keys(patch).filter((k) => was[k] !== patch[k]).map((k) => k + ' ' + was[k] + ' -> ' + patch[k]).join(', '),
-        acc: id, patch, followers: c.followers.length }));
+        acc: id, patch, followers: c.followers.length, group: c.id }));
     return f;
 }
 
-function cpRemoveFollower(accountId) {
-    const c = cpCfg();
+function cpRemoveFollower(accountId, gid) {
+    const c = cpCfgFor(gid);
     c.followers = c.followers.filter((f) => String(f.accountId) !== String(accountId));
-    typeof cpDev === 'function' && cpDev('state', () => ({ msg: cpName(accountId) + ' removed from the followers (' + c.followers.length + ' left)', acc: accountId }));
-    delete CP.paused[accountId];
-    cpAuthClear(String(accountId));
-    delete CP.syncAt[accountId];
-    delete CP.resumedAt[accountId];
+    cpTouch(c);
+    typeof cpDev === 'function' && cpDev('state', () => ({ msg: cpName(accountId) + ' removed from the followers of group ' + c.id + ' (' + c.followers.length + ' left)', acc: accountId, group: c.id }));
+    if (cpIsLocal(c) || !CP.running) {
+        delete CP.paused[accountId];
+        cpAuthClear(String(accountId));
+        delete CP.syncAt[accountId];
+        delete CP.resumedAt[accountId];
+    }
     cpSave(c);
+}
+
+// For the UI: the leader of a group. Refused while that group copies (here or in another tab), and for an account of another group.
+// The new leader is never its own follower; a resume record of the old leader is dropped.
+function cpSetLeader(accountId, gid) {
+    const c = cpCfgFor(gid);
+    const id = String(accountId == null ? '' : accountId);
+    if (id === c.leaderId) return { ok: true, why: '' };
+    if ((cpIsLocal(c) && CP.running) || cpPeerRunning(c.id)) return { ok: false, why: 'Switch group ' + c.id + '\'s copying off before you change its leader.' };
+    let moved = '';
+    if (id) {
+        const at = cpGroupOf(id);
+        if (at && at.gid !== c.id && at.role === 'leader') return { ok: false, why: cpName(id) + ' leads group ' + at.gid + '.' };
+        // it copies in another group: it leaves that group (switched off there) to lead this one
+        if (at && at.gid !== c.id) moved = cpMoveOut(id, c.id);
+    }
+    const from = c.leaderId;
+    c.leaderId = id;
+    c.resume = null;
+    c.followers = c.followers.filter((f) => String(f.accountId) !== id);
+    cpTouch(c);
+    cpSave(c);
+    typeof cpDev === 'function' && cpDev('state', () => ({ msg: 'group ' + c.id + ' leader changed from ' + (from ? cpName(from) : 'none') + ' to ' + (id ? cpName(id) : 'none'), group: c.id, from, to: id }));
+    cpLeadRepin();
+    return { ok: true, why: '', moved };
+}
+
+// For the UI: a new group with its leader and followers, switched off. Every account is checked first: nothing is written when one is taken.
+function cpNewGroup(leaderId, followerIds) {
+    const r = cpRoot();
+    const id = CP_GROUP_IDS.split('').find((x) => !r.groups.some((g) => g.id === x));
+    if (!id) return { ok: false, why: 'There are ' + CP_GROUP_IDS.length + ' groups already.' };
+    const lead = String(leaderId == null ? '' : leaderId);
+    if (!lead) return { ok: false, why: 'Pick the leader of the new group.' };
+    const fols = Array.from(new Set((followerIds || []).map(String).filter((x) => x && x !== lead)));
+    if (fols.length > CP_MAX_FOLLOWERS) return { ok: false, why: 'A group takes up to ' + CP_MAX_FOLLOWERS + ' followers.' };
+    // a leader of another group is refused; an account that copies in another group moves into the new one (switched off there)
+    for (const a of [lead].concat(fols)) {
+        const at = cpGroupOf(a, r);
+        if (at && at.role === 'leader') return { ok: false, why: cpName(a) + ' leads group ' + at.gid + '.' };
+    }
+    const moved = [];
+    for (const a of [lead].concat(fols)) { const from = cpMoveOut(a, id); if (from) moved.push({ accountId: a, from }); }
+    const g = cpNormGroup({ id, leaderId: lead, followers: fols.map((f) => cpNewFollower(f)) }, id, r);
+    r.groups.push(g);
+    r.focus = id;
+    cpTouch(g);
+    cpSaveRoot(r);
+    cpLog('info', { note: 'group ' + id + ' created: leader ' + cpName(lead) + ', ' + fols.length + ' follower' + (fols.length === 1 ? '' : 's') + (moved.length ? ' (' + moved.map((m) => cpName(m.accountId) + ' from ' + m.from).join(', ') + ')' : ''), g: id });
+    return { ok: true, why: '', id, moved };
+}
+
+// For the UI: remove a group (never while it copies). The last group is emptied instead: there is always one.
+function cpDeleteGroup(gid) {
+    const r = cpRoot();
+    const g = cpGroup(gid);
+    if (!g) return { ok: false, why: 'No such group.' };
+    if (cpRunsHere(g.id) || cpPeerRunning(g.id)) return { ok: false, why: 'Switch group ' + g.id + '\'s copying off first.' };
+    if (r.groups.length === 1) { Object.assign(g, cpDefaults()); cpTouch(g); cpSaveRoot(r); return { ok: true, why: '' }; }
+    r.groups = r.groups.filter((x) => x !== g);
+    cpTouch(null);
+    if (r.focus === g.id) r.focus = r.groups[0].id;
+    cpSaveRoot(r);
+    cpLog('info', { note: 'group ' + g.id + ' removed', g: g.id });
+    cpLeadRepin();
+    return { ok: true, why: '' };
+}
+
+// For the UI: the group the widget shows.
+function cpSetFocus(gid) {
+    const r = cpRoot();
+    if (!r.groups.some((g) => g.id === String(gid))) return r.focus;
+    if (r.focus !== String(gid)) { r.focus = String(gid); cpSaveRoot(r); }
+    return r.focus;
+}
+
+// Manage accounts (the suite's account table, contract 2 of the 8.2 overview): an account copies in a group (switched on there, moved from the
+// group it copies in) or in none (switched off where it copies; its row and ratio stay). A leader is not moved this way; nothing changes while
+// a group involved copies (Manage accounts has no preview: the copier's own table does that).
+function cpSetAccountGroup(accountId, groupId) {
+    const id = String(accountId == null ? '' : accountId);
+    if (!id) return { ok: false, why: 'no account' };
+    const at = cpGroupOf(id);
+    const want = groupId == null || groupId === '' ? '' : String(groupId);
+    if (at && at.gid === want) return { ok: true, why: '' };
+    if (at && at.role === 'leader') return { ok: false, why: cpName(id) + ' leads group ' + at.gid + ': pick another leader for it first.' };
+    if (at && (cpRunsHere(at.gid) || cpPeerRunning(at.gid))) return { ok: false, why: 'Switch group ' + at.gid + '\'s copying off first.' };
+    if (want && !cpGroup(want)) return { ok: false, why: 'No group ' + want + '.' };
+    if (want && (cpRunsHere(want) || cpPeerRunning(want))) return { ok: false, why: 'Switch group ' + want + '\'s copying off first.' };
+    if (!want) { if (at) cpSetFollower(id, { on: false }, at.gid); return { ok: true, why: '' }; }
+    const f = cpSetFollower(id, { on: true }, want);
+    return f ? { ok: true, why: '' } : { ok: false, why: CP.groupWhy || 'not added' };
+}
+
+// The switch "Allow opposite sides across groups" (off by default: see cpOppositeWhy).
+function cpSetAllowOpposite(on) {
+    const r = cpRoot();
+    const v = on === true;
+    if (r.allowOpposite !== v) { r.allowOpposite = v; cpTouch(null); cpSaveRoot(r); cpLog('info', { note: v ? 'opposite sides across groups allowed' : 'opposite sides across groups blocked' }); }
+    return v;
+}
+
+// The widget's Log switch (off by default), remembered.
+function cpSetLogOn(on) {
+    const r = cpRoot();
+    const v = on === true;
+    if (r.logOn !== v) { r.logOn = v; cpTouch(null); cpSaveRoot(r); }
+    return v;
 }
 
 // ---------- the engine choice ----------
 
+// An engine name the copier knows: Light, Turbo, or one that a file of this build registered (8.2: Mint, WICKED and DEV only).
+function cpEngineKnown(id) {
+    return CP_ENGINES.indexOf(id) >= 0 || !!(id && cpEngines[id] && typeof cpEngines[id].exec === 'function');
+}
+
 // The engine the settings name, if it is registered (Direct is the default; Tabs only when chosen and Turbo is not switched off; a build without
 // the chosen one uses Direct rather than none). The engine of a running copier is CP.engineId: that one is stopped and used until copying is off.
 function cpEngineId(c) {
-    const want = (c || cpCfg()).engine === 'tabs' && !CP.turboOff ? 'tabs' : 'direct';
+    const e = (c || cpCfg()).engine;
+    const want = e === 'tabs' ? (CP.turboOff ? 'direct' : 'tabs') : e && e !== 'direct' && cpEngineKnown(e) ? e : 'direct';
     return cpEngines[want] ? want : cpEngines.direct ? 'direct' : want;
 }
 
@@ -11822,20 +14030,21 @@ function cpEng() {
     return cpEngines[CP.engineUp && CP.engineId ? CP.engineId : cpEngineId()];
 }
 
-// For the UI: 'tabs' ("Turbo: one background tab per account, fastest") or 'direct' ("Light: everything from this tab, no extra tabs").
-// Refused while copying runs (the kill switch's five seconds count: its engine is still up): switch copying off first.
-function cpSetEngine(id) {
+// For the UI: 'tabs' ("Turbo: one background tab per account, fastest"), 'direct' ("Light: everything from this tab, no extra tabs") or an
+// engine this build registered. Refused while that group copies (the kill switch's five seconds count: its engine is still up).
+function cpSetEngine(id, gid) {
     const want = String(id);
     const dvNo = (why) => { typeof cpDev === 'function' && cpDev('state', () => ({ msg: 'engine change to ' + want + ' refused: ' + why, engine: want, why })); return { ok: false, why }; };
-    if (CP_ENGINES.indexOf(want) < 0) return dvNo('unknown engine');
+    if (!cpEngineKnown(want)) return dvNo('unknown engine');
     if (!cpEngines[want]) return dvNo('that engine is not available in this build');
     if (want === 'tabs' && CP.turboOff) return dvNo(CP_TURBO_OFF_WHY);
-    if (CP.running || CP.engineUp || CP.flattening) return dvNo('Switch copying off before you change the engine.');
-    const c = cpCfg();
+    const c = cpCfgFor(gid);
+    if ((cpIsLocal(c) && (CP.running || CP.engineUp || CP.flattening)) || cpPeerRunning(c.id)) return dvNo('Switch copying off before you change the engine.');
     if (c.engine === want) return { ok: true, why: '' };
     c.engine = want;
+    cpTouch(c);
     cpSave(c);
-    cpLog('info', { note: 'engine: ' + want });
+    cpLog('info', { note: 'engine: ' + want, g: c.id });
     return { ok: true, why: '' };
 }
 
@@ -11843,29 +14052,31 @@ function cpSetEngine(id) {
 
 // "Mirror limit orders (beta)": c.mirrorLimits, saved with the settings. Off: the order mirror (15-orders.js) does nothing at all, resting limit orders of
 // the leader are not copied (their fills still are, as positions, by the reconciler). The kill switch's flatten still cancels the copier's own old mirrors.
-function cpMirrorOn() { return cpCfg().mirrorLimits !== false; }
+function cpMirrorOn(gid) { return cpCfgFor(gid).mirrorLimits !== false; }
 
-function cpSetMirrorLimits(on) {
-    const c = cpCfg();
+function cpSetMirrorLimits(on, gid) {
+    const c = cpCfgFor(gid);
     const v = !!on;
     if (c.mirrorLimits === v) return v;
     c.mirrorLimits = v;
+    cpTouch(c);
     cpSave(c);
-    cpLog('info', { note: v ? 'mirroring the leader\'s limit orders' : 'not mirroring limit orders' });
+    cpLog('info', { note: v ? 'mirroring the leader\'s limit orders' : 'not mirroring limit orders', g: c.id });
     return v;
 }
 
 // "Ultra-fast" (c.sendAtPending, 16-accept.js): on, an open or an add of the leader goes to the followers as the leader's order goes out, about
 // one round trip sooner; if Vest then refuses the leader's order the followers are closed again (cpAcceptRejected). Off, the default: at Vest's OK.
-function cpUltraFastOn() { return cpCfg().sendAtPending === true; }
+function cpUltraFastOn(gid) { return cpCfgFor(gid).sendAtPending === true; }
 
-function cpSetUltraFast(on) {
-    const c = cpCfg();
+function cpSetUltraFast(on, gid) {
+    const c = cpCfgFor(gid);
     const v = !!on;
     if (c.sendAtPending === v) return v;
     c.sendAtPending = v;
+    cpTouch(c);
     cpSave(c);
-    cpLog('info', { note: v ? 'ultra-fast on: opens and adds go to the followers as your order goes out' : 'ultra-fast off: copies go at Vest\'s OK' });
+    cpLog('info', { note: v ? 'ultra-fast on: opens and adds go to the followers as your order goes out' : 'ultra-fast off: copies go at Vest\'s OK', g: c.id });
     return v;
 }
 
@@ -11886,13 +14097,13 @@ function cpManage(c, symbols, why, force) {
     }
     if (added.length) {
         cpSave(c);
-        cpLog('info', { note: 'now managing ' + added.join(', '), why });
+        cpLog('info', { note: 'now managing ' + added.join(', '), why, g: c.id });
         typeof cpDev === 'function' && cpDev('state', () => ({ msg: 'copier now manages ' + added.join(', ') + ' (' + why + '): the followers are brought to the leader there, and a market that is not managed is never touched', markets: c.markets.slice(), added }));
     }
     return added;
 }
 
-function cpMarkets() { return cpCfg().markets.slice(); }
+function cpMarkets(gid) { return cpCfgFor(gid).markets.slice(); }
 
 // Every market Vest lists, from its exchange info: [{ symbol (the page's spelling, NQ-PERP), short (NQ) }]. Empty until the exchange info
 // is loaded (the load is asked for here, a GET of Vest's own through the existing bridge, so the picker fills a moment after it first opens).
@@ -11918,43 +14129,47 @@ function cpMarketList() {
 
 // The user picks a market to copy (the picker, or the switch "copy every market the leader trades" off). Refused for a market Vest does not list.
 // The followers are brought to the leader's position there from the next tick, as for any managed market.
-function cpAddMarket(symbol) {
-    const c = cpCfg();
+function cpAddMarket(symbol, gid) {
+    const c = cpCfgFor(gid);
     const m = cpCanonSym(symbol);
     if (!m) return { ok: false, why: 'no market given' };
     const list = cpMarketList();
     if (list.length && !list.some((x) => x.symbol === m)) { typeof cpDev === 'function' && cpDev('state', () => ({ msg: 'market ' + m + ' not added: Vest does not list it', symbol: m })); return { ok: false, why: 'Vest does not list ' + m }; }
     if (!list.length && !/^[A-Z0-9._]+-PERP$/.test(m)) { typeof cpDev === 'function' && cpDev('state', () => ({ msg: 'market ' + m + ' not added: Vest\'s market list is not loaded yet', symbol: m })); return { ok: false, why: 'Vest\'s market list is not loaded yet' }; }
     if (c.markets.includes(m)) return { ok: true, why: '' };
+    c.marketsAt = CP.now(); // the owner's edit: it reaches the tab that copies the group (cpOnStorage)
     cpManage(c, [m], 'added by the user', true);
-    if (CP.running) { CP.wake.set(m, CP.now() + CP_INTENT_MS); CP.fastUntil = CP.now() + CP_INTENT_MS; if (CP.looping) CP.again = true; else cpSchedule(CP_FAST_MS); }
+    if (CP.running && cpIsLocal(c)) { CP.wake.set(m, CP.now() + CP_INTENT_MS); CP.fastUntil = CP.now() + CP_INTENT_MS; if (CP.looping) CP.again = true; else cpSchedule(CP_FAST_MS); }
     return { ok: true, why: '' };
 }
 
 // Switch "copy every market the leader trades". Off: only the chipped markets are copied, and the followers keep what they hold elsewhere.
-function cpSetAutoMarkets(on) {
-    const c = cpCfg();
+function cpSetAutoMarkets(on, gid) {
+    const c = cpCfgFor(gid);
     const v = on !== false && !!on;
     if (c.autoMarkets === v) return v;
     c.autoMarkets = v;
+    cpTouch(c);
     cpSave(c);
-    cpLog('info', { note: v ? 'copying every market the leader trades' : 'copying only the chosen markets' });
+    cpLog('info', { note: v ? 'copying every market the leader trades' : 'copying only the chosen markets', g: c.id });
     return v;
 }
 
 // The leader's last read decides: a market it holds is not forgotten (the followers would be orphaned there). While copying is off nothing
 // is read, and a market the leader holds is added again on the next start anyway. With autoMarkets off nothing is added again, so a market
 // can be removed any time (the followers keep what they hold there).
-function cpForgetMarket(symbol) {
-    const c = cpCfg();
+function cpForgetMarket(symbol, gid) {
+    const c = cpCfgFor(gid);
     const m = cpCanonSym(symbol);
     if (!c.markets.includes(m)) return { ok: false, why: m + ' is not in the list' };
-    const lead = CP.snap.leader;
-    if (c.autoMarkets !== false && CP.running && lead && lead.positions.some((p) => p.symbol === m && Number(p.qty) > 0)) { typeof cpDev === 'function' && cpDev('state', () => ({ msg: 'market ' + m + ' not removed: the leader holds a position on it right now', symbol: m })); return { ok: false, why: 'the leader holds a position on ' + m + ' right now' }; }
+    const local = cpIsLocal(c);
+    const lead = local ? CP.snap.leader : cpPeerBook(c.id, c.leaderId);
+    if (c.autoMarkets !== false && ((local && CP.running) || cpPeerRunning(c.id)) && lead && lead.positions.some((p) => p.symbol === m && Number(p.qty) > 0)) { typeof cpDev === 'function' && cpDev('state', () => ({ msg: 'market ' + m + ' not removed: the leader holds a position on it right now', symbol: m })); return { ok: false, why: 'the leader holds a position on ' + m + ' right now' }; }
     c.markets = c.markets.filter((x) => x !== m);
-    for (const k of Object.keys(CP.holds)) if (k.endsWith('|' + m)) delete CP.holds[k];
+    c.marketsAt = CP.now(); // the owner's edit: it reaches the tab that copies the group (cpOnStorage)
+    if (local) for (const k of Object.keys(CP.holds)) if (k.endsWith('|' + m)) delete CP.holds[k];
     cpSave(c);
-    cpLog('info', { note: 'no longer managing ' + m });
+    cpLog('info', { note: 'no longer managing ' + m, g: c.id });
     typeof cpDev === 'function' && cpDev('state', () => ({ msg: 'copier no longer manages ' + m + ': followers keep whatever they hold there', symbol: m, markets: c.markets.slice() }));
     return { ok: true, why: '' };
 }
@@ -12292,6 +14507,9 @@ function cpPost(m) {
 
 function cpLog(type, fields) {
     const e = Object.assign({ t: CP.now(), type }, fields || {});
+    // 8.2: a line says which group it is about (the widget filters by it), and carries an id so a line that also came over the bus is kept once
+    if (e.g === undefined && CP.runGroup) e.g = CP.runGroup;
+    e.id = CP.tabId + '.' + (++CP.logSeq);
     // every timing record says which engine ('tabs' or 'direct') ran the copy: the owner compares them from the exported log
     if (type === 'timing' && !e.engine) e.engine = CP.engineUp && CP.engineId ? CP.engineId : cpEngineId();
     // the debug trail: which code decided it, and the state it read (routine lines stay as they were)
@@ -12300,7 +14518,10 @@ function cpLog(type, fields) {
         if (!e.st) e.st = cpStateOf(e.acc != null ? String(e.acc) : '', e.symbol);
     }
     CP.log.push(e);
+    CP.logIds.add(e.id);
+    if (CP.logIds.size > CP_LOG_MAX * 2) CP.logIds.clear();
     if (CP.log.length > CP_LOG_MAX) CP.log.splice(0, CP.log.length - CP_LOG_MAX);
+    if (e.g) cpBus({ t: 'glog', e }); // the other tabs' widgets show every group's lines
     if (!CP.saveT) CP.saveT = CP.set(() => { CP.saveT = null; cpPost({ op: 'log-save', entries: CP.log }); }, 2000);
     typeof cpDev === 'function' && cpDev('log', () => Object.assign({ msg: e.type + (e.note ? ': ' + e.note : e.why ? ': ' + e.why : e.result ? ': ' + e.result : '') }, e));
     return e;
@@ -12352,6 +14573,8 @@ function cpRefusal(a) {
     // a leader position this follower sat out after a sign-in error stays sat out, whatever it does elsewhere: it joins the leader's next one
     const joins = a.kind === 'open' || a.kind === 'append' || (a.kind === 'reduce' && a.placeholder != null); // a reduce that turns an order's record joins too
     if (joins && !flat) { const so = cpSatOut(String(a.accountId), a.symbol); if (so) return so; }
+    // 8.2: never opposite to an account of another group, unless the owner allowed it (cpOppositeWhy)
+    if (joins && !flat) { const op = cpOppositeWhy(a); if (op) return op; }
     // one follower's own sign-in error: it waits, then tries again, while the others are copied (the owner, 2026-10-05). Closing, reducing and
     // TP/SL changes go as soon as its wait is over; joining a running trade (an open or an add) only while that still makes sense (cpLateWhy).
     const ac = CP.authCool[String(a.accountId)];
@@ -12544,6 +14767,111 @@ function cpGuard(a, quiet) {
     }
     typeof cpDvOnce === 'function' && a && cpDvOnce('g|' + [a.accountId, a.kind, a.symbol, a.leg || ''].join('|'), null); // allowed now: the same refusal later is news again
     return { ok: true, why: '' };
+}
+
+// ---------- opposite sides across groups (8.2) ----------
+// Vest's FAQ: "The only restrictions are on abusing or coordinating across Funded Accounts to manipulate or exploit the system, for example
+// taking opposite sides of the same market on different accounts." With "Allow opposite sides across groups" off (the default), an action
+// that would put a follower on the opposite side of a market to an account of another group is refused, and the follower sits out that
+// leader trade for good (CP.satOut, the record the sign-in rule uses): it joins the leader's next trade. The owner's own trades are only
+// warned about (cpOppLeaderCheck). Nothing is read for this on the send path: the other groups' tabs say what their accounts hold (gstate),
+// Light's all-accounts GET is reused while it is fresh, and Vest's own store is read for an account it streams.
+const CP_OPP_FRESH_MS = 8000; // a view of another group's account older than this is not used
+const CP_OPP_ASK_MS = 5000;   // ...and while one is missing, one all-accounts read is asked in the background at most this often
+const CP_OPP_RULE = 'Vest does not allow opposite sides of one market across accounts';
+
+// The freshest view of one account: { at, positions } or null. Pure reads.
+function cpViewOf(accountId, gid) {
+    const id = String(accountId);
+    const t = CP.now();
+    let best = cpPeerBook(gid, id);
+    const v = cpVx();
+    try {
+        const all = v && typeof v.allData === 'function' ? v.allData() : null;
+        if (all && all.by && typeof all.by.get === 'function' && t - Number(all.at) < CP_OPP_FRESH_MS && (!best || all.at > best.at)) best = { at: all.at, positions: all.by.get(id) || [] };
+    } catch (e) {}
+    try {
+        const sp = v && typeof v.storePositions === 'function' ? v.storePositions(id) : null;
+        if (Array.isArray(sp)) best = { at: t, positions: sp };
+    } catch (e) {}
+    return best;
+}
+
+function cpOppRefresh() {
+    const t = CP.now();
+    if (CP.oppAskAt && t - CP.oppAskAt < CP_OPP_ASK_MS) return;
+    CP.oppAskAt = t;
+    const v = cpVx();
+    try { if (v && typeof v.positionsAll === 'function') Promise.resolve(v.positionsAll({ since: t - CP_OPP_ASK_MS })).catch(() => {}); } catch (e) {}
+}
+
+// What the accounts of the groups other than `ownGid` hold on `symbol`: [{ accountId, gid, side }].
+function cpOtherSides(symbol, ownGid) {
+    const out = [];
+    let missing = false;
+    for (const g of cpGroups()) {
+        if (g.id === ownGid) continue;
+        const ids = [g.leaderId].concat(cpMemberIds(g)).filter(Boolean); // members only: a switched-off row is no group's (8.2 round 2)
+        for (const id of ids) {
+            const view = cpViewOf(id, g.id);
+            if (!view) { missing = true; continue; }
+            for (const p of view.positions || []) if (p && cpCanonSym(p.symbol) === symbol && Number(p.qty) > 0 && cpSide(p.side)) out.push({ accountId: id, gid: g.id, side: cpSide(p.side) });
+        }
+    }
+    if (missing) cpOppRefresh();
+    return out;
+}
+
+// '' or why this action may not go out: it joins a position on the side opposite to an account of another group. Decided once per leader
+// position: the follower sits that trade out (cpSatOut answers from then on).
+function cpOppositeWhy(a) {
+    const r = cpRoot();
+    if (r.allowOpposite || r.groups.length < 2) return '';
+    const c = cpCfg();
+    const lp = cpLeadPos(a.symbol);
+    const side = cpSide(a.side) || (lp ? cpSide(lp.side) : '');
+    if (!side) return '';
+    const hit = cpOtherSides(a.symbol, c.id).find((x) => x.side !== side);
+    if (!hit) return '';
+    const sym = String(a.symbol).replace(/-USD-PERP$|-PERP$/, '');
+    const why = 'sat out this ' + side + ' ' + sym + ': ' + cpName(hit.accountId) + ' (group ' + hit.gid + ') is ' + hit.side + ' ' + sym + ', and ' + CP_OPP_RULE;
+    const id = String(a.accountId);
+    if (lp && lp.id != null) {
+        const m = CP.satOut[id] || (CP.satOut[id] = {});
+        const k = lp.symbol + '#' + lp.id;
+        if (!m[k]) {
+            m[k] = why;
+            CP.oppSat = { at: CP.now(), acc: id, symbol: a.symbol, why: cpName(id) + ' ' + why };
+            cpLog('warn', { acc: id, symbol: a.symbol, note: 'opposite sides', why, other: hit.accountId, otherGroup: hit.gid });
+            cpToast('Copy: ' + cpName(id) + ' sits out this ' + sym + ' trade: ' + cpName(hit.accountId) + ' in group ' + hit.gid + ' is ' + hit.side + '.', 'warn');
+            const ks = Object.keys(m);
+            if (ks.length > 20) delete m[ks[0]];
+        }
+    }
+    return why;
+}
+
+// The leader is the owner's own account: its trades are never blocked. When it holds the side opposite to an account of another group, the owner
+// hears it once per position (a toast and a log line), and the group card says it.
+function cpOppLeaderCheck(c, positions) {
+    const r = cpRoot();
+    if (r.allowOpposite || r.groups.length < 2 || !Array.isArray(positions)) return;
+    for (const p of positions) {
+        if (!p || !(Number(p.qty) > 0) || p.id == null) continue;
+        const k = p.symbol + '#' + p.id;
+        if (CP.oppWarned[k]) continue;
+        const side = cpSide(p.side);
+        const hit = cpOtherSides(p.symbol, c.id).find((x) => x.side && x.side !== side);
+        if (!hit) continue;
+        CP.oppWarned[k] = 1;
+        const ks = Object.keys(CP.oppWarned);
+        if (ks.length > 40) delete CP.oppWarned[ks[0]];
+        const sym = String(p.symbol).replace(/-USD-PERP$|-PERP$/, '');
+        const why = 'the leader ' + cpName(c.leaderId) + ' is ' + side + ' ' + sym + ' while ' + cpName(hit.accountId) + ' (group ' + hit.gid + ') is ' + hit.side + ': ' + CP_OPP_RULE;
+        CP.oppWarn = { at: CP.now(), why };
+        cpLog('warn', { acc: c.leaderId, symbol: p.symbol, note: 'opposite sides (your own trade, not blocked)', why });
+        cpToast('Heads up: ' + why + '. Your followers in this group sit that trade out.', 'warn');
+    }
 }
 
 // ---------- engine dispatch ----------
@@ -13036,6 +15364,7 @@ async function cpLoop() {
     CP.again = false;
     try { await cpTick(); } catch (e) { cpLog('error', { note: 'tick: ' + cpScrub(e && e.message || e) }); }
     CP.looping = false;
+    cpBusState(false); // also on a pass that waited (Vest not ready, the tab not on the leader): the other tabs keep seeing this group
     // a wake that came while this pass was reading would have been dropped: run again at once
     cpSchedule(CP.again ? 0 : CP.now() < CP.fastUntil ? CP_FAST_MS : CP_TICK_MS);
 }
@@ -13096,6 +15425,10 @@ async function cpTick() {
         }
     }
     for (const id of Object.keys(CP.lateKeep)) cpLateKeepOf(id); // trades the leader has closed need no more judging
+    cpOppLeaderCheck(c, lead.positions); // 8.2: the owner's own trade opposite to another group's account is only warned about
+    // 8.2 review: the guard's view of the other groups is kept fresh every pass (one all-accounts read, at most every CP_OPP_ASK_MS), so the
+    // first join of a new trade is never judged on an old view (Turbo reads its own followers from their tabs, not from that read)
+    if (!cpRoot().allowOpposite && cpGroups().length > 1) cpOppRefresh();
     // every market the leader holds is managed from now on (and kept awake while a leader frame is fresh, a new market included)
     cpManage(c, lead.positions.map((p) => p.symbol), 'the leader holds a position there');
     if (CP.wakeAny > t) for (const p of lead.positions) CP.wakeF.set(p.symbol, CP.wakeAny);
@@ -13301,6 +15634,7 @@ async function cpTick() {
     typeof cpDvSyncPass === 'function' && cpDvSyncPass(c, lead, perF, t);
     cpResumeTrack(c);
     cpSetStatus('ok', { pending, skipped });
+    cpBusState(false); // the other tabs' widgets and guards
 }
 
 // The close and TP/SL delete writers only exist while Vest's own window for them is open. With a position on the page this tab opens
@@ -13362,23 +15696,29 @@ function cpWatchState(on) {
     } catch (e) {}
 }
 
-// ---------- one copier at a time ----------
+// ---------- one tab per group ----------
 
-// Two Vest tabs both copying would send every follower action twice. One tab holds a Web Lock while copying runs; a tab that cannot get it
-// does not copy. Without the Locks API (tests) there is nothing to hold.
-function cpLockTake() {
+// Two Vest tabs both copying one group would send every follower action twice. The tab that copies a group holds that group's Web Lock
+// (8.2: ax4p-copy-leader:<group id>); another group copies in its own tab under its own lock. Without the Locks API (tests) there is nothing to hold.
+function cpLockName(gid) { return CP_LOCK + ':' + (gid || 'A'); }
+
+function cpLockTake(gid) {
     if (CP.lockRelease) return Promise.resolve(true);
     let nl = null;
     try { nl = typeof window !== 'undefined' && window.navigator ? window.navigator.locks : null; } catch (e) {}
     if (!nl || typeof nl.request !== 'function') return Promise.resolve(true);
-    return new Promise((resolve) => {
+    const name = cpLockName(gid || cpCfg().id);
+    // an 8.1.5 page that still copies in another tab (a page script runs on after a manual reload of the extension) holds the old lock
+    // name: no group starts beside it, or the same followers would be copied twice
+    const old = typeof nl.query === 'function' ? Promise.resolve(nl.query()).then((r) => !!(r && Array.isArray(r.held) && r.held.some((l) => l && l.name === CP_LOCK)), () => false) : Promise.resolve(false);
+    return old.then((held) => (held ? false : new Promise((resolve) => {
         try {
-            Promise.resolve(nl.request(CP_LOCK, { ifAvailable: true }, (lock) => {
+            Promise.resolve(nl.request(name, { ifAvailable: true }, (lock) => {
                 if (!lock) { resolve(false); return undefined; }
                 return new Promise((release) => { CP.lockRelease = release; resolve(true); });
             })).catch(() => resolve(false));
         } catch (e) { resolve(false); }
-    });
+    })));
 }
 
 function cpLockDrop() {
@@ -13387,7 +15727,8 @@ function cpLockDrop() {
     if (r) { try { r(); } catch (e) {} }
 }
 
-// stop / kill / halt reach the other tabs of this browser: a stale tab must not carry on (or write copy.on back) after a Kill pressed elsewhere
+// stop / kill / halt reach the other tabs of this browser: a stale tab must not carry on (or write copy.on back) after a Kill pressed elsewhere.
+// 8.2: the bus also carries every copying tab's group state (gstate), its log lines (glog) and the start of a group from another tab (gstart).
 function cpBus(m) {
     if (!CP.bus) return;
     try { CP.bus.postMessage(Object.assign({ from: CP.tabId, at: Date.now() }, m)); } catch (e) {}
@@ -13395,19 +15736,292 @@ function cpBus(m) {
 
 function cpOnBus(m) {
     if (!m || typeof m !== 'object' || m.from === CP.tabId) return;
-    typeof cpDev === 'function' && cpDev('state', () => ({ msg: 'another Vest tab sent "' + m.t + '" over the copier channel' + (m.t === 'kill' ? ': this tab stops copying too' : m.t === 'stop' ? ': this tab switches copying off too' : ''), bus: m.t }));
+    if (m.t === 'gstate') { cpPeerSet(m); return; }
+    if (m.t === 'glog') { cpPeerLog(m); return; }
+    if (m.t === 'gstart') { cpOnGStart(m); return; }
+    if (m.t === 'gstart-ok') { cpOnGStartOk(m); return; }
+    // a stop names its group (8.2): another group's stop is not for this tab. A stop without one (a tab of an older version) stops every group.
+    if (m.t === 'stop' && m.g && m.g !== (CP.runGroup || cpTabGroupId())) return;
+    typeof cpDev === 'function' && cpDev('state', () => ({ msg: 'another Vest tab sent "' + m.t + '" over the copier channel' + (m.g ? ' for group ' + m.g : '') + (m.t === 'kill' ? ': this tab stops copying too' : m.t === 'stop' ? ': this tab switches copying off too' : m.t === 'flatten' ? ': this tab closes its own group\'s followers' : ''), bus: m.t, group: m.g }));
     if (m.t === 'kill') {
         CP.killed = true;
         CP.killAt = CP.now();
         cpLog('kill', { note: 'stop (pressed in another tab)' });
         const wasUp = CP.engineUp;
         if (CP.running) cpStop('kill switch (another tab)', true, true);
-        else cpCfg().on = false;
+        else for (const g of cpGroups()) g.on = false; // in this tab's memory only
         CP.set(() => { if (CP.killed && !CP.flattening) { if (wasUp) cpEngineStop(); else cpLockDrop(); } }, CP_KILL_WINDOW + 200);
     } else if (m.t === 'stop') {
         if (CP.running) cpStop('master switch (another tab)', false, true);
-        else cpCfg().on = false;
+        else { const g = m.g ? cpGroup(m.g) : cpCfg(); if (g) g.on = false; }
+    } else if (m.t === 'flatten') {
+        // the second Alt+Shift+K, pressed in another tab: every tab that was copying closes its own group's followers, inside its kill window
+        if (CP.killed && !CP.flattening && CP.runGroup && CP.now() - CP.killAt <= CP_KILL_WINDOW + 1000) cpFlatten();
     }
+}
+
+// ---------- the other groups, as their tabs say (8.2) ----------
+
+// Every copying tab says once a second how its group is doing; the other tabs keep it for CP_PEER_MS. The widget shows every group from it,
+// and the opposite-sides guard reads the positions in it. Pure data: no request, nothing sent to Vest.
+const CP_PEER_MS = 5000;
+const CP_GSTATE_MS = 900;
+
+function cpPeerSet(m) {
+    if (!m.g || typeof m.g !== 'string' || !m.st || typeof m.st !== 'object') return;
+    if (CP.runGroup === m.g && CP.running) return; // this tab copies that group: its own state is the truth
+    if (m.st.state === 'off' && !m.st.running) { delete CP.peers[m.g]; return; }
+    CP.peers[m.g] = { at: CP.now(), tab: m.from, st: m.st };
+}
+
+function cpPeer(gid) {
+    const p = CP.peers[gid];
+    if (p && CP.now() - p.at < CP_PEER_MS) return p;
+    if (p) delete CP.peers[gid];
+    return null;
+}
+
+// Is group `gid` copying in another tab?
+function cpPeerRunning(gid) {
+    if (CP.running && CP.runGroup === String(gid)) return false;
+    const p = cpPeer(String(gid));
+    return !!(p && p.st && (p.st.running || p.st.state === 'starting' || p.st.state === 'killed'));
+}
+
+// One account's positions as group `gid`'s tab last said: { at, positions: [{ symbol, side, qty }] } or null.
+function cpPeerBook(gid, accountId) {
+    const p = cpPeer(String(gid));
+    const b = p && p.st && p.st.books ? p.st.books[String(accountId)] : null;
+    return Array.isArray(b) ? { at: p.at, positions: b } : null;
+}
+
+function cpPeerLog(m) {
+    const e = m && m.e;
+    if (!e || typeof e !== 'object' || typeof e.t !== 'number' || typeof e.type !== 'string') return;
+    if (e.id && CP.logIds.has(e.id)) return;
+    if (e.id) { CP.logIds.add(e.id); if (CP.logIds.size > CP_LOG_MAX * 2) CP.logIds.clear(); }
+    CP.log.push(e);
+    if (CP.log.length > CP_LOG_MAX) CP.log.splice(0, CP.log.length - CP_LOG_MAX);
+}
+
+// The positions of this tab's group (leader and followers) as its last reads saw them: what the other tabs' guards read.
+function cpBooks() {
+    const out = {};
+    const pick = (r) => (r && Array.isArray(r.positions) ? r.positions.filter((p) => p && Number(p.qty) > 0).map((p) => ({ symbol: p.symbol, side: cpSide(p.side), qty: Number(p.qty) })) : null);
+    const c = cpCfg();
+    const l = pick(CP.snap.leader);
+    if (l && c.leaderId) out[c.leaderId] = l;
+    for (const id of Object.keys(CP.snap.followers)) { const x = pick(CP.snap.followers[id]); if (x) out[id] = x; }
+    return out;
+}
+
+// This tab's group state for the others (and for the widget of this tab, which reads the same through cpGroupsView). At most every
+// CP_GSTATE_MS unless the state word changed, and always when copying stops (state 'off').
+function cpBusState(force) {
+    if (!CP.bus || !CP.runGroup) return;
+    const t = CP.now();
+    let st = null;
+    try {
+        const ov = cpOverall();
+        if (!force && t - (CP.gstateAt || 0) < CP_GSTATE_MS && ov.state === CP.gstateWord) return;
+        CP.gstateAt = t;
+        CP.gstateWord = ov.state;
+        const rows = cpFollowerStates().map((r) => ({ accountId: r.accountId, name: r.name, on: r.on, ratio: r.ratio, state: r.state, why: r.why, lastMs: r.lastMs, lastAt: r.lastAt, orders: r.orders || 0 }));
+        st = { state: ov.state, running: ov.running, killed: ov.killed, leaderId: ov.leaderId, total: ov.total, on: ov.on, inSync: ov.inSync, issues: ov.issues, lastMs: ov.lastMs,
+            note: ov.note, engine: ov.engine, markets: ov.markets, autoMarkets: ov.autoMarkets, rows, last: cpLastCopy(), books: CP.running ? cpBooks() : {},
+            lead: !!cpLeadTabGid(), sat: CP.oppSat && t - CP.oppSat.at < 600000 ? CP.oppSat.why : '', warn: CP.oppWarn && t - CP.oppWarn.at < 600000 ? CP.oppWarn.why : '' };
+    } catch (e) { return; }
+    cpBus({ t: 'gstate', g: CP.runGroup, st });
+}
+
+// ---------- a group whose leader is not this tab's account (8.2) ----------
+
+const CP_GSTART_WAIT_MS = 700;
+
+// The market a leader tab opens on: what the group copies first, else this tab's market.
+function cpLeadMarket(g) {
+    const m = (g && g.markets && g.markets[0]) || cpSymbol() || 'NQ-PERP';
+    return /^[A-Za-z0-9._-]{1,40}$/.test(m) ? m : 'NQ-PERP';
+}
+
+// For the widget: switch group `gid` on. Here when this tab is on its leader; else in a Vest tab that already is (asked over the bus); else the
+// worker opens a leader tab (?bvLead=<id>&bvStart=1) that starts it once it is pinned (cpLeadBoot). { ok, where: 'here' | 'tab' | 'opening', why? }
+async function cpStartGroup(gid) {
+    const g = cpGroup(gid);
+    if (!g) return { ok: false, why: 'No such group.' };
+    if (cpAckNeeded()) return { ok: false, why: 'The risk note has not been accepted yet.' };
+    if (!g.leaderId) return { ok: false, why: 'Pick the leader of group ' + g.id + ' first.' };
+    if (!g.followers.some((f) => f && f.on)) return { ok: false, why: 'Switch at least one account on in group ' + g.id + ' first.' };
+    if (cpRunsHere(g.id)) return { ok: true, where: 'here' };
+    if (cpPeerRunning(g.id)) return { ok: true, where: 'tab' };
+    if (!CP.running && cpTabGroupId() === g.id) {
+        const ok = await cpStart();
+        return ok ? { ok: true, where: 'here' } : { ok: false, why: 'Copying did not start. The log says why.' };
+    }
+    const rid = CP.tabId + '-' + (++CP.seq);
+    const answered = !CP.bus ? false : await new Promise((res) => {
+        CP.gstartWait[rid] = res;
+        cpBus({ t: 'gstart', g: g.id, rid });
+        CP.set(() => { const r = CP.gstartWait[rid]; if (r) { delete CP.gstartWait[rid]; r(false); } }, CP_GSTART_WAIT_MS);
+    });
+    if (answered) { cpLog('info', { note: 'group ' + g.id + ' switched on in the Vest tab that is on ' + cpName(g.leaderId), g: g.id }); return { ok: true, where: 'tab' }; }
+    cpPost({ op: 'lead-open', g: g.id, market: cpLeadMarket(g), start: true });
+    cpLog('info', { note: 'group ' + g.id + ': a tab on ' + cpName(g.leaderId) + ' is opened to copy from', g: g.id });
+    typeof cpDev === 'function' && cpDev('state', () => ({ msg: 'group ' + g.id + ' is switched on in its own leader tab: the extension opens it on ' + cpLeadMarket(g) + ', pins it to ' + cpName(g.leaderId) + ' and starts copying there', group: g.id }));
+    return { ok: true, where: 'opening' };
+}
+
+// For the widget: switch group `gid` off, here or in the tab that copies it.
+async function cpStopGroup(gid) {
+    const g = cpGroup(gid);
+    if (!g) return { ok: false, why: 'No such group.' };
+    if (cpRunsHere(g.id)) { await cpStop('master switch'); return { ok: true }; }
+    const peer = cpPeerRunning(g.id);
+    cpBus({ t: 'stop', g: g.id });
+    cpBus({ t: 'halt', g: g.id, accounts: cpHaltIds(g) });
+    delete CP.peers[g.id];
+    // no tab copies it now (its tab was closed while copying): its saved switch is cleared here, or it would say on forever (8.2 review)
+    if (!peer && g.on) { g.on = false; cpSave(); }
+    cpLog('info', { note: 'group ' + g.id + ' switched off (it was copying in another tab)', g: g.id });
+    return { ok: true };
+}
+
+// For the widget: bring group `gid`'s leader tab to the front (the worker knows it), or open one if there is none.
+function cpShowLeadTab(gid) {
+    const g = cpGroup(gid);
+    if (!g || !g.leaderId) return false;
+    cpPost({ op: 'lead-show', g: g.id, market: cpLeadMarket(g) });
+    return true;
+}
+
+function cpOnGStart(m) {
+    if (!m.g || !m.rid || CP.running || CP.killed || cpTabGroupId() !== m.g) return;
+    if (typeof ceIsFollowerTab === 'function' && ceIsFollowerTab()) return;
+    cpBus({ t: 'gstart-ok', rid: m.rid, g: m.g });
+    cpStart({ quiet: true }).then((ok) => { if (ok) cpLog('info', { note: 'group ' + m.g + ' switched on from another tab', g: m.g }); }, () => {});
+}
+
+function cpOnGStartOk(m) {
+    const r = m && CP.gstartWait[m.rid];
+    if (r) { delete CP.gstartWait[m.rid]; r(true); }
+}
+
+// A leader tab (?bvLead=<id>): kept awake from the first moment (a background Vest tab is frozen 3.6 s after it opens), pinned to its group's
+// leader once Vest knows the account, then (?bvStart=1, taken off the address so a reload does not start it again) copying starts.
+function cpLeadBoot(n) {
+    const gid = cpLeadTabGid();
+    if (!gid) return;
+    if (!n) {
+        cpKeepAwake(true);
+        try {
+            const u = new URL(location.href);
+            CP.leadStart = u.searchParams.get('bvStart') === '1';
+            if (CP.leadStart) { u.searchParams.delete('bvStart'); history.replaceState(history.state, '', u.pathname + u.search + u.hash); }
+        } catch (e) {}
+    }
+    const g = cpGroup(gid);
+    const v = cpVx();
+    let ready = false;
+    try { ready = !!(v && v.ready() && cpActive() && g && g.leaderId); } catch (e) {}
+    if (!ready) { if (n < 90) CP.set(() => cpLeadBoot((n || 0) + 1), 1000); return; }
+    if (!CP.leadPin || CP.leadPin.id !== g.leaderId) cpLeadPinTo(g, gid);
+    if (!CP.leadStart || CP.running) return;
+    if (String(cpActive()) !== String(g.leaderId)) { if (n < 90) CP.set(() => cpLeadBoot((n || 0) + 1), 1000); return; }
+    CP.leadStart = false;
+    cpStart().then((ok) => {
+        cpLog('info', { note: ok ? 'group ' + gid + ' copying in its own tab' : 'group ' + gid + ' did not start in its tab', g: gid });
+        if (ok) cpToast('Group ' + gid + ' copies from this tab. Keep it open.', 'good');
+    }, () => {});
+}
+
+// Pins this leader tab to group g's leader: Vest's account switch is undone while the pin holds (vxPin).
+function cpLeadPinTo(g, gid) {
+    const v = cpVx();
+    try { CP.leadPin = v.pin(g.leaderId, { onDrift: (i) => { if (i && i.gaveUp) cpToast('This tab copies group ' + gid + ' from ' + cpName(g.leaderId) + '. Switching its account here fights that: open another tab for other accounts.', 'warn'); } }); } catch (e) { CP.leadPin = null; }
+    typeof cpDev === 'function' && cpDev('state', () => ({ msg: 'leader tab of group ' + gid + ': pinned to ' + cpName(g.leaderId) + (CP.leadStart ? ', copying starts once the pin holds' : ''), group: gid }));
+}
+
+// A leader tab's pin follows its group (it was set once, at boot): a new leader is pinned instead, and a removed group, or one without a
+// leader, releases the tab. Before cpLeadBoot has pinned, it does nothing (cpLeadBoot pins the group's leader as it is then). It never starts copying.
+function cpLeadRepin() {
+    const gid = cpLeadTabGid();
+    if (!gid || !CP.leadPin) return;
+    const g = cpGroup(gid);
+    const want = g && g.leaderId ? String(g.leaderId) : '';
+    if (String(CP.leadPin.id) === want) return;
+    try { CP.leadPin.stop(); } catch (e) {}
+    CP.leadPin = null;
+    typeof cpDev === 'function' && cpDev('state', () => ({ msg: 'leader tab of group ' + gid + ': ' + (want ? 'the group\'s leader changed, the tab is pinned to ' + cpName(want) : 'the group is gone or has no leader, the tab is no longer pinned'), group: gid }));
+    if (want) cpLeadPinTo(g, gid);
+}
+
+// Manage accounts (the suite) shows and moves accounts between groups through these (contract 2 of the 8.2 overview). lockedTo: a leader tab
+// (?bvLead=) must stay on its group's leader (its private socket is the leader's), so the suite's own account switch asks first.
+function cpLeadLock() {
+    const gid = cpLeadTabGid();
+    const g = gid ? cpGroup(gid) : null;
+    if (!g || !g.leaderId) return null;
+    return { accountId: String(g.leaderId), gid, why: 'This tab copies group ' + gid + ' from ' + cpName(g.leaderId) + ', so it stays on that account. Open another Vest tab for your other accounts.' };
+}
+function cpHookAccounts() {
+    const su = cpSuite();
+    if (!su || typeof su.accountsHooks !== 'function' || CP.hooked) return;
+    CP.hooked = true;
+    try {
+        su.accountsHooks({
+            groups: () => cpGroups().map((g) => ({ id: g.id, leaderId: g.leaderId, followerIds: cpMemberIds(g), running: cpRunsHere(g.id) || cpPeerRunning(g.id) })),
+            setGroup: (accountId, groupId) => cpSetAccountGroup(accountId, groupId),
+            lockedTo: () => cpLeadLock()
+        });
+    } catch (e) {}
+}
+
+// Another tab saved the settings: the copy groups follow (the other settings are the suite's own business). Nothing is saved here: the new
+// value is already in storage. Per group, the owner's settings come from whichever save changed them last (cfgAt, cpTouch); what only the
+// copying tab writes (CP_RUNTIME_KEYS) stays this tab's for the group it copies and is taken from the save for the others. Which groups exist
+// follows the newer root (a group this tab copies is never dropped). The risk notes only ever go up. This tab's widget keeps its own focus.
+function cpOnStorage(ev) {
+    if (!ev || ev.key !== 'ax4p_settings' || !ev.newValue) return;
+    let inc = null;
+    try { inc = JSON.parse(ev.newValue); } catch (e) { return; }
+    const nr = inc && inc.copy;
+    if (!nr || typeof nr !== 'object' || !Array.isArray(nr.groups)) return;
+    const r = cpRoot();
+    const clone = (v) => (v === undefined ? undefined : JSON.parse(JSON.stringify(v)));
+    const incGroups = nr.groups.filter((g) => g && typeof g === 'object' && typeof g.id === 'string');
+    const rootNewer = Number(nr.cfgAt || 0) > Number(r.cfgAt || 0);
+    const ids = (rootNewer ? incGroups : r.groups).map((g) => g.id);
+    if (CP.runGroup && ids.indexOf(CP.runGroup) < 0) ids.push(CP.runGroup);
+    const out = [];
+    for (const id of ids) {
+        const loc = r.groups.find((g) => g.id === id) || null;
+        const src = incGroups.find((g) => g.id === id) || null;
+        if (!src) { if (loc) out.push(loc); continue; }
+        if (!loc) { out.push(clone(src)); continue; }
+        const cfgNewer = Number(src.cfgAt || 0) > Number(loc.cfgAt || 0);
+        // the markets of the group this tab copies stay its own, except an owner's edit made since in another tab (marketsAt)
+        const mkNewer = Number(src.marketsAt || 0) > Number(loc.marketsAt || 0);
+        for (const k of Object.keys(src)) {
+            if (k === 'id' || k === 'marketsAt') continue;
+            const runtime = CP_RUNTIME_KEYS.indexOf(k) >= 0;
+            if (runtime ? CP.runGroup !== id || (k === 'markets' && mkNewer) : cfgNewer) loc[k] = clone(src[k]); // the group keeps its live object (the engines hold it)
+        }
+        if (mkNewer) loc.marketsAt = Number(src.marketsAt);
+        out.push(loc);
+    }
+    r.groups = out;
+    if (rootNewer) {
+        if (typeof nr.allowOpposite === 'boolean') r.allowOpposite = nr.allowOpposite;
+        if (typeof nr.logOn === 'boolean') r.logOn = nr.logOn;
+        r.cfgAt = Number(nr.cfgAt);
+    }
+    if (Number(nr.ack) > Number(r.ack || 0)) r.ack = Number(nr.ack);
+    if (nr.engineAcks && typeof nr.engineAcks === 'object') {
+        if (!r.engineAcks || typeof r.engineAcks !== 'object') r.engineAcks = {};
+        for (const k of Object.keys(nr.engineAcks)) if (Number(nr.engineAcks[k]) > Number(r.engineAcks[k] || 0)) r.engineAcks[k] = Number(nr.engineAcks[k]);
+    }
+    cpRoot(); // fills and checks what came in
+    cpLeadRepin(); // a leader tab follows its group's leader
 }
 
 // ---------- start, stop ----------
@@ -13415,13 +16029,34 @@ function cpOnBus(m) {
 // ---------- the risk note ----------
 
 // The user agrees once to what the copier does (CP_ACK_TEXT); cpStart refuses until then, and again only if the version goes up.
-function cpAckNeeded() { return !(Number(cpCfg().ack) >= CP_ACK_VERSION); }
+function cpAckNeeded() { return !(Number(cpRoot().ack) >= CP_ACK_VERSION); }
 
 function cpAck() {
-    const c = cpCfg();
-    c.ack = CP_ACK_VERSION;
-    cpSave(c);
+    const r = cpRoot();
+    r.ack = CP_ACK_VERSION;
+    cpSaveRoot(r);
     cpLog('info', { note: 'risk note accepted', version: CP_ACK_VERSION });
+}
+
+// An engine may carry a risk note of its own (8.2: Mint, `cpEngines.mint.ack = { version, text }`): asked once per version, before a group
+// starts on that engine; cpStart refuses until then. { id, version, text } while it is not agreed to, else null.
+function cpEngineAck(id) {
+    const e = id ? cpEngines[id] : null;
+    const a = e && e.ack;
+    if (!a || !(Number(a.version) > 0) || !a.text) return null;
+    const r = cpRoot();
+    const seen = r.engineAcks && typeof r.engineAcks === 'object' ? Number(r.engineAcks[id]) : 0;
+    return seen >= Number(a.version) ? null : { id: String(id), version: Number(a.version), text: String(a.text) };
+}
+
+function cpEngineAckDone(id) {
+    const need = cpEngineAck(id);
+    if (!need) return;
+    const r = cpRoot();
+    if (!r.engineAcks || typeof r.engineAcks !== 'object') r.engineAcks = {};
+    r.engineAcks[need.id] = need.version;
+    cpSaveRoot(r);
+    cpLog('info', { note: 'risk note of the ' + need.id + ' engine accepted', version: need.version });
 }
 
 // Why Vest's order functions cannot be relied on, or '' (also when nobody can tell yet). Two functions claiming one writer, or none found
@@ -13439,21 +16074,25 @@ function cpWritersWhy() {
     return '';
 }
 
-async function cpStart() {
+async function cpStart(opts) {
     const c = cpCfg();
+    const quiet = !!(opts && opts.quiet); // a start asked over the bus: another tab may have taken the lock first, which is no news
     if (CP.running) return true;
     typeof cpDev === 'function' && cpDev('state', () => ({ msg: 'copying is being switched on: ' + cpDvCfg(c), cfg: { leader: c.leaderId, followers: c.followers.map((x) => ({ acc: x.accountId, on: x.on, ratio: x.ratio })), markets: c.markets.slice(), engine: cpEngineId(c), ultraFast: c.sendAtPending === true, mirrorLimits: c.mirrorLimits !== false } }));
     if (cpAckNeeded()) { cpLog('info', { note: 'not started: needs acknowledgement' }); typeof cpDev === 'function' && cpDev('state', () => ({ msg: 'copying did not start: the risk note has not been accepted yet' })); return false; }
     if (!c.leaderId) { cpToast('Copy: pick the leader account first.', 'bad'); typeof cpDev === 'function' && cpDev('state', () => ({ msg: 'copying did not start: no leader account is picked' })); return false; }
-    if (!(await cpLockTake())) {
-        c.on = false; // in this tab's memory only: the tab that copies keeps its own saved state
+    if (cpEngineAck(cpEngineId(c))) { cpLog('info', { note: 'not started: the ' + cpEngineId(c) + ' engine\'s risk note is not accepted yet', g: c.id }); return false; }
+    if (!(await cpLockTake(c.id))) {
+        // the group's on and resume belong to the tab that copies it: not touched here, not even in this tab's memory (8.2 review)
         cpSetStatus('copying is running in another Vest tab');
-        cpLog('info', { note: 'not started: copying is running in another Vest tab' });
-        cpToast('Copy: copying is running in another Vest tab. Only one tab can copy at a time.', 'bad');
+        cpLog('info', { note: 'not started: group ' + c.id + ' is copying in another Vest tab', g: c.id });
+        if (!quiet) cpToast('Copy: group ' + c.id + ' is copying in another Vest tab. A group copies in one tab at a time.', 'bad');
         typeof cpDev === 'function' && cpDev('state', () => ({ msg: 'copying did not start: another Vest tab holds the copy lock (only one tab copies at a time)' }));
         return false;
     }
     if (CP.running) return true;
+    cpLeadRepin(); // a leader tab copies from its group's leader as it is now
+    CP.runGroup = c.id;
     CP.killed = false;
     CP.flattening = false;
     CP.authAt = 0;
@@ -13474,7 +16113,8 @@ async function cpStart() {
         for (const id of wasPaused) cpResume(id);
         cpLog('info', { note: 'switching copying on cleared ' + wasPaused.length + ' pause' + (wasPaused.length === 1 ? '' : 's'), accounts: wasPaused });
     }
-    cpLog('info', { note: 'copying on', followers: c.followers.filter((f) => f.on).length });
+    cpLog('info', { note: 'copying on', followers: c.followers.filter((f) => f.on).length, engine: cpEngineId(c) });
+    cpBusState(true);
     typeof cpDev === 'function' && cpDev('state', () => ({ msg: 'copying is ON (the copy lock is taken, this tab is the only one that copies)', running: true }));
     cpKeepAwake(true); // a background tab would otherwise be throttled and copy late
     cpLoadWatch(true);
@@ -13522,6 +16162,8 @@ async function cpEngineStop() {
     CP.tfate.clear();
     try { if (eng && eng.stop) await eng.stop(); } catch (e) { cpLog('error', { note: 'engine stop: ' + cpScrub(e && e.message || e) }); }
     cpLockDrop();
+    // the group is this tab's no more (unless copying was switched on again meanwhile); the other tabs hear that it is off
+    if (!CP.running && !CP.flattening) { cpBusState(true); CP.runGroup = ''; }
 }
 
 // Master switch off. keepEngine leaves the engine up (the kill switch needs it for a possible flatten); quiet: the other tabs are not told.
@@ -13553,7 +16195,9 @@ function cpStop(why, keepEngine, quiet) {
     cpSetStatus('off');
     cpLog('info', { note: 'copying off', why: why || '' });
     typeof cpDev === 'function' && cpDev('state', () => ({ msg: 'copying is OFF: ' + (why || 'master switch') + (keepEngine ? ' (the engine stays up for a possible flatten)' : '') + '; the reconciler, its waits and unconfirmed orders are cleared', why: why || '', keepEngine: !!keepEngine, quiet: !!quiet }));
-    if (!quiet) { cpBus({ t: 'stop' }); cpBus({ t: 'halt' }); } // halt: a follower tab in the middle of its actions stops after the one it is on
+    // halt: a follower tab of this group in the middle of its actions stops after the one it is on (a follower tab of another group does not)
+    if (!quiet) { cpBus({ t: 'stop', g: c.id }); cpBus({ t: 'halt', g: c.id, accounts: cpHaltIds(c) }); }
+    cpBusState(true);
     if (!keepEngine) return cpEngineStop();
     return Promise.resolve();
 }
@@ -13565,7 +16209,8 @@ async function cpKillPress() {
     const t = CP.now();
     if (CP.killed && !CP.flattening && t - CP.killAt <= CP_KILL_WINDOW) {
         typeof cpDev === 'function' && cpDev('state', () => ({ msg: 'KILL SWITCH (second press, ' + Math.round(t - CP.killAt) + ' ms after the first): closing the followers\' positions in the copied markets', kill: 2, symbol: cpDvCur() }));
-        await cpFlatten();
+        cpBus({ t: 'flatten' }); // every other tab that was copying closes its own group's followers
+        if (CP.runGroup || CP.engineUp) await cpFlatten();
         return 'flatten';
     }
     CP.killed = true;
@@ -13921,7 +16566,10 @@ function cpBoot() {
             const d = e && e.data;
             if (e.source !== window || !d || d.bv !== 1 || d.dir !== 'toPage' || d.type !== 'copy' || d.op !== 'log-loaded' || CP.logLoaded) return;
             CP.logLoaded = true;
-            if (Array.isArray(d.entries)) CP.log = d.entries.concat(CP.log).slice(-CP_LOG_MAX);
+            if (Array.isArray(d.entries)) {
+                for (const x of d.entries) if (x && x.id) CP.logIds.add(x.id);
+                CP.log = d.entries.filter((x) => !(x && x.id && CP.log.some((y) => y.id === x.id))).concat(CP.log).slice(-CP_LOG_MAX);
+            }
         });
     } catch (e) {}
     cpPost({ op: 'log-load' });
@@ -13931,6 +16579,11 @@ function cpBoot() {
             CP.bus.onmessage = (e) => { try { cpOnBus(e.data); } catch (x) {} };
         }
     } catch (e) { CP.bus = null; }
+    // 8.2: the copy groups another tab saved; Manage accounts' hook; a leader tab pins its account and starts its group
+    try { window.addEventListener('storage', (ev) => { try { cpOnStorage(ev); } catch (x) {} }); } catch (e) {}
+    const hook = (n) => { cpHookAccounts(); if (!CP.hooked && n < 30) CP.set(() => hook(n + 1), 1000); };
+    CP.set(() => hook(0), 500);
+    if (cpLeadTabGid()) CP.set(() => cpLeadBoot(0), 300);
     // A page reload does not start copying by itself, with one exception: copying that was running while followers held copied positions
     // (c.resume, see cpResumeTrack) comes back, because those positions would otherwise be left with nobody following the leader.
     // Otherwise, if copying was saved as on, it is switched off and saved off, and the user is told. If another Vest tab holds the
@@ -13938,7 +16591,7 @@ function cpBoot() {
     const settle = (n) => {
         const c0 = cpSuite() ? cpCfg() : null;
         if (!c0) { if (n < 60) CP.set(() => settle(n + 1), 1000); return; }
-        if (!c0.on || CP.running || CP.killed) return;
+        if (!c0.on || CP.running || CP.killed || CP.leadStart) return; // a leader tab asked to start does so itself (cpLeadBoot)
         if (c0.resume) {
             if (String(c0.resume.leaderId) === String(c0.leaderId) && c0.leaderId && !cpAckNeeded()) {
                 typeof cpDev === 'function' && cpDev('state', () => ({ msg: 'after the page load: copying was on and followers hold copied positions (' + c0.resume.accounts.map(cpName).join(', ') + ' on ' + c0.resume.markets.join(' ') + '), so it waits for Vest and for this tab to be on the leader account, then switches on again', reload: true, resume: c0.resume }));
@@ -13946,11 +16599,13 @@ function cpBoot() {
             }
             c0.resume = null; // another leader, or the risk note no longer agreed to: the copied positions are not ours to follow
         }
-        cpLockHeldElsewhere().then((other) => {
+        cpLockHeldElsewhere(c0.id).then((other) => {
             const c = cpCfg();
             if (!c.on || CP.running) return;
+            // another tab copies this group: its on (and resume) are that tab's, also in this tab's memory (a later save of any setting here
+            // writes the whole settings object, and would carry an "off" into storage)
+            if (other || c.id !== c0.id) return;
             c.on = false;
-            if (other) return;
             cpSave(c);
             cpLog('info', { note: 'copying was on before the page reloaded: switched off' });
             typeof cpDev === 'function' && cpDev('state', () => ({ msg: 'after the page load: copying had been on, so it is switched off (a reload never resumes copying unless followers still hold copied positions)', reload: true }));
@@ -13962,12 +16617,13 @@ function cpBoot() {
 
 // Is the copy lock held by another tab? (query() lists the locks of this browser; this tab holds none while it is not copying.) An unknown
 // answer counts as no.
-function cpLockHeldElsewhere() {
+function cpLockHeldElsewhere(gid) {
     let nl = null;
     try { nl = typeof window !== 'undefined' && window.navigator ? window.navigator.locks : null; } catch (e) {}
     if (!nl || typeof nl.query !== 'function' || CP.lockRelease) return Promise.resolve(false);
     try {
-        return Promise.resolve(nl.query()).then((r) => !!(r && Array.isArray(r.held) && r.held.some((l) => l && l.name === CP_LOCK)), () => false);
+        const name = cpLockName(gid || cpCfg().id);
+        return Promise.resolve(nl.query()).then((r) => !!(r && Array.isArray(r.held) && r.held.some((l) => l && l.name === name)), () => false);
     } catch (e) { return Promise.resolve(false); }
 }
 
@@ -14014,20 +16670,25 @@ function cpResumeBoot(n) {
     const onLeader = ready && String(cpActive()) === String(c.leaderId);
     if (!onLeader) {
         if (n < CP_RESUME_WAIT) { CP.set(() => cpResumeBoot(n + 1), 1000); return; }
-        c.on = false;
-        c.resume = null;
-        cpSave(c);
-        typeof cpDev === 'function' && cpDev('state', () => ({ msg: 'after the page load: gave up waiting ' + CP_RESUME_WAIT + ' s for ' + (ready ? 'this tab to be on the leader account' : 'Vest to be ready') + ', copying stays off', reload: true }));
-        if (ready) {
-            cpLog('info', { note: 'copying was on before the page reloaded: stays off, this tab is not on the leader account' });
-            cpToast('Copying stays off: this tab is not on the leader account.', 'warn');
-        } else {
-            cpLog('info', { note: 'copying was on before the page reloaded: switched off, Vest was not ready' });
-            cpToast('Copying is off after a reload. Switch it on to copy again.', 'warn');
-        }
+        // another tab copies this group (it holds the group's lock): its on and its resume record are that tab's. This tab only forgets them
+        // in its own memory, or a later reload of that tab would find them cleared and leave the copied positions with nobody following.
+        cpLockHeldElsewhere(c.id).then((other) => {
+            if (other) return;
+            c.on = false;
+            c.resume = null;
+            cpSave(c);
+            typeof cpDev === 'function' && cpDev('state', () => ({ msg: 'after the page load: gave up waiting ' + CP_RESUME_WAIT + ' s for ' + (ready ? 'this tab to be on the leader account' : 'Vest to be ready') + ', copying stays off', reload: true }));
+            if (ready) {
+                cpLog('info', { note: 'copying was on before the page reloaded: stays off, this tab is not on the leader account' });
+                cpToast('Copying stays off: this tab is not on the leader account.', 'warn');
+            } else {
+                cpLog('info', { note: 'copying was on before the page reloaded: switched off, Vest was not ready' });
+                cpToast('Copying is off after a reload. Switch it on to copy again.', 'warn');
+            }
+        });
         return;
     }
-    cpLockHeldElsewhere().then((other) => {
+    cpLockHeldElsewhere(c.id).then((other) => {
         const c1 = cpCfg();
         if (!c1.on || CP.running || CP.killed) return;
         if (other) { c1.on = false; return; } // in this tab's memory only: the tab that copies keeps its own saved state
@@ -14061,7 +16722,13 @@ function cpLastAction(id, since, wantOk) {
 // off (switched off), idle (copying is off or killed), sync, pending (an action is in flight or waiting to settle, or the reconciler has
 // not acted on a gap yet), drift (out of sync and still not fixed after the first send, or a market it cannot copy), paused (after a failed
 // retry: why says why), error (its last action failed and nothing succeeded after it).
-function cpFollowerStates() {
+// 8.2: with a group id, that group: its tab's own word while it copies in another tab (cpPeer), its saved followers while it copies nowhere.
+// sat (8.2): it sat out the leader's trade because another group holds the other side of that market (cpOppositeWhy); not an issue.
+function cpFollowerStates(gid) {
+    if (gid != null && gid !== '') {
+        if (cpPeerRunning(gid)) return cpOtherStates(String(gid));
+        if (String(gid) !== cpCfg().id) return cpOtherStates(String(gid));
+    }
     const c = cpCfg();
     const t = CP.now();
     const lead = CP.snap.leader;
@@ -14078,7 +16745,7 @@ function cpFollowerStates() {
         const ac = CP.authCool[id];
         if (ac && t < ac.until) { o.state = 'error'; o.why = 'sign-in error at Vest: trying again in ' + Math.max(1, Math.ceil((ac.until - t) / 1000)) + ' s'; return o; }
         const so = cpSatOut(id);
-        if (so) { o.state = 'drift'; o.why = so; return o; }
+        if (so) { o.state = /\(group [A-Z]\)/.test(so) ? 'sat' : 'drift'; o.why = so; return o; }
         const lw = CP.lateWhy[id];
         if (lw && lead && Array.isArray(lead.positions) && lead.positions.some((p) => p.symbol === lw.symbol && Number(p.qty) > 0)) { o.state = 'drift'; o.why = lw.why; return o; }
         for (const [k, until] of CP.settle) if (k.startsWith(pre) && until > t) { o.state = 'pending'; return o; }
@@ -14103,7 +16770,9 @@ function cpFollowerStates() {
 }
 
 // The last batch the leader caused, per follower: { at, kind, symbol, total, ok, avgMs, maxMs, slowest: { accountId, name, ms } } or null.
-function cpLastCopy() {
+function cpLastCopy(gid) {
+    if (gid != null && gid !== '' && String(gid) !== cpCfg().id) { const p = cpPeer(String(gid)); const pl = p && p.st && p.st.last; return pl ? Object.assign({}, pl, { slowest: Object.assign({}, pl.slowest) }) : null; }
+    if (gid != null && gid !== '' && cpPeerRunning(gid)) { const p = cpPeer(String(gid)); const pl = p.st.last; return pl ? Object.assign({}, pl, { slowest: Object.assign({}, pl.slowest) }) : null; }
     const l = CP.last;
     return l ? Object.assign({}, l, { slowest: Object.assign({}, l.slowest) }) : null;
 }
@@ -14127,7 +16796,8 @@ function cpTabsSummary() {
 
 // state: off | starting | on | warning | killed | unavailable (Vest's writers were not found: "Vest changed"). note: the core's status line when it is
 // not ok ("this tab is not on the leader account"), for the UI to show next to the switch. autoMarkets: copy every market the leader trades.
-function cpOverall() {
+function cpOverall(gid) {
+    if (gid != null && gid !== '' && (cpPeerRunning(gid) || String(gid) !== cpCfg().id)) return cpOtherOverall(String(gid));
     const c = cpCfg();
     const rows = cpFollowerStates();
     const issues = rows.filter((r) => r.state === 'paused' || r.state === 'drift' || r.state === 'error').length;
@@ -14143,13 +16813,61 @@ function cpOverall() {
     const stuck = !CP.running ? rows.filter((r) => r.on && r.state === 'paused') : [];
     const pausedNote = stuck.length ? (stuck.length === 1 ? stuck[0].name + ' is paused (' + stuck[0].why + ')' : stuck.length + ' followers are paused') + '. Switching copying on clears it.' : '';
     return {
-        state: st, running: CP.running, killed: CP.killed, leaderId: String(c.leaderId || ''), leaderName: c.leaderId ? cpName(c.leaderId) : '',
+        g: c.id, state: st, running: CP.running, killed: CP.killed, leaderId: String(c.leaderId || ''), leaderName: c.leaderId ? cpName(c.leaderId) : '',
         total: rows.length, on: rows.filter((r) => r.on).length, inSync: rows.filter((r) => r.state === 'sync').length, issues,
         lastMs: last ? last.avgMs : null, note: vest ? CP_VEST_CHANGED : noTicket ? CP_OPEN_TRADE : sline === 'ok' || sline === 'off' ? opening || pausedNote : String(sline || ''),
         markets: c.markets.slice(), autoMarkets: c.autoMarkets !== false,
         // the engine ('tabs' or 'direct': the one that runs while copying is on, else the chosen one) and, for Tabs, how many follower tabs are ready
         engine: CP.engineUp && CP.engineId ? CP.engineId : cpEngineId(c), tabs
     };
+}
+
+// Another group's rows: its tab's own word while it copies there, else its saved followers, idle or off.
+function cpOtherStates(gid) {
+    const g = cpGroup(gid);
+    if (!g) return [];
+    const p = cpPeer(gid);
+    if (p && p.st && Array.isArray(p.st.rows)) return p.st.rows.map((r) => Object.assign({}, r));
+    return g.followers.filter(Boolean).map((f) => {
+        const id = String(f.accountId);
+        return { accountId: id, name: cpName(id), on: !!f.on, ratio: Number(f.ratio) > 0 ? Number(f.ratio) : 1, state: f.on ? 'idle' : 'off', why: '', lastMs: null, lastAt: null };
+    });
+}
+
+// Another group's overall: what its tab said (elsewhere: true, lead: its tab is a leader tab), else switched off.
+function cpOtherOverall(gid) {
+    const g = cpGroup(gid) || cpNormGroup({}, gid, null);
+    const p = cpPeer(gid);
+    if (p && p.st) return Object.assign({}, p.st, { g: gid, markets: (Array.isArray(p.st.markets) ? p.st.markets : g.markets).slice(), elsewhere: true, lead: !!p.st.lead, books: undefined, rows: undefined });
+    const rows = cpOtherStates(gid);
+    return { g: gid, state: 'off', running: false, killed: false, leaderId: g.leaderId, leaderName: g.leaderId ? cpName(g.leaderId) : '', total: rows.length, on: rows.filter((r) => r.on).length,
+        inSync: 0, issues: 0, lastMs: null, note: '', markets: g.markets.slice(), autoMarkets: g.autoMarkets !== false, engine: cpEngineId(g), tabs: null, elsewhere: false };
+}
+
+// Every group in a few words, for the widget's rail and the sub dock: { id, leaderId, leaderName, followerIds, on, total, engine, where
+// ('here' | 'tab' | 'lead' | ''), state, inSync, issues, lastMs, sat, warn, leaderBook }. Pure reads.
+function cpGroupsView() {
+    const r = cpRoot();
+    return r.groups.map((g) => {
+        const here = cpRunsHere(g.id) || (CP.runGroup === g.id && (CP.killed || CP.engineUp));
+        const peer = !here && cpPeerRunning(g.id) ? cpPeer(g.id) : null;
+        const ov = here ? cpOverall() : cpOverall(g.id);
+        const lb = here ? CP.snap.leader : peer ? cpPeerBook(g.id, g.leaderId) : null;
+        return {
+            id: g.id, leaderId: g.leaderId, leaderName: g.leaderId ? cpName(g.leaderId) : '', followerIds: cpMemberIds(g),
+            on: g.followers.filter((f) => f && f.on).length, total: g.followers.length, engine: ov.engine || cpEngineId(g),
+            where: here ? 'here' : peer ? (peer.st.lead ? 'lead' : 'tab') : '', state: ov.state, inSync: ov.inSync || 0, issues: ov.issues || 0, lastMs: ov.lastMs == null ? null : ov.lastMs,
+            sat: here ? (CP.oppSat && CP.now() - CP.oppSat.at < 600000 ? CP.oppSat.why : '') : peer ? peer.st.sat || '' : '',
+            warn: here ? (CP.oppWarn && CP.now() - CP.oppWarn.at < 600000 ? CP.oppWarn.why : '') : peer ? peer.st.warn || '' : '',
+            leaderBook: lb && Array.isArray(lb.positions) ? lb.positions.filter((p) => p && Number(p.qty) > 0).map((p) => ({ symbol: p.symbol, side: cpSide(p.side), qty: Number(p.qty) })) : null
+        };
+    });
+}
+
+// The root switches for the widget: { allowOpposite, logOn, focus, groups: n }.
+function cpRootView() {
+    const r = cpRoot();
+    return { allowOpposite: r.allowOpposite === true, logOn: r.logOn === true, focus: r.focus, groups: r.groups.length };
 }
 
 // ---------- start preview ----------
@@ -15625,9 +18343,13 @@ const vx = {
         else ids = elig.length ? elig.slice() : Object.keys(accs);
         return ids.map((id) => {
             const acc = accs[id] || {}, cap = caps[id] || {};
-            const kind = vxKindOfType(acc.type != null ? acc.type : cap.type, cap.stage, st.primaryAccountId === id);
+            const primary = st.primaryAccountId === id;
+            const kind = vxKindOfType(acc.type != null ? acc.type : cap.type, cap.stage, primary);
+            // the primary account is the one without a capital record (8.2 round 2: the owner's showed as a raw id when Vest had not said
+            // which is primary); only while the capital store holds records, so a store not loaded yet never names every account Primary
+            const noCap = !caps[id] && Object.keys(caps).length > 0;
             return {
-                id: String(id), name: String(cap.name || (kind === 'primary' ? 'Primary' : String(id).slice(0, 8))), kind, size: vxUsd(cap.startingBalance),
+                id: String(id), name: String(cap.name || (primary || noCap || kind === 'primary' ? 'Primary' : 'Account ' + String(id).slice(0, 4))), kind, size: vxUsd(cap.startingBalance),
                 balance: vxUsd(acc.balance), status: cap.status != null ? cap.status : null, eligible: elig.indexOf(id) >= 0
             };
         });
@@ -15769,6 +18491,8 @@ const vx = {
     },
     // every account's open positions in one GET (no params), shared by whoever asks together: see vxPositionsAll. { at, by: Map, shared }
     positionsAll(opts) { return vxPositionsAll(opts); },
+    // the last all-accounts read that came back ({ at, by: Map }) or null: synchronous, no request (8.2: the opposite-sides guard reads it)
+    allData() { return VX.all && VX.all.data ? VX.all.data : null; },
     // positions with their P&L, account value, balance: see vxAccountView
     accountView(accountId, rows) { return vxAccountView(accountId, rows); },
     // account value now and at Vest's last daily reset: see vxDayFigures
@@ -15801,6 +18525,8 @@ function vxPin(accountId, opts) {
     };
     const onChange = (state) => {
         if (P.stopped || !state) return;
+        // the copier's own one-turn switch (vx.withAccount: Light's writers in a pinned leader tab) is not a drift: it switches back itself
+        if (VX.inWith > 0) return;
         const cur = state.activeAccountId;
         if (cur === id) { P.applied = true; P.drifted = false; if (firstDone) firstDone(); return; }
         if (!state.user) return;
@@ -18354,7 +21080,15 @@ let ceTabsRef = null; // the registered engine, for ceTabsSummary / ceTabStates
 // tab the owner opens by hand reads the localStorage copy first: it could open on a follower account and an order there would go to it.
 // The leader tab writes its own account back into the localStorage copy while the follower tabs run (each follower tab keeps its own in
 // sessionStorage, which Vest reads first, so they stay where they are).
+// The copy group this tab runs Turbo for (8.2: the worker keeps each group's follower tabs apart)
+function ceGid() {
+    try { if (typeof CP !== 'undefined' && CP.runGroup) return CP.runGroup; } catch (e) {}
+    try { const c = typeof cpCfg === 'function' ? cpCfg() : null; if (c && c.id) return c.id; } catch (e) {}
+    return 'A';
+}
+
 function ceKeepLeaderKey(st) {
+    // 8.2: two groups' leader tabs may both write here; either way a tab opened by hand lands on a leader account, never on a follower
     try {
         const u = typeof vx.user === 'function' ? vx.user() : null;
         if (!u || !u.id || !st || !st.leader) return;
@@ -18424,7 +21158,7 @@ function ceMakeTabs() {
         st.asked = key;
         st.opened = true;
         st.syncing = (async () => {
-            const r = await ceRpc('tabs-open', { market: st.market, followers: ids.map((id) => ({ accountId: id, label: label(id) })), specs: ceSpecs(ceManagedMarkets([st.market])) }, st.T.openMs);
+            const r = await ceRpc('tabs-open', { g: st.gid || ceGid(), market: st.market, followers: ids.map((id) => ({ accountId: id, label: label(id) })), specs: ceSpecs(ceManagedMarkets([st.market])) }, st.T.openMs);
             if (!r || r.ok !== true) {
                 typeof cpDev === 'function' && cpDev('error', () => ({ msg: 'The extension did not set the follower tabs up (' + ((r && r.error) || 'no answer') + '): Turbo tries again in 3 s', error: r && r.error, retryInMs: 3000 }));
                 st.asked = null; st.retryAt = Date.now() + 3000; return r || { ok: false, error: 'no answer' };
@@ -18463,6 +21197,7 @@ function ceMakeTabs() {
         state: st,
         async start(cfg) {
             ceInit(st, cfg);
+            st.gid = (cfg && typeof cfg.id === 'string' && cfg.id) || ceGid(); // 8.2: the worker keeps this group's follower tabs apart
             st.tabs = new Map();
             st.asked = null;
             st.market = (cfg && cfg.market && CE_MARKET_RE.test(String(cfg.market))) ? String(cfg.market) : ceLeaderMarket();
@@ -18491,7 +21226,7 @@ function ceMakeTabs() {
             st.tabs = new Map();
             st.asked = null;
             fire();
-            if (was) { await ceRpc('tabs-close', {}, 3000); ceKeepLeaderKey(st); }
+            if (was) { await ceRpc('tabs-close', { g: st.gid || ceGid() }, 3000); ceKeepLeaderKey(st); }
         },
         // '' when the follower's tab can take an action now, else why not (the core's guard asks before it sends: such an action is refused and
         // not counted as an attempt, so a tab that is still loading never pauses a follower)
@@ -18567,7 +21302,7 @@ function ceMakeTabs() {
                 const part = new Map();
                 st.partial.set(bid, part);
                 let reply;
-                try { reply = await ceRpc('tabs-exec', { actions: send, specs: ceSpecs(ceManagedMarkets(send.map((a) => a.symbol))), bid }, st.T.actionMs * maxLen + st.T.slackMs); } finally { setTimeout(() => st.partial.delete(bid), 15000); }
+                try { reply = await ceRpc('tabs-exec', { g: st.gid || ceGid(), actions: send, specs: ceSpecs(ceManagedMarkets(send.map((a) => a.symbol))), bid }, st.T.actionMs * maxLen + st.T.slackMs); } finally { setTimeout(() => st.partial.delete(bid), 15000); }
                 const done = ceNow();
                 typeof cpDev === 'function' && cpDev('tabs', () => ({ msg: 'Turbo: the extension answered after ' + ceDevMs(done - t0) + ' (worker total ' + ceDevMs(reply && reply.timings && reply.timings.totalMs) + '): ' + Object.keys((reply && reply.timings && reply.timings.followers) || {}).map((id) => { const f = reply.timings.followers[id]; return ceDevName(id) + ' handed over in ' + ceDevMs(f.sendMs) + ', tab answered ' + ceDevMs(f.rtMs) + ' later' + (f.error ? ' (' + f.error + ')' : ''); }).join('; '),
                     symbol: ceDevSymbol(send), engine: 'tabs', ok: !!(reply && reply.ok === true), error: reply && reply.ok !== true ? reply.error : undefined, totalMs: ceRound(done - t0), timings: reply && reply.timings }));
@@ -18879,7 +21614,9 @@ async function ceFollowerBoot() {
             F.bus = new BC(CE_BUS);
             F.bus.onmessage = (e) => {
                 const m = e && e.data;
-                if (m && (m.t === 'halt' || m.t === 'kill' || m.t === 'stop')) {
+                // 8.2: another group's stop is not for this tab (its halt names that group's accounts); a kill is for every group
+                const mine = !m || m.t === 'kill' || (m.t === 'halt' && (!Array.isArray(m.accounts) || m.accounts.indexOf(F.id) >= 0)) || (m.t === 'stop' && !m.g);
+                if (m && (m.t === 'halt' || m.t === 'kill' || m.t === 'stop') && mine) {
                     F.haltAt = Date.now();
                     typeof ceFDev === 'function' && ceFDev(F, 'guard', () => ({ msg: 'the leader tab said "' + m.t + '": an exec message sent before now stops after the action it is on', what: m.t }));
                 }
@@ -19022,18 +21759,24 @@ if (ceIsFollowerTab()) {
 //   cpSetEngine(id) -> { ok, why? } (or a plain true / false); id is 'tabs' (Turbo, the default) or 'direct' (Light). The core refuses
 //     while copying runs; the widget does not even ask then. cpOverall().engine says which one is set (cpCfg().engine when it does not).
 // ======================================================================================
-const CU_MAX_FOLLOWERS = 10; // the core's CP_MAX_FOLLOWERS
-const CU_W = 1092;
+const CU_MAX_FOLLOWERS = 10; // the core's CP_MAX_FOLLOWERS: switched on at once in a group
+const CU_MAX_ROWS = 60;      // the core's CP_MAX_ROWS: rows a group remembers
+const CU_W = 1120;
+const CU_LOG_W = 320; // the log column, only while the header's Log switch is on (8.2)
 const CU_GAP = 8; // from the dock (or the sub dock) to the widget
 const CU_INFO_MS = 450; // the live numbers are read at most about twice a second
 const CU_TEST_MARKETS = ['SOL-PERP', 'NQ-PERP']; // what the owner's test run can open
 const CU_ADDR = '0x9F308B10780f9b8FD65C6B94071529b75a3A9dA4';
 const CU_SUPPORT_TITLE = 'Support Better Vest';
 const CU_SUPPORT_TEXT = 'Better Vest is free and I keep building it. If the copier saves you time, a tip helps me keep going.';
-const CU_MODES = { tabs: { word: 'Turbo', hint: 'One background tab per account. Fastest.' }, direct: { word: 'Light', hint: 'No extra tabs. Everything runs from this tab.' } };
+const CU_MODES = { direct: { word: 'Light', hint: 'No extra tabs. Everything runs from the leader\'s tab.' }, tabs: { word: 'Turbo', hint: 'One background tab per account. Fastest.' }, mint: { word: 'Mint', hint: '' } };
+// 8.2: copy groups. Each group has a letter and a colour of its own (identity colours, the same in every theme)
+const CU_GROUP_HUES = 6;
+const CU_OPP_RULE = 'Vest\'s FAQ: "The only restrictions are on abusing or coordinating across Funded Accounts to manipulate or exploit the system, for example taking opposite sides of the same market on different accounts."';
+const CU_WHERE = { here: 'this tab', lead: 'its own tab', tab: 'another tab', '': 'off' };
 const CU_KIND_TAG = { funded: 'Funded', evaluation: 'Eval', primary: 'Primary' };
 const CU_STATE_WORD = { off: 'OFF', starting: 'STARTING', on: 'COPYING', warning: 'ISSUES', killed: 'KILLED', unavailable: 'UNAVAILABLE' };
-const CU_CHIP_WORD = { off: 'off', idle: 'idle', sync: 'in sync', pending: 'syncing', drift: 'drift', paused: 'paused', error: 'error' };
+const CU_CHIP_WORD = { off: 'off', idle: 'idle', sync: 'in sync', pending: 'syncing', drift: 'drift', paused: 'paused', error: 'error', sat: 'sat out' };
 const CU_LOG_KIND = { tpUpdate: 'move TP', tpAdd: 'add TP', tpDelete: 'del TP', limit: 'limit', cancel: 'cancel' };
 const CU_KIND_WORD = { open: 'Open', append: 'Add', reduce: 'Reduce', close: 'Close', reverse: 'Reverse', tpAdd: 'Add TP', tpUpdate: 'Move TP', tpDelete: 'Remove TP', limit: 'Limit', cancel: 'Cancel' };
 const CU_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="8" height="8" rx="1.5"/><rect x="13" y="12" width="8" height="8" rx="1.5"/><path d="M11 8h2a2 2 0 0 1 2 2v2"/></svg>';
@@ -19044,7 +21787,8 @@ const CU_GRIP = '<svg viewBox="0 0 8 14" fill="currentColor"><circle cx="2" cy="
 const CU = {
     panel: null, open: false, unsubRun: null, ask: null, note: '', noteAt: 0, leaderSet: null, tab: 'log',
     cards: {}, st: {}, live: {}, frames: typeof WeakSet === 'function' ? new WeakSet() : { has: () => false, add() {} }, sig: {}, sub: null, subChips: {}, subSig: '', subN: 0, demo: null, rand: null,
-    infoC: {}, totC: null, todC: {}, pick: false, pickQ: '', pickAt: -1, mkList: []
+    infoC: {}, totC: null, todC: {}, pick: false, pickQ: '', pickAt: -1, mkList: [],
+    gsel: '', gcards: {}, logOn: false, logF: 'all', gdlg: null // 8.2: the group the widget shows, its rail cards, the Log switch (a core without one), the log filter, New group
 };
 
 function cuEl(tag, props, kids) {
@@ -19072,6 +21816,13 @@ function cuIcon() { return cuSvg('ax4p-copy-ico', CU_ICON); }
 function cuById(id) { return document.getElementById(id); }
 const cuMsg = (e) => (e && e.message) || String(e);
 const cuRand = () => (typeof CU.rand === 'function' ? CU.rand() : Math.random());
+// a CSS variable on one element ('' clears it); the tests' fake DOM has a plain style object
+function cuVar(el, name, v) {
+    const st = el && el.style;
+    if (!st) return;
+    if (typeof st.setProperty === 'function') { if (v === '' && typeof st.removeProperty === 'function') st.removeProperty(name); else st.setProperty(name, v); }
+    else st[name] = v;
+}
 function cuText(el, t) { t = String(t == null ? '' : t); if (el && el.textContent !== t) el.textContent = t; }
 function cuCfg() { try { return typeof cpCfg === 'function' ? cpCfg() : null; } catch (e) { return null; } }
 function cuAccounts() {
@@ -19239,10 +21990,54 @@ function cuMarketList() {
     return r.filter((x) => x && x.symbol).map((x) => ({ symbol: String(x.symbol), short: String(x.short || cuSym(x.symbol)) }));
 }
 
+// ---------- 8.2: copy groups ----------
+// A core with groups (cpGroupsView) lets the widget show and edit any group; an older core (or the tests' fake) has one, unnamed.
+function cuHasGroups() { return typeof cpGroupsView === 'function' && typeof cpGroup === 'function'; }
+function cuGroups() {
+    if (!cuHasGroups()) return [];
+    try { return cpGroupsView() || []; } catch (e) { return []; }
+}
+function cuRootView() { try { return typeof cpRootView === 'function' ? cpRootView() : null; } catch (e) { return null; } }
+// the group the widget shows: the one picked in the rail, else the core's focus, else the first
+function cuSel() {
+    if (CU.demo) return CU.gsel === 'B' ? 'B' : 'A';
+    if (!cuHasGroups()) return '';
+    const gs = cuGroups();
+    if (CU.gsel && gs.some((g) => g.id === CU.gsel)) return CU.gsel;
+    const rv = cuRootView();
+    CU.gsel = (rv && rv.focus && gs.some((g) => g.id === rv.focus) ? rv.focus : '') || (gs[0] && gs[0].id) || 'A';
+    return CU.gsel;
+}
+// the settings of the group the widget shows (a core without groups: its one config)
+function cuSelCfg() {
+    const g = cuSel();
+    if (g && !CU.demo) { try { const c = cpGroup(g); if (c) return c; } catch (e) {} }
+    return cuCfg();
+}
+const cuGHue = (gid) => 'var(--cu-g' + (Math.max(0, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.indexOf(String(gid || 'A'))) % CU_GROUP_HUES) + ')';
+// the accounts of the groups other than `gid`: { accountId: { gid, role } }
+function cuTaken(gid, groups) {
+    const out = {};
+    (groups || []).forEach((g) => {
+        if (g.id === gid) return;
+        if (g.leaderId) out[g.leaderId] = { gid: g.id, role: 'leader' };
+        (g.followerIds || []).forEach((id) => { if (!out[id]) out[id] = { gid: g.id, role: 'follower' }; });
+    });
+    return out;
+}
+// Mint, when this build has it (8.2: WICKED and DEV): its hint, its credit and its own risk note
+function cuMint() {
+    try {
+        const e = typeof cpEngines !== 'undefined' && cpEngines ? cpEngines.mint : null;
+        if (!e || typeof e !== 'object') return null;
+        return { hint: String(e.hint || 'Each follower\'s order goes straight to Vest.'), credit: String(e.credit || '') };
+    } catch (e) { return null; }
+}
+
 // ---------- the model: what every render function draws ----------
-function cuOverall() {
+function cuOverall(gid) {
     let o = null;
-    try { o = typeof cpOverall === 'function' ? cpOverall() : null; } catch (e) {}
+    try { o = typeof cpOverall === 'function' ? (gid ? cpOverall(gid) : cpOverall()) : null; } catch (e) {}
     if (!o) {
         // a core without cpOverall: the plain status
         let st = {};
@@ -19250,60 +22045,73 @@ function cuOverall() {
         o = { state: st.killed ? 'killed' : st.running ? 'on' : 'off', running: !!st.running, killed: !!st.killed };
     }
     let markets = o.markets;
-    if (!Array.isArray(markets)) { try { markets = typeof cpMarkets === 'function' ? cpMarkets() : []; } catch (e) { markets = []; } }
+    if (!Array.isArray(markets)) { try { markets = typeof cpMarkets === 'function' ? (gid ? cpMarkets(gid) : cpMarkets()) : []; } catch (e) { markets = []; } }
     // every market the leader trades is copied unless the user switched that off
     let auto = o.autoMarkets;
-    if (auto == null) { const cfg = cuCfg(); auto = cfg ? cfg.autoMarkets : null; }
+    if (auto == null) { const cfg = gid ? cuSelCfg() : cuCfg(); auto = cfg ? cfg.autoMarkets : null; }
     // Light (direct) is the default until the core says otherwise
     let engine = o.engine;
-    if (engine == null) { const cfg = cuCfg(); engine = cfg ? cfg.engine : null; }
-    engine = CU_MODES[engine] ? engine : 'direct';
+    if (engine == null) { const cfg = gid ? cuSelCfg() : cuCfg(); engine = cfg ? cfg.engine : null; }
+    engine = CU_MODES[engine] && (engine !== 'mint' || cuMint()) ? engine : 'direct';
     return {
         state: CU_STATE_WORD[o.state] ? o.state : 'off', running: !!o.running, killed: !!o.killed, leaderId: o.leaderId || '', leaderName: o.leaderName || '', engine,
         total: Number(o.total) || 0, on: Number(o.on) || 0, inSync: Number(o.inSync) || 0, issues: Number(o.issues) || 0,
-        lastMs: o.lastMs == null || !isFinite(o.lastMs) ? null : Number(o.lastMs), note: o.note || '', markets: markets || [], autoMarkets: auto !== false
+        lastMs: o.lastMs == null || !isFinite(o.lastMs) ? null : Number(o.lastMs), note: o.note || '', markets: markets || [], autoMarkets: auto !== false,
+        elsewhere: !!o.elsewhere
     };
 }
-function cuLast() {
-    try { return typeof cpLastCopy === 'function' ? cpLastCopy() || null : null; } catch (e) { return null; }
+function cuLast(gid) {
+    try { return typeof cpLastCopy === 'function' ? (gid ? cpLastCopy(gid) : cpLastCopy()) || null : null; } catch (e) { return null; }
 }
 function cuModel() {
-    const cfg = cuCfg();
-    const ov = cuOverall();
+    const gid = cuSel();
+    const cfg = gid ? cuSelCfg() : cuCfg();
+    const ov = cuOverall(gid);
     let states = [];
-    try { states = typeof cpFollowerStates === 'function' ? cpFollowerStates() || [] : []; } catch (e) {}
+    try { states = typeof cpFollowerStates === 'function' ? (gid ? cpFollowerStates(gid) : cpFollowerStates()) || [] : []; } catch (e) {}
+    const groups = cuGroups();
+    const taken = cuTaken(gid, groups);
     const accounts = cuAccounts();
-    const leaderId = String(ov.leaderId || (cfg && cfg.leaderId) || '');
+    const leaderId = String((cfg && cfg.leaderId) || ov.leaderId || '');
     const by = {}, st = {};
     accounts.forEach((a) => { by[String(a.id)] = a; });
     states.forEach((s) => { st[String(s.accountId)] = s; });
-    // every account of the user except the leader, plus any follower the core still holds that Vest no longer lists
+    // every account of the user except this group's leader, plus any follower the core still holds that Vest no longer lists
     const ids = accounts.map((a) => String(a.id)).filter((id) => id !== leaderId);
     states.forEach((s) => { const id = String(s.accountId); if (id !== leaderId && ids.indexOf(id) < 0) ids.push(id); });
     // the live numbers are only read while something that shows them is on screen: the widget (every row) or the sub dock (the switched-on ones)
     const rows = ids.map((id) => {
         const a = by[id] || {}, s = st[id];
-        const on = !!(s && s.on);
+        const tk = taken[id] || null; // in another group (8.2): shown greyed, its switch off
+        const on = !tk && !!(s && s.on);
         const state = s && CU_CHIP_WORD[s.state] ? s.state : on ? 'idle' : 'off';
         const read = CU.open || on;
         return {
             accountId: id, name: (s && s.name) || a.name || cuName(id), short: '', kind: a.kind && a.kind !== 'other' ? a.kind : '', on,
-            ratio: s && s.ratio > 0 ? Number(s.ratio) : 1, state: on ? state : 'off', why: (s && s.why) || '',
+            ratio: s && s.ratio > 0 ? Number(s.ratio) : 1, state: on ? state : 'off', why: (s && s.why) || '', taken: tk,
             lastMs: !s || s.lastMs == null ? null : Number(s.lastMs), lastAt: (s && s.lastAt) || null, orders: Math.max(0, Math.floor(Number((s && s.orders) || 0))),
-            info: read ? cuInfo(id) : null, today: CU.open ? cuToday(id) : null
+            info: read && !tk ? cuInfo(id) : null, today: CU.open && !tk ? cuToday(id) : null
         };
     });
-    rows.sort((a, b) => (b.on - a.on) || cuByName(a, b));
+    rows.sort((a, b) => (b.on - a.on) || (!!a.taken - !!b.taken) || cuByName(a, b));
     cuShorts(rows);
     const followers = rows.filter((r) => r.on);
     const watch = CU.open || followers.length > 0 || ov.running;
     const leaderName = ov.leaderName || (leaderId ? cuName(leaderId) : '');
+    const rv = cuRootView();
     return {
-        demo: false, cfg, overall: ov, leaderId, leaderName, leaderShort: leaderId ? cuShortOne(leaderName) : '',
-        rows, followers, accounts, last: cuLast(), log: typeof CP !== 'undefined' && Array.isArray(CP.log) ? CP.log : [],
+        demo: false, cfg, overall: ov, leaderId, leaderName, leaderShort: leaderId ? cuShortOne(leaderName) : '', gid,
+        groups: groups.length ? groups : [{ id: '', leaderId, leaderName, followerIds: followers.map((f) => f.accountId), on: followers.length, total: rows.length, engine: ov.engine,
+            where: ov.running ? 'here' : '', state: ov.state, inSync: ov.inSync, issues: ov.issues, lastMs: ov.lastMs, sat: '', warn: '', leaderBook: null }],
+        // can this tab copy the group itself (it is on its leader's account)? Otherwise the group copies from its own tab.
+        here: !!leaderId && String(cuActive() || '') === leaderId,
+        root: rv || { allowOpposite: false, logOn: CU.logOn, groups: 1 },
+        rows, followers, accounts, last: cuLast(gid), log: typeof CP !== 'undefined' && Array.isArray(CP.log) ? CP.log : [],
         leaderInfo: watch && leaderId ? cuInfo(leaderId) : null, leaderToday: CU.open && leaderId ? cuToday(leaderId) : null,
         totals: watch ? cuTotals() : null, today: cuSum(followers, (r) => r.today), hasPnl: typeof cpAccountInfo === 'function',
-        marketList: CU.pick ? cuMarketList() : [], caps: { auto: typeof cpSetAutoMarkets === 'function', add: typeof cpAddMarket === 'function', engine: typeof cpSetEngine === 'function' }
+        marketList: CU.pick ? cuMarketList() : [],
+        caps: { auto: typeof cpSetAutoMarkets === 'function', add: typeof cpAddMarket === 'function', engine: typeof cpSetEngine === 'function', groups: cuHasGroups(),
+            newGroup: typeof cpNewGroup === 'function', opposite: typeof cpSetAllowOpposite === 'function', logSw: true, mint: cuMint() }
     };
 }
 function cuCurrent() { return CU.demo ? cuDemoModel() : cuModel(); }
@@ -19327,24 +22135,32 @@ function cuWord(ov, counted) {
     return CU_STATE_WORD[ov.state] || 'OFF';
 }
 // Change one account through the core. An account that was never set up is added switched off (the core would add it on); the core keeps
-// ten in its list at most, so when it is full an account that is switched off makes room (it only loses its ratio).
+// CU_MAX_ROWS rows, so when it is full an account that is switched off makes room (it only loses its ratio). Switching on an account that copies
+// in another group moves it here (8.2 round 2): the core switches it off there and says so (CP.groupMoved), and the note and a toast say it.
 function cuEditFollower(id, patch) {
     if (typeof cpSetFollower !== 'function') return false;
-    const cfg = cuCfg();
+    const cfg = cuSelCfg(), gid = cuSel();
     if (cfg && Array.isArray(cfg.followers) && !cfg.followers.some((f) => f && String(f.accountId) === String(id))) {
         patch = Object.assign({ on: false }, patch);
-        if (cfg.followers.length >= CU_MAX_FOLLOWERS && typeof cpRemoveFollower === 'function') {
+        if (cfg.followers.length >= CU_MAX_ROWS && typeof cpRemoveFollower === 'function') {
             const idle = cfg.followers.find((f) => f && !f.on);
-            if (idle) cpRemoveFollower(idle.accountId);
+            if (idle) { if (gid) cpRemoveFollower(idle.accountId, gid); else cpRemoveFollower(idle.accountId); }
         }
     }
-    const f = cpSetFollower(id, patch);
-    if (!f) cuNote('Up to ' + CU_MAX_FOLLOWERS + ' accounts can copy at once. Switch one off first.');
+    const f = gid ? cpSetFollower(id, patch, gid) : cpSetFollower(id, patch);
+    const why = typeof CP !== 'undefined' && CP && CP.groupWhy ? CP.groupWhy : '';
+    if (!f) cuNote(why ? why.charAt(0).toUpperCase() + why.slice(1) + (/[.!]$/.test(why) ? '' : '.') : 'Up to ' + CU_MAX_FOLLOWERS + ' accounts can copy at once. Switch one off first.');
+    const mv = f && typeof CP !== 'undefined' && CP ? CP.groupMoved : null;
+    if (mv) {
+        const msg = cuName(mv.accountId) + ' moved from group ' + mv.from + ' to group ' + mv.to + '.';
+        cuNote(msg);
+        try { if (typeof cpToast === 'function') cpToast(msg, 'good'); } catch (e) {}
+    }
     return !!f;
 }
 // how many accounts are switched on now (the core's own list)
 function cuOnCount(except) {
-    const cfg = cuCfg();
+    const cfg = cuSelCfg();
     return cfg && Array.isArray(cfg.followers) ? cfg.followers.filter((f) => f && f.on && String(f.accountId) !== String(except)).length : 0;
 }
 
@@ -19384,7 +22200,9 @@ function cuInjectCss() {
     st.textContent = `
         /* The widget follows the Execute card and the Settings panel: small caps labels, hairlines, tabular numbers, one tone
            per state (--cu-tone), every colour a theme variable. */
-        #ax4p-copy, #ax4p-copy-subdock { --cu-tone: var(--ax-dim); --cu-hair: color-mix(in srgb, var(--ax-line) 70%, transparent); --cu-well: color-mix(in srgb, var(--ax-inset) 62%, transparent); font-variant-numeric: tabular-nums; -webkit-font-smoothing: antialiased; }
+        #ax4p-copy, #ax4p-copy-subdock { --cu-tone: var(--ax-dim); --cu-hair: color-mix(in srgb, var(--ax-line) 70%, transparent); --cu-well: color-mix(in srgb, var(--ax-inset) 62%, transparent); font-variant-numeric: tabular-nums; -webkit-font-smoothing: antialiased;
+            /* 8.2: each copy group's identity colour (the same in every theme: it names the group, it is not a state) */
+            --cu-g0: #4c8dff; --cu-g1: #ff9f43; --cu-g2: #2dd4bf; --cu-g3: #f472b6; --cu-g4: #a78bfa; --cu-g5: #facc15; --cu-gc: var(--cu-g0); }
         #ax4p-copy[data-state="starting"], #ax4p-copy-subdock[data-state="starting"] { --cu-tone: var(--ax-accent); }
         #ax4p-copy[data-state="on"], #ax4p-copy-subdock[data-state="on"] { --cu-tone: var(--ax-up); }
         #ax4p-copy[data-state="warning"], #ax4p-copy-subdock[data-state="warning"] { --cu-tone: var(--ax-warn); }
@@ -19421,12 +22239,64 @@ function cuInjectCss() {
         #ax4p-copy .cu-x:hover { background: var(--ax-btn); color: var(--ax-text); }
         @keyframes ax4pCopyPulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
 
-        /* body: left | followers | right */
-        #ax4p-copy .cu-body { position: relative; flex: 1 1 auto; min-height: 0; height: 496px; display: grid; grid-template-columns: 232px minmax(0, 1fr) 300px; }
-        #ax4p-copy .cu-left, #ax4p-copy .cu-right { display: flex; flex-direction: column; gap: 10px; min-height: 0; padding: 12px 14px; background: color-mix(in srgb, var(--ax-inset) 45%, transparent); }
-        #ax4p-copy .cu-left { border-right: 1px solid var(--cu-hair); overflow-y: auto; }
+        /* body (8.2): the groups rail | the group | the log (only while the Log switch is on) */
+        #ax4p-copy .cu-body { position: relative; flex: 1 1 auto; min-height: 0; height: 540px; display: grid; grid-template-columns: 232px minmax(0, 1fr); }
+        #ax4p-copy .cu-body[data-log="on"] { grid-template-columns: 232px minmax(0, 1fr) ${CU_LOG_W}px; }
+        #ax4p-copy.logon { width: ${CU_W + CU_LOG_W - 120}px; }
+        #ax4p-copy .cu-rail, #ax4p-copy .cu-right { display: flex; flex-direction: column; gap: 10px; min-height: 0; padding: 12px 14px; background: color-mix(in srgb, var(--ax-inset) 45%, transparent); }
+        #ax4p-copy .cu-rail { border-right: 1px solid var(--cu-hair); overflow-y: auto; }
         #ax4p-copy .cu-right { border-left: 1px solid var(--cu-hair); }
-        #ax4p-copy .cu-mid { display: flex; flex-direction: column; min-width: 0; min-height: 0; padding: 12px 14px; }
+        #ax4p-copy .cu-mid { display: flex; flex-direction: column; gap: 9px; min-width: 0; min-height: 0; padding: 12px 14px; }
+        #ax4p-copy .cu-grow { flex: 1 1 auto; min-width: 0; }
+        #ax4p-copy .cu-sr { display: none !important; }
+        /* the rail's group cards */
+        #ax4p-copy .cu-groups { display: flex; flex-direction: column; gap: 7px; flex: none; }
+        #ax4p-copy .cu-gcard { position: relative; display: flex; flex-direction: column; gap: 3px; padding: 9px 10px 9px 12px; border-radius: 10px; border: 1px solid var(--cu-hair); background: var(--cu-well); cursor: pointer; transition: border-color .15s, background-color .15s; }
+        #ax4p-copy .cu-gcard::before { content: ""; position: absolute; left: 0; top: 9px; bottom: 9px; width: 3px; border-radius: 0 3px 3px 0; background: var(--cu-gc); opacity: .9; }
+        #ax4p-copy .cu-gcard:hover { border-color: color-mix(in srgb, var(--cu-gc) 45%, var(--ax-line)); }
+        #ax4p-copy .cu-gcard.sel { border-color: color-mix(in srgb, var(--cu-gc) 70%, var(--ax-line)); background: color-mix(in srgb, var(--cu-gc) 8%, var(--cu-well)); }
+        #ax4p-copy .cu-gcard:focus-visible { outline: none; box-shadow: 0 0 0 2px color-mix(in srgb, var(--cu-gc) 55%, transparent); }
+        #ax4p-copy .cu-gcard .g1 { display: flex; align-items: center; gap: 7px; min-width: 0; }
+        #ax4p-copy .cu-gcard .gl, #ax4p-copy .cu-gtag, #ax4p-copy .cu-gdlg .gt:not(:empty) { flex: none; display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 5px; font-size: 10px; font-weight: 800; letter-spacing: .04em; color: var(--cu-gc); background: color-mix(in srgb, var(--cu-gc) 16%, transparent); }
+        #ax4p-copy .cu-gcard .gn { flex: 1 1 auto; min-width: 0; font-size: 12.5px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        #ax4p-copy .cu-gcard .gd { flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--ax-dim); }
+        #ax4p-copy .cu-gcard.st-on .gd { background: var(--ax-up); box-shadow: 0 0 7px var(--ax-up); animation: ax4pCopyPulse 1.6s ease-in-out infinite; }
+        #ax4p-copy .cu-gcard.st-starting .gd { background: var(--ax-accent); }
+        #ax4p-copy .cu-gcard.st-warning .gd { background: var(--ax-warn); }
+        #ax4p-copy .cu-gcard.st-killed .gd, #ax4p-copy .cu-gcard.st-unavailable .gd { background: var(--ax-down); }
+        #ax4p-copy .cu-gcard small { display: block; font-size: 10.5px; line-height: 14px; color: var(--ax-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        #ax4p-copy .cu-gcard small:empty { display: none; }
+        #ax4p-copy .cu-gcard .gp { color: var(--ax-dim); }
+        #ax4p-copy .cu-gcard .gs { color: var(--ax-warn); white-space: normal; }
+        #ax4p-copy .cu-gcard .go { align-self: flex-start; margin-top: 2px; height: 20px; padding: 0 8px; border-radius: 6px; border: 1px solid var(--cu-hair); background: none; color: var(--ax-muted); font-size: 10px; font-weight: 600; cursor: pointer; }
+        #ax4p-copy .cu-gcard .go:hover { color: var(--ax-text); border-color: color-mix(in srgb, var(--cu-gc) 55%, var(--ax-line)); }
+        #ax4p-copy .cu-gnew { flex: none; display: flex; align-items: center; justify-content: center; gap: 6px; height: 32px; border-radius: 9px; border: 1px dashed var(--ax-line); background: none; color: var(--ax-muted); font-size: 11px; font-weight: 600; cursor: pointer; }
+        #ax4p-copy .cu-gnew:hover { color: var(--ax-text); border-color: var(--ax-accent); }
+        #ax4p-copy .cu-gnew svg { width: 9px; height: 9px; }
+        #ax4p-copy .cu-opp { flex: none; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px; padding-top: 9px; border-top: 1px solid var(--cu-hair); cursor: pointer; }
+        #ax4p-copy .cu-opp b { display: block; font-size: 11px; line-height: 14px; font-weight: 600; }
+        #ax4p-copy .cu-opp small { display: block; margin-top: 2px; font-size: 9.5px; line-height: 13px; color: var(--ax-dim); }
+        #ax4p-copy .cu-opp input[type="checkbox"] { width: 26px; height: 15px; }
+        #ax4p-copy .cu-opp input[type="checkbox"]::before { width: 11px; height: 11px; }
+        #ax4p-copy .cu-opp input[type="checkbox"]:checked::before { transform: translateX(11px); }
+        #ax4p-copy .cu-opp input[type="checkbox"]:checked { background: var(--ax-warn); border-color: var(--ax-warn); }
+        /* the group's head: its letter, the leader, the mode, the Copying switch */
+        #ax4p-copy .cu-ghead { flex: none; display: flex; align-items: center; gap: 12px; min-height: 40px; }
+        #ax4p-copy .cu-gtag { height: 22px; padding: 0 8px; font-size: 10px; }
+        #ax4p-copy .cu-ghead .cu-lead { margin: 0; }
+        #ax4p-copy .cu-ghead .cu-lead select.ax4p-in { width: 150px; }
+        #ax4p-copy .cu-ghead .cu-lline { margin: 0; padding: 0 0 0 12px; border-top: 0; border-left: 1px solid var(--cu-hair); min-width: 170px; }
+        #ax4p-copy .cu-ghead .cu-master { padding: 3px 8px 3px 10px; }
+        #ax4p-copy .cu-ghead .cu-seg { display: flex; gap: 2px; }
+        #ax4p-copy .cu-ghead .cu-seg button { flex: none; height: 26px; padding: 0 12px; }
+        #ax4p-copy .cu-ghead .cu-mrow { height: 32px; gap: 10px; }
+        #ax4p-copy .cu-opts { flex: none; display: flex; align-items: center; gap: 16px; min-height: 18px; }
+        #ax4p-copy .cu-opts .cu-mkhint { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        #ax4p-copy .cu-opts .cu-auto { flex: none; gap: 7px; }
+        #ax4p-copy .cu-mkrow { flex: none; display: flex; align-items: center; gap: 8px; min-height: 24px; }
+        #ax4p-copy .cu-mkrow .cu-lab { margin: 0; flex: none; }
+        #ax4p-copy .cu-mkrow .cu-mks { flex: 0 1 auto; flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; min-height: 22px; }
+        #ax4p-copy .cu-mkrow .cu-auto { flex: none; gap: 7px; }
         #ax4p-copy .cu-lab { display: flex; align-items: baseline; justify-content: space-between; gap: 6px; margin: 0 0 5px; font-size: 9.5px; line-height: 12px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--ax-dim); white-space: nowrap; }
         #ax4p-copy .cu-lab i { font-style: normal; letter-spacing: 0; text-transform: none; font-weight: 500; font-size: 10px; }
 
@@ -19516,6 +22386,7 @@ function cuInjectCss() {
         #ax4p-copy .cu-gridwrap { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; border: 1px solid var(--cu-hair); border-radius: 10px; background: var(--cu-well); overflow: hidden; }
         #ax4p-copy .cu-gh, #ax4p-copy .cu-fol { display: grid; grid-template-columns: 34px minmax(0, 1fr) 78px 70px 56px 70px; column-gap: 8px; align-items: center; padding: 0 5px 0 12px; }
         #ax4p-copy .cu-gh { flex: none; height: 26px; padding-right: 9px; border-bottom: 1px solid var(--cu-hair); font-size: 9px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--ax-dim); }
+        #ax4p-copy .cu-gh > span { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         #ax4p-copy .cu-gh .r { text-align: right; }
         #ax4p-copy .cu-gh .c { text-align: center; }
         #ax4p-copy .cu-grid { flex: 1 1 auto; min-height: 0; overflow-y: auto; scrollbar-gutter: stable; }
@@ -19558,6 +22429,12 @@ function cuInjectCss() {
         #ax4p-copy .cu-chip.pending::before, #ax4p-copy-subdock .sd-chip.pending::before { animation: ax4pCopyPulse .7s ease-in-out infinite; }
         #ax4p-copy .cu-chip.drift { --c: var(--ax-warn); }
         #ax4p-copy .cu-chip.paused, #ax4p-copy .cu-chip.error { --c: var(--ax-down); }
+        #ax4p-copy .cu-chip.sat { --c: var(--ax-warn); }
+        #ax4p-copy .cu-chip.grp { font-weight: 700; letter-spacing: .03em; }
+        /* in another group: dimmed; its switch stays live (it moves the account here), except for another group's leader */
+        #ax4p-copy .cu-fol.taken .who, #ax4p-copy .cu-fol.taken .vl, #ax4p-copy .cu-fol.taken .td, #ax4p-copy .cu-fol.taken .cu-rt { opacity: .55; }
+        #ax4p-copy .cu-fol.locked .who, #ax4p-copy .cu-fol.locked .vl, #ax4p-copy .cu-fol.locked .td, #ax4p-copy .cu-fol.locked .cu-rt, #ax4p-copy .cu-fol.locked input[type="checkbox"] { opacity: .42; }
+        #ax4p-copy .cu-fol.st-sat { background: color-mix(in srgb, var(--ax-warn) 6%, transparent); box-shadow: inset 2px 0 0 var(--ax-warn); }
         #ax4p-copy .cu-chip.paused { cursor: pointer; }
         #ax4p-copy .cu-chip.paused:hover { background: color-mix(in srgb, var(--ax-down) 22%, transparent); }
         #ax4p-copy .cu-chip.fresh, #ax4p-copy-subdock .sd-chip.fresh { animation: cuFresh .9s ease-out; }
@@ -19588,6 +22465,49 @@ function cuInjectCss() {
         #ax4p-copy .ax4p-copy-log .r.warn .s, #ax4p-copy .ax4p-copy-log .r.warn .w { color: var(--ax-warn); }
         #ax4p-copy .ax4p-copy-log .r.info .s { color: var(--ax-dim); }
         #ax4p-copy .ax4p-copy-log .empty { display: grid; place-items: center; height: 100%; color: var(--ax-dim); }
+        #ax4p-copy .ax4p-copy-log .w i.g { min-width: 0; max-width: none; margin-right: 5px; padding: 0 4px; border-radius: 4px; font-weight: 800; color: var(--cu-gc); background: color-mix(in srgb, var(--cu-gc) 16%, transparent); }
+        #ax4p-copy .cu-logf { display: flex; flex-wrap: wrap; gap: 5px; flex: none; }
+        #ax4p-copy .cu-logf:empty { display: none; }
+        #ax4p-copy .cu-lf { height: 22px; padding: 0 9px; border-radius: 999px; border: 1px solid var(--cu-hair); background: none; color: var(--ax-muted); font-size: 10px; font-weight: 600; cursor: pointer; }
+        #ax4p-copy .cu-lf:hover { color: var(--ax-text); }
+        #ax4p-copy .cu-lf.on { background: var(--ax-text); border-color: var(--ax-text); color: var(--ax-bg, #000); }
+        #ax4p-copy .cu-lf[style*="--cu-gc"].on { background: color-mix(in srgb, var(--cu-gc) 22%, transparent); border-color: var(--cu-gc); color: var(--ax-text); }
+        /* the header's Log switch */
+        #ax4p-copy .cu-logsw { display: inline-flex; align-items: center; gap: 7px; flex: none; font-size: 11px; color: var(--ax-muted); cursor: pointer; }
+        #ax4p-copy .cu-logsw input[type="checkbox"] { width: 26px; height: 15px; }
+        #ax4p-copy .cu-logsw input[type="checkbox"]::before { width: 11px; height: 11px; }
+        #ax4p-copy .cu-logsw input[type="checkbox"]:checked::before { transform: translateX(11px); }
+        #ax4p-copy .cu-logsw input[type="checkbox"]:checked { background: var(--ax-up-btn); border-color: var(--ax-up); }
+        /* New group */
+        #ax4p-copy .cu-ask-box.cu-gdlg { max-width: 540px; border-color: color-mix(in srgb, var(--ax-accent) 40%, var(--ax-line)); border-left: 1px solid color-mix(in srgb, var(--ax-accent) 40%, var(--ax-line)); background: var(--ax-raised); }
+        #ax4p-copy .cu-gdh { display: flex; align-items: center; gap: 9px; margin-bottom: 10px; font-size: 14px; }
+        #ax4p-copy .cu-gdrows { max-height: 300px; overflow-y: auto; border: 1px solid var(--cu-hair); border-radius: 9px; }
+        #ax4p-copy .cu-gdrow { display: grid; grid-template-columns: 100px minmax(0, 1fr) 58px 64px; align-items: center; gap: 8px; height: 34px; padding: 0 10px; border-top: 1px solid var(--cu-hair); }
+        #ax4p-copy .cu-gdrows .cu-gdrow:first-child { border-top: 0; }
+        #ax4p-copy .cu-gdrow.head { height: 22px; border-top: 0; font-size: 9px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; color: var(--ax-dim); }
+        #ax4p-copy .cu-gdrow .c { display: flex; justify-content: center; }
+        #ax4p-copy .cu-gdrow input[type="radio"] { accent-color: var(--ax-accent); }
+        #ax4p-copy .cu-gdrow .nm { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
+        #ax4p-copy .cu-gdrow .nm b { font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        #ax4p-copy .cu-gdrow .nm small { font-size: 8.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--ax-dim); }
+        #ax4p-copy .cu-gdrow.taken .nm { opacity: .72; }
+        #ax4p-copy .cu-gdrow.picked { background: color-mix(in srgb, var(--ax-accent) 7%, transparent); }
+        #ax4p-copy .cu-gdrow.picked .nm { opacity: 1; }
+        #ax4p-copy .cu-gdsub { margin-left: auto; font-size: 10.5px; color: var(--ax-dim); }
+        #ax4p-copy .cu-gdlg .ax4p-btn.primary:disabled { opacity: .45; cursor: default; }
+        /* 8.2 round 2: what Copying on does when this tab is not on the group's leader, its two buttons, and Remove group */
+        #ax4p-copy .cu-leadbar { flex: none; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 7px 10px; border: 1px solid color-mix(in srgb, var(--ax-accent) 28%, var(--cu-hair)); border-radius: 9px; background: color-mix(in srgb, var(--ax-accent) 5%, transparent); }
+        #ax4p-copy .cu-leadbar[hidden] { display: none; }
+        #ax4p-copy .cu-leadbar .t { flex: 1 1 280px; min-width: 0; font-size: 11px; line-height: 15px; color: var(--ax-text); }
+        #ax4p-copy .cu-leadbar .t:empty { display: none; }
+        #ax4p-copy .cu-leadbar.bare { padding: 0; border: 0; background: none; justify-content: flex-end; }
+        #ax4p-copy .cu-lbtn { flex: none; height: 24px; padding: 0 10px; border-radius: 7px; border: 1px solid var(--ax-line); background: var(--ax-btn); color: var(--ax-text); font: inherit; font-size: 10.5px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+        #ax4p-copy .cu-lbtn:hover { border-color: var(--ax-accent); }
+        #ax4p-copy .cu-lbtn[hidden] { display: none; }
+        #ax4p-copy .cu-lbtn.del { color: var(--ax-down); background: transparent; border-color: color-mix(in srgb, var(--ax-down) 40%, var(--ax-line)); }
+        #ax4p-copy .cu-lbtn:disabled { opacity: .45; cursor: default; }
+        #ax4p-copy .cu-gdlg .gt { font-size: 9px; justify-self: start; white-space: nowrap; }
+        #ax4p-copy #ax4p-copy-gdlg-msg { min-height: 14px; color: var(--ax-muted); }
         #ax4p-copy .cu-tag { display: inline-block; padding: 1px 7px; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--ax-warn) 45%, transparent); color: var(--ax-warn); font-size: 9px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
         #ax4p-copy .cu-hint { margin: 6px 0 0; font-size: 10px; line-height: 14px; color: var(--ax-dim); }
         #ax4p-copy .cu-hint:empty { display: none; }
@@ -19615,13 +22535,14 @@ function cuInjectCss() {
         #ax4p-copy .ax4p-copy-ms .lead { color: var(--ax-accent-text); }
         #ax4p-copy .ax4p-copy-ms .never, #ax4p-copy .ax4p-copy-ms .err { color: var(--ax-down); font-weight: 700; }
 
-        #ax4p-copy .cu-support { flex: none; padding: 9px 10px 10px; border-radius: 10px; border: 1px solid color-mix(in srgb, var(--ax-accent) 20%, var(--ax-line)); background: linear-gradient(180deg, color-mix(in srgb, var(--ax-accent) 7%, transparent), color-mix(in srgb, var(--ax-accent) 2%, transparent)); }
-        #ax4p-copy .cu-support .cu-lab { margin-bottom: 4px; color: var(--ax-accent-text); }
-        #ax4p-copy .cu-support .cu-lab span { display: inline-flex; align-items: center; gap: 5px; }
-        #ax4p-copy .cu-support .cu-lab svg { width: 11px; height: 11px; }
-        #ax4p-copy .cu-support .cu-lab i { color: var(--ax-dim); }
-        #ax4p-copy .cu-support p { margin: 0 0 7px; font-size: 10px; line-height: 14px; color: var(--ax-muted); }
-        #ax4p-copy .cu-addrow { display: flex; gap: 6px; }
+        /* the support line (8.2: one line under the accounts) */
+        #ax4p-copy .cu-support { flex: none; display: flex; align-items: center; gap: 8px; min-width: 0; height: 26px; padding-top: 7px; border-top: 1px solid var(--cu-hair); font-size: 10.5px; color: var(--ax-dim); }
+        #ax4p-copy .cu-support .cu-heart { display: inline-grid; place-items: center; flex: none; color: var(--ax-accent-text); }
+        #ax4p-copy .cu-support .cu-heart svg { width: 11px; height: 11px; }
+        #ax4p-copy .cu-support .cu-stitle { flex: none; font-weight: 700; color: var(--ax-muted); }
+        #ax4p-copy .cu-support .cu-stext { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        #ax4p-copy .cu-support .cu-addr { flex: 0 1 190px; height: 22px; }
+        #ax4p-copy .cu-support .cu-copy { height: 22px; min-width: 48px; font-size: 10px; }
         #ax4p-copy .cu-addr { flex: 1; min-width: 0; display: flex; align-items: center; height: 26px; padding: 0 8px; border-radius: 7px; background: var(--ax-inset); border: 1px solid var(--cu-hair); color: var(--ax-text); font: 500 10px/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace !important; user-select: all; -webkit-user-select: all; cursor: text; }
         #ax4p-copy .cu-addr .hd { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         #ax4p-copy .cu-addr .tl { flex: none; }
@@ -19637,10 +22558,12 @@ function cuInjectCss() {
         #ax4p-copy .cu-ask-msg { margin: 0; font-size: 12px; line-height: 18px; font-weight: 500; white-space: pre-line; }
         #ax4p-copy .cu-ask .ax4p-btnrow { justify-content: flex-end; margin-top: 14px; }
         #ax4p-copy .cu-ask .ax4p-btn { flex: none; height: 30px; padding: 0 16px; }
-        @media (max-width: 1000px) { #ax4p-copy { overflow-y: auto; } #ax4p-copy .cu-body { height: auto; grid-template-columns: 232px minmax(0, 1fr); } #ax4p-copy .cu-right { grid-column: 1 / -1; border-left: 0; border-top: 1px solid var(--cu-hair); } #ax4p-copy .cu-pane { min-height: 150px; } #ax4p-copy .cu-gridwrap { min-height: 300px; } }
+        @media (max-width: 1000px) { #ax4p-copy { overflow-y: auto; } #ax4p-copy .cu-body, #ax4p-copy .cu-body[data-log="on"] { height: auto; grid-template-columns: 200px minmax(0, 1fr); } #ax4p-copy .cu-right { grid-column: 1 / -1; border-left: 0; border-top: 1px solid var(--cu-hair); } #ax4p-copy .cu-pane { min-height: 150px; } #ax4p-copy .cu-gridwrap { min-height: 300px; } #ax4p-copy .cu-ghead { flex-wrap: wrap; } }
+        /* the log beside the table: below 1336 px the window is narrower than its 1320 px, and the group's head row would run under the log */
+        @media (max-width: 1335px) { #ax4p-copy .cu-body[data-log="on"] .cu-ghead { flex-wrap: wrap; row-gap: 6px; } }
 
         /* the market picker: inside the widget too, over the left column */
-        #ax4p-copy .cu-pick { display: none; position: absolute; left: 10px; bottom: 10px; z-index: 6; width: 236px; max-height: calc(100% - 20px); flex-direction: column; border-radius: 10px; border: 1px solid color-mix(in srgb, var(--ax-accent) 45%, var(--ax-line)); background-color: var(--ax-page, #101012); background-image: linear-gradient(var(--ax-raised), var(--ax-raised)); box-shadow: 0 18px 40px -12px var(--ax-shadow), 0 2px 8px rgba(0, 0, 0, 0.3); overflow: hidden; }
+        #ax4p-copy .cu-pick { display: none; position: absolute; left: 248px; bottom: 74px; z-index: 6; width: 236px; max-height: calc(100% - 20px); flex-direction: column; border-radius: 10px; border: 1px solid color-mix(in srgb, var(--ax-accent) 45%, var(--ax-line)); background-color: var(--ax-page, #101012); background-image: linear-gradient(var(--ax-raised), var(--ax-raised)); box-shadow: 0 18px 40px -12px var(--ax-shadow), 0 2px 8px rgba(0, 0, 0, 0.3); overflow: hidden; }
         #ax4p-copy .cu-pick.open { display: flex; animation: ax4pIn .14s cubic-bezier(.2, .9, .3, 1.2); }
         #ax4p-copy .cu-pick .ph { flex: none; padding: 8px; border-bottom: 1px solid var(--cu-hair); }
         #ax4p-copy .cu-pick .ph input.ax4p-in { width: 100%; height: 28px; padding: 0 9px; font-size: 11.5px; border-radius: 8px; }
@@ -19684,6 +22607,16 @@ function cuInjectCss() {
         #ax4p-copy-subdock .sd-lead b, #ax4p-copy-subdock .sd-ms b { color: var(--ax-muted); font-weight: 600; }
         #ax4p-copy-subdock .sd-lead i { font-style: normal; font-size: 8.5px; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; margin-right: 4px; }
         #ax4p-copy-subdock .sd-sep { flex: none; width: 1px; height: 14px; background: var(--cu-hair); }
+        #ax4p-copy-subdock .sd-groups { display: flex; align-items: center; gap: 4px; flex: none; padding-right: 6px; border-right: 1px solid var(--cu-hair); }
+        #ax4p-copy-subdock .sd-g { display: inline-flex; align-items: center; gap: 5px; height: 20px; padding: 0 7px 0 3px; border-radius: 999px; border: 1px solid var(--cu-hair); background: none; color: var(--ax-muted); font-size: 10px; cursor: pointer; }
+        #ax4p-copy-subdock .sd-g.sel { border-color: color-mix(in srgb, var(--cu-gc) 60%, var(--ax-line)); }
+        #ax4p-copy-subdock .sd-g i { display: inline-grid; place-items: center; min-width: 14px; height: 14px; border-radius: 4px; font-style: normal; font-size: 9px; font-weight: 800; color: var(--cu-gc); background: color-mix(in srgb, var(--cu-gc) 18%, transparent); }
+        #ax4p-copy-subdock .sd-g .d { width: 6px; height: 6px; border-radius: 50%; background: var(--ax-dim); }
+        #ax4p-copy-subdock .sd-g.st-on .d { background: var(--ax-up); box-shadow: 0 0 6px var(--ax-up); }
+        #ax4p-copy-subdock .sd-g.st-warning .d { background: var(--ax-warn); }
+        #ax4p-copy-subdock .sd-g.st-killed .d { background: var(--ax-down); }
+        #ax4p-copy-subdock .sd-g b { font-weight: 700; color: var(--ax-text); }
+        #ax4p-copy-subdock .sd-chip.sat { --c: var(--ax-warn); }
         #ax4p-copy-subdock .sd-chips { display: flex; align-items: center; gap: 4px; min-width: 0; }
         #ax4p-copy-subdock .sd-chip { --c: var(--ax-dim); display: inline-flex; align-items: center; gap: 5px; flex: none; height: 20px; padding: 0 8px 0 7px; border-radius: 999px; border: 1px solid var(--cu-hair); background: color-mix(in srgb, var(--c) 8%, transparent); color: var(--ax-text); font-size: 10px; font-weight: 600; letter-spacing: .01em; cursor: pointer; transition: border-color .2s, background-color .2s; }
         #ax4p-copy-subdock .sd-chip:hover { border-color: color-mix(in srgb, var(--c) 60%, var(--ax-line)); }
@@ -19725,6 +22658,7 @@ function cuAsk(msg, yes, title) {
 }
 
 // ---------- the widget ----------
+// 8.2 layout: the groups rail | the group the widget shows | the log column (only while the header's Log switch is on).
 function cuBuildPanel() {
     if (CU.panel) return CU.panel;
     cuInjectCss();
@@ -19733,67 +22667,86 @@ function cuBuildPanel() {
         cuIcon(),
         cuEl('div', { class: 'cu-id' }, [
             cuEl('div', { class: 'ax4p-title', text: 'Copy trader' }),
-            cuEl('div', { class: 'ax4p-sub', text: 'Mirror one account to the rest' })
+            cuEl('div', { id: 'ax4p-copy-subline', class: 'ax4p-sub', text: 'Mirror one account to the rest' })
         ]),
         cuEl('div', { id: 'ax4p-copy-note', class: 'cu-note', role: 'status' }),
+        // the log column comes and goes with this switch (off by default, remembered)
+        cuEl('label', { id: 'ax4p-copy-logsw-row', class: 'cu-logsw', title: 'Show the copy log next to the accounts' }, [
+            cuEl('span', { text: 'Log' }),
+            cuEl('input', { id: 'ax4p-copy-logsw', type: 'checkbox', 'aria-label': 'Show the log', onchange: cuOnLogSw })
+        ]),
         cuEl('span', { id: 'ax4p-copy-badge', class: 'cu-pill', text: 'OFF' }),
         cuEl('button', { id: 'ax4p-copy-close', type: 'button', class: 'cu-x', title: 'Close', 'aria-label': 'Close', text: '×', onclick: cuClose })
     ]));
 
-    // left: the master switch and the leader, the mode, the managed markets, kill
-    const seg = (id, label) => cuEl('button', { id: 'ax4p-copy-eng-' + id, type: 'button', title: CU_MODES[id].word + ': ' + CU_MODES[id].hint, text: label, onclick: () => cuOnEngine(id) });
-    const left = cuEl('div', { class: 'cu-left' }, [
-        cuEl('div', { class: 'cu-master' }, [
-            cuEl('label', { class: 'cu-mrow' }, [
-                cuEl('span', {}, [cuEl('b', { text: 'Copying' }), cuEl('small', { id: 'ax4p-copy-stline', text: 'Off' })]),
-                cuEl('input', { id: 'ax4p-copy-master', type: 'checkbox', 'aria-label': 'Copying', onchange: cuOnMaster })
-            ]),
-            cuEl('div', { class: 'cu-lead' }, [
-                cuEl('span', { class: 'cu-lab', text: 'Leader' }),
-                cuEl('select', { id: 'ax4p-copy-leader', class: 'ax4p-in', 'aria-label': 'Leader account', onchange: cuOnLeader })
-            ]),
-            // the leader's own position, live P&L, account value and today's P&L
-            cuEl('div', { id: 'ax4p-copy-lline', class: 'cu-lline' }, [
-                cuEl('div', { class: 'lr' }, [cuEl('span', { id: 'ax4p-copy-lpos', class: 'lp', text: '-' }), cuEl('span', { id: 'ax4p-copy-lpnl', class: 'pl na', text: '-' })]),
-                cuEl('div', { class: 'lr lr2' }, [cuEl('span', { id: 'ax4p-copy-lval', class: 'lp', text: '-' }), cuEl('span', {}, [cuEl('i', { text: 'Today' }), cuEl('b', { id: 'ax4p-copy-ltoday', class: 'pl na', text: '-' })])])
-            ])
-        ]),
-        // Turbo (one background tab per account) or Light (no extra tabs)
-        cuEl('div', { id: 'ax4p-copy-eng', class: 'cu-eng' }, [
-            cuEl('div', { class: 'cu-lab', text: 'Mode' }),
-            cuEl('div', { id: 'ax4p-copy-eng-seg', class: 'cu-seg', role: 'group', 'aria-label': 'Mode' }, [seg('tabs', 'Turbo'), seg('direct', 'Light')]),
-            cuEl('div', { id: 'ax4p-copy-eng-hint', class: 'cu-mkhint' }),
-            // Ultra-fast (c.sendAtPending): opens and adds go out with the leader's order instead of at Vest's OK
-            cuEl('label', { id: 'ax4p-copy-ultra-row', class: 'cu-auto', title: 'On: your opens and adds go to the followers as your order goes out, about one round trip sooner. If Vest refuses your order, the followers are closed again.' }, [
-                cuEl('span', { text: 'Ultra-fast' }),
-                cuEl('input', { id: 'ax4p-copy-ultra', type: 'checkbox', 'aria-label': 'Ultra-fast', onchange: cuOnUltra })
-            ]),
-            cuEl('div', { id: 'ax4p-copy-ultra-hint', class: 'cu-mkhint', text: 'Opens and adds go out with your order, about one round trip sooner. If Vest refuses your order, the followers are closed again.' })
-        ]),
-        // the market selector: every market the leader trades (switch), or only the ones picked here
-        cuEl('div', { class: 'cu-mkbox' }, [
-            cuEl('div', { class: 'cu-mkhead' }, [
-                cuEl('div', { class: 'cu-lab', text: 'Markets' }),
-                (() => { const b = cuEl('button', { id: 'ax4p-copy-mk-add', type: 'button', class: 'cu-addmk', 'aria-haspopup': 'dialog', 'aria-expanded': 'false', title: 'Pick a market to copy', onclick: cuTogglePicker }); b.innerHTML = CU_PLUS; b.appendChild(cuEl('span', { text: 'Add' })); return b; })()
-            ]),
-            cuEl('label', { id: 'ax4p-copy-auto-row', class: 'cu-auto', title: 'On: every market the leader trades is added by itself. Off: only the markets listed here are copied.' }, [
-                cuEl('span', { text: 'Every market the leader trades' }),
-                cuEl('input', { id: 'ax4p-copy-auto', type: 'checkbox', checked: true, 'aria-label': 'Copy every market the leader trades', onchange: cuOnAuto })
-            ]),
-            cuEl('label', { id: 'ax4p-copy-mirror-row', class: 'cu-auto', title: 'On: the leader\'s resting limit orders are placed on the followers too. Off: only positions are copied.' }, [
-                cuEl('span', { text: 'Mirror limit orders (beta)' }),
-                cuEl('input', { id: 'ax4p-copy-mirror', type: 'checkbox', checked: true, 'aria-label': 'Mirror limit orders (beta)', onchange: cuOnMirror })
-            ]),
-            cuEl('div', { id: 'ax4p-copy-mirror-hint', class: 'cu-mkhint', text: 'Copies the leader\'s resting limit orders. Off: only positions are copied.' }),
-            cuEl('div', { id: 'ax4p-copy-markets', class: 'cu-mks' }),
-            cuEl('div', { id: 'ax4p-copy-mk-hint', class: 'cu-mkhint' })
+    // the rail: one card per group, New group, the opposite-sides switch, KILL
+    const rail = cuEl('div', { id: 'ax4p-copy-rail', class: 'cu-rail' }, [
+        cuEl('div', { class: 'cu-lab', text: 'Groups' }),
+        cuEl('div', { id: 'ax4p-copy-groups', class: 'cu-groups' }),
+        (() => { const b = cuEl('button', { id: 'ax4p-copy-gnew', type: 'button', class: 'cu-gnew', title: 'A new leader with followers of its own', onclick: cuOnNewGroup }); b.innerHTML = CU_PLUS; b.appendChild(cuEl('span', { text: 'New group' })); return b; })(),
+        cuEl('div', { class: 'cu-grow' }),
+        cuEl('label', { id: 'ax4p-copy-opp-row', class: 'cu-opp', title: CU_OPP_RULE }, [
+            cuEl('span', {}, [cuEl('b', { text: 'Allow opposite sides across groups' }), cuEl('small', { id: 'ax4p-copy-opp-hint', text: 'Off: a copy that would put an account against another group sits out. Vest\'s rules forbid opposite sides on Funded Accounts.' })]),
+            cuEl('input', { id: 'ax4p-copy-opp', type: 'checkbox', 'aria-label': 'Allow opposite sides across groups', onchange: cuOnOpp })
         ]),
         cuEl('button', { id: 'ax4p-copy-kill', type: 'button', class: 'ax4p-btn ax4p-copy-kill', 'data-hint': 'Alt+Shift+K', text: 'KILL', onclick: cuOnKill })
     ]);
 
-    // middle: the numbers, then every account of the user as a row, then the last copy
+    // the group: its letter, the leader and its line, the mode, the Copying switch
+    const seg = (id, label) => cuEl('button', { id: 'ax4p-copy-eng-' + id, type: 'button', title: CU_MODES[id].word + ': ' + CU_MODES[id].hint, text: label, onclick: () => cuOnEngine(id) });
+    const ghead = cuEl('div', { class: 'cu-ghead' }, [
+        cuEl('span', { id: 'ax4p-copy-gtag', class: 'cu-gtag', text: 'GROUP A' }),
+        cuEl('div', { class: 'cu-lead' }, [
+            cuEl('span', { class: 'cu-lab', text: 'Leader' }),
+            cuEl('select', { id: 'ax4p-copy-leader', class: 'ax4p-in', 'aria-label': 'Leader account', onchange: cuOnLeader })
+        ]),
+        // the leader's own position, live P&L, account value and today's P&L
+        cuEl('div', { id: 'ax4p-copy-lline', class: 'cu-lline' }, [
+            cuEl('div', { class: 'lr' }, [cuEl('span', { id: 'ax4p-copy-lpos', class: 'lp', text: '-' }), cuEl('span', { id: 'ax4p-copy-lpnl', class: 'pl na', text: '-' })]),
+            cuEl('div', { class: 'lr lr2' }, [cuEl('span', { id: 'ax4p-copy-lval', class: 'lp', text: '-' }), cuEl('span', {}, [cuEl('i', { text: 'Today' }), cuEl('b', { id: 'ax4p-copy-ltoday', class: 'pl na', text: '-' })])])
+        ]),
+        cuEl('div', { class: 'cu-grow' }),
+        // Light (no extra tabs), Turbo (one background tab per account) or Mint (where this build has it)
+        cuEl('div', { id: 'ax4p-copy-eng', class: 'cu-eng' }, [
+            cuEl('div', { id: 'ax4p-copy-eng-seg', class: 'cu-seg', role: 'group', 'aria-label': 'Mode' }, [seg('direct', 'Light'), seg('tabs', 'Turbo'), seg('mint', 'Mint')])
+        ]),
+        cuEl('div', { class: 'cu-master' }, [
+            cuEl('label', { class: 'cu-mrow' }, [
+                cuEl('span', {}, [cuEl('b', { text: 'Copying' }), cuEl('small', { id: 'ax4p-copy-stline', text: 'Off' })]),
+                cuEl('input', { id: 'ax4p-copy-master', type: 'checkbox', 'aria-label': 'Copying', onchange: cuOnMaster })
+            ])
+        ])
+    ]);
+    // the mode's hint, Ultra-fast and the order mirror
+    const opts = cuEl('div', { class: 'cu-opts' }, [
+        cuEl('div', { id: 'ax4p-copy-eng-hint', class: 'cu-mkhint' }),
+        cuEl('div', { class: 'cu-grow' }),
+        // Ultra-fast (c.sendAtPending): opens and adds go out with the leader's order instead of at Vest's OK
+        cuEl('label', { id: 'ax4p-copy-ultra-row', class: 'cu-auto', title: 'On: your opens and adds go to the followers as your order goes out, about one round trip sooner. If Vest refuses your order, the followers are closed again.' }, [
+            cuEl('span', { text: 'Ultra-fast' }),
+            cuEl('input', { id: 'ax4p-copy-ultra', type: 'checkbox', 'aria-label': 'Ultra-fast', onchange: cuOnUltra })
+        ]),
+        cuEl('span', { id: 'ax4p-copy-ultra-hint', class: 'cu-sr', text: 'Opens and adds go out with your order, about one round trip sooner. If Vest refuses your order, the followers are closed again.' }),
+        cuEl('label', { id: 'ax4p-copy-mirror-row', class: 'cu-auto', title: 'On: the leader\'s resting limit orders are placed on the followers too. Off: only positions are copied.' }, [
+            cuEl('span', { text: 'Mirror limit orders (beta)' }),
+            cuEl('input', { id: 'ax4p-copy-mirror', type: 'checkbox', checked: true, 'aria-label': 'Mirror limit orders (beta)', onchange: cuOnMirror })
+        ]),
+        cuEl('span', { id: 'ax4p-copy-mirror-hint', class: 'cu-sr', text: 'Copies the leader\'s resting limit orders. Off: only positions are copied.' })
+    ]);
+
+    // the numbers, then every account of the user as a row, the markets, the last copy and the support line
     const th = (cls, text) => cuEl('span', { class: cls, text });
+    const leadbar = cuEl('div', { id: 'ax4p-copy-leadbar', class: 'cu-leadbar', hidden: true }, [
+        cuEl('span', { id: 'ax4p-copy-leadbar-t', class: 't' }),
+        cuEl('button', { id: 'ax4p-copy-leadbar-open', type: 'button', class: 'cu-lbtn', text: 'Open its tab', title: 'Bring this group\'s leader tab to the front, or open it', onclick: () => cuOnShowLead(cuSel() || 'A') }),
+        cuEl('button', { id: 'ax4p-copy-leadbar-here', type: 'button', class: 'cu-lbtn', text: 'Switch this tab to the leader', onclick: cuOnSwitchHere }),
+        cuEl('div', { class: 'cu-grow' }),
+        cuEl('button', { id: 'ax4p-copy-gdel', type: 'button', class: 'cu-lbtn del', text: 'Remove group', hidden: true, onclick: cuOnDeleteGroup })
+    ]);
     const mid = cuEl('div', { class: 'cu-mid' }, [
+        ghead,
+        opts,
+        leadbar,
         cuEl('div', { class: 'cu-tiles' }, [
             cuEl('div', { class: 'cu-tile' }, [cuEl('div', { class: 'cu-lab', text: 'In sync' }), cuEl('b', { id: 'ax4p-copy-t-sync', text: '0 / 0' })]),
             cuEl('div', { class: 'cu-tile' }, [cuEl('div', { class: 'cu-lab', text: 'Latency' }), cuEl('b', { id: 'ax4p-copy-t-ms', class: 'dim', text: '-' })]),
@@ -19805,18 +22758,40 @@ function cuBuildPanel() {
             cuEl('div', { id: 'ax4p-copy-followers', class: 'cu-grid' }),
             cuEl('div', { id: 'ax4p-copy-fol-empty', class: 'cu-empty', hidden: true }, [cuEl('b', { id: 'ax4p-copy-fol-empty-t' }), cuEl('span', { id: 'ax4p-copy-fol-empty-s' })])
         ]),
+        // the market selector: every market the leader trades (switch), or only the ones picked here
+        cuEl('div', { class: 'cu-mkrow' }, [
+            cuEl('div', { class: 'cu-lab', text: 'Markets' }),
+            cuEl('div', { id: 'ax4p-copy-markets', class: 'cu-mks' }),
+            (() => { const b = cuEl('button', { id: 'ax4p-copy-mk-add', type: 'button', class: 'cu-addmk', 'aria-haspopup': 'dialog', 'aria-expanded': 'false', title: 'Pick a market to copy', onclick: cuTogglePicker }); b.innerHTML = CU_PLUS; b.appendChild(cuEl('span', { text: 'Add' })); return b; })(),
+            cuEl('div', { id: 'ax4p-copy-mk-hint', class: 'cu-mkhint' }),
+            cuEl('div', { class: 'cu-grow' }),
+            cuEl('label', { id: 'ax4p-copy-auto-row', class: 'cu-auto', title: 'On: every market the leader trades is added by itself. Off: only the markets listed here are copied.' }, [
+                cuEl('span', { text: 'Every market the leader trades' }),
+                cuEl('input', { id: 'ax4p-copy-auto', type: 'checkbox', checked: true, 'aria-label': 'Copy every market the leader trades', onchange: cuOnAuto })
+            ])
+        ]),
         cuEl('div', { id: 'ax4p-copy-last', class: 'cu-last none' }, [
             cuEl('span', { class: 'cu-lab', text: 'Last copy' }),
             cuEl('span', { id: 'ax4p-copy-last-l1', class: 'l1', text: 'Nothing yet' }),
             cuEl('span', { id: 'ax4p-copy-last-l2', class: 'l2' }),
             cuEl('span', { id: 'ax4p-copy-last-t', class: 't' })
+        ]),
+        // the support line (8.2: one line)
+        cuEl('div', { id: 'ax4p-copy-support', class: 'cu-support' }, [
+            cuSvg('cu-heart', CU_HEART),
+            cuEl('span', { class: 'cu-stitle', text: CU_SUPPORT_TITLE }),
+            cuEl('span', { class: 'cu-stext', text: CU_SUPPORT_TEXT }),
+            // the middle shortens by itself when the line is narrow; the whole address is in the text and the title
+            cuEl('div', { id: 'ax4p-copy-addr', class: 'cu-addr', title: CU_ADDR }, [cuEl('span', { class: 'hd', text: CU_ADDR.slice(0, -8) }), cuEl('span', { class: 'tl', text: CU_ADDR.slice(-8) })]),
+            cuEl('button', { id: 'ax4p-copy-copy', type: 'button', class: 'cu-copy', text: 'Copy', 'aria-label': 'Copy the wallet address', onclick: cuOnCopyAddr })
         ])
     ]);
 
-    // right: Log and Test tabs, then the support box
+    // the log column: Log and Test tabs, the filters, then the panes
     const tab = (id, label) => cuEl('button', { id: 'ax4p-copy-tab-' + id, type: 'button', class: 'tab' + (id === CU.tab ? ' on' : ''), text: label, onclick: () => cuSetTab(id) });
-    const right = cuEl('div', { class: 'cu-right' }, [
+    const right = cuEl('div', { id: 'ax4p-copy-right', class: 'cu-right' }, [
         cuEl('div', { class: 'cu-tabs' }, [tab('log', 'Log'), tab('test', 'Test'), cuEl('button', { id: 'ax4p-copy-export', type: 'button', class: 'ax4p-link', text: 'Export', title: 'Save the log as a JSON file', onclick: cuOnExport })]),
+        cuEl('div', { id: 'ax4p-copy-logf', class: 'cu-logf', role: 'group', 'aria-label': 'Which lines' }),
         cuEl('div', { id: 'ax4p-copy-pane-log', class: 'cu-pane' }, [cuEl('div', { id: 'ax4p-copy-log', class: 'ax4p-copy-log' })]),
         cuEl('div', { id: 'ax4p-copy-pane-test', class: 'cu-pane', hidden: true }, [
             cuEl('div', {}, [cuEl('span', { class: 'cu-tag', text: 'Real orders' })]),
@@ -19829,22 +22804,13 @@ function cuBuildPanel() {
             cuEl('div', { id: 'ax4p-copy-test-msg', class: 'cu-hint' }),
             cuEl('div', { id: 'ax4p-copy-steps' }),
             cuEl('div', { id: 'ax4p-copy-stats' })
-        ]),
-        cuEl('div', { id: 'ax4p-copy-support', class: 'cu-support' }, [
-            cuEl('div', { class: 'cu-lab' }, [cuEl('span', {}, [cuSvg('', CU_HEART), cuEl('span', { text: CU_SUPPORT_TITLE })]), cuEl('i', { text: 'EVM', title: 'EVM address' })]),
-            cuEl('p', { text: CU_SUPPORT_TEXT }),
-            cuEl('div', { class: 'cu-addrow' }, [
-                // the middle shortens by itself when the box is narrow; the whole address is in the text and the title
-                cuEl('div', { id: 'ax4p-copy-addr', class: 'cu-addr', title: CU_ADDR }, [cuEl('span', { class: 'hd', text: CU_ADDR.slice(0, -8) }), cuEl('span', { class: 'tl', text: CU_ADDR.slice(-8) })]),
-                cuEl('button', { id: 'ax4p-copy-copy', type: 'button', class: 'cu-copy', text: 'Copy', 'aria-label': 'Copy the wallet address', onclick: cuOnCopyAddr })
-            ])
         ])
     ]);
     const pick = cuEl('div', { id: 'ax4p-copy-picker', class: 'cu-pick', role: 'dialog', 'aria-label': 'Add a market' }, [
         cuEl('div', { class: 'ph' }, [cuEl('input', { id: 'ax4p-copy-mk-search', class: 'ax4p-in', type: 'text', placeholder: 'Search markets', autocomplete: 'off', spellcheck: 'false', 'aria-label': 'Search markets', oninput: cuOnPickInput, onkeydown: cuOnPickKey })]),
         cuEl('div', { id: 'ax4p-copy-mk-list', class: 'pl', role: 'listbox' })
     ]);
-    p.appendChild(cuEl('div', { class: 'cu-body' }, [left, mid, right, pick, cuEl('div', { id: 'ax4p-copy-ask', class: 'cu-ask' })]));
+    p.appendChild(cuEl('div', { id: 'ax4p-copy-body', class: 'cu-body' }, [rail, mid, right, pick, cuEl('div', { id: 'ax4p-copy-gdlg', class: 'cu-ask' }), cuEl('div', { id: 'ax4p-copy-ask', class: 'cu-ask' })]));
     document.body.appendChild(p);
     CU.panel = p;
     cuSetTab(CU.tab);
@@ -19966,12 +22932,13 @@ function cuOnResize() {
 
 // ---------- rendering (every function takes the model) ----------
 // The core has no change events: the tick below reads it again every second (the demo paints on its own, faster).
-// the first time, the active account becomes the leader
+// the first time, the active account becomes the leader (of the group the widget shows, when it has none and no other group holds the account)
 function cuLeaderDefault() {
-    const cfg = CU.demo ? null : cuCfg();
+    const cfg = CU.demo ? null : cuSelCfg();
     const act = cfg ? cuActive() : null;
     if (cfg && !cfg.leaderId && act && CU.leaderSet !== act) {
         CU.leaderSet = act;
+        if (cuHasGroups() && typeof cpSetLeader === 'function') { try { cpSetLeader(String(act), cuSel()); } catch (e) {} return; }
         cfg.leaderId = String(act);
         if (typeof cpSave === 'function') cpSave(cfg);
     }
@@ -19986,6 +22953,7 @@ function cuRender(model) {
     if (!m.cfg && !m.demo) { cuNote('The copy trader core is not loaded in this page.'); return; }
     cuFollowDock();
     cuPaintHead(m);
+    cuPaintRail(m);
     cuPaintLeft(m);
     cuPaintGrid(m);
     cuPaintLog(m);
@@ -20003,6 +22971,73 @@ function cuPaintHead(m) {
     cuText(n, CU.note || ov.note);
     n.className = 'cu-note' + (CU.note ? ' flash' : '');
     n.title = CU.note || ov.note;
+    // "2 groups · 4 followers" (one group: what it does)
+    const gs = m.groups || [];
+    const fol = gs.reduce((t, g) => t + (Number(g.on) || 0), 0);
+    cuText(cuById('ax4p-copy-subline'), gs.length > 1 ? gs.length + ' groups · ' + fol + (fol === 1 ? ' follower' : ' followers') : 'Mirror one account to the rest');
+    // the log column: the header's switch (8.2), off by default and remembered
+    const logOn = !!(m.root && m.root.logOn);
+    const sw = cuById('ax4p-copy-logsw');
+    if (document.activeElement !== sw) sw.checked = logOn;
+    cuById('ax4p-copy-body').setAttribute('data-log', logOn ? 'on' : 'off');
+    cuById('ax4p-copy-right').hidden = !logOn;
+    CU.panel.classList.toggle('logon', logOn);
+}
+
+// The rail: one card per group (its letter, the leader, how many follow, the mode, where it copies, its state and a sat-out line),
+// New group, the opposite-sides switch and KILL.
+function cuPaintRail(m) {
+    const box = cuById('ax4p-copy-groups');
+    const gs = m.groups || [];
+    const seen = {};
+    gs.forEach((g, i) => {
+        const key = g.id || '1';
+        seen[key] = 1;
+        let c = CU.gcards[key];
+        if (!c) {
+            const pick = () => cuOnGroupPick(g.id);
+            c = CU.gcards[key] = cuEl('div', { id: 'ax4p-copy-g-' + key, class: 'cu-gcard', role: 'button', tabindex: '0', onclick: pick, onkeydown: (e) => { if (e.key === 'Enter' || e.key === ' ') { if (e.preventDefault) e.preventDefault(); pick(); } } });
+            c._l = cuEl('span', { class: 'gl' });
+            c._n = cuEl('b', { class: 'gn' });
+            c._d = cuEl('span', { class: 'gd' });
+            c._w = cuEl('small', { class: 'gw' });
+            c._p = cuEl('small', { class: 'gp' });
+            c._s = cuEl('small', { class: 'gs' });
+            c._o = cuEl('button', { type: 'button', class: 'go', text: 'Open its tab', title: 'Bring this group\'s leader tab to the front', onclick: (e) => { if (e && e.stopPropagation) e.stopPropagation(); cuOnShowLead(g.id); } });
+            c.appendChild(cuEl('span', { class: 'g1' }, [c._l, c._n, c._d]));
+            c.appendChild(c._w);
+            c.appendChild(c._p);
+            c.appendChild(c._s);
+            c.appendChild(c._o);
+        }
+        const sel = !g.id || g.id === m.gid;
+        c.className = 'cu-gcard st-' + (g.state || 'off') + (sel ? ' sel' : '');
+        cuVar(c, '--cu-gc', cuGHue(g.id || 'A'));
+        c.setAttribute('aria-pressed', sel ? 'true' : 'false');
+        cuText(c._l, g.id || 'A');
+        cuText(c._n, g.leaderName || 'No leader yet');
+        const mode = CU_MODES[g.engine] ? CU_MODES[g.engine].word : 'Light';
+        cuText(c._w, (g.on || 0) + (g.on === 1 ? ' follower' : ' followers') + ' · ' + mode + ' · ' + (CU_WHERE[g.where || ''] || 'off'));
+        const lb = Array.isArray(g.leaderBook) ? g.leaderBook : null;
+        cuText(c._p, lb ? (lb.length ? lb.map((x) => [cuSideWord(x.side), cuQty(x.qty), cuSym(x.symbol)].filter(Boolean).join(' ')).join(', ') : 'Flat') : '');
+        cuText(c._s, g.sat || g.warn || '');
+        c._s.title = g.sat || g.warn || '';
+        c._d.title = CU_STATE_WORD[g.state] || 'OFF';
+        // its own tab can be brought up when the group's leader is not this tab's account
+        c._o.hidden = !(m.caps && m.caps.groups) || !g.id || !g.leaderId || g.where === 'here' || String(cuActive() || '') === g.leaderId;
+        if (box.children[i] !== c) box.insertBefore(c, box.children[i] || null);
+    });
+    Object.keys(CU.gcards).forEach((k) => { if (!seen[k]) { CU.gcards[k].remove(); delete CU.gcards[k]; } });
+    cuById('ax4p-copy-gnew').hidden = !(m.caps && m.caps.newGroup) && !m.demo;
+    const many = gs.length > 1;
+    const oppRow = cuById('ax4p-copy-opp-row');
+    oppRow.hidden = !((m.caps && m.caps.opposite) || m.demo) || !many;
+    const opp = cuById('ax4p-copy-opp');
+    if (document.activeElement !== opp) opp.checked = !!(m.root && m.root.allowOpposite);
+    const tag = cuById('ax4p-copy-gtag');
+    tag.hidden = !many;
+    cuText(tag, 'GROUP ' + (m.gid || 'A'));
+    cuVar(tag, '--cu-gc', cuGHue(m.gid || 'A'));
 }
 
 function cuPaintLeft(m) {
@@ -20012,7 +23047,8 @@ function cuPaintLeft(m) {
     master.disabled = ov.state === 'unavailable' && !ov.running;
     const sl = cuById('ax4p-copy-stline');
     // no order ticket on the page (a menu, the portfolio) is not the same as Vest having changed
-    const text = ov.state === 'unavailable' ? (/trade page/i.test(ov.note) ? 'Open a trade page' : 'Vest changed') : ov.killed ? 'Killed' : ov.state === 'starting' ? 'Starting' : ov.running ? 'On' : m.followers.length ? 'Off' : 'Switch an account on';
+    const text = ov.state === 'unavailable' ? (/trade page/i.test(ov.note) ? 'Open a trade page' : 'Vest changed') : ov.killed ? 'Killed' : ov.state === 'starting' ? 'Starting'
+        : ov.running ? (ov.elsewhere ? 'On in its own tab' : 'On') : !m.leaderId ? 'Pick a leader' : m.followers.length ? 'Off' : 'Switch an account on';
     cuText(sl, text);
     sl.className = ov.state === 'unavailable' || ov.killed ? 'bad' : ov.running ? 'on' : '';
     sl.title = ov.state === 'unavailable' ? ov.note : '';
@@ -20022,11 +23058,18 @@ function cuPaintLeft(m) {
     const focused = (id) => !!(ae && ae === cuById(id));
     const sel = cuById('ax4p-copy-leader');
     sel.disabled = ov.running;
-    const lsig = JSON.stringify([m.accounts.map((a) => [a.id, a.name, a.kind, a.size]), m.leaderId]);
+    // an account another group holds is not offered as this group's leader (8.2)
+    const taken = {};
+    (m.rows || []).forEach((r) => { if (r.taken) taken[r.accountId] = r.taken; });
+    const lsig = JSON.stringify([m.accounts.map((a) => [a.id, a.name, a.kind, a.size]), m.leaderId, taken]);
     if (lsig !== CU.sig.leader && !focused('ax4p-copy-leader')) {
         CU.sig.leader = lsig;
         sel.textContent = '';
-        m.accounts.forEach((a) => sel.appendChild(cuEl('option', { value: a.id, text: a.name || a.id })));
+        m.accounts.forEach((a) => {
+            const tk = taken[String(a.id)];
+            sel.appendChild(cuEl('option', { value: a.id, text: (a.name || a.id) + (tk ? (tk.role === 'leader' ? ' (leads ' + tk.gid + ')' : ' (in ' + tk.gid + ', moves here)') : ''), disabled: !!tk && tk.role === 'leader' }));
+        });
+        if (!m.leaderId) sel.insertBefore(cuEl('option', { value: '', text: 'Pick the leader', disabled: true }), sel.firstChild);
         sel.value = m.leaderId || '';
     }
 
@@ -20037,49 +23080,121 @@ function cuPaintLeft(m) {
     cuText(ms, cuMs(ov.lastMs));
     ms.className = ov.lastMs == null ? 'dim' : '';
 
+    cuPaintLeadBar(m);
     cuPaintEngine(m);
     cuPaintPnl(m);
     cuPaintLast(m.last);
     cuPaintMarkets(m);
     cuPaintPicker(m);
     const kill = cuById('ax4p-copy-kill');
-    cuText(kill, ov.killed ? 'FLATTEN FOLLOWERS' : 'KILL');
+    const many = (m.groups || []).length > 1;
+    cuText(kill, ov.killed ? 'FLATTEN FOLLOWERS' : many ? 'KILL ALL' : 'KILL');
     kill.setAttribute('data-hint', ov.killed ? '' : 'Alt+Shift+K');
+    kill.title = many ? 'Stops every group. Press again within 5 s to close every group\'s followers.' : 'Stops copying. Press again within 5 s to close the followers\' positions.';
 }
 
-// Turbo or Light. The buttons stay clickable while copying runs (a click then says why nothing changes); the core is asked otherwise.
+// 8.2 round 2: when this tab is not on the group's leader, one plain line says what Copying on does, with "Open its tab" and "Switch this tab
+// to <leader>" (Vest's own account menu, through the suite). Remove group sits at its end while there is more than one group.
+function cuPaintLeadBar(m) {
+    const bar = cuById('ax4p-copy-leadbar');
+    if (!bar) return;
+    const ov = m.overall;
+    const g = m.gid || 'A';
+    const ln = m.leaderName || (m.leaderId ? cuName(m.leaderId) : '');
+    const away = !!m.leaderId && !m.here && !!(m.caps && m.caps.groups);
+    let text = '';
+    if (away) text = ov.running ? 'Group ' + g + ' copies in its own tab, on ' + ln + '. Trade group ' + g + ' there.'
+        : 'Group ' + g + ' copies from ' + ln + '. Switching it on opens ' + ln + ' in its own tab in the Better Vest tab group; trade group ' + g + ' there.';
+    else if (!m.leaderId && m.caps && m.caps.groups) text = 'Pick this group\'s leader: the account you trade, whose trades the followers copy.';
+    // a group that copies in this tab keeps the tab on its leader: switching away would stop it
+    const busy = (m.groups || []).find((x) => x && x.where === 'here' && x.id !== g);
+    if (away && !ov.running && busy) text += ' This tab copies group ' + busy.id + ', so it stays on ' + (busy.leaderName || cuName(busy.leaderId)) + '.';
+    cuText(cuById('ax4p-copy-leadbar-t'), text);
+    const open = cuById('ax4p-copy-leadbar-open'), here = cuById('ax4p-copy-leadbar-here');
+    open.hidden = !away;
+    here.hidden = !away || ov.running || !!busy;
+    cuText(here, 'Switch this tab to ' + (ln || 'the leader'));
+    here.title = 'Switches this tab to ' + (ln || 'the leader') + ' through Vest\'s own account menu. Group ' + g + ' then copies from this tab.';
+    const del = cuById('ax4p-copy-gdel');
+    const many = (m.groups || []).length > 1;
+    del.hidden = !many;
+    cuText(del, 'Remove group ' + g);
+    del.disabled = !!ov.running;
+    del.title = ov.running ? 'Switch group ' + g + '\'s copying off first.' : 'Removes group ' + g + '. Its accounts become free; nothing is sent.';
+    bar.hidden = !text && !many;
+    bar.classList.toggle('bare', !text); // only Remove group: no box around it
+}
+async function cuOnSwitchHere() {
+    const m = cuCurrent();
+    if (m.demo) { cuNote('This is the demo. Nothing is switched.'); return; }
+    if (!m.leaderId) return;
+    const busy = (m.groups || []).find((x) => x && x.where === 'here' && x.id !== m.gid);
+    if (busy) { cuNote('This tab copies group ' + busy.id + ': switch group ' + busy.id + ' off first, or trade group ' + m.gid + ' in its own tab.'); return; }
+    cuLog('you', () => 'pressed Switch this tab to ' + cuName(m.leaderId) + ' (group ' + m.gid + ')', { control: 'switch-here', group: m.gid, acc: m.leaderId });
+    let su = null;
+    try { su = typeof cpSuite === 'function' ? cpSuite() : null; } catch (e) {}
+    if (!su || typeof su.switchAccount !== 'function') { cuNote('Switch to ' + cuName(m.leaderId) + ' in Vest\'s own account menu.'); return; }
+    cuNote('Switching this tab to ' + cuName(m.leaderId) + '...');
+    let r = null;
+    try { r = await su.switchAccount(m.leaderId); } catch (e) { r = { ok: false, why: cuMsg(e) }; }
+    cuNote(r && r.ok ? 'This tab is on ' + cuName(m.leaderId) + ' now: group ' + m.gid + ' copies from here.' : 'Could not switch: ' + ((r && r.why) || 'Vest did not switch') + '.');
+    CU.sig.leader = '';
+    cuRender();
+}
+async function cuOnDeleteGroup() {
+    const m = cuCurrent();
+    const g = m.gid;
+    if (!g || (!m.demo && typeof cpDeleteGroup !== 'function')) return;
+    const yes = await cuAsk('Group ' + g + ' and its settings go away. Its leader and followers become free accounts. Nothing is sent and no position is touched.', 'Remove group ' + g, 'Remove group ' + g + '?');
+    if (!yes) return;
+    if (m.demo) { cuNote('This is the demo. Nothing is changed.'); return; }
+    let r = null;
+    try { r = cpDeleteGroup(g); } catch (e) { r = { ok: false, why: cuMsg(e) }; }
+    cuLog('you', () => 'Remove group ' + g + ': ' + (r && r.ok ? 'done' : 'refused (' + (r && r.why) + ')'), { control: 'delete-group', group: g, ok: !!(r && r.ok) });
+    if (!r || !r.ok) { cuNote((r && r.why) || 'Could not remove the group.'); return; }
+    CU.gsel = '';
+    CU.sig.leader = '';
+    cuNote('Group ' + g + ' removed.');
+    cuRender();
+}
+
+// Light, Turbo or Mint. The buttons stay clickable while copying runs (a click then says why nothing changes); the core is asked otherwise.
 function cuPaintEngine(m) {
     const box = cuById('ax4p-copy-eng');
     box.hidden = !m.caps.engine;
     const ov = m.overall;
     // 8.0.4: Turbo is switched off for now (CP.turboOff in the core): its button stays, dimmed, and says why
     const turboOff = typeof CP !== 'undefined' && !!CP.turboOff;
+    const mint = m.caps && m.caps.mint;
     Object.keys(CU_MODES).forEach((id) => {
         const b = cuById('ax4p-copy-eng-' + id);
+        if (!b) return;
         const on = ov.engine === id;
         const off = id === 'tabs' && turboOff;
+        b.hidden = id === 'mint' && !mint;
         b.className = (on ? 'on' : '') + (off ? ' off' : '');
-        b.title = off ? CP_TURBO_OFF_WHY : CU_MODES[id].word + ': ' + CU_MODES[id].hint;
+        b.title = off ? CP_TURBO_OFF_WHY : id === 'mint' && mint ? 'Mint: ' + mint.hint + (mint.credit ? ' ' + mint.credit : '') : CU_MODES[id].word + ': ' + CU_MODES[id].hint;
         b.setAttribute('aria-pressed', on ? 'true' : 'false');
         b.setAttribute('aria-disabled', ov.running || off ? 'true' : 'false');
     });
-    cuById('ax4p-copy-eng-seg').className = 'cu-seg' + (ov.running ? ' locked' : '');
-    cuText(cuById('ax4p-copy-eng-hint'), CU_MODES[ov.engine].hint + (turboOff && ov.engine === 'direct' ? ' Turbo is off for now.' : ''));
+    cuById('ax4p-copy-eng-seg').className = 'cu-seg' + (ov.running ? ' locked' : '') + (mint ? ' three' : '');
+    const hint = ov.engine === 'mint' && mint ? mint.hint + (mint.credit ? ' ' + mint.credit : '') : CU_MODES[ov.engine].hint;
+    cuText(cuById('ax4p-copy-eng-hint'), hint + (turboOff && ov.engine === 'direct' ? ' Turbo is off for now.' : ''));
     const uw = cuById('ax4p-copy-ultra');
     const hasUltra = typeof cpSetUltraFast === 'function' && !CU.demo;
     cuById('ax4p-copy-ultra-row').hidden = !hasUltra;
     cuById('ax4p-copy-ultra-hint').hidden = !hasUltra;
-    if (hasUltra && document.activeElement !== uw) { try { uw.checked = cpUltraFastOn(); } catch (e) {} }
+    if (hasUltra && document.activeElement !== uw) { try { uw.checked = m.gid ? cpUltraFastOn(m.gid) : cpUltraFastOn(); } catch (e) {} }
 }
-function cuOnEngine(id) {
+async function cuOnEngine(id) {
     const m = cuCurrent();
     if (m.overall.engine === id) return;
     if (m.overall.running) { cuNote('Switch copying off to change the mode.'); return; }
     if (CU.demo) { cuDemoAct('engine', id); return; }
     if (typeof cpSetEngine !== 'function') return;
-    cuLog('you', 'mode changed to ' + (CU_MODES[id] ? CU_MODES[id].word : id), { control: 'engine', engine: id });
+    cuLog('you', 'mode changed to ' + (CU_MODES[id] ? CU_MODES[id].word : id), { control: 'engine', engine: id, group: m.gid });
     let r = null;
-    try { r = cpSetEngine(id); } catch (e) { r = { ok: false, why: cuMsg(e) }; }
+    try { r = m.gid ? cpSetEngine(id, m.gid) : cpSetEngine(id); } catch (e) { r = { ok: false, why: cuMsg(e) }; }
     if (r === false || (r && r.ok === false)) cuNote((r && r.why) || 'Could not change the mode.');
     else cuNote('');
     cuRender();
@@ -20150,7 +23265,7 @@ function cuPaintMarkets(m) {
         const has = typeof cpSetMirrorLimits === 'function' && !CU.demo;
         cuById('ax4p-copy-mirror-row').hidden = !has;
         cuById('ax4p-copy-mirror-hint').hidden = !has;
-        if (has && document.activeElement !== mw) { try { mw.checked = cpMirrorOn(); } catch (e) {} }
+        if (has && document.activeElement !== mw) { try { mw.checked = m.gid ? cpMirrorOn(m.gid) : cpMirrorOn(); } catch (e) {} }
     }
     cuById('ax4p-copy-mk-add').hidden = !m.caps.add;
     if (document.activeElement !== sw) sw.checked = auto;
@@ -20278,12 +23393,19 @@ function cuBuildFol(f) {
 
 function cuPaintFol(card, f) {
     const p = card._p, ae = document.activeElement;
-    card.className = 'cu-fol st-' + f.state;
-    card.title = f.name + (f.kind ? ' \u00b7 ' + f.kind : '');
+    // in another group (8.2): its chip names the group. Another group's leader is locked; an account that copies in another group can be
+    // switched on here, which moves it (round 2)
+    const tk = f.taken;
+    const lockd = !!tk && tk.role === 'leader';
+    card.className = 'cu-fol st-' + f.state + (tk ? ' taken' : '') + (lockd ? ' locked' : '');
+    card.title = f.name + (f.kind ? ' \u00b7 ' + f.kind : '') + (tk ? ' \u00b7 ' + (lockd ? 'leads group ' + tk.gid : 'copies in group ' + tk.gid + ': switch it on here to move it') : '');
     card.setAttribute('data-kind', f.kind || '');
     cuText(p.n, f.name);
     cuText(p.k, CU_KIND_TAG[f.kind] || '');
     p.on.checked = f.on;
+    p.on.disabled = lockd;
+    p.on.title = lockd ? f.name + ' leads group ' + tk.gid : tk ? 'Move ' + f.name + ' from group ' + tk.gid + ' to this group' : '';
+    p.ratio.disabled = lockd;
     if (ae !== p.ratio) p.ratio.value = String(f.ratio);
     // what it holds and the live P&L on it (a flat account says Flat and shows no P&L)
     const pv = cuPosView(f.info);
@@ -20305,6 +23427,16 @@ function cuPaintFol(card, f) {
     p.td.title = f.today == null ? 'Today\'s P&L is not known' : 'Today ' + cuUsd(f.today, { sign: true, dp: 2 });
     const prev = CU.st[f.accountId];
     CU.st[f.accountId] = CU.live[f.accountId] = f.state;
+    if (tk) {
+        cuText(p.chip, (tk.role === 'leader' ? 'leads ' : 'in ') + tk.gid);
+        p.chip.className = 'cu-chip grp';
+        cuVar(p.chip, '--c', cuGHue(tk.gid));
+        p.chip.title = lockd ? f.name + ' leads group ' + tk.gid + '. A group\'s leader copies to no other group.' : f.name + ' copies in group ' + tk.gid + '. Switch it on here to move it to this group.';
+        p.chip.setAttribute('role', 'status');
+        p.chip.setAttribute('tabindex', '-1');
+        return;
+    }
+    cuVar(p.chip, '--c', '');
     cuText(p.chip, CU_CHIP_WORD[f.state]);
     p.chip.className = 'cu-chip ' + f.state + cuFreshCls(p.chip);
     p.chip.title = cuChipTitle(f);
@@ -20341,7 +23473,8 @@ function cuPaintGrid(m) {
     });
     const on = m.followers.length;
     const count = cuById('ax4p-copy-count');
-    cuText(count, on + ' / ' + CU_MAX_FOLLOWERS + ' on');
+    const tk = m.rows.filter((r) => r.taken).length;
+    cuText(count, on + ' / ' + CU_MAX_FOLLOWERS + ' on' + (tk ? ' \u00b7 ' + tk + ' in other groups (switch one on to move it here)' : ''));
     count.title = 'Up to ' + CU_MAX_FOLLOWERS + ' accounts can copy at once';
     const empty = cuById('ax4p-copy-fol-empty');
     empty.hidden = m.rows.length > 0;
@@ -20408,27 +23541,52 @@ function cuLogRow(r) {
     else if (r.type === 'drift') { what = r.note || 'out of sync'; res = 'retry'; }
     else if (r.type === 'error') { what = r.note || 'error'; res = 'ERR'; }
     else if (r.type === 'testrun') { what = 'test run ' + cuSym(r.symbol); res = r.ok ? 'ok' : 'ERR'; }
+    else if (r.type === 'warn') { what = r.why || r.note || 'warning'; res = 'warn'; } // 8.2: a sit-out for opposite sides, the leader's own trade warned about
     else { what = [r.type, r.note || cuSym(r.symbol)].filter(Boolean).join(' '); }
     return { time, acc: r.acc ? cuLogAcc(r.acc) : '', lead: !!(r.acc && CU.leaderId && String(r.acc) === String(CU.leaderId)), full: r.acc ? cuName(r.acc) : '', what, ms: r.ms != null ? Math.round(r.ms) + 'ms' : '', res, tip: r.result && r.result !== 'ok' ? r.result : (r.why || '') };
 }
+// The log's filters (8.2): All, Issues, and one per group when there are several.
+function cuPaintLogF(m) {
+    const box = cuById('ax4p-copy-logf');
+    if (!box) return;
+    const gs = (m.groups || []).filter((g) => g.id);
+    const keys = ['all', 'issues'].concat(gs.length > 1 ? gs.map((g) => g.id) : []);
+    if (keys.indexOf(CU.logF) < 0) CU.logF = 'all';
+    const sig = keys.join(',') + '|' + CU.logF;
+    if (sig === CU.sig.logf) return;
+    CU.sig.logf = sig;
+    box.textContent = '';
+    keys.forEach((k) => {
+        const b = cuEl('button', { id: 'ax4p-copy-logf-' + k, type: 'button', class: 'cu-lf' + (k === CU.logF ? ' on' : ''), text: k === 'all' ? 'All' : k === 'issues' ? 'Issues' : 'Group ' + k, onclick: () => { CU.logF = k; CU.sig.log = ''; cuRender(); } });
+        if (k.length === 1) cuVar(b, '--cu-gc', cuGHue(k));
+        b.setAttribute('aria-pressed', k === CU.logF ? 'true' : 'false');
+        box.appendChild(b);
+    });
+}
+const cuLogBad = (r) => r && (r.type === 'error' || r.type === 'pause' || r.type === 'desync' || r.type === 'warn' || r.type === 'refused' || r.type === 'drift' || r.type === 'alert' || (r.type === 'action' && r.ok === false));
 function cuPaintLog(m) {
     const box = cuById('ax4p-copy-log');
     if (!box) return;
+    cuPaintLogF(m);
     CU.leaderId = m.leaderId;
     CU.shortOf = {};
     m.rows.forEach((f) => { CU.shortOf[f.accountId] = f.short; });
     const all = m.log || [];
-    const sig = all.length + ':' + (all.length ? all[all.length - 1].t + ':' + all[0].t : '');
+    const sig = all.length + ':' + (all.length ? all[all.length - 1].t + ':' + all[0].t : '') + '|' + CU.logF;
     if (sig === CU.sig.log) return;
     CU.sig.log = sig;
-    const rows = all.slice(-40).reverse();
+    const many = (m.groups || []).filter((g) => g.id).length > 1;
+    const pick = CU.logF === 'issues' ? cuLogBad : CU.logF.length === 1 ? (r) => r && r.g === CU.logF : null;
+    const rows = (pick ? all.filter(pick) : all).slice(-40).reverse();
     box.textContent = '';
     if (!rows.length) { box.appendChild(cuEl('div', { class: 'empty', text: 'Nothing yet.' })); return; }
     rows.forEach((r) => {
         const x = cuLogRow(r);
-        box.appendChild(cuEl('div', { class: 'r ' + (x.lead ? 'lead ' : '') + (x.res === 'ERR' ? 'bad' : x.res === 'held' || x.res === 'retry' ? 'warn' : x.res ? '' : 'info') }, [
+        const tag = many && r.g ? cuEl('i', { class: 'g', text: r.g }) : null;
+        if (tag) cuVar(tag, '--cu-gc', cuGHue(r.g));
+        box.appendChild(cuEl('div', { class: 'r ' + (x.lead ? 'lead ' : '') + (x.res === 'ERR' ? 'bad' : x.res === 'held' || x.res === 'retry' || x.res === 'warn' ? 'warn' : x.res ? '' : 'info') }, [
             cuEl('span', { class: 't', text: x.time }),
-            cuEl('span', { class: 'w', title: (x.full ? x.full + ': ' : '') + x.what + (x.tip ? ' (' + x.tip + ')' : '') }, [x.acc ? cuEl('i', { text: x.acc }) : null, x.what]),
+            cuEl('span', { class: 'w', title: (r.g ? 'Group ' + r.g + ' · ' : '') + (x.full ? x.full + ': ' : '') + x.what + (x.tip ? ' (' + x.tip + ')' : '') }, [tag, x.acc ? cuEl('i', { text: x.acc }) : null, x.what]),
             cuEl('span', { class: 'm', text: x.ms }),
             cuEl('span', { class: 's', text: x.res, title: x.tip })
         ]));
@@ -20476,6 +23634,8 @@ function cuBuildSub() {
     grip.title = 'Drag to move. Double-click to put it back under the dock.';
     const sd = cuEl('div', { id: 'ax4p-copy-subdock', role: 'group', 'aria-label': 'Copy trader status', title: 'Open the copy trader' }, [
         grip,
+        // 8.2: one segment per group (its letter, its state, n/m in sync) when there are several; the chips are the shown group's
+        cuEl('div', { id: 'ax4p-copy-sd-groups', class: 'sd-groups', hidden: true }),
         cuEl('div', { class: 'sd-ov' }, [
             cuEl('span', { id: 'ax4p-copy-sd-dot', class: 'sd-dot' }),
             cuEl('span', { id: 'ax4p-copy-sd-word', class: 'sd-word', text: 'OFF' }),
@@ -20499,14 +23659,16 @@ function cuBuildSub() {
 
 function cuPaintSub(m) {
     const ov = m.overall;
-    // whenever copying is on or at least one follower is set up
-    const show = m.demo || ov.running || m.followers.length > 0;
+    const gs = (m.groups || []).filter((g) => g.id);
+    // whenever copying is on or at least one follower is set up (8.2: in any group)
+    const show = m.demo || ov.running || m.followers.length > 0 || gs.some((g) => g.on > 0 || g.where);
     if (!show) { if (CU.sub) CU.sub.classList.remove('open'); return; }
     // the first tick runs at document_start, before there is a body to hang the bar on: the next tick builds it
     if (!CU.sub && !document.body) return;
     const sd = CU.sub || cuBuildSub();
     sd.classList.add('open');
     sd.setAttribute('data-state', ov.state);
+    cuPaintSubGroups(m, gs);
     cuText(cuById('ax4p-copy-sd-word'), cuWord(ov, true));
     const sync = cuById('ax4p-copy-sd-sync');
     sync.textContent = '';
@@ -20561,6 +23723,26 @@ function cuPaintSub(m) {
         delete CU.subChips[id];
     });
     cuSubPlace(false);
+}
+
+function cuPaintSubGroups(m, gs) {
+    const box = cuById('ax4p-copy-sd-groups');
+    if (!box) return;
+    const many = gs.length > 1;
+    box.hidden = !many;
+    const sig = many ? JSON.stringify(gs.map((g) => [g.id, g.state, g.inSync, g.on, g.where, g.id === m.gid])) : '';
+    if (sig === CU.sig.sdg) return;
+    CU.sig.sdg = sig;
+    box.textContent = '';
+    if (!many) return;
+    gs.forEach((g) => {
+        const b = cuEl('button', { id: 'ax4p-copy-sd-g-' + g.id, type: 'button', class: 'sd-g st-' + (g.state || 'off') + (g.id === m.gid ? ' sel' : ''), title: 'Group ' + g.id + ' · ' + (g.leaderName || 'no leader') + ' · ' + (CU_STATE_WORD[g.state] || 'OFF') + ' · ' + (CU_WHERE[g.where || ''] || 'off'),
+            onclick: (e) => { if (e && e.stopPropagation) e.stopPropagation(); cuOnGroupPick(g.id); cuOpen(); } }, [
+            cuEl('i', { text: g.id }), cuEl('span', { class: 'd' }), cuEl('b', { text: g.where ? g.inSync + '/' + g.on : 'off' }) // off: "0/2" read as two followers out of sync
+        ]);
+        cuVar(b, '--cu-gc', cuGHue(g.id));
+        box.appendChild(b);
+    });
 }
 
 function cuOnSubChip(id) {
@@ -20828,11 +24010,13 @@ async function cuOnMaster(e) {
     // What the click asked for, read now: the repaint ticks the box back to the saved value while a question is open
     const want = !!box.checked;
     if (CU.demo) { cuDemoAct('master', want); return; }
-    const cfg = cuCfg();
+    const cfg = cuSelCfg();
     if (!cfg) return;
-    cuLog('you', 'Copying switch turned ' + (want ? 'ON' : 'OFF'), { control: 'master', on: want });
+    const gid = cuSel();
+    cuLog('you', 'Copying switch turned ' + (want ? 'ON' : 'OFF') + (gid ? ' for group ' + gid : ''), { control: 'master', on: want, group: gid });
     if (!want) {
-        if (typeof cpStop === 'function') await cpStop('master switch');
+        if (gid && typeof cpStopGroup === 'function') await cpStopGroup(gid);
+        else if (typeof cpStop === 'function') await cpStop('master switch');
         cuNote('');
         cuRender();
         return;
@@ -20857,18 +24041,48 @@ async function cuSwitchOn(box, cfg) {
         if (!yes) { box.checked = false; cuRender(); return; }
         if (typeof cpAck === 'function') cpAck();
     }
-    if (!(await cuPreviewGate(null, 'Copying'))) { box.checked = false; cuRender(); return; }
+    const gid = cuSel();
+    // an engine with a risk note of its own (8.2: Mint) asks it once per version, before that group starts on it
+    let eack = null;
+    try { eack = typeof cpEngineAck === 'function' && typeof cpEngineId === 'function' ? cpEngineAck(cpEngineId(cfg)) : null; } catch (x) {}
+    if (eack) {
+        const yes = await cuAsk(eack.text, 'I understand, switch it on', 'Before you copy with ' + ((CU_MODES[eack.id] && CU_MODES[eack.id].word) || eack.id));
+        cuLog('you', 'engine risk note (' + eack.id + '): ' + (yes ? 'accepted' : 'declined'), { control: 'engine-ack', yes, engine: eack.id });
+        if (!yes) { box.checked = false; cuRender(); return; }
+        if (typeof cpEngineAckDone === 'function') cpEngineAckDone(eack.id);
+    }
+    // 8.2: a group whose leader is not this tab's account copies from its own tab (the core opens it): no preview from here
+    const remote = !!gid && typeof cpStartGroup === 'function' && String(cuActive() || '') !== String(cfg.leaderId);
+    if (!remote && !(await cuPreviewGate(null, 'Copying'))) { box.checked = false; cuRender(); return; }
     cuNote('');
     let ok = false;
-    try { ok = typeof cpStart === 'function' ? await cpStart() : false; } catch (x) { cuNote('Could not start: ' + cuMsg(x)); }
+    try {
+        if (gid && typeof cpStartGroup === 'function') {
+            const r = await cpStartGroup(gid);
+            ok = !!(r && r.ok);
+            if (!ok && r && r.why) cuNote(r.why);
+            if (ok && r.where === 'opening') cuNote('Group ' + gid + ' copies from its own tab on ' + cuName(cfg.leaderId) + ': opening it now.');
+            else if (ok && r.where === 'tab') cuNote('Group ' + gid + ' copies in the tab that is on ' + cuName(cfg.leaderId) + '.');
+        } else ok = typeof cpStart === 'function' ? await cpStart() : false;
+    } catch (x) { cuNote('Could not start: ' + cuMsg(x)); }
     if (!ok) { box.checked = false; if (!CU.note) cuNote('Copying did not start. The log says why.'); }
     cuRender();
 }
 function cuOnLeader(e) {
     if (CU.demo) { cuDemoAct('locked'); return; }
-    const cfg = cuCfg();
-    if (!cfg || cuOverall().running) return;
+    const cfg = cuSelCfg();
+    const gid = cuSel();
+    if (!cfg || cuOverall(gid).running) return;
     const id = e.target.value;
+    if (gid && typeof cpSetLeader === 'function') {
+        cuLog('you', () => 'group ' + gid + ' leader changed ' + (cfg.leaderId ? cuName(cfg.leaderId) : 'none') + ' -> ' + cuName(id), () => ({ control: 'leader', from: cfg.leaderId, to: String(id), group: gid }));
+        let r = null;
+        try { r = cpSetLeader(String(id), gid); } catch (x) { r = { ok: false, why: cuMsg(x) }; }
+        if (r && r.ok === false) { cuNote(r.why || 'Could not change the leader.'); e.target.value = cfg.leaderId || ''; }
+        else cuNote(r && r.moved ? cuName(id) + ' left group ' + r.moved + ' to lead group ' + gid + '.' : '');
+        cuRender();
+        return;
+    }
     cuLog('you', () => 'leader changed ' + (cfg.leaderId ? cuName(cfg.leaderId) : 'none') + ' -> ' + cuName(id), () => ({ control: 'leader', from: cfg.leaderId, to: String(id) }));
     cfg.leaderId = String(id);
     cfg.resume = null;
@@ -20880,6 +24094,7 @@ function cuOnLeader(e) {
 async function cuOnFollowerOn(id, box) {
     const want = !!box.checked;
     if (CU.demo) { cuDemoAct('follower', id, want); return; }
+    const gid = cuSel();
     cuLog('you', () => cuName(id) + ' switched ' + (want ? 'ON' : 'OFF') + ' as a follower', { control: 'follower', acc: id, on: want });
     cuNote('');
     if (want && cuOnCount(id) >= CU_MAX_FOLLOWERS) {
@@ -20888,8 +24103,8 @@ async function cuOnFollowerOn(id, box) {
         cuRender();
         return;
     }
-    // switching one on while copying runs sends orders to it at once: what they are is asked first
-    if (want && cuOverall().running) {
+    // switching one on while copying runs sends orders to it at once: what they are is asked first (this tab's own group only)
+    if (want && cuOverall(gid).running && !cuOverall(gid).elsewhere) {
         if (!(await cuPreviewGate([id], cuName(id)))) { box.checked = false; cuRender(); return; }
     }
     if (!cuEditFollower(id, { on: want })) box.checked = !want;
@@ -20913,7 +24128,7 @@ function cuOnRatio(id, n, box) {
     cuNote('');
     if (box) box.value = String(n);
     if (CU.demo) { cuDemoAct('ratio', id, n); return; }
-    cuLog('you', () => cuName(id) + ' ratio set to ' + n, { control: 'ratio', acc: id, ratio: n });
+    cuLog('you', () => cuName(id) + ' ratio set to ' + n, { control: 'ratio', acc: id, ratio: n, group: cuSel() });
     cuEditFollower(id, { ratio: n });
     cuRender();
 }
@@ -20921,9 +24136,10 @@ function cuOnForget(sym) {
     if (CU.demo) { cuDemoAct('forget', sym); return; }
     cuLog('you', 'market ' + sym + ' removed from the copied markets', { control: 'forget', market: sym });
     let r = null;
-    try { r = typeof cpForgetMarket === 'function' ? cpForgetMarket(sym) : null; } catch (e) { r = { ok: false, why: cuMsg(e) }; }
+    const gid = cuSel();
+    try { r = typeof cpForgetMarket === 'function' ? (gid ? cpForgetMarket(sym, gid) : cpForgetMarket(sym)) : null; } catch (e) { r = { ok: false, why: cuMsg(e) }; }
     if (r && r.ok === false) cuNote(r.why || 'Could not forget ' + sym + '.');
-    else cuNote(cuOverall().autoMarkets ? '' : cuSym(sym) + ' removed. Followers keep what they hold there.');
+    else cuNote(cuOverall(gid).autoMarkets ? '' : cuSym(sym) + ' removed. Followers keep what they hold there.');
     cuRender();
 }
 function cuOnAuto(e) {
@@ -20931,28 +24147,28 @@ function cuOnAuto(e) {
     if (CU.demo) { cuDemoAct('auto', want); return; }
     if (typeof cpSetAutoMarkets !== 'function') return;
     cuLog('you', 'Every market the leader trades switched ' + (want ? 'ON' : 'OFF'), { control: 'auto-markets', on: want });
-    try { cpSetAutoMarkets(want); cuNote(''); } catch (x) { cuNote('Could not change that: ' + cuMsg(x)); }
+    try { if (cuSel()) cpSetAutoMarkets(want, cuSel()); else cpSetAutoMarkets(want); cuNote(''); } catch (x) { cuNote('Could not change that: ' + cuMsg(x)); }
     cuRender();
 }
 function cuOnUltra(e) {
     const want = !!e.target.checked;
     if (CU.demo || typeof cpSetUltraFast !== 'function') return;
     cuLog('you', 'Ultra-fast switched ' + (want ? 'ON' : 'OFF'), { control: 'ultra-fast', on: want });
-    try { cpSetUltraFast(want); cuNote(want ? 'Ultra-fast is on: opens and adds go out with your order.' : ''); } catch (x) { cuNote('Could not change that: ' + cuMsg(x)); }
+    try { if (cuSel()) cpSetUltraFast(want, cuSel()); else cpSetUltraFast(want); cuNote(want ? 'Ultra-fast is on: opens and adds go out with your order.' : ''); } catch (x) { cuNote('Could not change that: ' + cuMsg(x)); }
     cuRender();
 }
 function cuOnMirror(e) {
     const want = !!e.target.checked;
     if (CU.demo || typeof cpSetMirrorLimits !== 'function') return;
     cuLog('you', 'Mirror limit orders switched ' + (want ? 'ON' : 'OFF'), { control: 'mirror-limits', on: want });
-    try { cpSetMirrorLimits(want); cuNote(want ? '' : 'Limit orders are not mirrored. Positions are still copied.'); } catch (x) { cuNote('Could not change that: ' + cuMsg(x)); }
+    try { if (cuSel()) cpSetMirrorLimits(want, cuSel()); else cpSetMirrorLimits(want); cuNote(want ? '' : 'Limit orders are not mirrored. Positions are still copied.'); } catch (x) { cuNote('Could not change that: ' + cuMsg(x)); }
     cuRender();
 }
 function cuOnAddMarket(sym) {
     if (CU.demo) { cuDemoAct('addMarket', sym); cuClosePicker(); return; }
     cuLog('you', 'market ' + sym + ' added to the copied markets', { control: 'add-market', market: sym });
     let r = null;
-    try { r = typeof cpAddMarket === 'function' ? cpAddMarket(sym) : null; } catch (e) { r = { ok: false, why: cuMsg(e) }; }
+    try { r = typeof cpAddMarket === 'function' ? (cuSel() ? cpAddMarket(sym, cuSel()) : cpAddMarket(sym)) : null; } catch (e) { r = { ok: false, why: cuMsg(e) }; }
     if (r && r.ok === false) { cuNote(r.why || 'Could not add ' + cuSym(sym) + '.'); cuRender(); return; }
     cuNote('');
     cuClosePicker();
@@ -20962,19 +24178,149 @@ function cuOnChip(id) {
     if (CU.demo) return;
     if (CU.live[id] === 'paused' && typeof cpResume === 'function') { cuLog('you', () => 'pressed resume on ' + cuName(id), { control: 'resume', acc: id }); cpResume(id); cuNote(cuName(id) + ' resumed.'); cuRender(); }
 }
+// ---------- 8.2: groups in the widget ----------
+// The rail: pick the group the widget shows (remembered by the core, so a reload shows it again)
+function cuOnGroupPick(gid) {
+    if (!gid) return;
+    if (CU.demo) { CU.gsel = gid; cuClosePicker(); cuPaintAll(); return; }
+    if (gid === CU.gsel) return;
+    cuLog('ui', 'widget shows group ' + gid, { control: 'group', group: gid });
+    CU.gsel = gid;
+    try { if (typeof cpSetFocus === 'function') cpSetFocus(gid); } catch (e) {}
+    cuClosePicker();
+    CU.sig.leader = '';
+    cuNote('');
+    cuRender();
+}
+function cuOnShowLead(gid) {
+    if (CU.demo) { cuNote('This is the demo. Nothing is opened.'); return; }
+    cuLog('you', 'pressed Open its tab for group ' + gid, { control: 'lead-tab', group: gid });
+    try { if (typeof cpShowLeadTab === 'function' && cpShowLeadTab(gid)) cuNote('Group ' + gid + '\'s tab is brought to the front.'); } catch (e) {}
+}
+function cuOnOpp(e) {
+    const want = !!e.target.checked;
+    if (CU.demo) { cuNote('This is the demo. Nothing is changed.'); e.target.checked = !want; return; }
+    if (typeof cpSetAllowOpposite !== 'function') return;
+    cuLog('you', 'Allow opposite sides across groups switched ' + (want ? 'ON' : 'OFF'), { control: 'opposite', on: want });
+    try { cpSetAllowOpposite(want); } catch (x) {}
+    cuNote(want ? 'Opposite sides across groups are allowed. Vest\'s rules forbid them on Funded Accounts.' : '');
+    cuRender();
+}
+function cuOnLogSw(e) {
+    const want = !!e.target.checked;
+    cuLog('ui', 'Log switched ' + (want ? 'ON' : 'OFF'), { control: 'log-switch', on: want });
+    CU.logOn = want;
+    try { if (typeof cpSetLogOn === 'function' && !CU.demo) cpSetLogOn(want); } catch (x) {}
+    if (CU.demo) CU.demo.logOn = want;
+    CU.sig.log = '';
+    cuRender();
+    cuPlace();
+}
+
+// New group: one table of every account, a Leader radio and a Follower box each (8.2 round 2). Another group's leader is not offered. An
+// account that copies in another group can be picked: it says "in A" and, picked, "moves from A" (the core switches it off there on Create).
+// Create stays off until a leader is picked, and one line says what is missing. The demo opens the same dialog on its own accounts.
+function cuOnNewGroup() {
+    const demo = !!CU.demo;
+    if (!demo && typeof cpNewGroup !== 'function') return;
+    const host = cuById('ax4p-copy-gdlg');
+    if (!host) return;
+    if (CU.ask) CU.ask(false);
+    cuClosePicker();
+    const groups = demo ? cuDemoGroups(CU.demo) : cuGroups();
+    const taken = cuTaken('', groups);
+    const used = new Set(groups.map((g) => g.id));
+    const next = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').find((x) => !used.has(x)) || '';
+    const all = demo ? [CU.demo.leader].concat(CU.demo.fol).concat([CU.demo.b.leader]).concat(CU.demo.b.fol).map((a) => ({ id: a.accountId || a.id, name: a.name, kind: a.kind }))
+        .filter((a, i, l) => l.findIndex((x) => x.id === a.id) === i) : cuAccounts();
+    // free accounts first, then the ones that copy in another group; another group's leader is not offered
+    const accounts = all.filter((a) => { const t = taken[String(a.id)]; return !t || t.role !== 'leader'; })
+        .sort((a, b) => (!!taken[String(a.id)] - !!taken[String(b.id)]) || String(a.name).localeCompare(String(b.name), undefined, { numeric: true }));
+    const st = CU.gdlg = { lead: '', fol: new Set() };
+    host.textContent = '';
+    host.className = 'cu-ask open';
+    const close = () => { CU.gdlg = null; host.textContent = ''; host.className = 'cu-ask'; };
+    const msg = cuEl('div', { id: 'ax4p-copy-gdlg-msg', class: 'cu-hint' });
+    const rows = cuEl('div', { class: 'cu-gdrows' });
+    let create = null;
+    const moves = () => [st.lead].concat(Array.from(st.fol)).filter((id) => id && taken[id]).map((id) => cuName(id) + ' from ' + taken[id].gid);
+    const paint = () => {
+        accounts.forEach((a) => {
+            const id = String(a.id), r = rows._r[id];
+            if (!r) return;
+            r.lead.checked = st.lead === id;
+            r.fol.checked = st.fol.has(id);
+            r.fol.disabled = st.lead === id;
+            const picked = st.lead === id || st.fol.has(id);
+            cuText(r.note, taken[id] ? (picked ? 'MOVES FROM ' : 'IN ') + taken[id].gid : st.lead === id ? 'LEADER' : '');
+            r.row.className = 'cu-gdrow' + (taken[id] ? ' taken' : '') + (picked ? ' picked' : '');
+        });
+        const n = st.fol.size;
+        const mv = moves();
+        cuText(msg, !st.lead ? 'Pick the leader: the account you will trade for this group.'
+            : (n ? cuName(st.lead) + ' leads, ' + n + (n === 1 ? ' follower.' : ' followers.') : cuName(st.lead) + ' leads. Pick followers now, or add them later in the group\'s table.')
+                + (mv.length ? ' Moves: ' + mv.join(', ') + '.' : ''));
+        if (create) { create.disabled = !st.lead; create.title = st.lead ? '' : 'Pick the leader first'; }
+    };
+    rows._r = {};
+    accounts.forEach((a) => {
+        const id = String(a.id), tk = taken[id];
+        const lead = cuEl('input', { id: 'ax4p-copy-gdlg-lead-' + id, type: 'radio', name: 'ax4p-copy-gdlg-lead', 'aria-label': (a.name || id) + ' leads', onchange: () => { st.lead = id; st.fol.delete(id); paint(); } });
+        const fol = cuEl('input', { id: 'ax4p-copy-gdlg-fol-' + id, type: 'checkbox', 'aria-label': (a.name || id) + ' follows', onchange: (e) => { if (e.target.checked) { if (st.fol.size >= CU_MAX_FOLLOWERS) { e.target.checked = false; cuText(msg, 'A group takes up to ' + CU_MAX_FOLLOWERS + ' followers.'); return; } st.fol.add(id); } else st.fol.delete(id); paint(); } });
+        const note = cuEl('span', { class: 'gt', text: '' });
+        if (tk) cuVar(note, '--cu-gc', cuGHue(tk.gid));
+        const row = cuEl('div', { class: 'cu-gdrow' }, [note, cuEl('span', { class: 'nm' }, [cuEl('b', { text: a.name || cuName(id) }), cuEl('small', { text: CU_KIND_TAG[a.kind] || '' })]), cuEl('label', { class: 'c' }, [lead]), cuEl('label', { class: 'c' }, [fol])]);
+        rows._r[id] = { lead, fol, note, row };
+        rows.appendChild(row);
+    });
+    create = cuEl('button', { id: 'ax4p-copy-gdlg-yes', type: 'button', class: 'ax4p-btn primary', text: 'Create group ' + next, disabled: true, onclick: () => {
+        if (!st.lead) return;
+        if (demo) { close(); cuNote('This is the demo. Nothing is changed.'); return; }
+        let r = null;
+        try { r = cpNewGroup(st.lead, Array.from(st.fol)); } catch (x) { r = { ok: false, why: cuMsg(x) }; }
+        cuLog('you', () => 'New group: ' + (r && r.ok ? 'created ' + r.id : 'refused (' + (r && r.why) + ')'), () => ({ control: 'new-group', ok: !!(r && r.ok), leader: st.lead, followers: Array.from(st.fol) }));
+        if (!r || !r.ok) { cuText(msg, (r && r.why) || 'Could not create the group.'); return; }
+        CU.gsel = r.id;
+        CU.sig.leader = '';
+        close();
+        const mv = Array.isArray(r.moved) && r.moved.length ? ' Moved: ' + r.moved.map((x) => cuName(x.accountId) + ' from ' + x.from).join(', ') + '.' : '';
+        cuNote('Group ' + r.id + ' is ready, switched off.' + mv + ' Switch it on when you are ready to trade ' + cuName(st.lead) + '.');
+        cuRender();
+    } });
+    const tag = cuEl('span', { class: 'cu-gtag', text: next || '?' });
+    cuVar(tag, '--cu-gc', cuGHue(next || 'A'));
+    host.appendChild(cuEl('div', { class: 'cu-ask-box cu-gdlg', role: 'dialog', 'aria-label': 'New group' }, [
+        cuEl('div', { class: 'cu-gdh' }, [tag, cuEl('b', { text: 'New group' }), cuEl('span', { class: 'cu-gdsub', text: 'One leader, and the accounts that copy it' })]),
+        cuEl('div', { class: 'cu-gdrow head' }, [cuEl('span', {}), cuEl('span', { text: 'Account' }), cuEl('span', { class: 'c', text: 'Leader' }), cuEl('span', { class: 'c', text: 'Follower' })]),
+        rows,
+        cuEl('p', { class: 'cu-hint', text: 'An account copies in one group at a time. Picking one that copies in another group moves it here. The leader trades from its own Vest tab, which Better Vest opens and keeps awake.' }),
+        msg,
+        cuEl('div', { class: 'ax4p-btnrow' }, [cuEl('button', { id: 'ax4p-copy-gdlg-no', type: 'button', class: 'ax4p-btn', text: 'Cancel', onclick: close }), create])
+    ]));
+    host.onkeydown = (e) => { if (e.key === 'Escape') close(); };
+    paint();
+}
+
 async function cuOnKill() {
     if (CU.demo) { cuDemoAct('kill'); return; }
     if (typeof crStop === 'function') crStop();
-    cuLog('you', () => (cuOverall().killed ? 'pressed KILL again (flatten the followers)' : 'pressed KILL'), () => ({ control: 'kill', again: !!cuOverall().killed }));
-    if (!cuOverall().killed) {
+    let killed = false;
+    try { killed = typeof cpStatus === 'function' ? !!cpStatus().killed : cuOverall().killed; } catch (e) { killed = cuOverall().killed; }
+    cuLog('you', () => (killed ? 'pressed KILL again (flatten the followers)' : 'pressed KILL'), () => ({ control: 'kill', again: killed }));
+    if (!killed) {
         try { if (typeof cpKillPress === 'function') await cpKillPress(); } catch (e) { cuNote('Kill failed: ' + cuMsg(e)); }
         cuRender();
         return;
     }
-    const yes = await cuAsk('Close every follower position in the copied markets now? The leader is not touched.', 'Flatten followers', 'Flatten followers');
+    const many = cuGroups().length > 1;
+    const yes = await cuAsk(many ? 'Close every follower position of every group in the copied markets now? The leaders are not touched.' : 'Close every follower position in the copied markets now? The leader is not touched.', 'Flatten followers', 'Flatten followers');
     cuLog('you', 'flatten followers: ' + (yes ? 'confirmed' : 'cancelled'), { control: 'flatten', yes });
     if (!yes) return;
-    try { if (typeof cpFlatten === 'function') await cpFlatten(); } catch (e) { cuNote('Flatten failed: ' + cuMsg(e)); }
+    try {
+        // the other tabs that were copying close their own group's followers (the core's kill window); this tab its own
+        if (many && typeof cpKillPress === 'function') await cpKillPress();
+        else if (typeof cpFlatten === 'function') await cpFlatten();
+    } catch (e) { cuNote('Flatten failed: ' + cuMsg(e)); }
     cuRender();
 }
 
@@ -21073,6 +24419,19 @@ function cuDemoMake(now) {
     });
     const slow = ms.reduce((a, b) => (b[1] > a[1] ? b : a));
     d.last = { at: t0 + 60 + slow[1], kind: 'open', symbol: 'NQ-PERP', total: ms.length, ok: ms.length, avgMs: ms.reduce((a, b) => a + b[1], 0) / ms.length, maxMs: slow[1], slowest: { accountId: slow[0].accountId, name: slow[0].name, ms: slow[1] } };
+    // 8.2: a second group. Account 21 leads it and has just gone short NQ; its follower, Account 22, sat that trade out because group A is long
+    // NQ (the opposite-sides guard). Accounts 21 and 22 are greyed in group A's list.
+    const b0 = now - 21000;
+    d.b = {
+        leader: { id: 'demo-21', accountId: 'demo-21', name: 'Account 21', kind: 'funded', size: 100000, bal: 100184.2, bal0: 100184.2, day: -64.5, pos: [{ symbol: 'NQ-PERP', side: 'short', qty: 1, entry: nq.px + 3.25 }], orders: [] },
+        fol: [{ accountId: 'demo-22', name: 'Account 22', kind: 'evaluation', size: 50000, on: true, ratio: 1, state: 'sat', lastMs: null, lastAt: null, bal: 50310.6, bal0: 50310.6, day: 41.2, pos: [], orders: [],
+            why: 'sat out this short NQ: Account 11 (group A) is long NQ, and Vest does not allow opposite sides of one market across accounts' }],
+        engine: 'direct', running: true
+    };
+    d.log.push({ t: b0 - 30000, type: 'info', note: 'copying on', g: 'B' });
+    d.log.push({ t: b0, type: 'action', acc: 'demo-21', kind: 'open', side: 'short', symbol: 'NQ-PERP', ms: 37, ok: true, result: 'ok', g: 'B' });
+    d.log.push({ t: b0 + 40, type: 'warn', acc: 'demo-22', symbol: 'NQ-PERP', note: 'opposite sides', why: d.b.fol[0].why, g: 'B' });
+    d.log.forEach((e) => { if (!e.g) e.g = 'A'; });
     d.log.sort((a, b) => a.t - b.t);
     return d;
 }
@@ -21090,8 +24449,48 @@ function cuDemoInfo(d, a) {
 // what the core's cpTodayPnl would say: what the account made earlier today, the P&L booked since, and the open P&L
 const cuDemoToday = (d, a) => Math.round((a.day + (a.bal - a.bal0) + cuDemoInfo(d, a).upnl) * 100) / 100;
 
+// the demo's two groups, as cpGroupsView would say them
+function cuDemoGroups(d) {
+    // members only, as in the copier: B's leader and B's followers that are switched on are B's; the rest of A's list is A's when on
+    const bOn = d.b.fol.filter((f) => f.on);
+    const aOn = d.fol.filter((f) => f.on && f.accountId !== d.b.leader.id && !bOn.some((x) => x.accountId === f.accountId));
+    const live = d.running && !d.killed;
+    const book = (a) => a.pos.map((p) => ({ symbol: p.symbol, side: p.side, qty: p.qty }));
+    return [
+        { id: 'A', leaderId: d.leader.id, leaderName: d.leader.name, followerIds: aOn.map((f) => f.accountId), on: aOn.length, total: aOn.length, engine: d.engine, where: live ? 'here' : '',
+            state: d.killed ? 'killed' : !d.running ? 'off' : aOn.some((f) => f.state === 'drift') ? 'warning' : 'on', inSync: live ? aOn.filter((f) => f.state === 'sync').length : 0, issues: 0,
+            lastMs: d.last ? d.last.avgMs : null, sat: '', warn: '', leaderBook: book(d.leader) },
+        { id: 'B', leaderId: d.b.leader.id, leaderName: d.b.leader.name, followerIds: bOn.map((f) => f.accountId), on: bOn.length, total: d.b.fol.length, engine: d.b.engine,
+            where: d.b.running && !d.killed ? 'lead' : '', state: d.killed ? 'killed' : d.b.running ? 'on' : 'off', inSync: 0, issues: 0, lastMs: 37,
+            sat: d.b.running && bOn.some((f) => f.state === 'sat') ? 'Account 22 sat out a short NQ: group A is long NQ' : '', warn: '', leaderBook: book(d.b.leader) }
+    ];
+}
+// group B in the demo: its leader, its one follower (sat out), every other account greyed with its group
+function cuDemoModelB(d, groups) {
+    const live = d.b.running && !d.killed;
+    const taken = cuTaken('B', groups);
+    const all = [d.leader].concat(d.fol.filter((f) => f.accountId !== d.b.leader.id && !d.b.fol.some((x) => x.accountId === f.accountId)));
+    const rows = all.map((a) => ({ accountId: a.accountId || a.id, name: a.name, short: '', kind: a.kind, on: false, ratio: a.ratio || 1, state: 'off', why: '', taken: taken[a.accountId || a.id] || null, lastMs: null, lastAt: null, orders: 0, info: cuNormInfo(cuDemoInfo(d, a)), today: cuDemoToday(d, a) }))
+        .concat(d.b.fol.map((f) => ({ accountId: f.accountId, name: f.name, short: '', kind: f.kind, on: f.on, ratio: f.ratio, state: !f.on ? 'off' : live ? f.state : 'idle', why: f.why, taken: f.on ? null : taken[f.accountId] || null, lastMs: f.lastMs, lastAt: f.lastAt, orders: 0, info: cuNormInfo(cuDemoInfo(d, f)), today: cuDemoToday(d, f) })));
+    rows.sort((a, b) => (b.on - a.on) || (!!a.taken - !!b.taken) || cuByName(a, b));
+    cuShorts(rows);
+    const followers = rows.filter((r) => r.on);
+    const ov = { state: d.killed ? 'killed' : d.b.running ? 'on' : 'off', running: live, killed: d.killed, leaderId: d.b.leader.id, leaderName: d.b.leader.name, engine: d.b.engine,
+        total: d.b.fol.length, on: followers.length, inSync: 0, issues: 0, lastMs: 37, note: '', markets: ['NQ-PERP'], autoMarkets: true, elsewhere: true };
+    const sum = d.b.fol.reduce((t, f) => t + cuDemoInfo(d, f).upnl, 0);
+    return {
+        demo: true, cfg: null, overall: ov, gid: 'B', groups, here: false, root: { allowOpposite: false, logOn: !!d.logOn, groups: 2 }, leaderId: d.b.leader.id, leaderName: d.b.leader.name, leaderShort: cuShortOne(d.b.leader.name),
+        rows, followers, accounts: [d.leader].concat(d.fol).map((a) => ({ id: a.accountId || a.id, name: a.name, kind: a.kind, size: a.size })), last: { at: Date.now() - 21000, kind: 'open', symbol: 'NQ-PERP', total: 1, ok: 0, avgMs: 37, maxMs: 37, slowest: { accountId: 'demo-22', name: 'Account 22', ms: 37 } }, log: d.log,
+        leaderInfo: cuNormInfo(cuDemoInfo(d, d.b.leader)), leaderToday: cuDemoToday(d, d.b.leader), totals: { leader: cuDemoInfo(d, d.b.leader).upnl, followers: sum, count: followers.length },
+        today: cuSum(followers, (r) => r.today), hasPnl: true, marketList: [], caps: { auto: true, add: true, engine: true, groups: true, newGroup: false, opposite: false, logSw: true, mint: null }
+    };
+}
+
 function cuDemoModel() {
     const d = CU.demo;
+    const groups = cuDemoGroups(d);
+    if (CU.gsel === 'B') return cuDemoModelB(d, groups);
+    const takenA = cuTaken('A', groups);
     const on = d.fol.filter((f) => f.on);
     const live = d.running && !d.killed;
     const inSync = on.filter((f) => f.state === 'sync').length;
@@ -21102,25 +24501,26 @@ function cuDemoModel() {
         total: d.fol.length, on: on.length, inSync: live ? inSync : 0, issues: live ? issues : 0, lastMs, note: '', markets: d.markets.slice(), autoMarkets: d.auto
     };
     const rows = d.fol.map((f) => ({
-        accountId: f.accountId, name: f.name, short: '', kind: f.kind, on: f.on, ratio: f.ratio, state: !f.on ? 'off' : live ? f.state : 'idle', why: f.why, lastMs: f.lastMs, lastAt: f.lastAt,
-        orders: f.orders.length, info: cuNormInfo(cuDemoInfo(d, f)), today: cuDemoToday(d, f)
+        accountId: f.accountId, name: f.name, short: '', kind: f.kind, on: f.on && !takenA[f.accountId], ratio: f.ratio, state: !f.on || takenA[f.accountId] ? 'off' : live ? f.state : 'idle', why: f.why, taken: takenA[f.accountId] || null,
+        lastMs: f.lastMs, lastAt: f.lastAt, orders: f.orders.length, info: cuNormInfo(cuDemoInfo(d, f)), today: cuDemoToday(d, f)
     }));
-    rows.sort((a, b) => (b.on - a.on) || cuByName(a, b));
+    rows.sort((a, b) => (b.on - a.on) || (!!a.taken - !!b.taken) || cuByName(a, b));
     cuShorts(rows);
     const followers = rows.filter((r) => r.on);
     const sum = on.reduce((t, f) => t + cuDemoInfo(d, f).upnl, 0);
     return {
-        demo: true, cfg: null, overall: ov, leaderId: d.leader.id, leaderName: d.leader.name, leaderShort: cuShortOne(d.leader.name),
+        demo: true, cfg: null, overall: ov, gid: 'A', groups, here: true, root: { allowOpposite: false, logOn: !!d.logOn, groups: 2 }, leaderId: d.leader.id, leaderName: d.leader.name, leaderShort: cuShortOne(d.leader.name),
         rows, followers, accounts: [d.leader].concat(d.fol).map((a) => ({ id: a.accountId || a.id, name: a.name, kind: a.kind, size: a.size })), last: d.last, log: d.log,
         leaderInfo: cuNormInfo(cuDemoInfo(d, d.leader)), leaderToday: cuDemoToday(d, d.leader), totals: { leader: cuDemoInfo(d, d.leader).upnl, followers: sum, count: on.length },
         today: cuSum(followers, (r) => r.today), hasPnl: true,
-        marketList: CU.pick ? CU_DEMO_LIST.map((x) => ({ symbol: x + '-PERP', short: x })) : [], caps: { auto: true, add: true, engine: true }
+        marketList: CU.pick ? CU_DEMO_LIST.map((x) => ({ symbol: x + '-PERP', short: x })) : [], caps: { auto: true, add: true, engine: true, groups: true, newGroup: false, opposite: false, logSw: true, mint: null }
     };
 }
 
 function cuDemoAt(at, fn) { CU.demo.q.push({ at, fn }); }
 function cuDemoLog(e) {
     const d = CU.demo;
+    if (!e.g) e.g = 'A'; // the demo's waves are group A's
     d.log.push(e);
     if (d.log.length > 200) d.log.splice(0, d.log.length - 200);
 }
@@ -21322,6 +24722,27 @@ function cuDemoAct(kind, a, b) {
     const d = CU.demo;
     if (!d) return;
     const now = Date.now();
+    // group B in the demo only shows, and switches on and off: its leader copies from its own tab
+    if (CU.gsel === 'B') {
+        if (kind === 'master') { d.b.running = !!a; cuDemoLog({ t: now, type: 'info', note: a ? 'copying on' : 'copying off', g: 'B' }); }
+        cuNote('This is the demo. Group B copies from its own tab.');
+        cuPaintAll();
+        return;
+    }
+    // up to ten switched on, as in the copier
+    if (kind === 'follower' && b) {
+        const ids = cuDemoGroups(d)[0].followerIds;
+        if (ids.indexOf(a) < 0 && ids.length >= CU_MAX_FOLLOWERS) { cuNote('Up to ' + CU_MAX_FOLLOWERS + ' accounts can copy at once. Switch one off first.'); cuPaintAll(); return; }
+    }
+    // switched on in A while it copies in B: it moves here, as in the copier (8.2 round 2); refused while A copies and it holds a position
+    const inB = kind === 'follower' && b ? d.b.fol.find((x) => x.accountId === a && x.on) : null;
+    if (inB) {
+        if (d.running && !d.killed && inB.pos.length) { cuNote(inB.name + ' holds a position, and group A copies right now: close it or switch group A off first.'); cuPaintAll(); return; }
+        inB.on = false;
+        const msg = inB.name + ' moved from group B to group A.';
+        cuNote(msg);
+        try { if (typeof cpToast === 'function') cpToast(msg, 'good'); } catch (e) {}
+    }
     if (kind === 'master') {
         d.running = !!a; d.killed = false;
         d.fol.forEach((f) => { f.state = 'sync'; f.why = ''; });
@@ -21361,6 +24782,7 @@ function cuDemoStart() {
     // never without the dev flag, whoever asks
     if (!cuDevOn()) return false;
     if (CU.demo) return true;
+    CU.gsel = 'A';
     CU.demo = cuDemoMake(Date.now());
     CU.demo.timer = setInterval(() => cuDemoTick(Date.now()), 90);
     // on the window, not the document: with the suite's own Demo on, its click guard on the document stops the Exec buttons'
@@ -21377,6 +24799,7 @@ function cuDemoStop() {
     try { window.removeEventListener('click', cuDemoOnClick, true); } catch (e) {}
     CU.demo = null;
     CU.sig = {};
+    CU.gsel = '';
     cuNote('');
     cuPaintAll();
 }
@@ -21490,10 +24913,12 @@ function shSnapshot(t) {
     if (CU.demo) {
         const d = CU.demo;
         const all = [d.leader].concat(d.fol);
+        const followerIds = d.fol.filter((f) => f.on).map((f) => String(f.accountId));
         return {
             v: 1, at: t, day, market, demo: true, copying: !!(d.running && !d.killed), leaderId: String(d.leader.id), activeId: String(d.leader.id),
-            followerIds: d.fol.filter((f) => f.on).map((f) => String(f.accountId)),
-            accounts: all.map((a) => ({ id: String(a.accountId || a.id), name: a.name, kind: a.kind, size: a.size, pnl: cuDemoToday(d, a) }))
+            followerIds,
+            accounts: all.map((a) => ({ id: String(a.accountId || a.id), name: a.name, kind: a.kind, size: a.size, pnl: cuDemoToday(d, a) })),
+            groups: [{ id: 'A', leaderId: String(d.leader.id), followerIds }]
         };
     }
     const cfg = cuCfg() || {};
@@ -21502,8 +24927,23 @@ function shSnapshot(t) {
     const followerIds = Array.isArray(cfg.followers) ? cfg.followers.filter((f) => f && f.on).map((f) => String(f.accountId)) : [];
     return {
         v: 1, at: t, day, market, demo: false, copying: !!ov.running, leaderId, followerIds, activeId: String(cuActive() || ''),
-        accounts: cuAccounts().map((a) => ({ id: String(a.id), name: a.name, kind: a.kind, size: a.size, pnl: cuToday(String(a.id)) }))
+        accounts: cuAccounts().map((a) => ({ id: String(a.id), name: a.name, kind: a.kind, size: a.size, pnl: cuToday(String(a.id)) })),
+        // 8.2: cuCfg() is this tab's one group; the root (S.copy) holds them all
+        groups: shGroups((typeof cpRoot === 'function' ? cpRoot() : null) || cfg, leaderId, followerIds)
     };
+}
+
+// The copy groups for the card (8.2): the copier's groups (S.copy.groups, contract 1 of the 8.2 overview), each its leader and the followers
+// that are on; a copier without groups is one group, A, its leader and followers.
+function shGroups(cfg, leaderId, followerIds) {
+    const gs = cfg && Array.isArray(cfg.groups) ? cfg.groups : null;
+    if (gs && gs.length) {
+        return gs.filter((g) => g && /^[A-Z]$/.test(String(g.id || ''))).map((g) => ({
+            id: String(g.id), leaderId: String(g.leaderId || ''),
+            followerIds: (Array.isArray(g.followers) ? g.followers : []).filter((f) => f && f.on !== false && f.accountId != null).map((f) => String(f.accountId))
+        }));
+    }
+    return leaderId ? [{ id: 'A', leaderId, followerIds }] : [];
 }
 
 // ---------- Replay: today's trades of the account on this chart, on Vest's own candles ----------
@@ -21515,9 +24955,13 @@ const SH_MAX_BARS = 150;       // candles on a card: the finest timeframe that k
 const SH_RES = [1, 5, 15, 60]; // minutes
 const SH_ROW_PAGES = 4;        // 50 rows a page: 200 positions in a day is plenty
 const SH_FEED_PAGES = 6;       // Vest's datafeed pages of 500 bars: 5m candles about 10 days back, 15m a month
+const SH_FINE_BARS = 720;      // 8.2 round 2: finer candles of the same time, for the card's other timeframes (1m: 12 hours)
 // the fields the card reads (cert/share-replay.js keeps the same lists and drops anything else)
 const SH_ROW_KEYS = ['positionId', 'accountId', 'symbol', 'side', 'quantity', 'openPrice', 'closePrice', 'openDate', 'closeDate', 'pnl', 'fee', 'funding', 'closeReason'];
 const SH_ORDER_KEYS = ['order_id', 'side', 'position_order_type', 'executed_quantity', 'execution_price', 'execution_time', 'fee', 'updated_at', 'created_at', 'status', 'order_type'];
+// a stop's entries (8.2: the trade's R on the card): what the Calendar's parser reads of them
+const SH_STOP_KEYS = ['id', 'triggerPrice', 'createdAt', 'updatedAt'];
+const SH_STOPS = 10;
 
 // a time from Vest in ms: seconds, ms, µs and ns all occur (the same rule as the Calendar's tsMs)
 function shMs(v) {
@@ -21529,10 +24973,14 @@ function shMs(v) {
     else if (n >= 1e14) n /= 1e3;
     return Math.round(n);
 }
-function shTrim(r) {
+function shTrim(r, noOrders) {
     const o = {};
     for (const k of SH_ROW_KEYS) if (k in r) o[k] = r[k];
-    o.orders = (Array.isArray(r.orders) ? r.orders : []).map((x) => { const q = {}; for (const k of SH_ORDER_KEYS) if (x && k in x) q[k] = x[k]; return q; });
+    if (!noOrders) o.orders = (Array.isArray(r.orders) ? r.orders : []).map((x) => { const q = {}; for (const k of SH_ORDER_KEYS) if (x && k in x) q[k] = x[k]; return q; });
+    for (const k of ['stopLosses', 'stopLossHistory']) {
+        if (!Array.isArray(r[k]) || !r[k].length) continue;
+        o[k] = r[k].slice(0, SH_STOPS).map((x) => { const q = {}; for (const j of SH_STOP_KEYS) if (x && j in x) q[j] = x[j]; return q; });
+    }
     return o;
 }
 // every fill time of a row (or its open and close when it has none)
@@ -21549,6 +24997,8 @@ function shRowTimes(r) {
 async function shSessionRows(bridge, accId, today, same) {
     const rows = [];
     const early = {}; // other markets' rows met before this market's first one, by day
+    const other = {}; // 8.2: the other markets' rows of the chosen day, by symbol (the Replay's Market picker)
+    const earlyRows = {}; // ...and those met before this market's first row, by day
     let others = 0, day = '';
     for (let page = 0; page < SH_ROW_PAGES; page++) {
         const r = await bridge.get('/v3/positions', { account_id: String(accId), limit: 50, offset: page * 50 });
@@ -21563,17 +25013,24 @@ async function shSessionRows(bridge, accId, today, same) {
             const mine = same(String(x.symbol || ''));
             // only this market's rows choose the day; other markets' are counted for it
             if (!day) {
-                if (!mine) { early[k] = (early[k] || 0) + 1; continue; }
+                if (!mine) {
+                    early[k] = (early[k] || 0) + 1;
+                    const sym = String(x.symbol || '');
+                    const ek = earlyRows[k] || (earlyRows[k] = {});
+                    (ek[sym] || (ek[sym] = [])).push(shTrim(x));
+                    continue;
+                }
                 day = k;
                 others += early[day] || 0;
+                for (const [sym, list2] of Object.entries(earlyRows[day] || {})) other[sym] = (other[sym] || []).concat(list2);
             }
             if (k !== day) continue;
             hit++;
-            if (mine) rows.push(shTrim(x)); else others++;
+            if (mine) rows.push(shTrim(x)); else { others++; const sym = String(x.symbol || ''); (other[sym] || (other[sym] = [])).push(shTrim(x)); }
         }
         if (list.length < 50 || (day && !hit)) break;
     }
-    return { rows, others: day ? others : early[today] || 0, day: day || today };
+    return { rows, others: day ? others : early[today] || 0, day: day || today, other };
 }
 
 // The window to draw: from the first fill to the last (to now while a trade is open), a little room on both sides, at least 40 minutes.
@@ -21593,25 +25050,28 @@ function shWindow(rows, now) {
 }
 // minutes per candle of a chart timeframe ("1", "5", "60"; a day or a second chart does not count)
 const shResMin = (res) => (/^\d+$/.test(String(res)) ? Number(res) : null);
-// 1m candles into 5m ones (or 5m into 15m...): Vest's own bars, merged on the clock's own boundaries
+// 1m candles into 5m ones (or 5m into 15m...): Vest's own bars, merged on the clock's own boundaries; volumes added when every bar has one
 function shMerge(bars, min) {
     const out = [];
     const step = min * 60;
+    const vol = bars.length > 0 && bars.every((b) => b.length > 5);
     for (const b of bars) {
         const t = Math.floor(b[0] / step) * step;
         const last = out[out.length - 1];
-        if (last && last[0] === t) { last[2] = Math.max(last[2], b[2]); last[3] = Math.min(last[3], b[3]); last[4] = b[4]; }
-        else out.push([t, b[1], b[2], b[3], b[4]]);
+        if (last && last[0] === t) { last[2] = Math.max(last[2], b[2]); last[3] = Math.min(last[3], b[3]); last[4] = b[4]; if (vol) last[5] += b[5]; }
+        else out.push(vol ? [t, b[1], b[2], b[3], b[4], b[5]] : [t, b[1], b[2], b[3], b[4]]);
     }
     return out;
 }
 // Vest's datafeed for one timeframe, paged back until it reaches `from` (or SH_FEED_PAGES pages): its latest bars, then 500 more each time.
-async function shFeed(su, min, from) {
-    const first = await su.feedBars(String(min), true).catch(() => null);
+async function shFeed(su, min, from, sym) {
+    // sym (8.2): another market's API symbol (the Replay's other markets); without it the chart's own market, as in 8.1.5
+    const get = (first) => (sym ? su.feedBars(String(min), first, sym) : su.feedBars(String(min), first));
+    const first = await Promise.resolve(get(true)).catch(() => null);
     if (!first || !first.bars || !first.bars.length) return null;
     let bars = first.bars;
     for (let n = 1; n < SH_FEED_PAGES && bars[0][0] * 1000 > from; n++) {
-        const older = await su.feedBars(String(min), false).catch(() => null);
+        const older = await Promise.resolve(get(false)).catch(() => null);
         if (!older || !older.bars || !older.bars.length || older.bars[0][0] >= bars[0][0]) break;
         const edge = older.bars[older.bars.length - 1][0];
         bars = older.bars.concat(bars.filter((b) => b[0] > edge));
@@ -21629,13 +25089,15 @@ function shWiden(win, min) {
     const to = Math.min(win.to + want, Math.max(win.to, mid + want / 2), Date.now());
     return { from: to - want, to };
 }
-async function shBars(su, wanted) {
+// o (8.2 round 2): { max, below } for the finer candles: at most `max` of them, only timeframes under `below` minutes, none past max
+async function shBars(su, wanted, o) {
+    const max = (o && o.max) || SH_MAX_BARS, below = (o && o.below) || 0;
     const chart = await su.chartBars().catch(() => null);
     const cMin = chart ? shResMin(chart.res) : null;
     // the bars reach back to the window's start and up to its end (the window never runs past now; a quiet last bar or two is fine)
     const covers = (bars, min, win) => bars.length && bars[0][0] * 1000 <= win.from && bars[bars.length - 1][0] * 1000 + min * 60000 >= win.to - 2 * min * 60000;
-    for (const min of SH_RES) {
-        if ((wanted.to - wanted.from) / (min * 60000) > SH_MAX_BARS && min !== SH_RES[SH_RES.length - 1]) continue;
+    for (const min of below ? SH_RES.filter((m) => m < below) : SH_RES) {
+        if ((wanted.to - wanted.from) / (min * 60000) > max && (below || min !== SH_RES[SH_RES.length - 1])) continue;
         const win = shWiden(wanted, min);
         let got = null, src = '';
         if (chart && cMin && min % cMin === 0 && covers(chart.bars, cMin, win)) { got = min === cMin ? chart.bars : shMerge(chart.bars, min); src = 'chart'; }
@@ -21650,11 +25112,105 @@ async function shBars(su, wanted) {
     return null;
 }
 
+// The same time in finer candles (8.2 round 2, the card's own timeframes): the chart's own bars or Vest's datafeed, as shBars, for a
+// timeframe under the card's, at most SH_FINE_BARS. null when the card's candles are the finest (1m) or none finer cover the time.
+function shFine(su, b) {
+    const min = shResMin(b.res);
+    if (!(min > 1) || !b.bars.length) return null;
+    const win = { from: b.bars[0][0] * 1000, to: Math.min(Date.now(), (b.bars[b.bars.length - 1][0] + min * 60) * 1000) };
+    return shBars(su, win, { max: SH_FINE_BARS, below: min }).then((f) => (f && shResMin(f.res) < min ? { res: f.res, bars: f.bars } : null)).catch(() => null);
+}
+
+// Another market's candles for the Replay (8.2): only Vest's datafeed (the chart shows another market), the finest timeframe that keeps the
+// session under SH_MAX_BARS and that reaches back to it.
+async function shBarsAlt(su, sym, wanted) {
+    for (const min of SH_RES) {
+        if ((wanted.to - wanted.from) / (min * 60000) > SH_MAX_BARS && min !== SH_RES[SH_RES.length - 1]) continue;
+        const win = shWiden(wanted, min);
+        const f = await shFeed(su, min, win.from, sym);
+        if (!f || !f.bars.length || f.bars[0][0] * 1000 > win.from) continue;
+        const bars = f.bars.filter((b) => b[0] * 1000 + min * 60000 > win.from && b[0] * 1000 <= win.to);
+        if (bars.length) return { res: String(min), tz: f.tz || '', bars };
+    }
+    return null;
+}
+// "NDX-USD-PERP" -> "NQ": the market's short name on the card (cert/share-summary.js mktName says the same)
+function shMktName(sym) {
+    const base = String(sym || '').toUpperCase().replace(/-USD-PERP$|-PERP$|-USD$/, '');
+    return ({ NDX: 'NQ', SPX: 'ES' })[base] || base;
+}
+const SH_ALT = 2; // other markets the Replay may switch to (cert/share-replay.js REPLAY_MAX_ALT)
+// The other markets of the Replay's session (8.2): the ones the account traded most that day, each with its rows and its own candles.
+async function shReplayAlt(su, other, day, t) {
+    const syms = Object.keys(other || {}).filter((k) => other[k].length).sort((a, b) => other[b].length - other[a].length).slice(0, SH_ALT);
+    const out = [];
+    for (const sym of syms) {
+        const rows = other[sym];
+        const win = shWindow(rows, t);
+        if (!win) continue;
+        const b = await shBarsAlt(su, sym, win).catch(() => null);
+        if (b) out.push({ market: shMktName(sym), day, res: b.res, tz: b.tz, bars: b.bars, rows });
+    }
+    return out;
+}
+
+// ---------- the Summary's trades (8.2): today's closed positions of the accounts on the card ----------
+// The Summary's markets, trades and sessions rows need each trade, not only the day's total. Read only, GET through the same bridge the
+// Replay uses (the allow-listed /v3/positions), for the accounts that can have traded today (a day P&L that is not zero), at most
+// SH_T_ACCOUNTS of them, SH_T_PAGES pages each, SH_T_PAR at a time, all before the deadline. Rows without their orders (the card reads the
+// row's own prices and times), with the stop's entries (R).
+const SH_T_ACCOUNTS = 24;
+const SH_T_PAGES = 2;
+const SH_T_PAR = 4;
+async function shTodayTrades(snap, deadline) {
+    const bridge = typeof vxBridge === 'function' ? vxBridge() : null;
+    if (!bridge) return { rows: [], err: 'no-bridge' };
+    const want = (snap.accounts || []).filter((a) => typeof a.pnl === 'number' && Math.abs(a.pnl) >= 0.005)
+        .sort((a, b) => (b.id === snap.activeId) - (a.id === snap.activeId) || Math.abs(b.pnl) - Math.abs(a.pnl)).slice(0, SH_T_ACCOUNTS).map((a) => a.id);
+    const rows = [];
+    let err = '';
+    const one = async (acc) => {
+        const mine = [];
+        for (let page = 0; page < SH_T_PAGES; page++) {
+            if (Date.now() > deadline) { err = 'partial'; return; }
+            // while copying runs, these reads take turns with the copier's own GET reads (one budget, about 8 a second, 18-budget.js), so a
+            // P&L press never adds a burst of requests next to a copy (8.2 review)
+            if (typeof CP === 'object' && CP && CP.running && typeof cpRestSlot === 'function') await cpRestSlot();
+            if (Date.now() > deadline) { err = 'partial'; return; }
+            const r = await bridge.get('/v3/positions', { account_id: String(acc), limit: 50, offset: page * 50 });
+            const list = Array.isArray(r) ? r : (r && r.positions) || [];
+            let hit = 0;
+            for (const x of list) {
+                if (!x || x.positionId == null) continue;
+                const close = shMs(x.closeDate);
+                if (!close || !(Number(x.quantity) > 0) || !shRowTimes(x).length || cpDayKey(close) !== snap.day) continue;
+                hit++;
+                mine.push(shTrim(x, true));
+            }
+            // newest first: a page with nothing of today means the rest is older
+            if (list.length < 50 || !hit) break;
+        }
+        rows.push(...mine);
+    };
+    const queue = want.slice();
+    const worker = async () => { while (queue.length) { const acc = queue.shift(); try { await one(acc); } catch (e) { err = err || 'read-failed'; } } };
+    await Promise.all(Array.from({ length: Math.min(SH_T_PAR, queue.length) }, worker));
+    return { rows, err };
+}
+
 // The Replay part of the snapshot: never throws, at most SH_REPLAY_MS. The copy demo gets Vest's real candles of the last 4 hours and
 // sample trades (the card makes them and says Sample).
 async function shReplay(snap, t) {
+    const start = Date.now();
     const su = cpSuite();
     if (!su || typeof su.chartBars !== 'function') return { err: 'no-chart' };
+    // whatever is ready by the deadline goes on the card (the rest is left out, never waited for)
+    const inTime = async (p) => {
+        if (!p) return null;
+        const left = Math.max(0, start + SH_REPLAY_MS - 250 - Date.now());
+        let tm = null;
+        try { return await Promise.race([p, new Promise((res) => { tm = setTimeout(() => res(null), left); })]); } finally { clearTimeout(tm); }
+    };
     const work = (async () => {
         if (snap.demo) {
             const win = { from: t - 4 * 3600e3, to: t };
@@ -21662,7 +25218,10 @@ async function shReplay(snap, t) {
             if (!b) return { err: 'no-bars' };
             const lead = CU.demo && CU.demo.leader;
             const target = lead ? cuDemoToday(CU.demo, lead) : null;
-            return { accountId: snap.activeId, market: snap.market, day: snap.day, res: b.res, tz: b.tz, bars: b.bars, rows: [], sample: true, sampleTarget: target > 0 ? target : null };
+            const out = { accountId: snap.activeId, market: snap.market, day: snap.day, res: b.res, tz: b.tz, bars: b.bars, rows: [], sample: true, sampleTarget: target > 0 ? target : null };
+            const fine = await inTime(shFine(su, b));
+            if (fine) out.fine = fine;
+            return out;
         }
         const acc = snap.activeId || (snap.copying ? snap.leaderId : '');
         if (!acc) return { err: 'no-account' };
@@ -21673,13 +25232,40 @@ async function shReplay(snap, t) {
         try { got = await shSessionRows(bridge, acc, snap.day, same); } catch (e) { return { accountId: acc, err: 'read-failed' }; }
         const win = shWindow(got.rows, t);
         if (!win) return { accountId: acc, market: snap.market, others: got.others, rows: [], err: 'no-trades' };
+        // 8.2: the other markets of that day load next to this one's candles; whatever is ready by the deadline goes on the card
+        const altP = typeof su.feedBars === 'function' && Object.keys(got.other || {}).length ? shReplayAlt(su, got.other, got.day, t).catch(() => []) : null;
         const b = await shBars(su, win);
         if (!b) return { accountId: acc, market: snap.market, day: got.day, others: got.others, err: 'no-bars' };
-        return { accountId: acc, market: snap.market, day: got.day, res: b.res, tz: b.tz, bars: b.bars, rows: got.rows, others: got.others };
+        const out = { accountId: acc, market: snap.market, day: got.day, res: b.res, tz: b.tz, bars: b.bars, rows: got.rows, others: got.others };
+        // 8.2 round 2: finer candles of the same time (the card's other timeframes), next to the other markets
+        const fineP = shFine(su, b);
+        if (altP) {
+            const alt = await inTime(altP);
+            if (alt && alt.length) out.alt = alt;
+        }
+        const fine = await inTime(fineP);
+        if (fine) out.fine = fine;
+        return out;
     })();
     let timer = null;
     const late = new Promise((res) => { timer = setTimeout(() => res({ err: 'timeout' }), SH_REPLAY_MS); });
     try { return await Promise.race([work.catch(() => ({ err: 'read-failed' })), late]); } finally { clearTimeout(timer); }
+}
+
+// bridge.js passes at most 256 KB. A day too busy to fit gives up, in this order: the Summary's oldest trades (it says some are missing),
+// the Replay's other markets, then the Replay itself (it says so), and keeps its summary.
+const SH_FIT = 250 * 1024;
+function shFit(snap) {
+    const size = () => { try { return JSON.stringify(snap).length; } catch (e) { return Infinity; } };
+    if (size() <= SH_FIT) return;
+    // the finer candles go first (only the card's other timeframes need them)
+    if (snap.replay && snap.replay.fine) { delete snap.replay.fine; if (size() <= SH_FIT) return; }
+    if (Array.isArray(snap.trades) && snap.trades.length) {
+        snap.trades.sort((a, b) => (shMs(b.closeDate) || 0) - (shMs(a.closeDate) || 0));
+        while (snap.trades.length && size() > SH_FIT) { snap.trades.length = Math.floor(snap.trades.length * 0.8); snap.tradesCut = true; }
+    }
+    if (size() > SH_FIT && snap.replay && snap.replay.alt) delete snap.replay.alt;
+    try { if (size() > SH_FIT) snap.replay = { accountId: snap.replay.accountId, err: 'too-big' }; } catch (e) { snap.replay = { err: 'too-big' }; }
 }
 
 async function shOpen() {
@@ -21697,9 +25283,17 @@ async function shOpen() {
     const btn = cuById('ax4p-share-tog');
     if (btn) btn.classList.toggle('busy', true);
     try {
+        // 8.2: today's trades of the accounts on the card load next to the Replay, inside the same time
+        const tradesP = snap.demo ? null : shTodayTrades(snap, Date.now() + SH_REPLAY_MS).catch(() => ({ rows: [], err: 'read-failed' }));
         snap.replay = await shReplay(snap, t);
-        // bridge.js passes at most 256 KB: a day too busy to fit keeps its summary, and the Replay says so
-        try { if (JSON.stringify(snap).length > 250 * 1024) snap.replay = { accountId: snap.replay.accountId, err: 'too-big' }; } catch (e) { snap.replay = { err: 'too-big' }; }
+        // 8.2 round 2: the chart's candle colours, for the Replay's "Match my chart" (read only)
+        try { const su = cpSuite(); const cc = su && typeof su.chartColors === 'function' ? su.chartColors() : null; if (cc) snap.chartColors = cc; } catch (e) {}
+        if (tradesP) {
+            const tr = await tradesP;
+            snap.trades = tr.rows;
+            if (tr.err) snap.tradesErr = tr.err;
+        }
+        shFit(snap);
         typeof cpDev === 'function' && cpDev('ui', () => ({ msg: 'P&L card button pressed: ' + snap.accounts.length + ' account(s), ' + (snap.copying ? 'copying (' + snap.followerIds.length + ' followers)' : 'not copying')
             + '; Replay: ' + (snap.replay.err ? snap.replay.err : (snap.replay.rows || []).length + ' position(s) on ' + snap.replay.bars.length + ' × ' + snap.replay.res + 'm candles' + (snap.replay.sample ? ' (sample trades)' : '')), demo: snap.demo }));
         try { window.postMessage({ bv: 1, dir: 'toExt', type: 'sopen', snap }, location.origin); } catch (e) {}
