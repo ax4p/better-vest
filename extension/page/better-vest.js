@@ -20,7 +20,7 @@
 (function () {
     'use strict';
 
-    const VERSION = '8.2.0';
+    const VERSION = '8.2.2';
     // true only in the Chrome extension build (tools/build.py defines BV_EXT there)
     const IS_EXT = typeof BV_EXT !== 'undefined' && !!BV_EXT;
     // 'standard' = the shareable build; anything else = WICKED, the author's own full build.
@@ -2754,6 +2754,9 @@
         const cats = (info && info.cats) || [];
         const micro = XC_MICRO[root];
         if (root !== 'NQ' && ticketUnit && /USD/.test(ticketUnit) && !ticketUnit.includes(root)) return { n: '$' + xcNum(size), unit: '' };
+        // Vest's Minis and Micros (8.2.2; SPX and RTY, NQ's ticket goes to NQ units for an order): the size is whole contracts
+        if (root !== 'NQ' && micro && ticketUnit === 'MICROS') return { n: xcNum(size), unit: micro[0] };
+        if (root !== 'NQ' && micro && ticketUnit === 'MINIS') return { n: xcNum(size), unit: root };
         if (micro && (!info || cats.includes('index') || cats.includes('commodity'))) return { n: xcNum(size / micro[1]), unit: micro[0] };
         if (fx || (info && info.asset === 'forex')) return { n: xcNum(size), unit: fx ? fx[1] : root };
         if (XC_CRYPTO.test(s) || (info && info.asset === 'crypto')) return { n: xcNum(size), unit: root };
@@ -2766,7 +2769,11 @@
         const el = document.getElementById('ax4p-mnq-readout');
         if (!el) return;
         let ticketUnit = '';
-        try { ticketUnit = unitText(qTicket('[data-testid="size-unit-toggle"]')); } catch (e) {}
+        try {
+            // 8.2.2: the drop-down's value in the words xcSizeUnit reads ('' for the market's own unit); the old toggle by its text
+            const sel = xcUnitSelect();
+            ticketUnit = sel ? ({ usd: 'USD', mini: 'MINIS', micro: 'MICROS' }[sel.getAttribute('data-unit')] || '') : unitText(qTicket('[data-testid="size-unit-toggle"]'));
+        } catch (e) {}
         // in MNQ view the buttons already read MNQ: the readout says what Vest gets
         const u = mnqExecOn() ? (activeSelectedSize > 0 ? { n: fmtSize(activeSelectedSize), unit: 'NQ' } : null) : xcSizeUnit(detectedSymbol, activeSelectedSize, ticketUnit, xcHooks.assetOf(detectedSymbol));
         const html = u ? `<b>= ${escHtml(u.n)}</b>${u.unit ? ' ' + escHtml(u.unit) : ''}` : '';
@@ -3011,12 +3018,72 @@
     async function xcExecute(side, plain) {
         const lk = xcHooks.locked();
         if (lk) { flashExec(lk.text); XCR.msg = lk.text; XCR.sent = false; XCR.n++; return false; }
+        // 8.2.2: NQ's size-unit drop-down goes to NQ units before the order code types the size (see xcUnitHooks)
+        if (xcUnitNeeded() && !(await xcUnitToNq())) {
+            const m = "Could not set Vest's size unit to NQ. Nothing sent.";
+            flashExec(m); XCR.msg = m; XCR.sent = false; XCR.n++; return false;
+        }
         // the chart labels of this entry, drawn now from the same prices the order code reads in this same turn (extension: tpProvStart)
         const prov = xcHooks.entry ? xcHooks.entry(side, !plain && xcSlOn(), !plain && xcTpOn()) : null;
         if (!plain && xcSlOn() && xcTpOn()) return triggerExecution(side);
         let sent = false;
         try { sent = plain ? await xcRawExecution(side, false, false) : await xcRawExecution(side); } finally { XCR.sent = sent; XCR.n++; if (!sent && prov) prov(); }
         return sent;
+    }
+
+    // ---------- Vest's size-unit drop-down (8.2.2) ----------
+    // On 2026-10-08 Vest gave its NQ, SPX and RTY tickets a drop-down for the size unit: USD, NQ, Minis, Micros (a Radix Select,
+    // data-testid "size-unit-select", its value in data-unit: 'usd', 'token', 'mini', 'micro'; Vest keeps the pick in localStorage).
+    // Every other market keeps the USD / coin toggle. The protected order code's ensureSizeUnitNq knows only the toggle, so on NQ the
+    // unit is set here first. In Minis and Micros the size field holds whole CME-sized contracts (an NQ micro is 2 NQ, a mini 20):
+    // the card's NQ size typed there would open 2 or 20 times the size, so without NQ units nothing is sent.
+    function xcUnitSelect() {
+        const el = qTicket('[data-testid="size-unit-select"]');
+        return el && !isOurs(el) ? el : null;
+    }
+    // the ticket's size unit: 'usd', 'token' (the market's own unit: NQ on NQ), 'mini' or 'micro'; '' with no unit control found
+    function xcTicketUnit() {
+        const sel = xcUnitSelect();
+        if (sel) return String(sel.getAttribute('data-unit') || '');
+        const tog = qTicket('[data-testid="size-unit-toggle"]');
+        if (!tog || isOurs(tog)) return '';
+        return /USD/.test(unitText(tog)) ? 'usd' : 'token';
+    }
+    // Vest's own setter of the drop-down (its onValueChange, what a pick in its list calls) and the ticket's market, up its React tree
+    function xcUnitHooks(sel) {
+        const out = { set: null, sym: '' };
+        const k = sel ? Object.keys(sel).find((x) => x.startsWith('__reactFiber$') || x.startsWith('__reactInternalInstance$')) : null;
+        for (let f = k ? sel[k] : null, i = 0; f && i < 40 && !(out.set && out.sym); f = f.return, i++) {
+            const p = f.memoizedProps;
+            if (!p || typeof p !== 'object') continue;
+            if (!out.set && typeof p.onValueChange === 'function' && typeof p.value === 'string') out.set = p.onValueChange;
+            if (!out.sym && typeof p.symbol === 'string') out.sym = p.symbol;
+        }
+        return out;
+    }
+    // an order on NQ with the drop-down on another unit (SPX and RTY keep the ticket's unit, as they always did)
+    function xcUnitNeeded() {
+        const sel = xcUnitSelect();
+        return !!sel && sel.getAttribute('data-unit') !== 'token' && mnqIsNq(xcUnitHooks(sel).sym || detectedSymbol);
+    }
+    // the drop-down to NQ units through Vest's setter; true once it reads 'token' (Vest re-renders it a moment later)
+    async function xcUnitToNq() {
+        let sel = xcUnitSelect();
+        if (!sel) return false;
+        if (sel.getAttribute('data-unit') === 'token') return true;
+        const set = xcUnitHooks(sel).set;
+        if (!set) return false;
+        try { set('token'); } catch (e) { return false; }
+        for (let i = 0; i < 20; i++) {
+            await sleep(25);
+            sel = xcUnitSelect();
+            if (sel && sel.getAttribute('data-unit') === 'token') return true;
+        }
+        return false;
+    }
+    // NQ units for the limit macros: the drop-down here, the old toggle through the protected order code
+    async function xcTicketNq() {
+        return xcUnitSelect() ? xcUnitToNq() : ensureSizeUnitNq();
     }
 
     // "SL/TP on Stop & Limit" (the card's switch, Settings > Keys, one value): do STOP and LIMIT orders carry the card's stop and target (the
@@ -8519,8 +8586,10 @@
         return '';
     }
 
-    // the Vest ticket's size unit reads NQ (not USD)
+    // the Vest ticket's size unit reads NQ (not USD, Minis or Micros): the drop-down's value, else the old toggle's text
     function mcUnitNq() {
+        const sel = xcUnitSelect();
+        if (sel) return sel.getAttribute('data-unit') === 'token';
         const t = unitText(qTicket('[data-testid="size-unit-toggle"]'));
         return t.includes('NQ') && !t.includes('USD');
     }
@@ -8629,7 +8698,7 @@
             await sleep(160); // the field fills itself with MID when it appears; ours goes in after that
             if (mcDemo()) return 0;
             // size and unit: the Exec strip's own (NQ units). The unit must read NQ, not USD, or the number means something else.
-            if (!(await ensureSizeUnitNq()) || !mcUnitNq()) return refuse('the ticket size unit is not NQ');
+            if (!(await xcTicketNq()) || !mcUnitNq()) return refuse('the ticket size unit is not NQ');
             const sizeEl = qTicket('[data-testid="size-input"]') || findAmountInput();
             if (!sizeEl) return refuse('no size field on the ticket');
             setReactInputValue(sizeEl, String(size));
@@ -10716,18 +10785,34 @@
     // Why Request payouts must wait, or '' (8.2 review). live: the copier's groups with `running` (its hook; the saved switch of a group whose
     // tab was closed can still say on), null without the hook: then the saved switches decide. stops: the client stops (a claim switches
     // accounts and pages, so an armed one would not be watched and its entry missed).
-    function vuBusyFrom(o) {
+    // the copy groups copying right now (the copier's live list, else the saved switches), and whether copying is on at all
+    function vuCopyOn(o) {
         const live = Array.isArray(o.live) ? o.live : null;
         const c = o.copy;
         const on = live ? live.filter((g) => g && g.running).map((g) => String(g.id))
             : c && Array.isArray(c.groups) ? c.groups.filter((g) => g && g.on === true).map((g) => String(g.id)) : [];
-        if (on.length || (!live && c && c.on === true)) return 'Copying is on' + (on.length ? ' (group ' + on.join(', ') + ')' : '') + '. Switch it off first: a claim switches accounts and moves money, which must not happen while copies can go out.';
+        return { on, any: !!(on.length || (!live && c && c.on === true)) };
+    }
+    function vuArmedStops(o) {
+        return Array.isArray(o.stops) ? o.stops.filter((x) => x && (x.state === 'armed' || x.state === 'firing') && x.acc !== 'demo') : [];
+    }
+    function vuBusyFrom(o) {
+        const cp = vuCopyOn(o);
+        if (cp.any) return 'Copying is on' + (cp.on.length ? ' (group ' + cp.on.join(', ') + ')' : '') + '. Switch it off first: a claim switches accounts and moves money, which must not happen while copies can go out.';
         if (o.dll) return 'Your loss limit is closing positions right now.';
         if (o.xc) return 'The Execute card is sending an order right now.';
-        const st = Array.isArray(o.stops) ? o.stops.filter((x) => x && (x.state === 'armed' || x.state === 'firing') && x.acc !== 'demo') : [];
-        if (st.length) return 'A STOP order is armed. Remove it first: a claim switches accounts, so the stop would not be watched.';
+        if (vuArmedStops(o).length) return 'A STOP order is armed. Remove it first: a claim switches accounts, so the stop would not be watched.';
         if (o.pay) return 'Request payouts is running.';
         return '';
+    }
+    // Log out (8.5): Vest's own log out ends the session in every Vest tab (its session channel tells them all). Refused while something is
+    // sending or claiming; copying and armed STOPs only add a warning to the second click. { block, ask }
+    function vuLogoutCheck(o) {
+        if (o.dll) return { block: 'Your loss limit is closing positions right now.', ask: '' };
+        if (o.xc) return { block: 'The Execute card is sending an order right now.', ask: '' };
+        if (o.pay) return { block: 'Request payouts is running.', ask: '' };
+        const warn = vuCopyOn(o).any ? 'Copying stops in every tab. ' : vuArmedStops(o).length ? 'Your STOP orders stop being watched. ' : '';
+        return { block: '', ask: warn + 'Click again to log out of every Vest tab.' };
     }
     // Vest's banner slot shows the limits (always with dollar amounts), or, during an evaluation's step change, a notice ("Step 1 completed",
     // "preparing step 2") with none: only the limits are ours to cover (8.2 review)
@@ -10779,6 +10864,52 @@
             }
             env.closeMenu();
             return { ok: false, why: 'Vest did not switch to the account' };
+        } finally { env.hideMenu(false); }
+    }
+
+    // What an item of Vest's account menu does (8.5), read from Vest's own components so it works in every language: 'logout' for the menu's
+    // one destructive item (Log out), 'add' for the item whose click handler opens the plans window (Add funded account), else null.
+    // Vest's handler sits up to about 20 fibers up, under Radix's composed ones (the same walk as vuRowAccountId).
+    function vuMenuItemAct(el) {
+        if (el.getAttribute('data-variant') === 'destructive') return 'logout';
+        let k = null;
+        try { k = Object.keys(el).find((x) => x.indexOf('__reactFiber$') === 0); } catch (e) {}
+        let f = k ? el[k] : null;
+        for (let i = 0; f && i < 25; i++, f = f.return) {
+            const h = f.memoizedProps && f.memoizedProps.onClick;
+            let src = '';
+            if (typeof h === 'function') { try { src = Function.prototype.toString.call(h); } catch (e) {} }
+            if (src.indexOf('isCapitalPlansModalOpen') >= 0) return 'add';
+        }
+        return null;
+    }
+
+    // Vest's menu, opened out of sight, and its own item for `act` ('add' or 'logout') pressed with Vest's own click handler. Radix closes
+    // the menu on that click by itself; no Escape goes out after it (it would close the plans window that just opened). { ok, why? }
+    async function vuMenuItemVia(env, act) {
+        const trig = env.doc.querySelector('[data-testid="account-selector-trigger"]');
+        if (!trig) return { ok: false, why: 'Vest\'s account menu is not on the page' };
+        const dialogs = () => env.doc.querySelectorAll('[role="dialog"]').length;
+        const before = dialogs();
+        env.hideMenu(true);
+        try {
+            env.openMenu(trig);
+            let it = null;
+            for (let i = 0; i < 40 && !it; i++) {
+                // the open menu is the one the trigger controls; without that id, the page
+                const cid = trig.getAttribute('aria-controls');
+                const box = (cid && env.doc.getElementById && env.doc.getElementById(cid)) || env.doc;
+                for (const el of box.querySelectorAll('[data-slot="dropdown-menu-item"]')) if (vuMenuItemAct(el) === act) { it = el; break; }
+                if (!it) await env.sleep(50);
+            }
+            if (!it) { env.closeMenu(); return { ok: false, why: 'the item is not in Vest\'s menu' }; }
+            env.click(it);
+            if (act !== 'add') return { ok: true };
+            for (let i = 0; i < 40; i++) {
+                if (dialogs() > before) return { ok: true };
+                await env.sleep(50);
+            }
+            return { ok: false, why: 'Vest\'s plans window did not open' };
         } finally { env.hideMenu(false); }
     }
 
@@ -10909,7 +11040,7 @@
         hooks: null, list: [], at: 0, dirty: true, soon: null, booted: false,
         btn: null, menu: null, menuOpen: false, q: '', filter: 'all', strip: null, stripHost: null, panel: null,
         manage: null, mq: '', mfilter: 'all', showHidden: false, sel: new Set(), pay: null,
-        demoActive: 'demo-03', warned: {}, dayRec: null, ownMenu: false, pillKey: '', pill: null
+        demoActive: 'demo-03', warned: {}, dayRec: null, ownMenu: false, pillKey: '', pill: null, outT: null
     };
     const VU_DAY_KEY = 'ax4p_vu_day';
 
@@ -11195,6 +11326,8 @@
             .ax4p-vu .vu-b:disabled { opacity: .45; cursor: default; }
             .ax4p-vu .vu-b:focus-visible, .ax4p-vu .vu-chip:focus-visible { outline: 2px solid var(--ax-accent); outline-offset: 1px; }
             .ax4p-vu .vu-link { background: none; border: 0; color: var(--ax-muted); font-size: 12px; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; padding: 0; }
+            #ax4p-vu-menu .vu-out { color: var(--ax-down); margin-left: auto; }
+            #ax4p-vu-menu .vu-out.arm { background: var(--ax-down-btn, var(--ax-down)); border-color: transparent; color: #fff; font-weight: 600; white-space: normal; text-align: left; height: auto; min-height: 32px; padding: 6px 12px; max-width: 360px; }
             .ax4p-vu .vu-empty { padding: 26px 16px; text-align: center; color: var(--ax-dim); font-size: 12px; }
 
             /* the strip, in Vest's account banner */
@@ -11444,7 +11577,7 @@
                 <div class="vu-chips" id="ax4p-vu-chips"></div></div>
                 <div class="cols"><span></span><span>ACCOUNT</span><span style="text-align:right">VALUE</span><span>DAY LEFT</span><span>MAX ROOM</span><span>GOAL</span></div>
                 <div class="list" id="ax4p-vu-list"></div>
-                <div class="ft"><button type="button" class="vu-b pri" data-act="manage">Manage accounts</button><button type="button" class="vu-b" data-act="closed">Closed accounts</button><span style="flex:1"></span><button type="button" class="vu-link" data-act="vest">Vest's own menu</button></div>`;
+                <div class="ft"><button type="button" class="vu-b pri" data-act="manage">Manage accounts</button><button type="button" class="vu-b" data-act="closed">Closed accounts</button><button type="button" class="vu-b" data-act="add">Add account</button><span style="flex:1"></span><button type="button" class="vu-link" data-act="vest">Vest's own menu</button><button type="button" class="vu-b vu-out" data-act="logout">Log out</button></div>`;
             m.addEventListener('click', vuMenuClick);
             m.addEventListener('keydown', vuMenuKeys);
             m.querySelector('#ax4p-vu-q').addEventListener('input', (e) => { VU.q = e.target.value; vuPaintMenu(true); });
@@ -11461,6 +11594,7 @@
         setTimeout(() => { const q = document.getElementById('ax4p-vu-q'); if (q) q.focus({ preventScroll: true }); }, 0);
     }
     function vuCloseMenu() {
+        vuDisarmLogout();
         VU.menuOpen = false;
         if (VU.menu) VU.menu.hidden = true;
         vuPaintButton();
@@ -11525,10 +11659,40 @@
         const act = e.target.closest('[data-act]');
         if (!act) return;
         const a = act.getAttribute('data-act');
+        // Log out takes a second click, on the same button, within 4 s; the menu stays open for it
+        if (a === 'logout' && !vuArmLogout(act)) return;
         vuCloseMenu();
         if (a === 'manage') vuOpenManage();
         else if (a === 'closed') vuGo('/accounts?category=closed');
         else if (a === 'vest') vuOpenVestMenu();
+        else if (a === 'add' || a === 'logout') vuMenuAct(a);
+    }
+    // First click: the button asks (and says what stops with the session); true once it was asked and clicked again
+    function vuArmLogout(btn) {
+        if (btn.dataset.armed === '1') { vuDisarmLogout(); return true; }
+        const c = vuLogoutCheck(vuBusyInput());
+        if (c.block) { tpToast('Not now: ' + c.block, 'warn'); return false; }
+        btn.dataset.armed = '1';
+        btn.classList.add('arm');
+        btn.textContent = c.ask;
+        clearTimeout(VU.outT);
+        VU.outT = setTimeout(vuDisarmLogout, 4000);
+        return false;
+    }
+    function vuDisarmLogout() {
+        clearTimeout(VU.outT);
+        const b = VU.menu && VU.menu.querySelector('[data-act="logout"]');
+        if (!b) return;
+        b.dataset.armed = '';
+        b.classList.remove('arm');
+        b.textContent = 'Log out';
+    }
+    // Add account and Log out: Vest's own items, pressed in Vest's own menu (8.5)
+    async function vuMenuAct(a) {
+        if (vuDemo()) { tpToast(a === 'add' ? 'Demo: Vest\'s Add funded account window would open here. Nothing opened.' : 'Demo: Vest would log you out here. Nothing sent.', 'good'); return; }
+        let r = null;
+        try { r = await vuMenuItemVia(vuEnv(), a); } catch (e) { r = { ok: false, why: String(e && e.message || e).slice(0, 120) }; }
+        if (!r.ok) tpToast((a === 'add' ? 'Could not open Add funded account: ' : 'Could not log out: ') + r.why + '. Vest\'s own menu still has it.', 'warn');
     }
     function vuMenuKeys(e) {
         if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); vuCloseMenu(); if (VU.btn) VU.btn.focus(); return; }
@@ -11610,15 +11774,16 @@
         };
     }
     // the copier, the loss limit's close and the Execute card each need this tab to stay on its account while they run
-    function vuBusyWhy() {
+    function vuBusyInput() {
         let live = null, dll = false, xc = false;
         try { live = VU.hooks && VU.hooks.groups ? VU.hooks.groups() : null; } catch (e) { live = null; }
         try { dll = typeof DLLF !== 'undefined' && !!DLLF.busy; } catch (e) {}
         try { xc = typeof XC !== 'undefined' && !!XC.busy; } catch (e) {}
         let stops = [];
         try { stops = S.tpsl && S.tpsl.stops && Array.isArray(S.tpsl.stops.list) ? S.tpsl.stops.list : []; } catch (e) {}
-        return vuBusyFrom({ copy: S.copy, live, dll, xc, stops, pay: !!(VU.pay && VU.pay.running) });
+        return { copy: S.copy, live, dll, xc, stops, pay: !!(VU.pay && VU.pay.running) };
     }
+    function vuBusyWhy() { return vuBusyFrom(vuBusyInput()); }
     // For the copier (8.2 round 2, the suite API's switchAccount): this tab to `id` through Vest's own menu, with the same waits as our menu.
     // { ok, why }
     async function vuSwitchTo(id) {
@@ -12309,13 +12474,12 @@
         // to NQ units there, on other markets the ticket keeps its own unit, so the size is not known and the reconciler decides.
         cardSize() { return /^(NQ|NDX)\b/.test(this.symbol()) && activeSelectedSize > 0 ? activeSelectedSize : null; },
         // What Vest's own ticket is about to send, in base units; null for a Limit ticket or a USD amount (a wake, not a guess).
+        // 8.2.2: Vest's Minis and Micros (whole CME-sized contracts) are a wake too, never read as NQ.
         ticketSize() {
             if (qTicket('[data-testid="price-input"]')) return null;
             const inp = qTicket('[data-testid="size-input"]');
-            const tog = qTicket('[data-testid="size-unit-toggle"]');
             const v = inp ? parseFloat(inp.value) : NaN;
-            const unit = unitText(tog);
-            if (!(v > 0) || !unit || /USD/.test(unit)) return null;
+            if (!(v > 0) || xcTicketUnit() !== 'token') return null;
             return v;
         },
         fiberUp: tpFiberUp,
