@@ -46,11 +46,11 @@ Drag your stop and target right on the chart. Trade from a one-click card with y
 
 Anything that sits next to your trading account deserves the question, so here is how to check it without taking my word for it.
 
-**Scan the zip.** The current release, `better-vest-8.2.0.zip`, was scanned on VirusTotal by 66 antivirus engines and none of them flagged it: [VirusTotal report](https://www.virustotal.com/gui/file/b949d5355c3272b4b9a0c41741051d6598351184499324a6e1ec6194211c8737). Its SHA-256 is:
+**Scan the zip.** The current release, `better-vest-8.2.2.zip`, was scanned on VirusTotal by 64 antivirus engines and none of them flagged it: [VirusTotal report](https://www.virustotal.com/gui/file/269c25b93a7711a6874bc5934cc66127f6b5be5a1a419a75b1e64e62e194af2b). Its SHA-256 is:
 
-`b949d5355c3272b4b9a0c41741051d6598351184499324a6e1ec6194211c8737`
+`269c25b93a7711a6874bc5934cc66127f6b5be5a1a419a75b1e64e62e194af2b`
 
-Check yours with `shasum -a 256 better-vest-8.2.0.zip` on a Mac or `certutil -hashfile better-vest-8.2.0.zip SHA256` on Windows. Same number, same file.
+Check yours with `shasum -a 256 better-vest-8.2.2.zip` on a Mac or `certutil -hashfile better-vest-8.2.2.zip SHA256` on Windows. Same number, same file.
 
 **What it can and can't do:**
 - It only runs on next.vestmarkets.com.
@@ -182,7 +182,7 @@ Your own limit for the days that go wrong. Turn it on in Settings > Risk and set
 
 ### Accounts and limits
 
-Every account in one menu, where Vest's account button was: its value, today, and three bars, how much of today's loss limit is left, the room above your max loss, and how far you are from the profit goal. Amber from half used, red from 80%. Search, filters, pins and nicknames, and a click switches accounts through Vest's own menu.
+Every account in one menu, where Vest's account button was: its value, today, and three bars, how much of today's loss limit is left, the room above your max loss, and how far you are from the profit goal. Amber from half used, red from 80%. Search, filters, pins and nicknames, and a click switches accounts through Vest's own menu. Add account and Log out sit at the bottom of the menu and use Vest's own items. Log out asks for a second click first, because Vest logs you out of every Vest tab.
 
 <p align="center"><img src="docs/media/accounts.png" alt="The account menu with sample accounts (value, today, day left, max room and goal for each, grouped by type) and the limits panel of one account" width="100%"></p>
 

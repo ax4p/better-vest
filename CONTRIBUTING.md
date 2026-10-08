@@ -4,14 +4,14 @@ About two minutes. Works in Chrome, Brave, Edge and Arc on a computer (not on ph
 
 ## Install
 
-1. Download **better-vest-8.2.0.zip** from the [latest release](https://github.com/ax4p/better-vest/releases/latest).
+1. Download **better-vest-8.2.2.zip** from the [latest release](https://github.com/ax4p/better-vest/releases/latest).
 2. Unzip it.
    - **Mac:** double-click the zip.
    - **Windows:** right-click the zip and choose **Extract All**.
 
    Keep the folder somewhere it can stay, like Documents. Chrome runs the extension from that folder, so don't delete it afterwards.
 3. Go to `chrome://extensions` (Brave: `brave://extensions`, Edge: `edge://extensions`).
-4. Turn on **Developer mode** in the top right corner, then click **Load unpacked** and pick the `better-vest-8.2.0` folder.
+4. Turn on **Developer mode** in the top right corner, then click **Load unpacked** and pick the `better-vest-8.2.2` folder.
 5. Pin it: click the puzzle piece in the toolbar, then the pin next to Better Vest.
 6. Open [next.vestmarkets.com](https://next.vestmarkets.com). The dock appears at the top of the page.
 

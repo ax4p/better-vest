@@ -45,7 +45,7 @@ There's no other address in the code. No analytics, no tracking, no ads.
 
 It doesn't have its own way to trade. It works the page the way you would:
 
-- **LONG / SHORT:** fills in Vest's own order ticket (size, stop, target) and presses Vest's own Buy or Sell button. With STOP or TARGET switched off on the card it leaves that leg out and empties its field. With both off it switches Vest's own TP/SL box off, and it sends nothing if the box won't go off.
+- **LONG / SHORT:** fills in Vest's own order ticket (size, stop, target) and presses Vest's own Buy or Sell button. On NQ it first sets the ticket's size unit to NQ through Vest's own unit menu (Minis or Micros would change what the size means), and sends nothing if the unit won't change. With STOP or TARGET switched off on the card it leaves that leg out and empties its field. With both off it switches Vest's own TP/SL box off, and it sends nothing if the box won't go off.
 - **FLAT, 50%, REV:** use Vest's own close window, the one its Close button opens. If another tab of Vest's bottom panel is showing, they switch it to Active Positions first. When Vest asks one more question after a close (slippage, your account limits, or close orders already waiting), FLAT presses Vest's own confirm button, because FLAT is the panic button. 50% and REV leave that to you.
 - **Dragging TP or SL on the chart, and BE:** go through Vest's own TP/SL handler, the code Vest itself uses to change a take-profit or a stop.
 - **Partials:** done in Vest's own Edit TP/SL window. It sets the shares, adds the targets and presses Apply, and checks every field before it does.
@@ -57,6 +57,7 @@ It doesn't have its own way to trade. It works the page the way you would:
 
 - **The copy trader:** calls Vest's own order code with each follower's account. See [The copy trader](#the-copy-trader).
 - **Switching accounts from the account menu:** clicks that account's row in Vest's own account menu.
+- **Add account and Log out in the account menu:** press the same items in Vest's own account menu. Log out takes two clicks, because Vest logs you out of every Vest tab.
 
 Better Vest never builds a trading request of its own. Vest's code sends everything, exactly as if you'd clicked.
 
@@ -130,13 +131,13 @@ If anything is off, nothing changes. If writing fails halfway, the old files go 
 ## Check it yourself
 
 1. **Read the code.** The [`extension`](extension) folder in this repo is the zip, file for file. It isn't minified or obfuscated, so you can read it in your browser.
-2. **Check the zip is that code.** The SHA-256 of `better-vest-8.2.0.zip` is:
+2. **Check the zip is that code.** The SHA-256 of `better-vest-8.2.2.zip` is:
 
-   `b949d5355c3272b4b9a0c41741051d6598351184499324a6e1ec6194211c8737`
+   `269c25b93a7711a6874bc5934cc66127f6b5be5a1a419a75b1e64e62e194af2b`
 
-   - On Mac: `shasum -a 256 better-vest-8.2.0.zip`
-   - On Windows: `certutil -hashfile better-vest-8.2.0.zip SHA256`
-3. **Scan it.** VirusTotal checks a file with more than 60 antivirus engines. Upload the zip at [virustotal.com](https://www.virustotal.com) and you get the result for that exact file. The last version I scanned there, 8.2.0, came back with 0 of 66 engines flagging it ([report](https://www.virustotal.com/gui/file/b949d5355c3272b4b9a0c41741051d6598351184499324a6e1ec6194211c8737)). The one before, 8.1.5, was 0 of 66 too ([report](https://www.virustotal.com/gui/file/2fc074e74f942cf09cbd6ec7a615eb7318f2820f8a6b2b0b94d2c72b49067bc9)).
+   - On Mac: `shasum -a 256 better-vest-8.2.2.zip`
+   - On Windows: `certutil -hashfile better-vest-8.2.2.zip SHA256`
+3. **Scan it.** VirusTotal checks a file with more than 60 antivirus engines. Upload the zip at [virustotal.com](https://www.virustotal.com) and you get the result for that exact file. The last version I scanned there, 8.2.2, came back with 0 of 64 engines flagging it ([report](https://www.virustotal.com/gui/file/269c25b93a7711a6874bc5934cc66127f6b5be5a1a419a75b1e64e62e194af2b)). The one before, 8.2.0, was 0 of 66 ([report](https://www.virustotal.com/gui/file/b949d5355c3272b4b9a0c41741051d6598351184499324a6e1ec6194211c8737)).
 
    Reports for earlier versions also had an AI summary, "Code insights", which marked two things as suspicious. Both are on this page: the WICK code switch ([The WICK code](#the-wick-code)) and the updater writing its own files ([Updates are signed](#updates-are-signed)).
 4. **Watch it work.** Open Chrome's DevTools on the Vest tab (F12), go to Network, and use Better Vest. You'll only see the addresses listed above.
