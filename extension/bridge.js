@@ -186,6 +186,19 @@
             if (t - lastOpen < 1000) return;
             lastOpen = t;
             chrome.runtime.sendMessage({ type: 'update-open' }).catch(() => {});
+        } else if (d.type === 'mch') {
+            // 9.0 multi-chart: open, keep or close the hidden Vest tabs that feed this tab's extra charts (src/multichart.js). Only market
+            // names (the page routes, BTC-PERP, NQ-PERP) go to the worker.
+            if (d.op !== 'open' && d.op !== 'keep' && d.op !== 'close') return;
+            const ok = (m) => typeof m === 'string' && /^[A-Z0-9][A-Z0-9-]{0,40}$/.test(m);
+            chrome.runtime.sendMessage({ type: 'mch', op: d.op, market: ok(d.market) ? d.market : '', markets: Array.isArray(d.markets) ? d.markets.filter(ok).slice(0, 3) : [], reload: d.reload === true }).catch(() => {});
+        } else if (d.type === 'tape') {
+            // 9.0: the chart's price second by second, for the P&L card's Replay (src/tape.js): a market's name and rows of plain numbers
+            // (second, open, high, low, close), an hour a message at most; the worker cleans them again and stores them (cert/tape-db.js)
+            const rows = d.rows;
+            if (typeof d.sym !== 'string' || !/^[A-Z0-9][A-Z0-9._-]{0,40}$/.test(d.sym) || !Array.isArray(rows) || !rows.length || rows.length > 5 * 3600 || rows.length % 5) return;
+            for (const v of rows) if (typeof v !== 'number' || !Number.isFinite(v)) return;
+            chrome.runtime.sendMessage({ type: 'tape', sym: d.sym, rows }).catch(() => {});
         }
         if (d.type === 'copy') copyFromPage(d);
     }
@@ -232,6 +245,15 @@
 
     // first state once the page has booted
     setTimeout(() => window.postMessage({ bv: 1, dir: 'toPage', cmd: 'ping' }, location.origin), 2500);
+
+    // 9.0 voice: the page script has no chrome.runtime, so it learns where the extension's own clips are (page/voice/*.ogg, the only
+    // files the manifest lets the page read). Only this address goes to the page.
+    function tellBase() {
+        if (!alive()) return;
+        try { window.postMessage({ bv: 1, dir: 'toPage', cmd: 'base', url: chrome.runtime.getURL('') }, location.origin); } catch (e) {}
+    }
+    setTimeout(tellBase, 1500);
+    setTimeout(tellBase, 6000);
 
     // a newer release waiting on GitHub: the dock shows an Update button (only the version number goes to the page)
     function tellUpdate() {

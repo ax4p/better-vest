@@ -20,7 +20,7 @@
 (function () {
     'use strict';
 
-    const VERSION = '8.2.2';
+    const VERSION = '9.0.0';
     // true only in the Chrome extension build (tools/build.py defines BV_EXT there)
     const IS_EXT = typeof BV_EXT !== 'undefined' && !!BV_EXT;
     // 'standard' = the shareable build; anything else = WICKED, the author's own full build.
@@ -48,6 +48,12 @@
             demo: () => false, demoOn: () => false, symbol: () => '', cardSize: none, ticketSize: none, fiberUp: none, detectPrices: () => ({}),
             execute: () => Promise.reject(new Error('this is a copy follower tab')), flat: () => false, positions: () => [], bridge: none
         });
+        return;
+    }
+    // 9.0 multi-chart: a hidden chart data tab (/trade/<market>?bvChart=<market>, opened by the service worker) runs only the data agent
+    // (src/multichart.js mchDataTab): its own Vest chart's datafeed feeds the extra charts of the tab that opened it. Nothing else starts.
+    if (/[?&]bvChart=[\w.:-]{1,64}(?:&|$)/.test(location.search)) {
+        mchDataTab();
         return;
     }
     const LS = win.localStorage;
@@ -183,6 +189,7 @@
         keys: SET_SVG('<rect x="1.8" y="4" width="12.4" height="8" rx="1.8"/><path d="M4.6 6.8h.1M7.2 6.8h.1M9.8 6.8h.1M12.2 6.8h-.6M5 9.4h6"/>'),
         focus: SET_SVG('<path d="M2.2 5.4V2.2h3.2M10.6 2.2h3.2v3.2M13.8 10.6v3.2h-3.2M5.4 13.8H2.2v-3.2"/><rect x="5.4" y="5.4" width="5.2" height="5.2" rx="1"/>'),
         market: SET_SVG('<path d="M1.6 9.4h2.8l1.8-4.6 3 8 1.9-4.6h3.3"/>'),
+        alerts: SET_SVG('<path d="M2.4 6.2h2.4L8.2 3.4v9.2L4.8 9.8H2.4z"/><path d="M10.4 5.6a3.4 3.4 0 0 1 0 4.8M12.2 3.8a6 6 0 0 1 0 8.4"/>'),
         more: SET_SVG('<circle cx="3.6" cy="8" r="1.1"/><circle cx="8" cy="8" r="1.1"/><circle cx="12.4" cy="8" r="1.1"/>')
     };
 
@@ -199,6 +206,11 @@
         ['footer', 'Status footer']
     ];
 
+    // 9.0 voice feedback: the voices to pick from, one folder each under page/voice/ (tools/voice.py makes them). The owner wants three.
+    // the voices of the voice feedback (page/voice/<id>/); the first is the default (the owner, 2026-10-12: Arthur)
+    const VOICE_PACKS = [{ id: 'arthur', name: 'Arthur', note: 'steady, British' }, { id: 'eddie', name: 'Eddie', note: 'calm and clear' },
+        { id: 'elara', name: 'Elara', note: 'crisp and bright' }, { id: 'belle', name: 'Belle', note: 'polished and calm' },
+        { id: 'emma', name: 'Emma', note: 'confident and crisp' }, { id: 'tala', name: 'Tala', note: 'warm and casual' }];
     const DEFAULTS = {
         size: 3,
         sizeIdx: 0,
@@ -213,20 +225,37 @@
         font: 'site',
         settingsTab: 'look',
         chart: { sync: true, upColor: '', downColor: '', bgColor: '', hideVolume: true, hideGrid: true, volRemoved: false, hideSessions: true },
-        ui: { compactDock: false, glass: 88, dockCalendar: true, wickAuto: true },
+        // 9.0: code WICK is asked about at the click that buys (wickAsk); wickAlways: that click puts WICK in by itself (src/wick.js)
+        ui: { compactDock: false, glass: 88, dockCalendar: true, wickAsk: true, wickAlways: false },
+        // the P&L card (9.0): autoPop = a card pops up on Vest's page after a close of 1% of the account or more; tape = the chart's price is
+        // kept second by second for the Replay's GIF (extension: src/tape.js)
+        share: { autoPop: true, tape: true },
         // Execute card: partial take-profit plan and the collapsed pill
         xc: { partials: false, tp1Pts: 20, tp1Pct: 50, targets: null, collapsed: false, slOn: true, tpOn: true,
             // 8.1: the stop and the target in points ('pt') or dollars ('usd'); in dollars the card keeps slUsd / tpUsd and works out the points
-            slUnit: 'pt', tpUnit: 'pt', slUsd: null, tpUsd: null },
+            slUnit: 'pt', tpUnit: 'pt', slUsd: null, tpUsd: null,
+            // 9.0: the card's size on markets other than NQ / MNQ, by market ("BTC": 0.05); NQ keeps the presets and Custom
+            sizeBy: {},
+            // 9.0: PRICE mode (slUnit / tpUnit 'price'): the levels themselves; RISK: the size follows riskUsd and the stop
+            slPx: null, tpPx: null, riskOn: false, riskUsd: null },
         // MNQ view (8.1): on NQ, sizes and the market name read as MNQ contracts (Vest's size ÷ 2). Display only; Settings > Market.
         mnqView: false,
-        // Daily loss limit (7.7, extension): a soft lockout for new trades. limit in dollars, reset hour in local time.
-        // flat (8.1.5): at the limit, also close every open position of the account.
-        dll: { on: false, limit: 200, hour: 0, vest: true, flat: true },
+        // Voice feedback (9.0, extension: src/copy/45-voice.js): on by default; the four groups of lines; told: the first-line toast was shown
+        voice: { on: true, vol: 1, pack: 'arthur', orders: true, exits: true, risk: true, session: true, told: false },
+        // Session and news (9.0, extension: src/session-news.js): the New York open and the official US releases, counted down on the card
+        session: { on: true, open: true, lead5: true, lead1: true, kinds: { cpi: true, ppi: true, nfp: true, fomc: true, gdp: true, pce: true } },
+        // Multi-chart (9.0, extension: src/multichart.js): the layout ('1', '2h', '2v', '3', '4') and each extra chart's { sym, res, saved }
+        mch: { layout: '1', panes: [] },
+        // Daily loss limit (7.7, extension): a soft lockout for new trades. limit in dollars. 9.0: the day is Vest's (8 pm New York),
+        // the reset hour is gone. flat (8.1.5): at the limit, also close every open position of the account.
+        // pon / plimit (9.0): the daily profit limit, P&L after fees of the day's closed trades
+        dll: { on: false, limit: 200, vest: true, flat: true, pon: false, plimit: 500, accs: null, paccs: null, lockAccs: null },
+        // Tilt guard (9.0, extension): a cooldown after `losses` losses in a row or `trades` trades in an hour, `mins` minutes long
+        tilt: { on: false, losses: 3, trades: 10, mins: 15 },
         // Accounts and limits (8.2, src/vest-accounts.js): Vest's account menu, limits and Claim profit, redone; every part on by default.
         // nick / pins / hidden: this device's names and marks per account id; sort: the lists' order; panelOpen: the limits panel stays up
         vestui: { menu: true, panel: true, strip: true, points: true, warn: true, nick: {}, pins: {}, hidden: {}, sort: 'limit', panelOpen: false },
-        tpsl: { enabled: true, showR: true, demo: false, followBars: true, makeRoom: true, labelScale: 1.15, be: { show: true, pct: 5, mode: 'pctProfit', ticks: 1, points: 0, minProfitTicks: 2, allowAtEntry: false },
+        tpsl: { enabled: true, showR: true, demo: false, followBars: false, makeRoom: true, labelScale: 1.15, be: { show: true, pct: 5, mode: 'pctProfit', ticks: 1, points: 0, minProfitTicks: 2, allowAtEntry: false },
             // Auto trailing SL (8.1, set on the Execute card): starts once `start` in profit (pt, or startUsd with unit 'usd'), or at once with
             // `now`; trails `dist` (pt, or distUsd) behind the best price, moves of at least `step` pt. `auto` (the card's TRAIL switch) arms the
             // open position and every new one; `armed` = { positionId: { acc, at, active, best } }
@@ -352,22 +381,71 @@
         S.v = 7.1;
     }
     S.ui = Object.assign({}, DEFAULTS.ui, S.ui || {});
+    // 9.0: the automatic switch of code VEST to WICK is gone (src/wick.js asks at checkout instead)
+    delete S.ui.wickAuto;
+    S.ui.wickAsk = S.ui.wickAsk !== false;
+    S.ui.wickAlways = S.ui.wickAlways === true;
+    S.share = Object.assign({}, DEFAULTS.share, S.share && typeof S.share === 'object' ? S.share : {});
+    S.share.autoPop = S.share.autoPop !== false;
+    S.share.tape = S.share.tape !== false;
+    S.voice = Object.assign({}, DEFAULTS.voice, S.voice && typeof S.voice === 'object' ? S.voice : {});
+    ['on', 'orders', 'exits', 'risk', 'session', 'told'].forEach((k) => { S.voice[k] = k === 'told' ? S.voice[k] === true : S.voice[k] !== false; });
+    S.voice.vol = Number.isFinite(Number(S.voice.vol)) ? Math.max(0, Math.min(1, Number(S.voice.vol))) : 1;
+    // Arthur is the default since 2026-10-12: a voice that was only the old default (never picked by hand) moves to him; a voice no longer
+    // shipped (Ivanna, Dan, Darian of the test builds) too
+    if (S.voice.pack === 'eddie' && S.voice.picked !== true) S.voice.pack = 'arthur';
+    S.voice.pack = VOICE_PACKS.some((v) => v.id === S.voice.pack) ? S.voice.pack : VOICE_PACKS[0].id;
+    S.session = Object.assign({}, DEFAULTS.session, S.session && typeof S.session === 'object' ? S.session : {});
+    S.session.kinds = Object.assign({}, DEFAULTS.session.kinds, S.session.kinds && typeof S.session.kinds === 'object' ? S.session.kinds : {});
+    S.mch = Object.assign({}, DEFAULTS.mch, S.mch && typeof S.mch === 'object' ? S.mch : {});
+    if (['1', '2h', '2v', '3', '4'].indexOf(S.mch.layout) < 0) S.mch.layout = '1';
+    S.mch.panes = Array.isArray(S.mch.panes) ? S.mch.panes.slice(0, 3).map((p) => (p && typeof p === 'object' ? { sym: String(p.sym || '').slice(0, 40), res: String(p.res || '').slice(0, 8), saved: p.saved && typeof p.saved === 'object' ? p.saved : undefined } : {})) : [];
     S.xc = Object.assign({}, DEFAULTS.xc, S.xc || {});
     // the stop / target units from storage (8.1): 'pt' or 'usd', and the dollar amounts above 0 or null
     ['sl', 'tp'].forEach((k) => {
-        S.xc[k + 'Unit'] = S.xc[k + 'Unit'] === 'usd' ? 'usd' : 'pt';
+        // 9.0: or 'price', with the level in slPx / tpPx
+        S.xc[k + 'Unit'] = S.xc[k + 'Unit'] === 'usd' || S.xc[k + 'Unit'] === 'price' ? S.xc[k + 'Unit'] : 'pt';
         const u = Number(S.xc[k + 'Usd']);
         S.xc[k + 'Usd'] = Number.isFinite(u) && u > 0 ? Math.min(u, 1e7) : null;
+        const px = Number(S.xc[k + 'Px']);
+        S.xc[k + 'Px'] = Number.isFinite(px) && px > 0 && px < 1e9 ? px : null;
     });
+    S.xc.riskOn = S.xc.riskOn === true;
+    S.xc.riskUsd = Number(S.xc.riskUsd) > 0 ? Math.min(Number(S.xc.riskUsd), 1e7) : null;
+    // with RISK the stop sets the size, so it can't also be dollars
+    if (S.xc.riskOn && S.xc.slUnit === 'usd') S.xc.slUnit = 'pt';
+    // 9.0: per-market sizes: positive numbers only
+    S.xc.sizeBy = (() => {
+        const out = {};
+        const src = S.xc.sizeBy && typeof S.xc.sizeBy === 'object' ? S.xc.sizeBy : {};
+        for (const k of Object.keys(src).slice(0, 200)) { const v = Number(src[k]); if (/^[A-Z0-9-]{1,24}$/.test(k) && Number.isFinite(v) && v > 0 && v < 1e9) out[k] = v; }
+        return out;
+    })();
     // 7.7: the stop and the target can be switched off (raw orders). Anything but an explicit false is on.
     S.xc.slOn = S.xc.slOn !== false;
     S.xc.tpOn = S.xc.tpOn !== false;
+    // a stored list of Vest account ids (9.0: the limits' and your own lock's accounts), or null for every account
+    function gdAccList(v) {
+        if (!Array.isArray(v)) return null;
+        const out = [];
+        for (const x of v) { const id = String(x == null ? '' : x); if (/^[\w.:-]{1,80}$/.test(id) && out.indexOf(id) < 0 && out.length < 200) out.push(id); }
+        return out;
+    }
     S.dll = Object.assign({}, DEFAULTS.dll, S.dll || {});
     S.dll.on = S.dll.on === true;
     S.dll.vest = S.dll.vest !== false;
     S.dll.flat = S.dll.flat !== false;
     if (!(Number(S.dll.limit) > 0)) S.dll.limit = DEFAULTS.dll.limit;
-    S.dll.hour = Number.isInteger(Number(S.dll.hour)) && Number(S.dll.hour) >= 0 && Number(S.dll.hour) <= 23 ? Number(S.dll.hour) : 0;
+    delete S.dll.hour; // 9.0: Vest's day (8 pm New York) for every limit
+    S.dll.pon = S.dll.pon === true;
+    S.dll.plimit = Number(S.dll.plimit) > 0 ? Math.min(Number(S.dll.plimit), 1e7) : DEFAULTS.dll.plimit;
+    // 9.0: which accounts the loss limit (accs) and the profit limit (paccs) watch: null for every account, else a list of Vest's account ids
+    S.dll.accs = gdAccList(S.dll.accs);
+    S.dll.paccs = gdAccList(S.dll.paccs);
+    S.dll.lockAccs = gdAccList(S.dll.lockAccs); // the card's lock menu: the accounts it locks (null: every account)
+    S.tilt = Object.assign({}, DEFAULTS.tilt, S.tilt && typeof S.tilt === 'object' ? S.tilt : {});
+    S.tilt.on = S.tilt.on === true;
+    ['losses', 'trades', 'mins'].forEach((k) => { const v = Math.round(Number(S.tilt[k])); S.tilt[k] = v >= 0 && v <= (k === 'mins' ? 240 : 100) ? v : DEFAULTS.tilt[k]; });
     // accounts and limits from storage: the switches on unless saved off; names and marks plain maps of account id, at most 200 each
     S.vestui = Object.assign({}, DEFAULTS.vestui, S.vestui && typeof S.vestui === 'object' && !Array.isArray(S.vestui) ? S.vestui : {});
     ['menu', 'panel', 'strip', 'points', 'warn'].forEach((k) => { S.vestui[k] = S.vestui[k] !== false; });
@@ -389,6 +467,13 @@
         S.v = 7.2;
     }
     if (!(S.v >= 7.3)) S.v = 7.3;
+    // 9.0: "Labels follow the latest bar" is off by default (many found it annoying). Once, for everyone: the stored settings
+    // can't tell an "on" someone chose from the old default, so whoever wants it turns it back on.
+    const to90 = !(S.v >= 9);
+    if (to90) {
+        if (S.tpsl) S.tpsl.followBars = false;
+        S.v = 9;
+    }
 
     let saveTimer = null;
     // 8.2: every Vest tab keeps its own S, and copy groups make a second tab common (a group's leader tab saves its copier every minute).
@@ -468,7 +553,7 @@
     }
     // what this tab saw: its own (cleaned) settings now; from here on only its own changes are written
     for (const k of Object.keys(S)) { try { PERSIST.seen[k] = JSON.stringify(S[k]); } catch (e) {} }
-    if (upgrading) persistAll();
+    if (upgrading || to90) persistAll();
 
     function presetList() {
         return S.presets[S.account] || ACCOUNT_PRESETS.custom;
@@ -476,19 +561,33 @@
     if (!(Number(S.customSz) > 0) && S.sizeIdx != null && presetList()[S.sizeIdx] > 0) S.size = presetList()[S.sizeIdx];
 
     let activeSelectedSize = Number(S.customSz) > 0 ? Number(S.customSz) : Number(S.size) || 3;
+    // 9.0: > 0 while an order runs at a size pinned for it (a fired STOP, REV's new side, the copier's execute()): RISK never
+    // overwrites the size then (updateExecutionRiskCalc)
+    let xcPinned = 0;
+    // 9.0: what happened, for whoever listens (voice feedback: src/copy/45-voice.js, through the suite API's onEvent). type: 'half-closed',
+    // 'rev-start', 'reversed', 'rev-end', 'breakeven', 'loss-limit-near', 'locked', 'unlocked', 'cooldown-start', 'cooldown-end', and the
+    // session / news moments ('ny-open-5', 'ny-open', 'news-5', 'news-1'). A listener that throws never stops the suite.
+    const BV_EV = [];
+    function bvEmit(type, data) {
+        for (const cb of BV_EV.slice()) { try { cb(String(type), data || {}); } catch (e) {} }
+    }
     let lastKnownMid = null;
     let lastKnownMidAt = 0; // when it was last seen: the limit macros only trust a recent one
     let lastKnownIdx = null;
     let lastKnownMark = null;
     let detectedSymbol = 'NQ-PERP';
+    let mkSizeSym = 'NQ-PERP'; // 9.0: the market activeSelectedSize was last set for (mkSeen)
     let ownWs = null;
     const hiddenMap = {};
     const collapsedMap = {};
 
-    function roundToTick(price, tick = NQ_TICK) {
+    // 9.0: the tick and decimals of the market the order goes to (mkSpec); NQ and MNQ keep 0.25 and 2, as before
+    function roundToTick(price, tick) {
         const n = Number(price);
         if (!isFinite(n)) return price;
-        return (Math.round(n / tick) * tick).toFixed(2);
+        const sp = mkSpec();
+        const t = tick > 0 ? tick : sp.tick;
+        return (Math.round(n / t) * t).toFixed(sp.dec);
     }
 
     function isOurs(el) {
@@ -827,6 +926,31 @@
             #ax4p-exec-deck .xc-tabs button:hover { color: var(--ax-text); }
             #ax4p-exec-deck .xc-tabs button.on { background: var(--ax-sel); color: #fff; }
             #ax4p-exec-deck .xc-ico { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 6px; color: var(--ax-dim); }
+            /* 9.0: your own lock (the header's lock button and its menu) */
+            #ax4p-exec-deck .xc-lockbtn.on { color: var(--ax-down); }
+            /* the menu sits on the page (moved there when it first opens), under the lock button, so the card never clips it */
+            #ax4p-xc-lockmenu { position: fixed; z-index: 1000002; width: 280px; padding: 12px; border-radius: 10px; background: var(--ax-inset);
+                border: 1px solid var(--ax-line); box-shadow: 0 12px 32px var(--ax-shadow); font-family: inherit; }
+            #ax4p-xc-lockmenu[hidden] { display: none; }
+            #ax4p-xc-lockmenu .xc-lm-t { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--ax-dim); margin-bottom: 8px; }
+            #ax4p-xc-lockmenu .xc-lm-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+            #ax4p-xc-lockmenu .xc-lm-row button[data-lock="day"] { grid-column: 1 / -1; }
+            #ax4p-xc-lockmenu button { height: 28px; padding: 0 10px; border-radius: 7px; border: 1px solid var(--ax-line); background: var(--ax-btn); color: var(--ax-text); font-weight: 600; font-size: 12px; cursor: pointer; }
+            #ax4p-xc-lockmenu .xc-lm-row button:hover { border-color: var(--ax-down); color: var(--ax-down); }
+            #ax4p-xc-lockmenu .xc-lm-d { margin-top: 8px; font-size: 11px; line-height: 15px; color: var(--ax-dim); }
+            /* which accounts (9.0): every account, or the ones ticked; Settings > Risk uses the same picker */
+            .ax4p-accscope { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 3px; margin-bottom: 8px; border-radius: 8px; background: var(--ax-btn); }
+            .ax4p-accscope button { height: 24px !important; border: 0 !important; border-radius: 6px !important; background: none !important; color: var(--ax-dim) !important;
+                font-size: 11px !important; font-weight: 700 !important; cursor: pointer; }
+            .ax4p-accscope button.on { background: var(--ax-sel) !important; color: #fff !important; }
+            .ax4p-acclist { max-height: 168px; overflow-y: auto; margin-bottom: 8px; border: 1px solid var(--ax-line); border-radius: 8px; }
+            .ax4p-acclist[hidden] { display: none; }
+            .ax4p-acclist label { display: flex; align-items: center; gap: 8px; padding: 5px 8px; font-size: 12px; color: var(--ax-text); cursor: pointer; }
+            .ax4p-acclist label + label { border-top: 1px solid var(--ax-line); }
+            .ax4p-acclist label em { margin-left: auto; font-style: normal; font-size: 10px; color: var(--ax-dim); }
+            .ax4p-acclist .ax4p-acc-none { padding: 8px; font-size: 11px; color: var(--ax-dim); }
+            #ax4p-xc-lockmenu .xc-lm-on { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 10px; font-size: 12px; font-weight: 600; color: var(--ax-down); }
+            #ax4p-xc-lockmenu .xc-lm-on[hidden] { display: none; }
             #ax4p-exec-deck .xc-ico:hover { background: var(--ax-btn); color: var(--ax-text); }
             /* top tier: quiet inputs on one baseline under 10px micro-labels */
             #ax4p-exec-deck .xc-in { display: grid; grid-template-columns: 248px 112px 112px 1fr; column-gap: 8px; align-items: end; padding: 2px 0 10px; }
@@ -878,6 +1002,16 @@
             #ax4p-exec-deck .xc-unitsw b.on { background: var(--ax-sel); color: #fff; }
             #ax4p-exec-deck .xc-unitsw:hover b:not(.on) { color: var(--ax-text); }
             #ax4p-exec-deck .xc-g.off .xc-unitsw { opacity: .4; pointer-events: none; }
+            /* 9.0: PRICE fills the stepper (no - / +), the gray line under each field, RISK */
+            #ax4p-exec-deck .xc-step.px button { display: none; }
+            #ax4p-exec-deck .xc-stepv.px .xc-suf { display: none; }
+            #ax4p-exec-deck .xc-stepv.px input { width: 100%; text-align: center; }
+            #ax4p-exec-deck .xc-unitsw b.dis { opacity: .35; }
+            #ax4p-exec-deck .xc-sub { display: block; height: 11px; margin-top: 2px; font-size: 9px; line-height: 11px; font-style: normal; color: var(--ax-dim);
+                text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+            #ax4p-exec-deck .xc-riskf { display: flex; align-items: center; gap: 2px; padding: 0 8px; flex: 1; }
+            #ax4p-exec-deck .xc-riskf[hidden] { display: none; }
+            #ax4p-exec-deck .xc-riskf input { width: 100%; border: 0; background: none; color: var(--ax-text); font-weight: 600; outline: none; -moz-appearance: textfield; }
             #ax4p-exec-deck .xc-sw { position: relative; width: 40px; height: 24px; margin: 4px 0; border-radius: 12px; background: var(--ax-btn); border: 1px solid var(--ax-line); transition: background .15s; }
             #ax4p-exec-deck .xc-sw span { position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: var(--ax-dim); transition: transform .15s, background .15s; }
             #ax4p-exec-deck .xc-sw.on { background: var(--ax-sel); border-color: var(--ax-dim); }
@@ -895,6 +1029,10 @@
             #ax4p-exec-deck .xc-run { grid-column: 2; display: flex; align-items: center; gap: 8px; align-self: stretch; padding-left: 16px; border-left: 1px solid var(--ax-line); }
             #ax4p-exec-deck .xc-run .xc-tag { width: 48px; }
             #ax4p-exec-deck .xc-pg .xc-usd { min-width: 60px; }
+            /* 9.0: targets set as prices need room for a whole price */
+            #ax4p-exec-deck .xc-parts.px { grid-template-columns: 344px 1fr; }
+            #ax4p-exec-deck .xc-parts.px .xc-pg .xc-field:first-of-type, #ax4p-exec-deck .xc-parts.px .xc-run .xc-field:first-of-type { width: 92px; }
+            #ax4p-exec-deck .xc-parts.px .xc-pg .xc-field:first-of-type input { width: 100%; text-align: center; }
             #ax4p-exec-deck .xc-run { flex-wrap: wrap; align-content: center; row-gap: 4px; }
             #ax4p-exec-deck .xc-run .xc-field--ro.bad { border-color: var(--ax-down); }
             #ax4p-exec-deck .xc-run .xc-field--ro.bad b { color: var(--ax-down); }
@@ -1076,6 +1214,8 @@
             #ax4p-acct-seg button { flex: 1; padding: 6px 0; font-size: 10.5px; }
             .ax4p-big-num { font-size: 16px; font-weight: 800; font-variant-numeric: tabular-nums; }
             .ax4p-big-num.hot { color: var(--ax-warn); }
+            .ax4p-big-num.up { color: var(--ax-up); }
+            .ax4p-big-num.dn { color: var(--ax-down); }
             #ax4p-font { width: 150px; }
             #ax4p-font-preview { font-size: 12px; color: var(--ax-text); margin-top: 4px; }
 
@@ -1088,6 +1228,9 @@
                 border-color: var(--ax-warn); color: var(--ax-big);
                 background: color-mix(in srgb, var(--ax-warn) 26%, var(--ax-raised));
             }
+            #ax4p-dislocation-text.up { color: var(--ax-up); }
+            #ax4p-dislocation-text.dn { color: var(--ax-down); }
+            #ax4p-dislocation-pill.hot #ax4p-dislocation-text { color: inherit; }
 
 
             /* ===== 7.2 visual layer: glass surfaces, motion, real controls ===== */
@@ -1191,6 +1334,11 @@
             #ax4p-master-dock.compact .ax4p-ext { display: none; }
             #ax4p-master-dock.compact .ax4p-dock-btn { padding: 4px 7px; }
             #ax4p-master-dock.compact svg { width: 14px; height: 14px; }
+            /* 9.0 round 2 (the owner: "make the space between Vest's own tabs smaller so everything fits"): Vest's top tabs 6 px a side instead of
+               16, and the dock a little tighter, so the full dock has room between Vest's tabs and the account button */
+            header nav a.p-4 { padding-left: 6px; padding-right: 6px; }
+            #ax4p-master-dock { gap: 3px; padding-left: 8px; padding-right: 8px; }
+            #ax4p-master-dock .ax4p-dock-btn { padding-left: 6px; padding-right: 6px; }
 
             @media (prefers-reduced-motion: reduce) {
                 .ax4p-shell, #ax4p-big-toast { animation: none !important; }
@@ -1925,6 +2073,8 @@
                     // one unknown key on an older library must not cost the rest
                     Object.keys(o).forEach((k) => { try { w.applyOverrides({ [k]: o[k] }); } catch (e2) {} });
                 }
+                // 9.0: the extra charts take the same theme
+                if (typeof mchTheme === 'function') mchTheme(theme().tv, o);
             }
             if (!S.chart.sync && tv.cssOrig) applyTvCss(w);
             syncVolume(w);
@@ -1986,7 +2136,7 @@
         let m = null;
         try { m = decodeURIComponent(location.pathname + ' ' + location.search + ' ' + location.hash).match(PERP_RE); } catch (e) {}
         if (!m) m = (document.title || '').match(PERP_RE);
-        if (m) { detectedSymbol = normSym(m[1]); return detectedSymbol; }
+        if (m) { detectedSymbol = normSym(m[1]); mkSeen(); return detectedSymbol; }
         if (cheap && now() - symScanAt < 15000) return detectedSymbol;
         symScanAt = now();
         // page text only: our own widgets print the symbol too
@@ -2000,7 +2150,7 @@
             [/ETH-PERP|\bETH\b/, 'ETH-PERP']
         ];
         for (const [re, sym] of map) {
-            if (re.test(href) || re.test(text)) { detectedSymbol = sym; return sym; }
+            if (re.test(href) || re.test(text)) { detectedSymbol = sym; mkSeen(); return sym; }
         }
         return detectedSymbol;
     }
@@ -2013,23 +2163,28 @@
 
     function scrapeLabelPrice(label) {
         const re = new RegExp(label, 'i');
+        // 9.0: a price as this market prints it. NQ and MNQ keep the exact old pattern (two decimals, above 1); other markets
+        // print whole dollars (BTC), more decimals (FX) or prices under 1, so any decimals and any positive value.
+        const nq = mkSpec().nq;
+        const num = nq ? '([0-9,]+\\.\\d{2})' : '([0-9,]+(?:\\.\\d+)?)';
+        const min = nq ? 1 : 0;
         const all = document.querySelectorAll('span, div, p, label, dt, dd, h3, h4');
         for (const n of all) {
             if (isOurs(n) || n.children.length > 6) continue;
             const txt = (n.textContent || '').replace(/\s+/g, ' ').trim();
             if (!re.test(txt) || txt.length > 48) continue;
-            const direct = txt.match(new RegExp(label + '\\s*:?\\s*\\$?([0-9,]+\\.\\d{2})', 'i'));
+            const direct = txt.match(new RegExp(label + '\\s*:?\\s*\\$?' + num, 'i'));
             if (direct) {
                 const v = parseFloat(direct[1].replace(/,/g, ''));
-                if (v > 1) return v;
+                if (v > min) return v;
             }
             const parent = n.parentElement;
             if (parent && !isOurs(parent)) {
                 const blob = parent.innerText.replace(/\s+/g, ' ');
-                const m = blob.match(new RegExp(label + '\\s*:?\\s*\\$?([0-9,]+\\.\\d{2})', 'i'));
+                const m = blob.match(new RegExp(label + '\\s*:?\\s*\\$?' + num, 'i'));
                 if (m) {
                     const v = parseFloat(m[1].replace(/,/g, ''));
-                    if (v > 1) return v;
+                    if (v > min) return v;
                 }
             }
         }
@@ -2276,6 +2431,8 @@
                 if (ws !== ownWs) return;
                 ownLastMsgTs = now();
                 ingestRaw(ev.data, 'own');
+                // 9.0: the open and news moments also on socket traffic (a hidden tab's timers run late; its socket does not)
+                if (typeof ssTick === 'function') ssTick();
             });
             ws.addEventListener('close', () => {
                 if (ws !== ownWs) return;
@@ -2299,14 +2456,20 @@
         const el = document.getElementById('ax4p-exec-note');
         if (!el) return;
         const sym = String(detectedSymbol || '');
-        const base = sym.replace(/-PERP$/, '');
         let text = '', tip = '';
-        if (/^BTC/.test(sym)) {
-            text = 'BTC · Exec off';
-            tip = 'Exec reads the Mid Price with two decimals. BTC shows whole dollars, so LONG / SHORT do nothing on this market.';
-        } else if (!/^(NQ|MNQ|ES|MES)-PERP$/.test(sym)) {
-            text = base + ' · ticket unit';
-            tip = "Exec's sizes are NQ contracts. On " + base + " the number goes into Vest's ticket in the unit it shows (USD or " + base + '). Check the ticket before you press.';
+        // 9.0: every market trades from the card; off NQ it needs the market's details and a size of its own (mkSpec, mkMarketSize)
+        if (!mkIsNq(sym)) {
+            const u = mkUnitName(sym);
+            if (!IS_EXT) {
+                text = u + ' · NQ only';
+                tip = 'The userscript trades NQ only. The Better Vest extension trades every market.';
+            } else if (!mkSpec(sym).known) {
+                text = u + ' · loading';
+                tip = "Reading " + u + "'s price tick and size step from Vest. Orders on " + u + ' wait for it.';
+            } else if (!(Number((S.xc.sizeBy || {})[mkSizeKey(sym)]) > 0)) {
+                text = u + ' · set a size';
+                tip = 'Sizes off NQ are kept per market, in ' + u + ". Type your " + u + ' size in the size field; until then nothing is sent on ' + u + '.';
+            }
         }
         el.textContent = text;
         el.title = tip;
@@ -2320,6 +2483,7 @@
 
     function onSymbolChange() {
         lastKnownMidAt = 0;
+        mkLoadInfo();
         updateExecNote();
         mnqSync();
         chartFxReset();
@@ -2399,8 +2563,10 @@
                 queued = false;
                 const t = (priceBar.innerText || '').replace(/\s+/g, ' ');
                 const num = (re) => { const m = t.match(re); return m ? parseFloat(m[1].replace(/,/g, '')) : null; };
-                const mid = num(/Mid Price\s*\$?([0-9,]+\.\d{2})/i);
-                const idx = num(/Index Price\s*\$?([0-9,]+\.\d{2})/i);
+                // 9.0: NQ keeps its two-decimal pattern; other markets print whole dollars or more decimals
+                const nq = mkSpec().nq;
+                const mid = num(nq ? /Mid Price\s*\$?([0-9,]+\.\d{2})/i : /Mid Price\s*\$?([0-9,]+(?:\.\d+)?)/i);
+                const idx = num(nq ? /Index Price\s*\$?([0-9,]+\.\d{2})/i : /Index Price\s*\$?([0-9,]+(?:\.\d+)?)/i);
                 if (mid && idx) {
                     // what detectPrices would have read from this same bar
                     lastKnownMid = mid;
@@ -2414,23 +2580,31 @@
         priceObs.observe(bar, { subtree: true, childList: true, characterData: true });
     }
 
+    // 9.0: signed (mid above the index reads +, below -), in the market's decimals, hot by weight not NQ points (spreadInfo)
     function paintSpread(mid, idx) {
-        const diff = mid && idx ? Math.abs(mid - idx) : null;
+        const dec = mkSpec().dec;
+        const sp = spreadInfo(mid, idx, dec);
+        const text = sp ? sp.text : 'Δ —';
         const pill = document.getElementById('ax4p-dislocation-pill');
         const textEl = document.getElementById('ax4p-dislocation-text');
         if (pill && textEl) {
-            textEl.textContent = diff == null ? 'Δ —' : `Δ ${diff.toFixed(2)}`;
-            const hot = diff != null && diff >= 3;
+            textEl.textContent = text;
+            textEl.classList.toggle('up', !!sp && sp.sign > 0);
+            textEl.classList.toggle('dn', !!sp && sp.sign < 0);
+            const hot = !!sp && sp.hot;
             pill.classList.toggle('hot', hot);
             pill.classList.toggle('astral-alert-pulse', hot);
+            pill.title = sp ? "Vest's mid " + (sp.sign > 0 ? 'above' : sp.sign < 0 ? 'below' : 'level with') + ' the index' : '';
         }
         const big = document.getElementById('ax4p-set-spread');
         if (big) {
-            big.textContent = diff == null ? 'Δ —' : `Δ ${diff.toFixed(2)}`;
-            big.classList.toggle('hot', diff != null && diff >= 3);
+            big.textContent = text;
+            big.classList.toggle('hot', !!sp && sp.hot);
+            big.classList.toggle('up', !!sp && !sp.hot && sp.sign > 0);
+            big.classList.toggle('dn', !!sp && !sp.hot && sp.sign < 0);
         }
         const px = document.getElementById('ax4p-set-px');
-        if (px) px.textContent = mid && idx ? `mid ${mid.toFixed(2)} · index ${idx.toFixed(2)}` : 'waiting for prices';
+        if (px) px.textContent = mid && idx ? `mid ${mid.toFixed(dec)} · index ${idx.toFixed(dec)}` : 'waiting for prices';
     }
 
     function setReactInputValue(input, val) {
@@ -2662,21 +2836,38 @@
     // The partial take-profit plan: each target closes its share at its distance, the rest (the runner) rides to the
     // main target. why: '' when it can be placed, else the reason in plain words.
     const XC_MAX_TARGETS = 4;
+    // 9.0: a Partials target in the TARGET's mode, as points: 'pt' as typed; '$' that leg's own profit (its share of the size);
+    // 'price' the level's distance from ref (the mid on the card; the entry once the position is open, see xcPartialPlan)
+    function xcRowPts(x, size, ref) {
+        const u = (S.xc && S.xc.tpUnit) || 'pt';
+        if (u === 'usd') return legPts('usd', x.usd, 'tp', size * (Math.round(Number(x.pct)) || 0) / 100, 0, mkSpec().tick) || 0;
+        if (u === 'price') return legPts('price', x.px, 'tp', 0, ref) || 0;
+        return Number(x.pts) || 0;
+    }
     function xcPlan(size, tpPts) {
-        const legs = S.xc.targets.map((x) => ({ pts: Number(x.pts) || 0, pct: Math.round(Number(x.pct) || 0) }));
+        const px = xcLegPx('tp');
+        const ref = px ? xcMidNow() : 0;
+        const legs = S.xc.targets.map((x) => ({ pts: px || S.xc.tpUnit === 'usd' ? xcRowPts(x, size, ref) : Number(x.pts) || 0, pct: Math.round(Number(x.pct) || 0) }));
         legs.forEach((l) => { l.usd = size * l.pts * l.pct / 100; l.bad = !(l.pts > 0) || l.pts >= tpPts || !(l.pct >= 1); });
+        // a target set as a price also has to be on the main target's side of the price
+        if (px) S.xc.targets.forEach((x, i) => { if (levelSide('tp', x.px, ref) !== levelSide('tp', S.xc.tpPx, ref)) legs[i].bad = legs[i].side = true; });
         const runPct = 100 - legs.reduce((s, l) => s + l.pct, 0);
         const runUsd = size * tpPts * Math.max(0, runPct) / 100;
         legs.forEach((l) => { l.dup = legs.filter((m) => m.pts === l.pts).length > 1; });
         let why = '', code = '';
         if (legs.some((l) => !(l.pct >= 1))) { why = 'every target needs a share of at least 1%'; code = 'pct'; }
         else if (runPct < 1) { why = 'the targets add up to 100% or more, so nothing is left for the runner'; code = 'sum'; }
+        else if (legs.some((l) => l.side)) { why = "every target has to be on the main target's side of the price"; code = 'side'; }
         else if (legs.some((l) => l.bad)) { why = 'every target has to be closer than the main target (' + fmtSize(tpPts) + ' pt)'; code = 'far'; }
         else if (legs.some((l) => l.dup)) { why = 'two targets are at the same distance'; code = 'dup'; }
         return { legs, runPct, runUsd, total: legs.reduce((s, l) => s + l.usd, 0) + runUsd, why, code };
     }
     function updateExecutionRiskCalc() {
         xcSyncUsd();
+        // 9.0: PRICE legs follow the mid; RISK sets the size from the stop (never while an order runs at a size pinned for it)
+        const pxMid = xcSyncPx();
+        const rk = xcRiskOn() ? xcRiskCalc() : null;
+        if (rk && rk.size && !xcPinned && rk.size !== activeSelectedSize) { activeSelectedSize = rk.size; xcSyncUsd(); }
         const slPts = parseFloat(document.getElementById('ax4p-sl-pts')?.value) || S.sl || 15;
         const tpPts = parseFloat(document.getElementById('ax4p-tp-pts')?.value) || S.tp || 30;
         const size = activeSelectedSize;
@@ -2688,7 +2879,8 @@
         const rr = risk > 0 ? target / risk : 0;
         // no stop means no risk figure and no share of the account; either leg off means no R:R
         const pct = slOn ? acctPct(risk) : null;
-        const key = [slPts, tpPts, size, S.account, slOn, tpOn, plan ? JSON.stringify(S.xc.targets) : '', S.xc.slUnit, S.xc.tpUnit].join('|');
+        const key = [slPts, tpPts, size, S.account, slOn, tpOn, plan ? JSON.stringify(S.xc.targets) : '', S.xc.slUnit, S.xc.tpUnit,
+            pxMid || '', S.xc.slPx, S.xc.tpPx, rk ? rk.short : '-', mkSpec().dec].join('|');
         if (key !== lastRiskHtml) {
             lastRiskHtml = key;
             xcText('ax4p-xc-risk', slOn ? xcUsd(risk) : 'No stop');
@@ -2704,25 +2896,45 @@
             if (plan) {
                 plan.legs.forEach((l, i) => {
                     const usd = document.querySelector(`#ax4p-xc-parts [data-tp-usd="${i}"]`);
-                    if (usd && usd.textContent !== '+' + xcUsd(l.usd)) usd.textContent = '+' + xcUsd(l.usd);
+                    // 9.0: in $ the line under a target is its points; in points or a price, its dollars
+                    const line = S.xc.tpUnit === 'usd' ? fmtSize(l.pts) + ' pt' : '+' + xcUsd(l.usd);
+                    if (usd && usd.textContent !== line) usd.textContent = line;
                     document.querySelectorAll(`#ax4p-xc-parts [data-tp="${i}"]`).forEach((inp) => {
                         const f = inp.closest('.xc-field');
-                        if (f) f.classList.toggle('bad', inp.getAttribute('data-k') === 'pts' ? !(l.pts > 0) || l.pts >= tpPts || l.dup : !(l.pct >= 1) || plan.runPct < 1);
+                        if (f) f.classList.toggle('bad', inp.getAttribute('data-k') !== 'pct' ? !(l.pts > 0) || l.pts >= tpPts || l.dup || !!l.side : !(l.pct >= 1) || plan.runPct < 1);
                     });
                 });
-                xcText('ax4p-xc-run-pts', fmtSize(tpPts));
+                // the runner follows the main target, in the target's own unit
+                xcText('ax4p-xc-run-pts', xcLegPx('tp') && S.xc.tpPx ? Number(S.xc.tpPx).toFixed(mkSpec().dec) : xcLegUsd('tp') ? xcUsd(tpPts * size) : fmtSize(tpPts));
                 xcText('ax4p-xc-run-pct', String(Math.max(0, plan.runPct)));
                 xcText('ax4p-xc-run-usd', '+' + xcUsd(plan.runUsd));
                 const runPct = document.getElementById('ax4p-xc-run-pct');
                 if (runPct) runPct.closest('.xc-field').classList.toggle('bad', plan.runPct < 1);
-                const short = { pct: 'Each target needs at least 1%', sum: 'Shares add up to 100% or more', far: 'A target is past the main target', dup: 'Two targets at the same distance' };
+                const short = { pct: 'Each target needs at least 1%', sum: 'Shares add up to 100% or more', far: 'A target is past the main target', dup: 'Two targets at the same distance', side: 'A target is on the wrong side' };
                 xcText('ax4p-xc-why', plan.code ? short[plan.code] : '');
                 const run = document.querySelector('#ax4p-xc-parts .xc-run');
                 if (run) run.title = plan.why ? 'Partials not set: ' + plan.why + '.' : 'The rest of the position, at the main target';
             }
+            // 9.0: the gray line under each leg: PT shows its dollars, $ its points, PRICE the dollars at the level and whose leg it is
+            const dec = mkSpec().dec;
+            const subOf = (k, pts, on) => {
+                if (!on) return '';
+                const u = S.xc[k + 'Unit'] || 'pt';
+                const sign = k === 'sl' ? '-' : '+';
+                if (u === 'usd') return fmtSize(pts) + ' pt';
+                if (u === 'price') {
+                    const sd = pxMid ? levelSide(k, S.xc[k + 'Px'], pxMid) : '';
+                    return sd ? sign + xcUsd(pts * size) + ' ' + sd : pxMid ? 'at the price' : 'no price yet';
+                }
+                return sign + xcUsd(pts * size);
+            };
+            xcText('ax4p-sl-sub', subOf('sl', slPts, slOn));
+            xcText('ax4p-tp-sub', subOf('tp', tpPts, tpOn));
+            xcText('ax4p-xc-size-sub', rk ? (rk.short || 'risk ' + xcUsd(Number(S.xc.riskUsd))) : '');
             xcText('ax4p-xc-pill-size', xcSizeShown(size));
-            xcText('ax4p-xc-pill-sl', slOn ? (xcLegUsd('sl') ? xcUsd(risk) : fmtSize(slPts)) : 'off');
-            xcText('ax4p-xc-pill-tp', tpOn ? (xcLegUsd('tp') ? xcUsd(tpPts * size) : fmtSize(tpPts)) : 'off');
+            const pillLeg = (k, pts, usd) => (xcLegPx(k) && S.xc[k + 'Px'] ? Number(S.xc[k + 'Px']).toFixed(dec) : xcLegUsd(k) ? xcUsd(usd) : fmtSize(pts));
+            xcText('ax4p-xc-pill-sl', slOn ? pillLeg('sl', slPts, risk) : 'off');
+            xcText('ax4p-xc-pill-tp', tpOn ? pillLeg('tp', tpPts, tpPts * size) : 'off');
             [['ax4p-xc-pill-sl', slOn], ['ax4p-xc-pill-tp', tpOn]].forEach(([id, on]) => {
                 const el = document.getElementById(id);
                 if (el) el.classList.toggle('off', !on);
@@ -2773,6 +2985,8 @@
             // 8.2.2: the drop-down's value in the words xcSizeUnit reads ('' for the market's own unit); the old toggle by its text
             const sel = xcUnitSelect();
             ticketUnit = sel ? ({ usd: 'USD', mini: 'MINIS', micro: 'MICROS' }[sel.getAttribute('data-unit')] || '') : unitText(qTicket('[data-testid="size-unit-toggle"]'));
+            // 9.0: off NQ every order goes in the market's own unit, whatever the toggle shows now
+            if (!mkIsNq(detectedSymbol)) ticketUnit = '';
         } catch (e) {}
         // in MNQ view the buttons already read MNQ: the readout says what Vest gets
         const u = mnqExecOn() ? (activeSelectedSize > 0 ? { n: fmtSize(activeSelectedSize), unit: 'NQ' } : null) : xcSizeUnit(detectedSymbol, activeSelectedSize, ticketUnit, xcHooks.assetOf(detectedSymbol));
@@ -3015,7 +3229,8 @@
     const XCR = { n: 0, sent: false, msg: '' };
 
     // plain = true: no stop and no target for this one order, whatever the card's switches say (a fired client stop with "SL/TP on Stop & Limit" off)
-    async function xcExecute(side, plain) {
+    // src 'card': a press of the card's LONG / SHORT (the pill and the W / S keys press it); only those follow RISK (9.0)
+    async function xcExecute(side, plain, src) {
         const lk = xcHooks.locked();
         if (lk) { flashExec(lk.text); XCR.msg = lk.text; XCR.sent = false; XCR.n++; return false; }
         // 8.2.2: NQ's size-unit drop-down goes to NQ units before the order code types the size (see xcUnitHooks)
@@ -3023,9 +3238,26 @@
             const m = "Could not set Vest's size unit to NQ. Nothing sent.";
             flashExec(m); XCR.msg = m; XCR.sent = false; XCR.n++; return false;
         }
+        // 9.0: any other market: its details known, a size set for it, and the ticket in its own unit (the card's size is in it).
+        // NQ and MNQ never enter here, so their orders go exactly as before, in the same turn.
+        if (!mkIsNq(mkTicketSym())) {
+            const why = mkOrderWhy();
+            const m = why ? why.charAt(0).toUpperCase() + why.slice(1) + '. Nothing sent.'
+                : !(await mkTicketToken()) ? "Could not set Vest's size unit to " + mkUnitName() + '. Nothing sent.' : '';
+            if (m) { flashExec(m); XCR.msg = m; XCR.sent = false; XCR.n++; return false; }
+        }
+        // 9.0: PRICE legs take their points from the mid of this very turn and must sit on the right side of it; RISK sets the size
+        // from the stop now. Both before the order code, which reads points, size and mid before its first wait. (Nothing here runs
+        // with the card in points or dollars and RISK off: NQ's orders go as before.)
+        if (!plain) {
+            const why = xcPxWhy(side, xcSlOn(), xcTpOn()) || (src === 'card' && !xcPinned ? xcRiskApply() : '');
+            if (why) { const m = why.charAt(0).toUpperCase() + why.slice(1) + '. Nothing sent.'; flashExec(m); XCR.msg = m; XCR.sent = false; XCR.n++; return false; }
+        }
         // the chart labels of this entry, drawn now from the same prices the order code reads in this same turn (extension: tpProvStart)
         const prov = xcHooks.entry ? xcHooks.entry(side, !plain && xcSlOn(), !plain && xcTpOn()) : null;
-        if (!plain && xcSlOn() && xcTpOn()) return triggerExecution(side);
+        // Off NQ the raw path takes both legs too: the protected path's ticket defaults press Vest's USD / coin toggle after the size is
+        // typed, and Vest keeps two decimals through each press (0.001 BTC went in as 0.00; live check 2026-10-11). NQ: as always.
+        if (!plain && xcSlOn() && xcTpOn() && mkIsNq(mkTicketSym())) return triggerExecution(side);
         let sent = false;
         try { sent = plain ? await xcRawExecution(side, false, false) : await xcRawExecution(side); } finally { XCR.sent = sent; XCR.n++; if (!sent && prov) prov(); }
         return sent;
@@ -3086,6 +3318,114 @@
         return xcUnitSelect() ? xcUnitToNq() : ensureSizeUnitNq();
     }
 
+    // ---------- Per-market spec (9.0) ----------
+    // What an order needs to know about its market: the price tick and decimals, the size step, and that the ticket takes the
+    // market's own unit. Up to 8.2.2 these were NQ's constants everywhere, so the order keys, LIMIT and STOP refused every
+    // other market. NQ and MNQ keep exactly those constants (0.25, 2 decimals, NQ units) whatever Vest's exchange info
+    // says, so their orders do not change by a digit; every other market reads its own from that info (tpLoadInfo).
+    function mkIsNq(sym) {
+        return mnqIsNq(sym) || /^MNQ(?:-PERP)?$/i.test(String(sym || ''));
+    }
+    // { nq, tick, dec, step, known }: step = the size step (null when Vest does not say); known = false while a market's
+    // info is not loaded (its orders wait for it). Read at call time; it never throws, even before the chart code has loaded.
+    function mkSpec(sym) {
+        const s = sym === undefined ? detectedSymbol : sym;
+        if (mkIsNq(s)) return { nq: true, tick: NQ_TICK, dec: 2, step: null, known: true };
+        let i = null;
+        // by every spelling Vest's info is filed under: ES-PERP is SPX-USD-PERP there (live check 2026-10-11: ES never loaded)
+        try { i = tpInfoGet(s) || tpInfoGet(API_SYMBOLS[s] || '') || tpInfoGet(tpCanonSym(s)); } catch (e) {}
+        if (i && i.tick > 0) {
+            const step = Number.isFinite(i.sizeDec) && i.sizeDec >= 0 ? Math.pow(10, -i.sizeDec) : null;
+            return { nq: false, tick: i.tick, dec: Math.max(i.dec || 0, tpDecimals(i.tick)), step, known: true };
+        }
+        return { nq: false, tick: 0.01, dec: 2, step: null, known: false };
+    }
+    // Vest's exchange info, wherever an order might need it (Chart TP/SL loads it too, but it can be off). GET only, once per
+    // 6 hours (tpLoadInfo's own memo); the userscript has no bridge and stays on NQ.
+    function mkLoadInfo() {
+        if (!IS_EXT) return;
+        try { const b = tpBridge(); if (b) tpLoadInfo(b).then(() => { if (!mkSpec().nq) updateExecNote(); }, () => {}); } catch (e) {}
+    }
+    // the market as the ticket itself holds it (the drop-down's component knows it), else the page's
+    function mkTicketSym() {
+        const sel = xcUnitSelect();
+        return (sel && xcUnitHooks(sel).sym) || detectedSymbol;
+    }
+    // the ticket shows the market's own unit (NQ on NQ, BTC on BTC): what the card's size means
+    function mkUnitToken() {
+        if (mkIsNq(mkTicketSym())) return mcUnitNq();
+        return mkTicketUnit() === 'token';
+    }
+    // off NQ: 'usd' only when the toggle reads exactly USD (EUR-USD's own unit is labelled "EUR-USD": live check 2026-10-11); the
+    // drop-down by its value; '' with neither
+    function mkTicketUnit() {
+        const sel = xcUnitSelect();
+        if (sel) return String(sel.getAttribute('data-unit') || '');
+        const tog = qTicket('[data-testid="size-unit-toggle"]');
+        if (!tog || isOurs(tog)) return '';
+        return unitText(tog) === 'USD' ? 'usd' : 'token';
+    }
+    // Off NQ, the ticket goes to the market's own unit: the drop-down through Vest's setter (SPX, RTY), the USD / coin toggle
+    // by a press (Vest flips it between the two). On NQ this is xcTicketNq, unchanged.
+    async function mkTicketToken() {
+        if (mkIsNq(mkTicketSym())) return xcTicketNq();
+        if (xcUnitSelect()) return xcUnitToNq();
+        for (let i = 0; i < 3; i++) {
+            const tog = qTicket('[data-testid="size-unit-toggle"]');
+            if (!tog || isOurs(tog)) return false;
+            if (mkTicketUnit() === 'token') return true;
+            invokeReactClick(tog);
+            await sleep(90);
+        }
+        return mkTicketUnit() === 'token';
+    }
+    // a market's short name ("BTC", "ES", "EUR"): the chart code's tpCanonSym where it exists (the userscript has no chart code)
+    function mkCanon(sym) {
+        if (typeof tpCanonSym === 'function') return tpCanonSym(sym);
+        return String(sym || '').toUpperCase().replace(/-USD-PERP$|-PERP$/, '');
+    }
+    // the market's own unit, as a word for a refusal ("NQ", "BTC", "EUR")
+    function mkUnitName(sym) {
+        const s = sym === undefined ? detectedSymbol : sym;
+        return mkIsNq(s) ? 'NQ' : (mkCanon(s).replace(/-USD$/, '') || 'its own unit');
+    }
+    // Why the card, the keys, LIMIT or STOP may not trade this market now ('' = they may). NQ and MNQ: always ''.
+    function mkOrderWhy(sym) {
+        const s = sym === undefined ? detectedSymbol : sym;
+        if (mkIsNq(s)) return '';
+        if (!mkSpec(s).known) {
+            if (!IS_EXT) return 'the userscript trades NQ only; the Better Vest extension trades every market';
+            mkLoadInfo();
+            return 'the market details are still loading, try again in a second';
+        }
+        if (!(activeSelectedSize > 0)) return 'no size set for ' + mkUnitName(s) + ' yet (sizes off NQ are kept per market)';
+        return '';
+    }
+    // The size the card trades on this market. NQ and MNQ: the presets or the Custom size, as always. Any other market keeps its
+    // own (S.xc.sizeBy, by market), empty until one is set, so an NQ preset of 3 never goes out as 3 BTC. Runs wherever the
+    // page's market changes (detectSymbol), not only on onSymbolChange, which some readings of the symbol skip.
+    function mkSizeKey(sym) {
+        return mkCanon(sym === undefined ? detectedSymbol : sym);
+    }
+    function mkMarketSize() {
+        if (mkIsNq(detectedSymbol)) return Number(S.customSz) > 0 ? Number(S.customSz) : Number(S.size) || 3;
+        return Number((S.xc.sizeBy || {})[mkSizeKey()]) || 0;
+    }
+    function mkSeen() {
+        if (detectedSymbol === mkSizeSym) return;
+        const wasNq = mkIsNq(mkSizeSym);
+        mkSizeSym = detectedSymbol;
+        if (wasNq && mkIsNq(detectedSymbol)) return; // NQ and MNQ: one price, one set of presets (as up to 8.2.2)
+        // another market: the last one's prices are not this one's. A failed read fell back to them, so an NQ mid could price a BTC
+        // order (fixed in 9.0).
+        lastKnownMid = null;
+        lastKnownIdx = null;
+        lastKnownMark = null;
+        activeSelectedSize = mkMarketSize();
+        try { renderSizeButtons(); paintSizeUnit(); updateExecNote(); } catch (e) {} // the card may not exist yet
+    }
+    // ---------- end of the per-market spec ----------
+
     // "SL/TP on Stop & Limit" (the card's switch, Settings > Keys, one value): do STOP and LIMIT orders carry the card's stop and target (the
     // ones that are on)? Off by default. The E / Q limit keys follow it too.
     const xcCarryOn = () => !!(S.macros && S.macros.limitBracket);
@@ -3126,7 +3466,8 @@
         const boxOff = () => { const b = tpSlButton(); return !!b && !isTpSlOn(b); };
 
         const panel = findOrderPanel();
-        await ensureSizeUnitNq();
+        // off NQ the ticket is already in the market's own unit (mkTicketToken): no presses on its toggle around the size
+        if (mkIsNq(mkTicketSym())) await ensureSizeUnitNq();
         if (useSl || useTp) ensureTpSlChecked();
         else {
             if (!tpSlButton()) return stop("Could not find the ticket's TP/SL switch. Nothing sent.");
@@ -3159,7 +3500,7 @@
         const targetBtn = findPlatformSideButton(side, panel) || findPlatformSideButton(side, document);
         if (!targetBtn) return stop(`Size ${sizeOk ? 'set' : 'NOT set'} · no Buy/Sell on ticket (Deposit only?)`);
         targetBtn.click();
-        flashExec(`${side.toUpperCase()} ${size}${sizeOk ? '' : ' (size?)'} @ ${mid.toFixed(2)}  ${useSl ? 'SL ' + slPrice : 'no SL'}  ${useTp ? 'TP ' + tpPrice : 'no TP'}`);
+        flashExec(`${side.toUpperCase()} ${size}${sizeOk ? '' : ' (size?)'} @ ${mid.toFixed(mkSpec().dec)}  ${useSl ? 'SL ' + slPrice : 'no SL'}  ${useTp ? 'TP ' + tpPrice : 'no TP'}`);
         return true;
     }
 
@@ -3310,6 +3651,29 @@
         wrap.querySelectorAll('.ax4p-sz-btn').forEach((btn) => {
             btn.addEventListener('click', () => selectPreset(Number(btn.getAttribute('data-i'))));
         });
+        // 9.0: off NQ the presets (NQ contracts) step aside and the Custom field holds this market's own size
+        const off = !mkIsNq(detectedSymbol);
+        // RISK (9.0) sets the size itself: the presets and Custom step aside
+        wrap.style.display = off || xcRiskOn() ? 'none' : '';
+        const custom = document.getElementById('ax4p-custom-sz');
+        if (custom) custom.style.display = xcRiskOn() ? 'none' : '';
+        if (custom && (off || custom.dataset.mk)) {
+            const sp = mkSpec();
+            if (off) {
+                const v = Number((S.xc.sizeBy || {})[mkSizeKey()]) || 0;
+                if (document.activeElement !== custom) custom.value = v > 0 ? String(v) : '';
+                custom.placeholder = mkUnitName() + ' size';
+                custom.title = 'your size on ' + mkUnitName() + ', in ' + mkUnitName() + ' (kept for this market; the presets are NQ contracts)';
+                custom.step = sp.step ? String(sp.step) : 'any';
+                custom.dataset.mk = mkSizeKey();
+            } else {
+                custom.value = S.customSz || '';
+                custom.placeholder = mnqExecOn() ? 'NQ size' : 'Custom';
+                custom.title = mnqExecOn() ? 'custom size, in Vest\'s NQ size (MNQ view shows the buttons in MNQ)' : 'custom size';
+                custom.step = '0.1';
+                delete custom.dataset.mk;
+            }
+        }
         paintAcctTabs();
         paintSize();
     }
@@ -3320,7 +3684,7 @@
         S.sizeIdx = i;
         S.size = v;
         S.customSz = '';
-        activeSelectedSize = v;
+        if (mkIsNq(detectedSymbol)) activeSelectedSize = v; // 9.0: NQ presets; other markets keep their own size (mkMarketSize)
         const custom = document.getElementById('ax4p-custom-sz');
         if (custom) custom.value = '';
         persist();
@@ -3351,7 +3715,7 @@
         list[i] = v;
         if (!(Number(S.customSz) > 0) && S.sizeIdx === i) {
             S.size = v;
-            activeSelectedSize = v;
+            if (mkIsNq(detectedSymbol)) activeSelectedSize = v;
             flashExec(`Size now ${fmtSize(v)}`);
         }
         persist();
@@ -3364,7 +3728,7 @@
         S.presets[S.account] = ACCOUNT_PRESETS[S.account].slice();
         if (!(Number(S.customSz) > 0) && S.sizeIdx != null && presetList()[S.sizeIdx] > 0) {
             S.size = presetList()[S.sizeIdx];
-            activeSelectedSize = S.size;
+            if (mkIsNq(detectedSymbol)) activeSelectedSize = S.size;
         }
         persist();
         renderSizeButtons();
@@ -3435,12 +3799,100 @@
     function xcPtsFromUsd(usd, size, kind) {
         const u = Number(usd), z = Number(size);
         if (!(u > 0) || !(z > 0)) return null;
-        const q = Number(((u / z) * 4).toPrecision(12));
-        const n = Math.max(1, kind === 'tp' ? Math.ceil(q) : Math.floor(q));
-        const pts = n / 4;
-        return { pts, usd: Number((pts * z).toPrecision(12)) };
+        // 9.0: to the market's own tick (legPts); NQ's 0.25 gives the very numbers it always did
+        const pts = legPts('usd', u, kind, z, 0, mkSpec().tick);
+        return pts == null ? null : { pts, usd: Number((pts * z).toPrecision(12)) };
     }
     function xcLegUsd(k) { return S.xc[k + 'Unit'] === 'usd'; }
+    function xcLegPx(k) { return !!S.xc && S.xc[k + 'Unit'] === 'price'; }
+    // the mid the order code would read right now (0 without one)
+    function xcMidNow() {
+        try { return detectPrices().mid || 0; } catch (e) { return 0; }
+    }
+    // 9.0 PRICE: a leg set as a price keeps the hidden points at |level - mid|. The order code reads those points and prices the leg
+    // from the mid again in the same turn, so the order lands on the level itself. Returns the mid used (0: none, or no PRICE leg).
+    function xcSyncPx() {
+        if (!xcLegPx('sl') && !xcLegPx('tp')) return 0;
+        const mid = xcMidNow();
+        ['sl', 'tp'].forEach((k) => {
+            if (!xcLegPx(k)) return;
+            const p = legPts('price', S.xc[k + 'Px'], k, 0, mid);
+            const inp = document.getElementById('ax4p-' + k + '-pts');
+            if (p != null && inp && parseFloat(inp.value) !== p) inp.value = String(p);
+        });
+        return mid;
+    }
+    // Why an order of this side can't go with its PRICE legs ('' = it can). Runs in the order's own turn, just before the order code.
+    function xcPxWhy(side, useSl, useTp) {
+        if (!(useSl && xcLegPx('sl')) && !(useTp && xcLegPx('tp'))) return '';
+        const mid = xcSyncPx();
+        if (!mid) return 'no live price to measure your price level from';
+        const want = side === 'buy' ? 'long' : 'short';
+        const dec = mkSpec().dec;
+        for (const k of ['sl', 'tp']) {
+            if (!(k === 'sl' ? useSl : useTp) || !xcLegPx(k)) continue;
+            const lv = Number(S.xc[k + 'Px']);
+            const name = k === 'sl' ? 'stop' : 'target';
+            if (!(lv > 0)) return 'set a price for your ' + name;
+            if (levelSide(k, lv, mid) !== want) {
+                const need = (k === 'sl') === (want === 'long') ? 'below' : 'above';
+                return 'your ' + name + ' at ' + lv.toFixed(dec) + ' is not ' + need + ' the price (' + mid.toFixed(dec) + "), so it can't be a " + want + "'s " + name;
+            }
+        }
+        return '';
+    }
+    // ---- RISK (9.0): the size follows the dollars you risk and the stop (Vest's perps: $1 a point for each unit) ----
+    function xcRiskOn() { return !!(S.xc && S.xc.riskOn); }
+    // the size step RISK rounds down to: NQ and MNQ 0.01 (what the card shows is what goes in; Vest takes 4 decimals there), every
+    // other market its own step from Vest (BTC's is far below 0.01), else 0.01
+    function xcRiskStep() {
+        const sp = mkSpec();
+        return !sp.nq && sp.step ? sp.step : 0.01;
+    }
+    // { size, why, short }: the size RISK gives now from the card's stop, or 0 and why not (short: for the line under the size).
+    // ref: the price the stop is measured from when it is set as a price (a limit order's own price); the card's mid otherwise.
+    function xcRiskCalc(ref) {
+        if (!xcRiskOn()) return { size: 0, why: '', short: '' };
+        if (S.xc.slOn === false) return { size: 0, why: 'RISK sizes from the stop, and the stop is off', short: 'needs the stop on' };
+        if (!(S.xc.riskUsd > 0)) return { size: 0, why: 'type the dollars you want to risk', short: 'type your risk' };
+        const pts = ref > 0 && xcLegPx('sl') ? legPts('price', S.xc.slPx, 'sl', 0, ref) : parseFloat(document.getElementById('ax4p-sl-pts')?.value);
+        const z = riskSize(S.xc.riskUsd, pts, xcRiskStep());
+        return z > 0 ? { size: z, why: '', short: '' } : { size: 0, why: 'the risk is too small for one size step at this stop', short: 'too small for one step' };
+    }
+    // RISK on / off. On: a stop in dollars goes to points first (the size can't follow a stop that follows the size). Off: the size
+    // goes back to the presets or the market's own size.
+    function xcSetRisk(on) {
+        if (on && xcLegUsd('sl')) xcSetUnit('sl', 'pt');
+        S.xc.riskOn = !!on;
+        if (!on) activeSelectedSize = mkMarketSize();
+        persist();
+        xcPaintUnits();
+        xcPaintRisk();
+        lastRiskHtml = '';
+        updateExecutionRiskCalc();
+    }
+    function xcPaintRisk() {
+        const on = xcRiskOn();
+        const sw = document.getElementById('ax4p-xc-risk-sw');
+        if (sw) {
+            sw.setAttribute('aria-checked', String(on));
+            const b = sw.querySelector('b');
+            if (b) b.classList.toggle('on', on);
+        }
+        const f = document.getElementById('ax4p-xc-risk-f');
+        if (f) f.hidden = !on;
+        const inp = document.getElementById('ax4p-xc-risk-usd');
+        if (inp && document.activeElement !== inp) inp.value = S.xc.riskUsd != null ? String(S.xc.riskUsd) : '';
+        renderSizeButtons();
+    }
+    // a card press with RISK on: the size from the stop as it is in this very turn ('' = set, else why not)
+    function xcRiskApply() {
+        if (!xcRiskOn()) return '';
+        const r = xcRiskCalc();
+        if (!r.size) return r.why;
+        if (activeSelectedSize !== r.size) { activeSelectedSize = r.size; xcSyncUsd(); }
+        return '';
+    }
     // the hidden points follow the dollars for the size the card holds now (pinned to another size during REV, a client stop or execute())
     function xcSyncUsd() {
         ['sl', 'tp'].forEach((k) => {
@@ -3450,36 +3902,95 @@
             if (r && inp && parseFloat(inp.value) !== r.pts) inp.value = String(r.pts);
         });
     }
-    // points <-> dollars for one leg: the value carries over at the card's size (15 pt at size 3 = $45)
+    // points <-> dollars <-> a price for one leg: the value carries over at the card's size and the price now (15 pt at size 3 =
+    // $45; as a price, 15 under the mid for a stop and over it for a target, a long's, as the field then says)
     function xcSetUnit(k, unit) {
-        const usd = unit === 'usd';
-        if (xcLegUsd(k) === usd) return;
+        const want = unit === 'usd' || unit === 'price' ? unit : 'pt';
+        const cur = S.xc[k + 'Unit'] || 'pt';
+        if (cur === want) return;
+        if (want === 'usd' && k === 'sl' && xcRiskOn()) { flashExec('With RISK on the size follows the stop: the stop is in points or a price'); return; }
         const inp = document.getElementById('ax4p-' + k + '-pts');
         const pts = parseFloat(inp && inp.value) || S[k] || (k === 'sl' ? 15 : 30);
-        if (usd) S.xc[k + 'Usd'] = Number((pts * (activeSelectedSize > 0 ? activeSelectedSize : 1)).toPrecision(12));
-        else S[k] = pts;
-        S.xc[k + 'Unit'] = usd ? 'usd' : 'pt';
+        const size = activeSelectedSize > 0 ? activeSelectedSize : 1;
+        if (want === 'usd') S.xc[k + 'Usd'] = Number((pts * size).toPrecision(12));
+        else if (want === 'price') {
+            const mid = xcMidNow();
+            const sp = mkSpec();
+            const sn = mid ? snapToTick(k === 'sl' ? mid - pts : mid + pts, sp.tick, sp.dec) : null;
+            if (sn) S.xc[k + 'Px'] = sn.n;
+        } else {
+            // back to points: a whole number of the market's ticks (from a price, the distance to the moving mid rarely is one: 15.61 on NQ)
+            const t = mkSpec().tick || 0.25;
+            S[k] = Number(Math.max(t, Math.round(pts / t) * t).toFixed(8));
+            if (inp && parseFloat(inp.value) !== S[k]) inp.value = String(S[k]);
+        }
+        if (k === 'tp') xcPartsToUnit(cur, want);
+        S.xc[k + 'Unit'] = want;
         persist();
         xcPaintUnits();
+        if (k === 'tp') xcRenderParts();
         lastRiskHtml = '';
         updateExecutionRiskCalc();
     }
+    // a Partials row's points written into a unit: dollars of its own share, or a price on the main target's side of ref
+    function xcRowToUnit(x, unit, size, ref) {
+        const pts = Number(x.pts) || 0;
+        if (!(pts > 0)) return;
+        if (unit === 'usd') x.usd = Number((pts * size * (Math.round(Number(x.pct)) || 0) / 100).toFixed(2));
+        else if (unit === 'price' && ref > 0) {
+            const sp = mkSpec();
+            const dir = levelSide('tp', S.xc.tpPx, ref) === 'short' ? -1 : 1;
+            const sn = snapToTick(ref + dir * pts, sp.tick, sp.dec);
+            if (sn) x.px = sn.n;
+        }
+    }
+    // the Partials rows follow the TARGET into its new unit, each keeping its distance (at the card's size and the price now)
+    function xcPartsToUnit(from, to) {
+        const size = activeSelectedSize > 0 ? activeSelectedSize : 1;
+        const ref = from === 'price' || to === 'price' ? xcMidNow() : 0;
+        S.xc.targets.forEach((x) => {
+            const pts = from === 'pt' ? Number(x.pts) || 0 : (() => { const u0 = S.xc.tpUnit; S.xc.tpUnit = from; const p = xcRowPts(x, size, ref); S.xc.tpUnit = u0; return p; })();
+            if (!(pts > 0)) return;
+            x.pts = pts;
+            if (to !== 'pt') xcRowToUnit(x, to, size, ref);
+        });
+    }
+    // a press on the switch: the unit pressed, else the next one (the stop skips $ while RISK is on)
+    function xcUnitPress(k, e) {
+        const b = e && e.target && e.target.closest ? e.target.closest('b[data-u]') : null;
+        if (b) { xcSetUnit(k, b.getAttribute('data-u')); return; }
+        const order = k === 'sl' && xcRiskOn() ? ['pt', 'price'] : ['pt', 'usd', 'price'];
+        const i = order.indexOf(S.xc[k + 'Unit'] || 'pt');
+        xcSetUnit(k, order[(i + 1) % order.length]);
+    }
     function xcPaintUnits() {
+        const sp = mkSpec();
         ['sl', 'tp'].forEach((k) => {
-            const usd = xcLegUsd(k);
+            const u = S.xc[k + 'Unit'] || 'pt';
             const pts = document.getElementById('ax4p-' + k + '-pts');
             const us = document.getElementById('ax4p-' + k + '-usd');
+            const px = document.getElementById('ax4p-' + k + '-px');
             const sw = document.getElementById('ax4p-xc-' + k + '-unit');
-            if (pts) pts.hidden = usd;
+            if (pts) pts.hidden = u !== 'pt';
             if (us) {
-                us.hidden = !usd;
-                if (usd && document.activeElement !== us) us.value = S.xc[k + 'Usd'] != null ? String(S.xc[k + 'Usd']) : '';
+                us.hidden = u !== 'usd';
+                if (u === 'usd' && document.activeElement !== us) us.value = S.xc[k + 'Usd'] != null ? String(S.xc[k + 'Usd']) : '';
+            }
+            if (px) {
+                px.hidden = u !== 'price';
+                px.step = String(sp.tick);
+                if (u === 'price' && document.activeElement !== px) px.value = S.xc[k + 'Px'] != null ? Number(S.xc[k + 'Px']).toFixed(sp.dec) : '';
             }
             const box = pts && pts.closest('.xc-stepv');
-            if (box) box.classList.toggle('usd', usd);
+            if (box) { box.classList.toggle('usd', u === 'usd'); box.classList.toggle('px', u === 'price'); }
+            const step = pts && pts.closest('.xc-step');
+            if (step) step.classList.toggle('px', u === 'price');
             if (sw) {
-                sw.setAttribute('aria-checked', String(usd));
-                sw.querySelectorAll('b').forEach((b) => b.classList.toggle('on', (b.getAttribute('data-u') === 'usd') === usd));
+                sw.setAttribute('aria-checked', String(u !== 'pt'));
+                sw.querySelectorAll('b').forEach((b) => {
+                    b.classList.toggle('on', b.getAttribute('data-u') === u);
+                    b.classList.toggle('dis', k === 'sl' && b.getAttribute('data-u') === 'usd' && xcRiskOn());
+                });
             }
         });
     }
@@ -3601,9 +4112,17 @@
         }
         const input = document.getElementById(id);
         if (!input) return;
-        const by = ev && ev.shiftKey ? 5 : ev && ev.altKey ? 0.25 : 1;
         const cur = parseFloat(input.value) || 0;
-        const next = Math.max(0.25, Math.round((cur + dir * by) * 4) / 4);
+        const sp = mkSpec();
+        let next;
+        if (sp.nq) {
+            const by = ev && ev.shiftKey ? 5 : ev && ev.altKey ? 0.25 : 1;
+            next = Math.max(0.25, Math.round((cur + dir * by) * 4) / 4);
+        } else {
+            // 9.0, other markets: 10 ticks a click, 50 with Shift, one with Alt (BTC $10; EUR one pip)
+            const t = sp.tick, by = t * (ev && ev.shiftKey ? 50 : ev && ev.altKey ? 1 : 10);
+            next = Math.max(t, Number((Math.round((cur + dir * by) / t) * t).toPrecision(12)));
+        }
         input.value = String(next);
         input.dispatchEvent(new Event('input', { bubbles: true }));
     }
@@ -3612,14 +4131,25 @@
         const box = document.getElementById('ax4p-xc-parts');
         if (!box) return;
         const n = S.xc.targets.length;
+        // 9.0: each target in the TARGET's mode (points, dollars of that leg, or a price)
+        const u = S.xc.tpUnit || 'pt';
+        const sp = mkSpec();
+        const field = (x, i) => u === 'usd'
+            ? `<label class="xc-field"><i>$</i><input data-tp="${i}" data-k="usd" type="number" min="1" step="1" value="${escHtml(x.usd != null ? x.usd : '')}" aria-label="TP${i + 1} profit of that part, in dollars"></label>`
+            : u === 'price'
+                ? `<label class="xc-field"><input data-tp="${i}" data-k="px" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" value="${escHtml(x.px != null ? Number(x.px).toFixed(sp.dec) : '')}" aria-label="TP${i + 1} at a price"></label>`
+                : sp.nq
+                    ? `<label class="xc-field"><input data-tp="${i}" data-k="pts" type="number" min="0.25" step="0.25" value="${escHtml(x.pts)}" aria-label="TP${i + 1} distance from the entry, in points"><i>pt</i></label>`
+                    : `<label class="xc-field"><input data-tp="${i}" data-k="pts" type="number" min="${sp.tick}" step="${sp.tick}" value="${escHtml(x.pts)}" aria-label="TP${i + 1} distance from the entry, in points"><i>pt</i></label>`;
+        box.classList.toggle('px', u === 'price');
         box.innerHTML = S.xc.targets.map((x, i) => `<div class="xc-pg"><span class="xc-tag">TP${i + 1}</span>` +
-            `<label class="xc-field"><input data-tp="${i}" data-k="pts" type="number" min="0.25" step="0.25" value="${escHtml(x.pts)}" aria-label="TP${i + 1} distance from the entry, in points"><i>pt</i></label>` +
+            field(x, i) +
             `<label class="xc-field"><input data-tp="${i}" data-k="pct" type="number" min="1" max="99" step="1" value="${escHtml(x.pct)}" aria-label="TP${i + 1} share of the position, in percent"><i>%</i></label>` +
             `<span class="xc-usd up" data-tp-usd="${i}"></span>` +
             (n > 1 ? `<button type="button" class="xc-tool xc-tool--del" data-tp-del="${i}" title="Remove TP${i + 1}" aria-label="Remove TP${i + 1}">${XC_ICON.x}</button>` : '') +
             (i === n - 1 && n < XC_MAX_TARGETS ? `<button type="button" class="xc-tool xc-tool--add" data-tp-add="1" title="Add a target (up to ${XC_MAX_TARGETS})" aria-label="Add a target">${XC_ICON.plus}</button>` : '') +
             '</div>').join('') +
-            `<div class="xc-run" style="grid-row: 1 / span ${n}"><span class="xc-tag">Runner</span><div class="xc-field xc-field--ro" title="follows the target"><b id="ax4p-xc-run-pts"></b><i>pt</i></div>` +
+            `<div class="xc-run" style="grid-row: 1 / span ${n}"><span class="xc-tag">Runner</span><div class="xc-field xc-field--ro" title="follows the target"><b id="ax4p-xc-run-pts"></b>${u === 'pt' ? '<i>pt</i>' : ''}</div>` +
             '<div class="xc-field xc-field--ro" title="the rest"><b id="ax4p-xc-run-pct"></b><i>%</i></div><span class="xc-usd up" id="ax4p-xc-run-usd"></span><span class="xc-why" id="ax4p-xc-why"></span></div>';
     }
 
@@ -3628,16 +4158,22 @@
         const ts = S.xc.targets;
         if (ts.length >= XC_MAX_TARGETS) return;
         const tpPts = parseFloat(document.getElementById('ax4p-tp-pts')?.value) || S.tp || 30;
-        const last = Number(ts[ts.length - 1].pts) || 0;
+        const u = S.xc.tpUnit || 'pt';
+        const size = activeSelectedSize > 0 ? activeSelectedSize : 1;
+        const ref = u === 'price' ? xcMidNow() : 0;
+        const last = (u === 'pt' ? Number(ts[ts.length - 1].pts) : xcRowPts(ts[ts.length - 1], size, ref)) || 0;
         const left = 100 - ts.reduce((s, x) => s + (Math.round(Number(x.pct)) || 0), 0);
         if (left < 2) { flashExec('No share left for another target: lower one first'); return; }
         const pts = Math.max(0.25, Math.min(tpPts - 0.25, Math.round(((last + tpPts) / 2) * 4) / 4));
-        ts.push({ pts, pct: Math.floor(left / 2) });
+        const row = { pts, pct: Math.floor(left / 2) };
+        // 9.0: and in the target's own unit (its dollars at its share, or its price on the main target's side)
+        if (u !== 'pt') xcRowToUnit(row, u, size, ref);
+        ts.push(row);
         persist();
         xcRenderParts();
         lastRiskHtml = '';
         updateExecutionRiskCalc();
-        const inp = document.querySelector(`#ax4p-xc-parts [data-tp="${ts.length - 1}"][data-k="pts"]`);
+        const inp = document.querySelector(`#ax4p-xc-parts [data-tp="${ts.length - 1}"][data-k="${u === 'usd' ? 'usd' : u === 'price' ? 'px' : 'pts'}"]`);
         if (inp) inp.focus();
     }
 
@@ -3840,7 +4376,9 @@
             const v = parseFloat(inp.value);
             if (!S.xc.targets[i]) return;
             // a cleared or 0 field is 0 (red, and Partials refuse it), never the number that was there before
-            S.xc.targets[i][inp.getAttribute('data-k') === 'pct' ? 'pct' : 'pts'] = v > 0 ? v : 0;
+            const dk = inp.getAttribute('data-k');
+            if (dk === 'px') S.xc.targets[i].px = parsePx(inp.value) || 0;
+            else S.xc.targets[i][dk === 'pct' ? 'pct' : dk === 'usd' ? 'usd' : 'pts'] = v > 0 ? v : 0;
             persist();
             lastRiskHtml = '';
             updateExecutionRiskCalc();
@@ -3928,8 +4466,8 @@
             // position up there too. The dock is hidden while measuring (one frame, nothing is painted).
             const vis = dock.style.visibility;
             dock.style.visibility = 'hidden';
-            for (const e of document.querySelectorAll('a, button, [role="button"]')) {
-                if (dock.contains(e) || e.closest('[id^="ax4p"]')) continue;
+            for (const e of document.querySelectorAll('a, button, [role="button"], [role="combobox"], #ax4p-vu-btn')) {
+                if (dock.contains(e) || (e.id !== 'ax4p-vu-btn' && e.closest('[id^="ax4p"]'))) continue;
                 const r = e.getBoundingClientRect();
                 if (r.width < 4 || r.height < 4 || r.top > 46 || r.bottom < 6 || r.bottom > 66 || r.width > vw * 0.6) continue;
                 const hit = document.elementFromPoint(Math.min(vw - 1, Math.max(0, (r.left + r.right) / 2)), Math.max(0, (r.top + r.bottom) / 2));
@@ -3962,7 +4500,7 @@
             const fullW = dock.offsetWidth;
             dock.classList.add('compact');
             const compactW = dock.offsetWidth;
-            const pad = 14, mid = vw / 2;
+            const pad = 8, mid = vw / 2;
             // the free gap that fits, nearest to the old centred spot (the centre itself when it is free)
             const spot = (g, w) => Math.min(Math.max(mid, g[0] + pad + w / 2), g[1] - pad - w / 2);
             const pick = (w) => gaps.filter((g) => g[1] - g[0] - 2 * pad >= w).sort((x, y) => Math.abs(spot(x, w) - mid) - Math.abs(spot(y, w) - mid))[0] || null;
@@ -4017,6 +4555,7 @@
             <span id="ax4p-brand">ASTRAL<span id="ax4p-brand-tag">@ax4p · v${VERSION}</span></span>
             <button id="ax4p-tog-exec" class="ax4p-dock-btn">${ic('<path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/>')}<span class="ax4p-lbl">Exec</span></button>
             ${IS_EXT ? `<button id="ax4p-tog-macros" class="ax4p-dock-btn" title="Hotkey macros">${ic('<rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10h.01M11 10h.01M15 10h.01M7 14h10"/>')}<span class="ax4p-lbl">Macros</span><span class="ax4p-mc-state">OFF</span></button>` : ''}
+            ${IS_EXT ? `<button id="ax4p-tog-charts" class="ax4p-dock-btn" title="More charts beside Vest's: another timeframe or another market">${ic('<rect x="3.5" y="3.5" width="17" height="17" rx="2"/><path d="M12 3.5v17M12 12h8.5"/>')}<span class="ax4p-lbl">Charts</span></button>` : ''}
             <button id="ax4p-tog-settings" class="ax4p-dock-btn">${ic('<path d="M20 7h-9"/><path d="M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/>')}<span class="ax4p-lbl">Settings</span></button>
             ${IS_EXT ? `<button id="ax4p-open-calendar" class="ax4p-dock-btn ax4p-dock-launch" title="Open the Calendar in its own tab (Alt+J)">${ic('<rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 10h17"/><path d="M8 3v4"/><path d="M16 3v4"/>')}<span class="ax4p-lbl">Calendar</span><span class="ax4p-ext">↗</span></button>` : ''}
         `;
@@ -4035,22 +4574,30 @@
         const execBox = document.createElement('div');
         execBox.id = 'ax4p-exec-deck';
         execBox.className = 'ax4p-shell';
-        const xcStepper = (id, val, cls, label) => `<div class="xc-step ${cls}"><button type="button" data-step="${id}" data-dir="-1" aria-label="${label} down">${XC_ICON.minus}</button><span class="xc-stepv"><i class="xc-pre">$</i><input id="${id}" type="number" value="${escHtml(val)}" step="0.25" min="0.25" aria-label="${label} in points"><input id="${id.replace('-pts', '-usd')}" type="number" step="1" min="1" aria-label="${label} in dollars" hidden><i class="xc-suf">pt</i></span><button type="button" data-step="${id}" data-dir="1" aria-label="${label} up">${XC_ICON.plus}</button></div>`;
+        const xcStepper = (id, val, cls, label) => `<div class="xc-step ${cls}"><button type="button" data-step="${id}" data-dir="-1" aria-label="${label} down">${XC_ICON.minus}</button><span class="xc-stepv"><i class="xc-pre">$</i><input id="${id}" type="number" value="${escHtml(val)}" step="0.25" min="0.25" aria-label="${label} in points"><input id="${id.replace('-pts', '-usd')}" type="number" step="1" min="1" aria-label="${label} in dollars" hidden><input id="${id.replace('-pts', '-px')}" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" aria-label="${label} at a price" hidden><i class="xc-suf">pt</i></span><button type="button" data-step="${id}" data-dir="1" aria-label="${label} up">${XC_ICON.plus}</button></div><i class="xc-sub" id="${id.replace('-pts', '-sub')}"></i>`;
         // the PT | $ switch on a stepper's label
-        const xcUnitSw = (k, label) => `<button type="button" class="xc-unitsw" id="ax4p-xc-${k}-unit" role="switch" aria-checked="false" aria-label="${label} in dollars" title="${label} in points or in dollars (dollars: the points follow your size)"><b data-u="pt" class="on">PT</b><b data-u="usd">$</b></button>`;
+        const xcUnitSw = (k, label) => `<button type="button" class="xc-unitsw" id="ax4p-xc-${k}-unit" role="switch" aria-checked="false" aria-label="${label} in points, dollars or a price" title="${label} in points, in dollars (the points follow your size) or at a price (the level itself)"><b data-u="pt" class="on">PT</b><b data-u="usd">$</b><b data-u="price">PRICE</b></button>`;
         execBox.innerHTML = `
             <div class="xc-full">
                 <div class="xc-hd">
                     <span class="xc-grip" title="drag to move">${XC_ICON.grip}</span>
-                    <span class="xc-mk" id="ax4p-xc-mk">NQ</span><span class="xc-mnqv" id="ax4p-xc-mnqv" hidden title="MNQ view: sizes shown as MNQ contracts (Vest's NQ size ÷ 2). Vest still gets its NQ size. Settings > Market.">VIEW</span>
+                    <span class="xc-mk" id="ax4p-xc-mk">NQ</span>${IS_EXT ? '<span class="ax4p-ss-chip" id="ax4p-ss-chip" hidden></span>' : ''}<span class="xc-mnqv" id="ax4p-xc-mnqv" hidden title="MNQ view: sizes shown as MNQ contracts (Vest's NQ size ÷ 2). Vest still gets its NQ size. Settings > Market.">VIEW</span>
                     <span class="xc-pos" id="ax4p-xc-pos"></span>
                     <div class="xc-tabs" id="ax4p-acct-tabs" role="tablist" aria-label="Account size presets">${['5k', '10k', '25k', 'custom'].map((a) => `<button type="button" data-acct="${a}">${ACCOUNT_LABELS[a]}</button>`).join('')}</div>
+                    ${IS_EXT ? `<button type="button" class="xc-ico xc-lockbtn" id="ax4p-xc-lockbtn" title="Lock trading for a while" aria-label="Lock trading" aria-haspopup="true">${XC_ICON.lock}</button>` : ''}
                     <button type="button" class="xc-ico" id="ax4p-xc-collapse" title="collapse" aria-label="Collapse">${XC_ICON.collapse}</button>
                 </div>
+                ${IS_EXT ? `<div class="xc-lockmenu" id="ax4p-xc-lockmenu" role="menu" hidden>
+                    <div class="xc-lm-t">Lock trading</div>
+                    ${gdPickHtml('ax4p-xc-lm')}
+                    <div class="xc-lm-row"><button type="button" data-lock="15">15 min</button><button type="button" data-lock="30">30 min</button><button type="button" data-lock="60">1 hour</button><button type="button" data-lock="day" id="ax4p-xc-lock-day">Rest of the day</button></div>
+                    <div class="xc-lm-d" id="ax4p-xc-lm-d"></div>
+                    <div class="xc-lm-on" id="ax4p-xc-lm-on" hidden><span id="ax4p-xc-lm-now"></span><button type="button" id="ax4p-xc-lm-undo">Undo</button></div>
+                </div>` : ''}
                 <div class="xc-dll" id="ax4p-xc-dll" hidden></div>
                 <div class="xc-lock-banner" id="ax4p-xc-lock" role="alert" hidden></div>
                 <div class="xc-in">
-                    <div class="xc-g"><span class="xc-lab">Size<em id="ax4p-mnq-readout"></em></span><div class="xc-sizes"><div class="xc-seg" id="ax4p-sz-wrap"></div><input id="ax4p-custom-sz" class="xc-field" type="number" placeholder="Custom" min="0" step="0.1" value="${escHtml(S.customSz || '')}" title="custom size"></div></div>
+                    <div class="xc-g"><div class="xc-labrow"><span class="xc-lab">Size<em id="ax4p-mnq-readout"></em></span><button type="button" class="xc-unitsw xc-risksw" id="ax4p-xc-risk-sw" role="switch" aria-checked="false" aria-label="Size from risk" title="RISK: type the dollars you want to risk and the size follows your stop (rounded down, never more than you typed)"><b data-u="risk">RISK</b></button></div><div class="xc-sizes"><div class="xc-seg" id="ax4p-sz-wrap"></div><input id="ax4p-custom-sz" class="xc-field" type="number" placeholder="Custom" min="0" step="0.1" value="${escHtml(S.customSz || '')}" title="custom size"><label class="xc-field xc-riskf" id="ax4p-xc-risk-f" hidden title="the dollars you risk at the stop"><i>$</i><input id="ax4p-xc-risk-usd" type="number" min="1" step="1" placeholder="Risk" aria-label="Dollars to risk"></label></div><i class="xc-sub" id="ax4p-xc-size-sub"></i></div>
                     <div class="xc-g" id="ax4p-xc-sl-g"><div class="xc-labrow"><span class="xc-lab xc-lab--tg dn" id="ax4p-xc-sl-tg" role="switch" aria-checked="true" aria-label="Stop" tabindex="0"><span class="xc-dot"></span><span class="xc-lt">Stop</span></span>${xcUnitSw('sl', 'Stop')}</div>${xcStepper('ax4p-sl-pts', S.sl, 'xc-step--sl', 'Stop')}</div>
                     <div class="xc-g" id="ax4p-xc-tp-g"><div class="xc-labrow"><span class="xc-lab xc-lab--tg up" id="ax4p-xc-tp-tg" role="switch" aria-checked="true" aria-label="Target" tabindex="0"><span class="xc-dot"></span><span class="xc-lt">Target</span></span>${xcUnitSw('tp', 'Target')}</div>${xcStepper('ax4p-tp-pts', S.tp, 'xc-step--tp', 'Target')}</div>
                     <div class="xc-g4"><div class="xc-opts" id="ax4p-xc-opts" hidden>
@@ -4118,6 +4665,17 @@
         renderSizeButtons();
         document.getElementById('ax4p-custom-sz').addEventListener('input', (e) => {
             const val = parseFloat(e.target.value);
+            // 9.0: off NQ this field is the market's own size (S.xc.sizeBy), not the NQ Custom size
+            if (!mkIsNq(detectedSymbol)) {
+                const by = S.xc.sizeBy && typeof S.xc.sizeBy === 'object' ? S.xc.sizeBy : (S.xc.sizeBy = {});
+                if (val > 0) by[mkSizeKey()] = val;
+                else delete by[mkSizeKey()];
+                activeSelectedSize = val > 0 ? val : 0;
+                persist();
+                paintSizeUnit();
+                updateExecNote();
+                return;
+            }
             if (val > 0) {
                 S.customSz = e.target.value;
                 activeSelectedSize = val;
@@ -4140,12 +4698,75 @@
                 persist();
                 updateExecutionRiskCalc();
             });
-            document.getElementById('ax4p-xc-' + k + '-unit').addEventListener('click', () => xcSetUnit(k, xcLegUsd(k) ? 'pt' : 'usd'));
+            document.getElementById('ax4p-xc-' + k + '-unit').addEventListener('click', (e) => xcUnitPress(k, e));
+            // 9.0 PRICE: the level itself
+            document.getElementById('ax4p-' + k + '-px').addEventListener('input', (e) => {
+                S.xc[k + 'Px'] = parsePx(e.target.value);
+                persist();
+                lastRiskHtml = '';
+                updateExecutionRiskCalc();
+            });
         });
+        // 9.0 RISK: on / off, and the dollars
+        document.getElementById('ax4p-xc-risk-sw').addEventListener('click', () => xcSetRisk(!xcRiskOn()));
+        document.getElementById('ax4p-xc-risk-usd').addEventListener('input', (e) => {
+            const v = parseFloat(e.target.value);
+            S.xc.riskUsd = v > 0 ? Math.min(v, 1e7) : null;
+            persist();
+            lastRiskHtml = '';
+            updateExecutionRiskCalc();
+        });
+        xcPaintRisk();
         xcPaintUnits();
         xcWireExits();
-        document.getElementById('ax4p-buy-btn').onclick = () => xcExecute('buy');
-        document.getElementById('ax4p-sell-btn').onclick = () => xcExecute('sell');
+        // 9.0: your own lock (extension: gdLockNow / gdUndo)
+        if (IS_EXT) {
+            const lm = document.getElementById('ax4p-xc-lockmenu');
+            // the accounts it locks: every account, or the ones ticked (kept for next time in S.dll.lockAccs)
+            const pick = gdPickWire('ax4p-xc-lm', () => S.dll.lockAccs, (v) => { S.dll.lockAccs = v; persist(); paintLm(); });
+            const paintLm = () => {
+                const t = now();
+                const g = dllStore()['*'] || {};
+                const runs = [];
+                if (g.manual && g.manual.until > t) runs.push({ name: 'Every account', m: g.manual });
+                gdAccLocks(g, t).forEach(([id, m]) => runs.push({ name: gdAccName(id), m }));
+                const undo = runs.some((r) => t - r.m.at <= GD_UNDO_MS);
+                document.getElementById('ax4p-xc-lm-on').hidden = !runs.length;
+                if (runs.length) xcText('ax4p-xc-lm-now', runs.slice(0, 3).map((r) => r.name + ' until ' + dllClock(r.m.until)).join(' · ') + (runs.length > 3 ? ' · +' + (runs.length - 3) : ''));
+                document.getElementById('ax4p-xc-lm-undo').hidden = !undo;
+                xcText('ax4p-xc-lock-day', 'Rest of the day (' + dllClock(dllNextReset(t)) + ')');
+                const some = Array.isArray(S.dll.lockAccs);
+                xcText('ax4p-xc-lm-d', (some ? 'Only the accounts ticked above.' : 'Every account on this browser.') + ' FLAT, 50%, BE and your stops keep working. After 10 seconds it can\'t be undone.');
+                pick.paint();
+            };
+            const lockBtn = document.getElementById('ax4p-xc-lockbtn');
+            lockBtn.onclick = (e) => {
+                e.stopPropagation();
+                if (lm.parentElement !== document.body) document.body.appendChild(lm);
+                lm.hidden = !lm.hidden;
+                if (lm.hidden) return;
+                paintLm();
+                // under the button, inside the window
+                const r = lockBtn.getBoundingClientRect();
+                lm.style.top = Math.min(window.innerHeight - lm.offsetHeight - 8, r.bottom + 6) + 'px';
+                lm.style.left = Math.max(8, Math.min(window.innerWidth - lm.offsetWidth - 8, r.right - lm.offsetWidth)) + 'px';
+            };
+            lm.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const b = e.target.closest('button');
+                if (!b) return;
+                if (b.id === 'ax4p-xc-lm-undo') { if (gdUndo()) lm.hidden = true; else paintLm(); return; }
+                const w = b.getAttribute('data-lock');
+                if (!w) return;
+                if (!gdLockNow(w === 'day' ? 'day' : Number(w), Array.isArray(S.dll.lockAccs) ? S.dll.lockAccs : null)) { paintLm(); return; }
+                paintLm();
+                // the Undo stays up for its 10 s, then the menu closes by itself
+                setTimeout(() => { if (!lm.hidden) { paintLm(); setTimeout(() => { lm.hidden = true; }, 1500); } }, GD_UNDO_MS);
+            });
+            document.addEventListener('click', (e) => { if (!lm.hidden && !e.target.closest('#ax4p-xc-lockmenu, #ax4p-xc-lockbtn')) lm.hidden = true; });
+        }
+        document.getElementById('ax4p-buy-btn').onclick = () => xcExecute('buy', false, 'card');
+        document.getElementById('ax4p-sell-btn').onclick = () => xcExecute('sell', false, 'card');
         // the extension's FLAT (xcFlat) wraps the protected close code; without it, that code alone, as always
         document.getElementById('ax4p-flatten-btn').onclick = () => (xcHooks.flat ? xcHooks.flat() : triggerCloseAll());
         xcWire(execBox);
@@ -4176,6 +4797,7 @@
                 <button data-tab="keys">${SET_ICON.keys}<span>Hotkeys</span></button>
                 <button data-tab="focus">${SET_ICON.focus}<span>Layout</span></button>
                 <button data-tab="market">${SET_ICON.market}<span>Market</span></button>
+                ${IS_EXT ? `<button data-tab="alerts">${SET_ICON.alerts}<span>Alerts</span></button>` : ''}
                 <button data-tab="more">${SET_ICON.more}<span>More</span></button>
             </nav>
             <div class="ax4p-set-main">
@@ -4288,7 +4910,7 @@
                 </div>
             </div>
             <div class="ax4p-tabpane" data-pane="risk">
-                <div class="ax4p-pane-h"><div class="ax4p-pane-t">Risk</div><div class="ax4p-pane-d">Your own daily loss limit: new trades lock for the rest of the day.</div></div>
+                <div class="ax4p-pane-h"><div class="ax4p-pane-t">Risk</div><div class="ax4p-pane-d">Your own limits: a daily loss limit, a daily profit limit and a cooldown after a bad run. The lock button on the Execute card locks you out by hand.</div></div>
                 ${IS_EXT ? dllSettingsHtml() : `
                 <div class="ax4p-sec"><div class="ax4p-hint" style="margin:0;">The daily loss limit needs the Better Vest extension.</div></div>`}
             </div>
@@ -4319,6 +4941,22 @@
                     <div class="ax4p-hint">On NQ, sizes read as MNQ (Vest's NQ size ÷ 2) on the Execute card, the chart labels and Vest's own positions and orders, and the market name reads MNQ with a MNQ VIEW badge. Prices and dollars stay the same. Display only: Vest's ticket, its Close and Edit TP/SL windows and the Custom size still take Vest's NQ size.</div>
                 </div>
             </div>
+            ${IS_EXT ? `<div class="ax4p-tabpane" data-pane="alerts">
+                <div class="ax4p-pane-h"><div class="ax4p-pane-t">Alerts</div><div class="ax4p-pane-d">A voice for what happens to your orders, and a heads-up before the open and the news.</div></div>
+                <div class="ax4p-sec">
+                    <div class="ax4p-sec-t">Voice</div>
+                    <label class="ax4p-row"><span>Voice feedback</span><input type="checkbox" id="ax4p-vo-on"></label>
+                    <label class="ax4p-row"><span>Volume</span><input type="range" id="ax4p-vo-vol" min="0" max="100" step="5"></label>
+                    <label class="ax4p-row"><span>Voice</span><select id="ax4p-vo-pack" class="ax4p-in">${VOICE_PACKS.map((v) => `<option value="${v.id}">${escHtml(v.name)} · ${escHtml(v.note)}</option>`).join('')}</select></label>
+                    <label class="ax4p-row"><span>Orders · filled, placed, cancelled, rejected</span><input type="checkbox" id="ax4p-vo-orders"></label>
+                    <label class="ax4p-row"><span>Exits · stopped out, targets, closed, 50%, REV, breakeven</span><input type="checkbox" id="ax4p-vo-exits"></label>
+                    <label class="ax4p-row"><span>Risk · loss limit, locks, cooldown</span><input type="checkbox" id="ax4p-vo-risk"></label>
+                    <label class="ax4p-row"><span>Session · New York open, news</span><input type="checkbox" id="ax4p-vo-session"></label>
+                    <div class="ax4p-btnrow"><button id="ax4p-vo-test" class="ax4p-btn">Play a test line</button></div>
+                    <div class="ax4p-hint">The lines are recorded files inside Better Vest; nothing is sent anywhere. Chrome plays sound only after you have clicked on Vest's page once. With several Vest tabs open, one of them speaks.</div>
+                </div>
+                ${ssSettingsHtml()}
+            </div>` : ''}
             <div class="ax4p-tabpane" data-pane="more">
                 <div class="ax4p-pane-h"><div class="ax4p-pane-t">More</div><div class="ax4p-pane-d">Calendar, backup, reset, and about Better Vest.</div></div>
                 <div class="ax4p-sec">
@@ -4328,6 +4966,13 @@
                     <div class="ax4p-hint">PnL per day for one or many accounts, win rate, risk in points, RR, notes and payouts. <b>Alt+J</b> opens it. It reads your own history from Vest with read-only requests and keeps it on this computer.</div>`
                     : `<div class="ax4p-hint">The Calendar (PnL per day, win rate, risk, payouts, journal) is part of the Better Vest Chrome extension.</div>`}
                 </div>
+                ${IS_EXT ? `<div class="ax4p-sec">
+                    <div class="ax4p-sec-t">P&amp;L card</div>
+                    <label class="ax4p-row"><span>Pop up the card after a close of 1% or more</span><input type="checkbox" id="ax4p-share-autopop"></label>
+                    <div class="ax4p-hint">After a close that adds 1% or more to the account, the P&amp;L card shows in a small panel on Vest's page (Save, Copy, Edit, Close). It never takes your keys. The P&amp;L button in the dock glows either way.</div>
+                    <label class="ax4p-row"><span>Record second-by-second prices for replays</span><input type="checkbox" id="ax4p-share-tape"></label>
+                    <div class="ax4p-hint">The Replay's GIF then plays the real price inside each bar, at the speed you pick. Read from Vest's chart while this page is open, kept only on this computer for 30 days: under 1 MB a market a day.</div>
+                </div>` : ''}
                 <div class="ax4p-sec">
                     <div class="ax4p-sec-t">Backup</div>
                     <div class="ax4p-btnrow"><button id="ax4p-export" class="ax4p-btn">Copy settings</button><button id="ax4p-import" class="ax4p-btn">Load pasted</button></div>
@@ -4339,14 +4984,11 @@
                     <div class="ax4p-btnrow"><button id="ax4p-reset-pos" class="ax4p-btn">Reset positions</button><button id="ax4p-reset-all" class="ax4p-btn danger">Reset everything</button></div>
                     <div class="ax4p-hint">Reset positions brings every widget back on screen. Reset everything restores defaults.</div>
                 </div>
-                <div class="ax4p-sec">
-                    <div class="ax4p-sec-t">Support Astral</div>
-                    <label class="ax4p-row"><span>Switch Vest's default code VEST to WICK</span><input type="checkbox" id="ax4p-ui-wickauto"></label>
-                    <div class="ax4p-hint">At checkout Vest fills in its own code VEST. Better Vest switches it to <b>WICK</b> in view, and only keeps it when WICK gives the same discount or more. It costs you nothing and keeps the extension free. A code you picked yourself is never touched, and Undo puts VEST back.</div>
-                </div>
+                ${wickSettingsHtml()}
                 <div class="ax4p-sec">
                     <div class="ax4p-sec-t">About</div>
                     <div class="ax4p-row"><span>Better Vest by Astral</span><b>v${VERSION}</b></div>
+                    ${IS_EXT && EDITION === 'standard' && !BV_DEV ? `<div class="ax4p-btnrow"><button id="ax4p-upd-open" class="ax4p-btn">Check for updates</button></div>` : ''}
                     <div class="ax4p-hint">Made by @ax4p. Orders are only ever placed through Vest's own ticket.</div>
                 </div>
             </div>
@@ -4379,9 +5021,45 @@
             uiDockCal.checked = S.ui.dockCalendar !== false;
             uiDockCal.onchange = () => { S.ui.dockCalendar = uiDockCal.checked; persist(); applyUiPrefs(); };
         }
-        const uiWick = document.getElementById('ax4p-ui-wickauto');
-        uiWick.checked = S.ui.wickAuto !== false;
-        uiWick.onchange = () => { S.ui.wickAuto = uiWick.checked; persist(); };
+        wickWireSettings(); // 9.0: More > Support Astral (src/wick.js)
+        // 9.0 voice (extension): the switches, the volume and a test line (src/copy/45-voice.js reads S.voice when it speaks)
+        if (IS_EXT) {
+            ['on', 'orders', 'exits', 'risk', 'session'].forEach((k) => {
+                const el = document.getElementById('ax4p-vo-' + k);
+                if (!el) return;
+                el.checked = S.voice[k] !== false;
+                el.onchange = () => { S.voice[k] = el.checked; persist(); };
+            });
+            const vol = document.getElementById('ax4p-vo-vol');
+            if (vol) {
+                vol.value = String(Math.round((Number(S.voice.vol) || 0) * 100));
+                vol.oninput = () => { S.voice.vol = Math.max(0, Math.min(1, Number(vol.value) / 100)); persist(); };
+            }
+            // 9.0: the update page (update.html) on demand, not only when the dock's Update button shows a newer release
+            const uo = document.getElementById('ax4p-upd-open');
+            if (uo) uo.onclick = () => { try { win.postMessage({ bv: 1, dir: 'toExt', type: 'uopen' }, location.origin); } catch (x) {} };
+            // the P&L card's pop-up (src/copy/35-share.js reads S.share.autoPop; its "Don't show again" turns it off)
+            const ap = document.getElementById('ax4p-share-autopop');
+            if (ap) {
+                ap.checked = S.share.autoPop !== false;
+                ap.onchange = () => { S.share.autoPop = ap.checked; persist(); };
+            }
+            // 9.0: the chart's seconds for the Replay's GIF (src/tape.js reads S.share.tape every 2 s)
+            const tp = document.getElementById('ax4p-share-tape');
+            if (tp) {
+                tp.checked = S.share.tape !== false;
+                tp.onchange = () => { S.share.tape = tp.checked; persist(); };
+            }
+            const vp = document.getElementById('ax4p-vo-pack');
+            if (vp) {
+                vp.value = S.voice.pack;
+                vp.onchange = () => { S.voice.pack = VOICE_PACKS.some((v) => v.id === vp.value) ? vp.value : VOICE_PACKS[0].id; S.voice.picked = true; persist(); typeof bvEmit === 'function' && bvEmit('voice-test', {}); };
+            }
+            const vt = document.getElementById('ax4p-vo-test');
+            if (vt) vt.onclick = () => typeof bvEmit === 'function' && bvEmit('voice-test', {});
+            // 9.0: the open and the news (src/session-news.js)
+            ssWireSettings(S, persist);
+        }
         const uiCompact = document.getElementById('ax4p-ui-compact');
         uiCompact.checked = !!S.ui.compactDock;
         uiCompact.onchange = () => { S.ui.compactDock = uiCompact.checked; persist(); applyUiPrefs(); };
@@ -4894,6 +5572,61 @@
     function lmSideFor(price, mid, tick) {
         const s = csSideFor(price, mid, tick);
         return s === 'buy' ? 'sell' : s === 'sell' ? 'buy' : '';
+    }
+    // The spread readout (9.0): mid minus index with its sign ('+' when Vest's mid is above the index), in the market's own decimals.
+    // hot from 1.2 basis points of the index: 3 points on NQ at 25,000 (the line it always had), the same weight on every market.
+    // null without both prices.
+    function spreadInfo(mid, idx, dec) {
+        if (!(mid > 0) || !(idx > 0)) return null;
+        const d = Number.isInteger(dec) && dec >= 0 && dec <= 10 ? dec : 2;
+        const k = Math.pow(10, d);
+        const diff = Math.round((mid - idx) * k) / k;
+        const sign = diff > 0 ? 1 : diff < 0 ? -1 : 0;
+        return { diff, sign, hot: Math.abs(mid - idx) / idx >= 0.00012, text: 'Δ ' + (sign > 0 ? '+' : sign < 0 ? '-' : '') + Math.abs(diff).toFixed(d) };
+    }
+    // ---- 9.0: a stop, target or Partials target in points, dollars or a price (PT | $ | PRICE) ----
+    // A leg's points from what was typed. ref: the price the leg is measured from (the mid for a market order, the limit price, the
+    // entry for Partials). 'pt': as typed; 'usd': dollars at `size` (Vest's perps move $1 a point for each unit), a stop rounded down
+    // and a target up to the tick (never more risk than typed, never less profit); 'price': |level - ref|. null when it can't be.
+    function legPts(unit, v, kind, size, ref, tick) {
+        const x = Number(v), t = tick > 0 ? tick : 0.25;
+        if (unit === 'price') {
+            const r = Number(ref);
+            return x > 0 && r > 0 && x !== r ? Math.abs(x - r) : null;
+        }
+        if (unit === 'usd') {
+            const z = Number(size);
+            if (!(x > 0) || !(z > 0)) return null;
+            const q = Number((x / z / t).toPrecision(12));
+            return Number((Math.max(1, kind === 'tp' ? Math.ceil(q) : Math.floor(q)) * t).toPrecision(12));
+        }
+        return x > 0 ? x : null;
+    }
+    // the side a level serves: a stop under the price is a long's and over it a short's; a target the other way round. '' at the price.
+    function levelSide(kind, level, ref) {
+        const l = Number(level), r = Number(ref);
+        if (!(l > 0) || !(r > 0) || l === r) return '';
+        return (kind === 'sl') === (l < r) ? 'long' : 'short';
+    }
+    // a price as typed (9.0 PRICE fields are text, so the browser's own number format never shows "31108,25"): "31,108.25", "31108.25",
+    // or a decimal comma ("31108,25", "1,07123": one comma, no dot, not three digits after it). null for anything else.
+    function parsePx(t) {
+        let s = String(t == null ? '' : t).trim().replace(/\s/g, '');
+        if (/^\d+,\d+$/.test(s) && !/^\d{1,3},\d{3}$/.test(s)) s = s.replace(',', '.');
+        // thousands commas only where they belong ("31,108,25" is a typo, not 3,110,825)
+        if (s.includes(',') && !/^\d{1,3}(?:,\d{3})+(?:\.\d+)?$/.test(s)) return null;
+        s = s.replace(/,/g, '');
+        if (!/^\d+(?:\.\d+)?$/.test(s)) return null;
+        const v = parseFloat(s);
+        return v > 0 && v < 1e9 ? v : null;
+    }
+    // RISK (9.0): the size that risks at most `usd` with the stop `pts` away, rounded down to the market's size step; 0 when not even
+    // one step fits
+    function riskSize(usd, pts, step) {
+        const u = Number(usd), p = Number(pts), st = step > 0 ? step : 0.01;
+        if (!(u > 0) || !(p > 0)) return 0;
+        const n = Math.floor(Number((u / p / st).toPrecision(12)));
+        return n > 0 ? Number((n * st).toPrecision(12)) : 0;
     }
     // @@BV-TPSL-MATH-END
 
@@ -6955,6 +7688,7 @@
                 TP.pending.delete(key);
                 TP.flash.set(key, now() + 700);
                 if (j.okMsg) tpToast(j.okMsg, 'good');
+                if (j.isBE) typeof bvEmit === 'function' && bvEmit('breakeven', { demo: true }); // 9.0 voice: once the stop is there
                 return;
             }
             if (now() < TP.blockUntil) return fail('The executor was just used. ' + label + ' not sent, try again.', 'warn');
@@ -7022,6 +7756,7 @@
             if (!queued) tpSetPending(Object.assign({}, j, { price: sn.n, s: sn.s }), 'ok', key);
             TP.flash.set(key, now() + 700);
             if (j.okMsg) tpToast(j.okMsg, 'good');
+            if (j.isBE) typeof bvEmit === 'function' && bvEmit('breakeven', {}); // 9.0 voice: once Vest took the new stop
             if (was != null && !j.isUndo && !j.auto) {
                 TP.undo = { key, posId: j.posId, kind: j.kind, legId: j.legId, price: was, s: was.toFixed(info.dec), until: now() + 5000, accountId: j.accountId };
             } else if (j.isUndo) {
@@ -7504,10 +8239,11 @@
             const keep = activeSelectedSize;
             activeSelectedSize = x.size;
             xcSyncUsd(); // a stop / target in dollars: its points for the stop's size
+            xcPinned++;
             TP.blockUntil = now() + 2000; // as for a press on the card: our TP/SL writes wait while the order goes in
             tPress = now();
             // the switch is read now, as the stop fires (like the card's own stop and target): off = a plain market order, no legs
-            try { await xcExecute(side, !xcCarryOn()); } finally { activeSelectedSize = keep; lastRiskHtml = ''; updateExecutionRiskCalc(); }
+            try { await xcExecute(side, !xcCarryOn()); } finally { activeSelectedSize = keep; xcPinned--; lastRiskHtml = ''; updateExecutionRiskCalc(); }
             // the order code writes its own result line, "BUY 3 @ ..." once it has pressed Vest's button
             const said = ((flash || {}).textContent || '').trim();
             if (said.indexOf(side.toUpperCase() + ' ') === 0) done('fired', said);
@@ -8252,9 +8988,10 @@
         return '';
     }
 
-    // The hotkeys that send an order speak Exec's units (NQ contracts): only the markets Exec is built for.
-    function mcMarketOk(sym) {
-        return /^(NQ|MNQ)-PERP$/.test(String(sym || ''));
+    // The hotkeys that send an order speak Exec's units: NQ contracts on NQ and MNQ, the market's own unit elsewhere (9.0: once
+    // its details are known, known = mkSpec(sym).known; up to 8.2.2 NQ and MNQ only).
+    function mcMarketOk(sym, known) {
+        return /^(NQ|MNQ)-PERP$/.test(String(sym || '')) || known === true;
     }
 
     // Does a limit order of this side and size sit safely against the open positions on this market?
@@ -8373,6 +9110,8 @@
             mc.swallow.set(e.code || key, now() + 600);
             if (e.repeat) return; // a held key repeats; swallowed, never acted on
             if (TP.drag) return; // a TP/SL line is in the user's hand: no macro now
+            // 9.0 multi-chart: from an extra chart only when it shows this page's market; on another market it offers the switch instead
+            if (typeof mchPaneKey === 'function' && !mchPaneKey(e.currentTarget)) return;
             mcRun(id, mcKeyLabel(key));
         } catch (x) { tpLog('macro key', x); }
     }
@@ -8408,7 +9147,9 @@
         let frames = [];
         try { frames = document.querySelectorAll('iframe'); } catch (x) {}
         for (const f of frames) {
-            if (mc.skipWin.has(f)) continue;
+            // 9.0: of our own frames only an extra chart's (multi-chart): its order keys are swallowed there, so TradingView's
+            // type-to-search never opens, and they act only on this page's market (mchPaneKey in mcOnDown)
+            if (mc.skipWin.has(f) || (isOurs(f) && !f.closest('.ax4p-mch-cell'))) continue;
             let w = null;
             try { w = f.contentWindow; if (w) void w.document; } catch (x) { mc.skipWin.add(f); continue; } // cross-origin: not ours
             mcAttachWin(w);
@@ -8579,10 +9320,14 @@
         if (id === 'be') return '';
         // reducing risk is never locked: only the orders that open or add
         const lk = id !== 'flat' ? xcHooks.locked() : null;
-        if (lk) return 'the daily loss limit is hit, ' + lk.short;
+        if (lk) return (lk.reason && lk.reason !== 'loss' ? '' : 'the daily loss limit is hit, ') + lk.short;
         if (!tpSymbolsAgree()) return 'the chart and the page show different markets';
         if (!mcExecVisible()) return 'the Exec strip is hidden. Show it first, so you can see the size';
-        if (id !== 'flat' && !mcMarketOk(detectedSymbol)) return 'order hotkeys work on NQ and MNQ only (Exec sizes are NQ contracts)';
+        if (id !== 'flat' && !mcMarketOk(detectedSymbol, mkSpec(detectedSymbol).known)) {
+            if (!IS_EXT) return 'order hotkeys trade NQ only in the userscript';
+            mkLoadInfo();
+            return 'the market details are still loading, try again in a second';
+        }
         return '';
     }
 
@@ -8629,7 +9374,7 @@
         if (!mcMidRef()) { mcToast(k, '· no live mid price yet. Nothing sent.', 'bad', true); return 0; }
         const btn = document.getElementById(side === 'buy' ? 'ax4p-buy-btn' : 'ax4p-sell-btn');
         if (!btn) { mcToast(k, '· the Exec strip is not loaded. Nothing sent.', 'bad', true); return 0; }
-        if (!(activeSelectedSize > 0)) { mcToast(k, '· no size selected in Exec. Nothing sent.', 'bad', true); return 0; }
+        if (!(activeSelectedSize > 0)) { mcToast(k, '· ' + (mkIsNq(detectedSymbol) ? 'no size selected in Exec' : mkOrderWhy() || 'no size selected in Exec') + '. Nothing sent.', 'bad', true); return 0; }
         // a ticket left on the Limit tab would turn the Exec button into a limit order: make sure it is on Market
         if (!(await mcEnsureTab('market'))) { mcToast(k, '· could not switch the ticket to Market. Nothing sent.', 'bad', true); return 0; }
         if (mcDemo()) return 0;
@@ -8676,8 +9421,15 @@
         const refuse = (msg) => { mcToast(k, '· ' + msg + '. Nothing sent.', 'bad', true); return 0; };
         const why = mcGate(id);
         if (why) return refuse(why);
-        const size = activeSelectedSize;
-        if (!(size > 0)) return refuse('no size selected in Exec');
+        let size = activeSelectedSize;
+        // 9.0 RISK: the size from the dollars risked at the card's stop, measured from this order's price
+        if (xcRiskOn()) {
+            const r = xcRiskCalc(at ? at.price : mcMidRef());
+            if (!r.size) return refuse(r.why);
+            size = r.size;
+        }
+        const sizeTxt = () => (xcRiskOn() ? fmtSize(size) : mcSizeTxt());
+        if (!(size > 0)) return refuse(mkIsNq(detectedSymbol) ? 'no size selected in Exec' : mkOrderWhy() || 'no size selected in Exec');
         // Vest routes a limit order to open / append / reduce by the position: it has to be known, and the order must not flip it
         const held = await mcFreshPositions();
         if (!held) return refuse('could not confirm your open position (Chart TP/SL must be on and loaded)');
@@ -8697,15 +9449,16 @@
             if (!priceEl) return refuse('no price field on the ticket');
             await sleep(160); // the field fills itself with MID when it appears; ours goes in after that
             if (mcDemo()) return 0;
-            // size and unit: the Exec strip's own (NQ units). The unit must read NQ, not USD, or the number means something else.
-            if (!(await xcTicketNq()) || !mcUnitNq()) return refuse('the ticket size unit is not NQ');
+            // size and unit: the Exec strip's own (NQ units on NQ, the market's own unit elsewhere: 9.0). The unit must read that,
+            // not USD, or the number means something else.
+            if (!(await mkTicketToken()) || !mkUnitToken()) return refuse('the ticket size unit is not ' + mkUnitName(mkTicketSym()));
             const sizeEl = qTicket('[data-testid="size-input"]') || findAmountInput();
             if (!sizeEl) return refuse('no size field on the ticket');
             setReactInputValue(sizeEl, String(size));
             await sleep(90);
             setReactInputValue(sizeEl, String(size));
             await sleep(90);
-            if (!mcSameNum(mcReadNum(qTicket('[data-testid="size-input"]') || sizeEl), size)) return refuse('the ticket did not take size ' + mcSizeTxt());
+            if (!mcSameNum(mcReadNum(qTicket('[data-testid="size-input"]') || sizeEl), size)) return refuse('the ticket did not take size ' + sizeTxt());
             // TP/SL: off unless the macro setting asks for the Exec strip's stop and target
             const tpBtn = tpSlButton();
             // with the Exec stop and target both switched off there is nothing to carry: the ticket's TP/SL stays off
@@ -8721,8 +9474,15 @@
                 } else if (bracket) {
                     const slPts = parseFloat(document.getElementById('ax4p-sl-pts')?.value) || 15;
                     const tpPts = parseFloat(document.getElementById('ax4p-tp-pts')?.value) || 30;
-                    const sl = snapToTick(side === 'buy' ? first.plan.price - slPts : first.plan.price + slPts, first.plan.tick, first.plan.dec);
-                    const tp = snapToTick(side === 'buy' ? first.plan.price + tpPts : first.plan.price - tpPts, first.plan.tick, first.plan.dec);
+                    let sl = snapToTick(side === 'buy' ? first.plan.price - slPts : first.plan.price + slPts, first.plan.tick, first.plan.dec);
+                    let tp = snapToTick(side === 'buy' ? first.plan.price + tpPts : first.plan.price - tpPts, first.plan.tick, first.plan.dec);
+                    // 9.0 PRICE: a leg set as a price is that level, which has to be on the right side of this limit's price
+                    for (const k of ['sl', 'tp']) {
+                        if (!xcLegPx(k) || !(k === 'sl' ? legSl : legTp)) continue;
+                        const v = snapToTick(S.xc[k + 'Px'], first.plan.tick, first.plan.dec);
+                        if (!v || levelSide(k, v.n, first.plan.price) !== (side === 'buy' ? 'long' : 'short')) return refuse('your ' + (k === 'sl' ? 'stop' : 'target') + ' price is on the wrong side of this limit\'s price');
+                        if (k === 'sl') sl = v; else tp = v;
+                    }
                     if ((legSl && !sl) || (legTp && !tp)) return refuse('could not work out the stop and target');
                     let filled;
                     if (legSl && legTp) filled = await fillTpSlPrices(sl.s, tp.s, findOrderPanel());
@@ -8760,14 +9520,16 @@
             if (mcDemo()) return 0;
             // the last look: same market and account, the unit still NQ, size and price still in the form, the book where the plan says
             if (mcGate(id) || tpActiveAccount() !== acc0) return refuse('the market or the account changed');
-            if (!mcUnitNq()) return refuse('the ticket size unit is not NQ');
+            if (!mkUnitToken()) return refuse('the ticket size unit is not ' + mkUnitName(mkTicketSym()));
             if (!mcSameNum(mcReadNum(qTicket('[data-testid="size-input"]')), size)) return refuse('the ticket size changed');
             if (!mcSameNum(mcReadNum(qTicket('[data-testid="price-input"]')), plan.plan.price)) return refuse('the ticket price changed');
             const lastLook = mcPlan(id, at);
             if (lastLook.err) return refuse(lastLook.err);
             if (lastLook.plan.price !== plan.plan.price) return refuse('the book moved');
             qTicket('[data-testid="' + (side === 'buy' ? 'submit-long' : 'submit-short') + '"]').click();
-            mcToast(k, '· ' + name + ' ' + (at ? csSizeText(size, tpSymbol()) : mcSizeTxt()) + ' @ ' + plan.plan.text + ' (' + plan.plan.ref + ')', side === 'buy' ? 'long' : 'short');
+            // 9.0 voice: "Buy / Sell limit placed" from Vest's socket, or from this click when the socket stays silent
+            typeof bvEmit === 'function' && bvEmit('limit-sent', { side });
+            mcToast(k, '· ' + name + ' ' + (at ? csSizeText(size, tpSymbol()) : sizeTxt()) + ' @ ' + plan.plan.text + ' (' + plan.plan.ref + ')', side === 'buy' ? 'long' : 'short');
             await sleep(700); // Vest reads the form on click; the tab goes back to Market after that
             return 1400;
         } finally {
@@ -9210,7 +9972,7 @@
                 done = !!f && f.length === 1 && mcSameNum(f[0].qty, left);
                 if (!done) await sleep(500);
             }
-            if (done) xcSay(`50% done: closed ${fmtSize(got.n)}, ${fmtSize(left)} left.`, 'good');
+            if (done) { xcSay(`50% done: closed ${fmtSize(got.n)}, ${fmtSize(left)} left.`, 'good'); typeof bvEmit === 'function' && bvEmit('half-closed'); }
             else xcSay(`50% sent: ${fmtSize(got.n)} of ${fmtSize(qty)}. Vest is not showing the smaller position yet, so check Positions.`, 'warn');
         } finally {
             XC.busy = false;
@@ -9248,6 +10010,7 @@
         XC.what = 'REV';
         XC.abort = false;
         xcPaint();
+        typeof bvEmit === 'function' && bvEmit('rev-start'); // voice: the close and the new fill are REV's, not lines of their own
         try {
             // every check for the new side runs BEFORE anything is closed
             const why = mcGate(want);
@@ -9293,7 +10056,8 @@
             const keep = activeSelectedSize;
             activeSelectedSize = qty;
             xcSyncUsd(); // a stop / target in dollars: its points for this size
-            try { await xcExecute(side); } finally { activeSelectedSize = keep; lastRiskHtml = ''; updateExecutionRiskCalc(); }
+            xcPinned++;
+            try { await xcExecute(side); } finally { activeSelectedSize = keep; xcPinned--; lastRiskHtml = ''; updateExecutionRiskCalc(); }
             // the order code writes its own result line, "SELL 2 @ ..." once it has pressed Vest's button
             const said = ((document.getElementById('ax4p-exec-flash') || {}).textContent || '').trim();
             if (said.indexOf(side.toUpperCase() + ' ') !== 0) { stop(said ? 'the ticket did not take it (' + said + ')' : 'the ticket did not take it'); return; }
@@ -9307,10 +10071,12 @@
             }
             if (opened) {
                 xcSay(`REV done: ${names[1]} ${fmtSize(qty)}.`, 'good');
+                typeof bvEmit === 'function' && bvEmit('reversed');
                 XC.revOpened = { side, oldId: pos.id }; // Partials, when on, split the new position's TP once REV lets go
             }
             else xcSay(`REV sent the ${names[1]} ${fmtSize(qty)}, but Vest is not showing it yet. Check Positions before you press anything.`, 'warn');
         } finally {
+            typeof bvEmit === 'function' && bvEmit('rev-end');
             XC.busy = false;
             XC.what = '';
             XC.abort = false;
@@ -9345,10 +10111,13 @@
         const legs = [];
         for (const [i, x] of S.xc.targets.entries()) {
             const pct = Math.round(Number(x.pct));
-            const pts = Number(x.pts);
+            // 9.0: the TARGET's mode: points from the entry, dollars of that part of the position, or the price itself
+            const u = S.xc.tpUnit || 'pt';
+            let pts = u === 'usd' ? legPts('usd', x.usd, 'tp', pos.qty * (pct || 0) / 100, 0, info.tick) || 0 : u === 'price' ? Number(x.px) : Number(x.pts);
             if (!(pct >= 1 && pct <= 99)) return { why: `TP${i + 1} needs a share between 1 and 99%` };
-            if (!(pts > 0)) return { why: `TP${i + 1} needs a distance in points` };
-            const sn = snapToTick(pos.entry + dir * pts, info.tick, info.dec);
+            if (!(pts > 0)) return { why: u === 'usd' ? `TP${i + 1} needs an amount in dollars` : u === 'price' ? `TP${i + 1} needs a price` : `TP${i + 1} needs a distance in points` };
+            const sn = u === 'price' ? snapToTick(Number(x.px), info.tick, info.dec) : snapToTick(pos.entry + dir * pts, info.tick, info.dec);
+            if (u === 'price' && sn) pts = Math.abs(sn.n - pos.entry);
             if (!sn) return { why: `the TP${i + 1} price could not be worked out` };
             legs.push({ n: i + 1, pct, pts, sn });
         }
@@ -9682,20 +10451,53 @@
     const DLL_WARN = 0.75;
     const DLL_SETTLE_MS = 3000; // after an account switch, Vest's Account Value may still show the old account
     const dllPad = (n) => String(n).padStart(2, '0');
-    const dllHm = (hour) => dllPad(hour) + ':00';
 
-    // The trading day a moment belongs to: its local date, where the day starts at the reset hour (before it, it is still yesterday)
-    function dllDayKey(ms, hour) {
+    // 9.0: Vest's own trading day, which ends at 8 pm in New York (its daily reset). Every limit runs on it: the loss limit, the profit
+    // limit, the tilt guard's counts. Daylight saving is read from the moment itself. (Up to 8.2.2 the day ended at a reset hour on
+    // this computer's clock, midnight by default.)
+    const DLL_RESET_HOUR = 20;
+    let dllNyFmt = null;
+    function dllNy(ms) {
+        if (!dllNyFmt) dllNyFmt = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const o = {};
+        for (const p of dllNyFmt.formatToParts(new Date(ms))) o[p.type] = p.value;
+        return { y: +o.year, m: +o.month, d: +o.day, h: +o.hour % 24, mi: +o.minute, s: +o.second };
+    }
+    // The trading day a moment belongs to: the New York date, where 8 pm and later is already the next day
+    function dllDayKey(ms) {
+        const o = dllNy(ms);
+        return new Date(Date.UTC(o.y, o.m - 1, o.d + (o.h >= DLL_RESET_HOUR ? 1 : 0))).toISOString().slice(0, 10);
+    }
+    // A New York wall time as a moment. The offset is read at that moment itself, not at another one: on a daylight saving day the small
+    // hours and 8 pm have different offsets (a 9.0 test caught 8 pm worked out from 1 am's offset).
+    function dllNyWall(y, m, d, h) {
+        const want = Date.UTC(y, m - 1, d, h, 0, 0);
+        let t = want + 4 * 3600000;
+        for (let i = 0; i < 4; i++) {
+            const o = dllNy(t);
+            const next = want - (Date.UTC(o.y, o.m - 1, o.d, o.h, o.mi, o.s) - Math.floor(t / 1000) * 1000);
+            if (next === t) break;
+            t = next;
+        }
+        return t;
+    }
+    // When the current day ends: the next 8 pm in New York
+    function dllNextReset(ms) {
+        const o = dllNy(ms);
+        const t = dllNyWall(o.y, o.m, o.d, DLL_RESET_HOUR);
+        return t > ms ? t : dllNyWall(o.y, o.m, o.d + 1, DLL_RESET_HOUR);
+    }
+    // a moment on this computer's clock ("02:00"), for "locked until ..."
+    function dllClock(ms) {
+        const d = new Date(ms);
+        return dllPad(d.getHours()) + ':' + dllPad(d.getMinutes());
+    }
+    // 8.2.2's day (this computer's date, starting at the reset hour): only to carry a lock made before the upgrade over to Vest's day
+    function dllOldKey(ms, hour) {
         const d = new Date(ms);
         let y = d.getFullYear(), m = d.getMonth(), day = d.getDate();
         if (d.getHours() < hour) { const p = new Date(y, m, day - 1); y = p.getFullYear(); m = p.getMonth(); day = p.getDate(); }
         return y + '-' + dllPad(m + 1) + '-' + dllPad(day);
-    }
-    // When the current day ends: the next time the local clock reads the reset hour
-    function dllNextReset(ms, hour) {
-        const d = new Date(ms);
-        const at = new Date(d.getFullYear(), d.getMonth(), d.getDate(), hour, 0, 0, 0);
-        return at.getTime() > ms ? at.getTime() : new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1, hour, 0, 0, 0).getTime();
     }
     // 'ok' below 75% of the limit, 'warn' from 75%, 'lock' from 100% (loss is a positive number of dollars)
     function dllLevel(loss, limit) {
@@ -9712,16 +10514,17 @@
     // One step for one account. rec is what is stored for it ({ key, base, locked, lockPnl }), key the current day, av the
     // Account Value read now (null: not readable). A new lock needs two readings in a row (sure), so one odd read, say
     // from an account switch, never locks anyone. Returns the record to store, today's P&L and the level.
-    function dllUpdate(rec, key, av, limit, sure) {
+    function dllUpdate(rec, key, av, limit, sure, vestPnl) {
         let r = rec && rec.key === key ? Object.assign({}, rec) : null; // a record of an earlier day is gone: that is the reset
         // an Account Value of 0 is Vest's page still loading, not a blown account: it is never read as a loss
         const have = typeof av === 'number' && Number.isFinite(av) && av > 0;
         if (!r) {
             if (!have) return { rec: null, pnl: null, level: null, pending: false };
-            r = { key, base: av, locked: false };
+            r = { v: 9, key, base: av, locked: false };
         }
         if (!have) return { rec: r, pnl: null, level: r.locked ? 'lock' : null, pending: false };
-        const pnl = av - r.base;
+        // 9.0: Vest's own P&L of its day where it gives one (its equity at the 8 pm reset), else the first value seen today
+        const pnl = typeof vestPnl === 'number' && Number.isFinite(vestPnl) ? vestPnl : av - r.base;
         let level = dllLevel(Math.max(0, -pnl), limit);
         let pending = false;
         if (level === 'lock' && !r.locked) {
@@ -9732,10 +10535,22 @@
         return { rec: r, pnl, level, pending };
     }
     const dllLocked = (rec, key) => !!rec && rec.key === key && rec.locked === true;
-    // A record keeps the reset hour it was made with, so changing the setting later cannot move or end today's day
-    // (which would otherwise start a fresh baseline and zero the loss, or lift a lock).
-    const dllRecHour = (rec, fallback) => (rec && Number.isInteger(rec.hour) ? rec.hour : fallback);
-    const dllRecLocked = (rec, ms, hour) => !!rec && dllLocked(rec, dllDayKey(ms, dllRecHour(rec, hour)));
+    // locked by the loss limit today (Vest's day)
+    const dllRecLocked = (rec, ms) => !!rec && dllLocked(rec, dllDayKey(ms));
+    // 9.0, once: the records of 8.2.2 counted days on this computer's clock. A lock of that day carries over to Vest's day (it then lasts
+    // to the next 8 pm New York: an upgrade never unlocks anyone); anything else of an old day is dropped.
+    function dllMigrate(all, t) {
+        let changed = false;
+        for (const k of Object.keys(all)) {
+            const r = all[k];
+            if (!r || typeof r !== 'object' || r.v === 9 || k === '*') continue;
+            const hour = Number.isInteger(r.hour) ? r.hour : 0;
+            if (r.key === dllOldKey(t, hour)) { r.key = dllDayKey(t); r.v = 9; delete r.hour; }
+            else delete all[k];
+            changed = true;
+        }
+        return changed;
+    }
     const DLL_SURE_MS = 1500; // a new lock needs a second reading at least this long after the first
 
     const DLL = { acc: null, accSince: 0, el: null, pnl: null, level: null, pending: false, pendingAt: 0 };
@@ -9763,7 +10578,9 @@
 
     function dllStore() {
         const all = readStore(DLL_KEY, {});
-        return all && typeof all === 'object' && !Array.isArray(all) ? all : {};
+        const o = all && typeof all === 'object' && !Array.isArray(all) ? all : {};
+        if (dllMigrate(o, now())) writeStore(DLL_KEY, o);
+        return o;
     }
 
     // The account this tab's Vest is showing. tpActiveAccount reads the storage key, which another Vest tab shares and can change under a
@@ -9784,28 +10601,32 @@
                 // nothing is read when logged out (no account) or in Demo
                 const acc = xcDemoOn() ? null : dllAccount();
                 if (acc !== DLL.acc) { DLL.acc = acc; DLL.accSince = t; DLL.pending = false; DLL.pnl = null; DLL.level = null; }
-                const av = acc && t - DLL.accSince >= DLL_SETTLE_MS ? dllReadAccountValue() : null;
+                // 9.0: an account the limit doesn't watch (Settings > Risk > Accounts) is not read; its lock of today, if any, stays
+                DLL.out = !!acc && !dllInScope(acc, cfg.accs);
+                const av = acc && !DLL.out && t - DLL.accSince >= DLL_SETTLE_MS ? dllReadAccountValue() : null;
                 if (av == null) { DLL.pnl = null; DLL.pending = false; }
                 else {
                     const all = dllStore();
                     const prev = all[acc];
-                    // today keeps the reset hour its record started with, a changed setting applies from the next day
-                    const hour = prev && Number.isInteger(prev.hour) && prev.key === dllDayKey(t, prev.hour) ? prev.hour : cfg.hour;
-                    const key = dllDayKey(t, hour);
+                    const key = dllDayKey(t);
                     // by time, not by call: apply() and the first timer also call this, and two reads a few ms apart prove nothing
-                    const r = dllUpdate(prev, key, av, cfg.limit, DLL.pending && t - DLL.pendingAt >= DLL_SURE_MS);
+                    const r = dllUpdate(prev, key, av, cfg.limit, DLL.pending && t - DLL.pendingAt >= DLL_SURE_MS, dllVestToday(acc));
                     if (r.pending && !DLL.pending) DLL.pendingAt = t;
                     DLL.pending = r.pending;
                     DLL.pnl = r.pnl;
+                    const was = DLL.level;
                     DLL.level = r.level;
+                    // 9.0 voice: the amber line on this account (an account switch starts again from null: silent). Locks speak from gdTick.
+                    if (was === 'ok' && r.level === 'warn') typeof bvEmit === 'function' && bvEmit('loss-limit-near', { key: 'near:' + acc + ':' + key });
                     if (r.rec) {
-                        if (r.rec.hour == null) r.rec.hour = hour;
+                        // a new day's record keeps a cooldown that is still running (it began before 8 pm New York)
+                        if (prev && prev.key !== key && prev.cool && prev.cool.until > t && !r.rec.cool) { r.rec.cool = prev.cool; r.rec.coolFrom = prev.coolFrom; }
                         if (r.rec.locked && r.rec.vest == null) r.rec.vest = !!cfg.vest; // the lock keeps the option it was set with
                         if (r.rec.locked && r.rec.flat == null) r.rec.flat = !!cfg.flat; // and so does Close at the limit
                     }
                     if (r.rec && JSON.stringify(r.rec) !== JSON.stringify(prev)) {
-                        // earlier days are over, each by its own reset hour; another account's lock of today stays
-                        for (const k of Object.keys(all)) if (!all[k] || all[k].key !== dllDayKey(t, dllRecHour(all[k], cfg.hour))) delete all[k];
+                        // earlier days are over; another account's lock of today stays (and so do the timed locks: the manual one, cooldowns)
+                        for (const k of Object.keys(all)) if (!all[k] || (all[k].key !== key && !gdTimedAlive(all[k], t))) delete all[k];
                         all[acc] = r.rec;
                         writeStore(DLL_KEY, all);
                     }
@@ -9814,6 +10635,322 @@
             }
         } catch (e) {}
         try { xcPaintDll(); dllPaintSettings(); } catch (e) {}
+    }
+
+    // ---------- 9.0: one lock, four reasons ----------
+    // Your own lock (the card's lock button: every account on this browser, for a while), the daily loss limit (above), the daily profit
+    // limit (after fees) and the tilt guard's cooldown. They all block the same things the loss limit always blocked (dllGuard, mcGate,
+    // xcExecute) and never getting out: FLAT, 50%, BE, the chart's TP/SL and Vest's close buttons always work. They live in the loss
+    // limit's store (ax4p_dll), so a reload, another tab or a reset of the settings cannot lift them: per account
+    // { plocked, plockPnl } (the profit limit, today) and { cool: { until, at, why }, coolFrom }, and under '*' { manual: { until, at } }.
+    const GD = { acc: undefined, sig: '', reason: '', rows: null, rowsAcc: null, rowsAt: 0, reading: false, dirty: false, nPos: -1 };
+    const GD_READ_MS = 15000;
+    const GD_UNDO_MS = 10000;
+
+    function dllVestToday(acc) {
+        return typeof vuVestToday === 'function' ? vuVestToday(acc) : null;
+    }
+    // a record with a timed lock still running (kept past the day's end); '*' holds your own locks (every account, and per account)
+    function gdTimedAlive(rec, t) {
+        return !!rec && ((rec.manual && rec.manual.until > t) || (rec.cool && rec.cool.until > t) || gdAccLocks(rec, t).length > 0);
+    }
+    // the limits' accounts (Settings > Risk): list null = every account
+    function dllInScope(acc, list) {
+        return !Array.isArray(list) || list.indexOf(String(acc)) >= 0;
+    }
+    // your own locks on chosen accounts that still run: [[id, { until, at, prev }]]
+    function gdAccLocks(g, t) {
+        const m = g && g.accs && typeof g.accs === 'object' ? g.accs : null;
+        return m ? Object.keys(m).filter((id) => m[id] && m[id].until > t).map((id) => [id, m[id]]) : [];
+    }
+    // your own lock on one account now (the every-account one or this account's, whichever runs longer); acc null: any of them
+    function gdManualOf(g, acc, t) {
+        const all = g && g.manual && g.manual.until > t ? g.manual : null;
+        const mine = gdAccLocks(g, t).filter(([id]) => acc == null || id === String(acc)).map(([, m]) => m);
+        return [all].concat(mine).filter(Boolean).sort((a, b) => b.until - a.until)[0] || null;
+    }
+    // The lock on one account now, or null: { reason: 'manual' | 'loss' | 'profit' | 'cooldown', untilMs, until ('02:00' on this
+    // computer's clock), label (the account menu's line), text (the card's banner), short (a refusal), vest (also block Vest's own Buy and
+    // Sell) }. acc null: any account's lock counts (while the account can't be read, any lock must keep the gate shut).
+    function gdLockOf(acc, all0, t0) {
+        const all = all0 || dllStore(), t = t0 || now();
+        const vest = S.dll.vest !== false;
+        const man = gdManualOf(all['*'], acc || null, t);
+        if (man) return gdDescribe({ reason: 'manual', untilMs: man.until, vest });
+        const one = (r) => {
+            if (!r) return null;
+            if (dllRecLocked(r, t)) return gdDescribe({ reason: 'loss', untilMs: dllNextReset(t), pnl: r.lockPnl, vest: r.vest !== false });
+            if (r.plocked === true && r.key === dllDayKey(t)) return gdDescribe({ reason: 'profit', untilMs: dllNextReset(t), pnl: r.plockPnl, vest });
+            if (r.cool && r.cool.until > t) return gdDescribe({ reason: 'cooldown', untilMs: r.cool.until, why: r.cool.why, vest });
+            return null;
+        };
+        if (acc) return one(all[acc]);
+        for (const k of Object.keys(all)) { if (k === '*') continue; const d = one(all[k]); if (d) return d; }
+        return null;
+    }
+    function gdDescribe(d) {
+        const u = dllClock(d.untilMs);
+        d.until = u;
+        if (d.reason === 'manual') {
+            d.label = 'Locked by you until ' + u;
+            d.text = `You locked trading until ${u}.`;
+            d.short = 'you locked trading until ' + u;
+        } else if (d.reason === 'loss') {
+            d.label = 'Locked by your loss limit until ' + u;
+            d.text = `Daily loss limit hit (-${xcUsd(d.pnl)}). New trades are locked until ${u}.`;
+            d.short = 'new trades are locked until ' + u;
+        } else if (d.reason === 'profit') {
+            d.label = 'Locked by your profit limit until ' + u;
+            d.text = `Daily profit limit reached (+${xcUsd(d.pnl)} after fees). New trades are locked until ${u}.`;
+            d.short = 'the daily profit limit is reached, new trades are locked until ' + u;
+        } else {
+            d.label = 'Cooldown until ' + u;
+            d.text = `Cooldown: ${d.why || 'tilt guard'}. New trades wait until ${u}.`;
+            d.short = 'cooldown (' + (d.why || 'tilt guard') + ') until ' + u;
+        }
+        return d;
+    }
+    function gdWrite(mut) {
+        const all = dllStore();
+        mut(all);
+        writeStore(DLL_KEY, all);
+        try { xcPaintDll(); } catch (e) {}
+    }
+
+    // Your own lock. minutes, or 'day' (to Vest's 8 pm New York reset). accs: null for every account on this browser, else the chosen
+    // account ids (9.0). A 10 s Undo for a mis-click.
+    function gdLockNow(what, accs) {
+        const t = now();
+        const until = what === 'day' ? dllNextReset(t) : t + Math.max(1, Math.min(24 * 60, Number(what) || 15)) * 60000;
+        const g0 = dllStore()['*'] || {};
+        const list = Array.isArray(accs) ? gdAccList(accs) : null;
+        if (list && !list.length) { xcSay('Pick at least one account to lock.', 'warn'); return false; }
+        // a lock already running is only ever made longer here; a lock made longer keeps the one it replaced, so its Undo puts that
+        // back (and never lifts it)
+        const next = (cur) => {
+            if (cur && cur.until >= until) return null;
+            const prev = cur && cur.until > t ? { until: cur.until, at: cur.at } : null;
+            return prev ? { until, at: t, prev } : { until, at: t };
+        };
+        if (!list) {
+            const m = next(g0.manual && g0.manual.until > t ? g0.manual : null);
+            if (!m) { xcSay(`Already locked until ${dllClock(g0.manual.until)}.`, 'warn'); return false; }
+            gdWrite((all) => { all['*'] = Object.assign({ v: 9 }, all['*'] || {}, { manual: m }); });
+            xcSay(`Trading locked on every account until ${dllClock(until)}. Undo within 10 s if that was a mis-click.`, 'warn');
+        } else {
+            const cur = g0.accs && typeof g0.accs === 'object' ? g0.accs : {};
+            const set = {};
+            list.forEach((id) => { const m = next(cur[id] && cur[id].until > t ? cur[id] : null); if (m) set[id] = m; });
+            if (!Object.keys(set).length) { xcSay('Already locked that long.', 'warn'); return false; }
+            gdWrite((all) => {
+                const g = Object.assign({ v: 9 }, all['*'] || {});
+                const keep = {};
+                gdAccLocks(g, t).forEach(([id, m]) => { keep[id] = m; });
+                g.accs = Object.assign(keep, set);
+                all['*'] = g;
+            });
+            const n = Object.keys(set).length;
+            xcSay(`Trading locked on ${n === 1 ? gdAccName(Object.keys(set)[0]) : n + ' accounts'} until ${dllClock(until)}. Undo within 10 s if that was a mis-click.`, 'warn');
+        }
+        gdTick();
+        return true;
+    }
+    // the last 10 s of your own locks go back: each to the lock it replaced, or off
+    function gdUndo() {
+        const t = now();
+        const g = dllStore()['*'] || {};
+        const fresh = (m) => !!m && m.until > t && t - m.at <= GD_UNDO_MS;
+        const back = (m) => (m.prev && m.prev.until > t ? { until: m.prev.until, at: m.prev.at } : null);
+        const accs = gdAccLocks(g, t).filter(([, m]) => fresh(m));
+        if (!fresh(g.manual) && !accs.length) { xcSay("The lock can't be undone after 10 seconds.", 'warn'); return false; }
+        let prev = null;
+        gdWrite((all) => {
+            const n = Object.assign({ v: 9 }, all['*'] || {});
+            if (fresh(n.manual)) { const b = back(n.manual); if (b) { n.manual = b; prev = b; } else delete n.manual; }
+            if (n.accs) {
+                const m = {};
+                gdAccLocks(n, t).forEach(([id, l]) => { if (!fresh(l)) m[id] = l; else { const b = back(l); if (b) { m[id] = b; prev = prev || b; } } });
+                n.accs = m;
+            }
+            if (!n.manual && !gdAccLocks(n, t).length) delete all['*']; else all['*'] = n;
+        });
+        xcSay(prev ? `Back to the lock until ${dllClock(prev.until)}.` : 'Lock undone.', 'good');
+        gdTick();
+        return true;
+    }
+    // ---- the account picker (the lock menu, Settings > Risk): every account, or the ones ticked ----
+    // Vest's accounts as the account menu lists them (this device's nicknames first; logged out: none)
+    function gdAccounts() {
+        try {
+            if (typeof vuList !== 'function') return [];
+            return vuList().map((m) => ({ id: m.id, name: m.nick || m.name || 'account ' + String(m.id).slice(-4), active: !!m.active }));
+        } catch (e) { return []; }
+    }
+    function gdPickHtml(prefix) {
+        return `<div class="ax4p-accscope" id="${prefix}-scope" role="radiogroup" aria-label="Accounts"><button type="button" data-scope="all" role="radio">Every account</button><button type="button" data-scope="some" role="radio">Chosen accounts</button></div><div class="ax4p-acclist" id="${prefix}-accs" hidden></div>`;
+    }
+    // get(): the stored list (null: every account); put(list): stores a new one. Choosing "Chosen accounts" starts from this tab's account.
+    // paint(readOnly): the settings stay as they are while a lock runs.
+    function gdPickWire(prefix, get, put) {
+        const scope = document.getElementById(prefix + '-scope'), list = document.getElementById(prefix + '-accs');
+        let ro = false;
+        const paint = (readOnly) => {
+            if (!scope || !list) return;
+            ro = !!readOnly;
+            const v = get(), some = Array.isArray(v);
+            scope.querySelectorAll('button').forEach((b) => {
+                const on = (b.getAttribute('data-scope') === 'some') === some;
+                b.classList.toggle('on', on);
+                b.setAttribute('aria-checked', on ? 'true' : 'false');
+                b.disabled = ro;
+            });
+            list.hidden = !some;
+            if (!some) return;
+            const accs = gdAccounts();
+            // the list is drawn again only when the accounts change (so a tick never scrolls it back to the top); ticks follow in place
+            const sig = JSON.stringify(accs);
+            if (list.getAttribute('data-sig') !== sig) {
+                list.setAttribute('data-sig', sig);
+                list.innerHTML = accs.length
+                    ? accs.map((a) => `<label><input type="checkbox" data-acc="${escHtml(a.id)}"><span>${escHtml(a.name)}</span>${a.active ? '<em>this tab</em>' : ''}</label>`).join('')
+                    : '<div class="ax4p-acc-none">No accounts yet: Vest lists them once you are logged in.</div>';
+            }
+            list.querySelectorAll('input[data-acc]').forEach((c) => { c.checked = v.indexOf(c.getAttribute('data-acc')) >= 0; c.disabled = ro; });
+        };
+        if (scope) scope.addEventListener('click', (e) => {
+            const b = e.target.closest('button[data-scope]');
+            if (!b || ro) return;
+            const some = b.getAttribute('data-scope') === 'some';
+            if (some === Array.isArray(get())) return;
+            const mine = (() => { try { return dllAccount(); } catch (x) { return null; } })();
+            put(some ? (mine ? [String(mine)] : []) : null);
+            paint(ro);
+        });
+        if (list) list.addEventListener('change', (e) => {
+            const c = e.target.closest('input[data-acc]');
+            if (!c || ro) return;
+            const id = c.getAttribute('data-acc');
+            const v = (get() || []).filter((x) => x !== id);
+            if (c.checked) v.push(id);
+            put(v);
+        });
+        return { paint };
+    }
+    // an account's name as the account menu shows it (this device's nickname first)
+    function gdAccName(id) {
+        try {
+            const m = typeof vuList === 'function' ? vuList().find((x) => x.id === String(id)) : null;
+            if (m) return m.nick || m.name || 'account ' + String(id).slice(-4);
+        } catch (e) {}
+        return 'account ' + String(id).slice(-4);
+    }
+
+    // ---- what the profit limit and the tilt guard read: today's positions of the account, from Vest (GET, read only) ----
+    function gdMs(v) {
+        if (v == null || v === '') return 0;
+        if (typeof v === 'number') return v > 1e12 ? v : v * 1000;
+        const n = Number(v);
+        if (Number.isFinite(n)) return n > 1e12 ? n : n * 1000;
+        const p = Date.parse(String(v));
+        return Number.isFinite(p) ? p : 0;
+    }
+    // [{ id, open, close (0 while open), net }] of today (Vest's day), newest first; P&L after fees as the Calendar counts it
+    async function gdReadToday(acc, t) {
+        const b = tpBridge();
+        if (!b) return null;
+        const day = dllDayKey(t);
+        const out = [];
+        for (let page = 0; page < 6; page++) {
+            const r = await b.get('/v3/positions', { account_id: String(acc), limit: 50, offset: page * 50 });
+            const list = Array.isArray(r) ? r : (r && r.positions) || [];
+            let hit = 0;
+            for (const x of list) {
+                if (!x || x.positionId == null) continue;
+                const open = gdMs(x.openDate), close = gdMs(x.closeDate);
+                const mine = close ? dllDayKey(close) === day : open && dllDayKey(open) === day;
+                if (!mine) continue;
+                hit++;
+                const net = close ? (Number(x.pnl) || 0) - (Number(x.fee) || 0) + (Number(x.funding) || 0) : 0;
+                out.push({ id: String(x.positionId), open, close, net });
+            }
+            // newest first: a page with nothing of today means the rest is older
+            if (list.length < 50 || !hit) break;
+        }
+        return out;
+    }
+    // The profit limit and the tilt guard on today's positions. Pure: rows (newest first or any order), the account's record, settings,
+    // now. Returns { plock: net } when the profit limit is reached, { cool: { until, why } } when the tilt guard trips, or {}.
+    function gdJudge(rows, rec, cfg, tilt, t) {
+        const out = {};
+        const closed = rows.filter((x) => x.close > 0).sort((a, b) => a.close - b.close);
+        if (cfg.pon && cfg.plimit > 0 && !(rec && rec.plocked)) {
+            const net = closed.reduce((s, x) => s + x.net, 0);
+            if (net >= cfg.plimit) out.plock = Math.round(net * 100) / 100;
+        }
+        if (tilt && tilt.on && !(rec && rec.cool && rec.cool.until > t)) {
+            // only what happened after the last cooldown began counts again
+            const from = rec && rec.coolFrom > 0 ? rec.coolFrom : 0;
+            const after = closed.filter((x) => x.close > from);
+            let streak = 0;
+            for (let i = after.length - 1; i >= 0 && after[i].net < 0; i--) streak++;
+            const hour = rows.filter((x) => x.open > Math.max(from, t - 3600000)).length;
+            const mins = Math.max(1, Math.min(240, Number(tilt.mins) || 15));
+            if (tilt.losses > 0 && streak >= tilt.losses) out.cool = { until: t + mins * 60000, why: streak + ' losses in a row' };
+            else if (tilt.trades > 0 && hour >= tilt.trades) out.cool = { until: t + mins * 60000, why: hour + ' trades in an hour' };
+        }
+        return out;
+    }
+    function gdRead(acc, t) {
+        if (GD.reading || !acc) return;
+        if (!(S.dll.pon && S.dll.plimit > 0 && dllInScope(acc, S.dll.paccs)) && !(S.tilt && S.tilt.on)) return;
+        if (GD.rowsAcc === acc && !GD.dirty && t - GD.rowsAt < GD_READ_MS) return;
+        GD.reading = true;
+        GD.dirty = false;
+        gdReadToday(acc, t).then((rows) => {
+            if (!rows) return;
+            GD.rows = rows;
+            GD.rowsAcc = acc;
+            GD.rowsAt = now();
+            const all = dllStore();
+            const rec = all[acc] && all[acc].key === dllDayKey(now()) ? all[acc] : null;
+            // the profit limit only on the accounts it watches (Settings > Risk); the tilt guard on every account
+            const j = gdJudge(rows, rec, Object.assign({}, S.dll, { pon: S.dll.pon && dllInScope(acc, S.dll.paccs) }), S.tilt, now());
+            if (j.plock != null || j.cool) {
+                gdWrite((a) => {
+                    const old = a[acc];
+                    const r = old && old.key === dllDayKey(now()) ? old : { v: 9, key: dllDayKey(now()), locked: false };
+                    if (r !== old && old && old.cool && old.cool.until > now()) { r.cool = old.cool; r.coolFrom = old.coolFrom; }
+                    if (j.plock != null) { r.plocked = true; r.plockPnl = j.plock; }
+                    if (j.cool) { r.cool = { until: j.cool.until, at: now(), why: j.cool.why }; r.coolFrom = now(); }
+                    a[acc] = r;
+                });
+                gdTick();
+            }
+        }).catch(() => {}).finally(() => { GD.reading = false; });
+    }
+
+    // Every 2 s with the loss limit's tick: the lock on this account, its changes spoken (never an account switch), today's positions
+    // read when the profit limit or the tilt guard is on.
+    function gdTick() {
+        try {
+            const t = now();
+            const acc = xcDemoOn() ? null : dllAccount();
+            if (acc !== GD.acc) { GD.acc = acc; GD.sig = null; GD.reason = ''; GD.dirty = true; }
+            const lk = acc ? gdLockOf(acc, null, t) : null;
+            const sig = lk ? lk.reason + ':' + lk.untilMs : '';
+            if (GD.sig != null && sig !== GD.sig) {
+                const emit = (type, data) => typeof bvEmit === 'function' && bvEmit(type, data);
+                if (lk && lk.reason !== GD.reason) emit(lk.reason === 'cooldown' ? 'cooldown-start' : 'locked', { reason: lk.reason, key: 'lock:' + acc + ':' + sig });
+                else if (!lk && GD.reason) emit(GD.reason === 'cooldown' ? 'cooldown-end' : 'unlocked', { reason: GD.reason, key: 'unlock:' + acc + ':' + GD.sig });
+            }
+            GD.sig = sig;
+            GD.reason = lk ? lk.reason : '';
+            // a position just closed on this market: read today's positions now, not at the next 15 s
+            const n = tpPositions().length;
+            if (GD.nPos >= 0 && n < GD.nPos) GD.dirty = true;
+            GD.nPos = n;
+            gdRead(acc, t);
+        } catch (e) {}
     }
 
     // ---------- Close at the limit (8.1.5): the lock also flattens the account ----------
@@ -9853,7 +10990,7 @@
     // the locked account's own lock of today, with Close at the limit on (never the "any lock" an unread account gets)
     function dllFlatLock(acc, t) {
         const rec = acc ? dllStore()[acc] : null;
-        return rec && dllRecLocked(rec, t, S.dll.hour) && dllRecFlat(rec) ? rec : null;
+        return rec && dllRecLocked(rec, t) && dllRecFlat(rec) ? rec : null;
     }
 
     // From dllTick, every 2 s. A pass starts when the locked account shows something open, and once in each tab for each
@@ -9929,7 +11066,7 @@
         if (!left) {
             DLLF.tries = 0;
             const lk = xcHooks.locked();
-            if (n) tpToast(`Daily loss limit: ${n === 1 ? 'position' : n + ' positions'} closed. New trades are locked until ${lk ? lk.until : dllHm(S.dll.hour)}.`, 'warn', 8000);
+            if (n) tpToast(`Daily loss limit: ${n === 1 ? 'position' : n + ' positions'} closed. New trades are locked until ${lk ? lk.until : dllClock(dllNextReset(now()))}.`, 'warn', 8000);
         } else if (++DLLF.tries >= DLL_FLAT_TRIES) {
             DLLF.gaveUp = true;
             tpToast("Daily loss limit: a position could not be closed. Close it in Vest's Positions tab.", 'bad', 12000);
@@ -9940,34 +11077,27 @@
     // record itself: a lock set in another tab, or before a reload, counts at once, and it does not depend on the
     // settings in memory (a reset, an import or a stale tab cannot lift it). While the account cannot be read, any lock
     // of today counts: an unreadable id must not open the gate. Logged-out Demo has no account and is never locked.
+    // 9.0: every reason (gdLockOf). Logged-out Demo has no account and is never locked.
     function dllActiveLock() {
-        const all = dllStore(), t = now(), acc = tpActiveAccount();
-        if (acc) return dllRecLocked(all[acc], t, S.dll.hour) ? all[acc] : null;
-        if (xcDemoOn()) return null;
-        return Object.keys(all).map((k) => all[k]).find((r) => dllRecLocked(r, t, S.dll.hour)) || null;
+        const acc = tpActiveAccount();
+        if (!acc && xcDemoOn()) return null;
+        return gdLockOf(acc || null);
     }
     xcHooks.locked = () => {
-        try {
-            const rec = dllActiveLock();
-            if (!rec) return null;
-            const until = dllHm(dllRecHour(rec, S.dll.hour));
-            return {
-                text: `Daily loss limit hit (-${xcUsd(rec.lockPnl)}). New trades are locked until ${until}.`,
-                short: 'new trades are locked until ' + until, until, vest: rec.vest !== false
-            };
-        } catch (e) { return null; }
+        try { return dllActiveLock(); } catch (e) { return null; }
     };
-    // any account's lock of today: the settings stay read-only, and a reset or import of them is refused, so switching
-    // to an unlocked account cannot loosen a lock that is still running
+    // any account's day lock (the loss or the profit limit): the settings stay read-only, and a reset or import of them is refused, so
+    // switching to an unlocked account cannot loosen a lock that is still running
     xcHooks.lockedAny = () => {
         try {
-            const all = dllStore(), t = now();
-            return Object.keys(all).some((k) => dllRecLocked(all[k], t, S.dll.hour));
+            const all = dllStore(), t = now(), key = dllDayKey(t);
+            return Object.keys(all).some((k) => k !== '*' && (dllRecLocked(all[k], t) || (all[k] && all[k].plocked === true && all[k].key === key)));
         } catch (e) { return false; }
     };
     // The card's line: { line, level } or null when the limit is off
     xcHooks.dll = () => {
         if (!S.dll.on) return null;
+        if (DLL.out) return { line: 'Loss limit not on for this account', level: 'wait' };
         if (DLL.pnl == null) return { line: DLL.acc ? 'Account Value not read, limit not active' : 'Account not found, limit not active', level: 'wait' };
         const loss = Math.max(0, -DLL.pnl);
         const line = DLL.pnl < 0 ? `Today -${xcUsd(loss)} of ${xcUsd(S.dll.limit)}` : `Today +${xcUsd(DLL.pnl)}, limit ${xcUsd(S.dll.limit)}`;
@@ -9981,14 +11111,32 @@
                     <label class="ax4p-row"><span>Lock new trades at the limit</span><input type="checkbox" id="ax4p-dll-on"></label>
                     <label class="ax4p-row"><span>Close my positions at the limit</span><input type="checkbox" id="ax4p-dll-flat"></label>
                     <div class="ax4p-row"><span>Limit ($ a day)</span><input type="number" id="ax4p-dll-limit" class="ax4p-in" min="1" step="10" style="width:72px;"></div>
+                    <div class="ax4p-row"><span>Accounts</span></div>
+                    ${gdPickHtml('ax4p-dll-acc')}
                     <div class="ax4p-row"><span>Card turns amber at</span><b>75%</b></div>
-                    <div class="ax4p-row"><span>Day resets at (your clock, 0 to 23)</span><input type="number" id="ax4p-dll-hour" class="ax4p-in" min="0" max="23" step="1" style="width:56px;"></div>
+                    <div class="ax4p-row"><span>Day ends with Vest's</span><b>8 pm New York</b></div>
                     <label class="ax4p-row"><span>Also block Vest's own Buy and Sell</span><input type="checkbox" id="ax4p-dll-vest"></label>
                     <div class="ax4p-hint" id="ax4p-dll-msg"></div>
-                    <div class="ax4p-hint">At the limit, new trades lock until the reset hour, and with Close my positions on, every open position of the account is closed. Getting out never locks: FLAT, 50%, BE, the chart TP/SL and Vest's close buttons always work.</div>
+                    <div class="ax4p-hint">At the limit, new trades lock until Vest's day ends (8 pm New York), and with Close my positions on, every open position of the account is closed. Getting out never locks: FLAT, 50%, BE, the chart TP/SL and Vest's close buttons always work.</div>
                     <details class="ax4p-more"><summary>How the lock works</summary>
-                        <div class="ax4p-hint">Today is your Account Value now minus the first one Better Vest saw after the reset, kept for each account. At the limit, LONG, SHORT, REV, the pill, the W S E Q keys and Partials lock until the reset hour. With the last option on, Vest's own Sell button is locked too, even when it would reduce a long: use FLAT or 50% then. With Close my positions on, Better Vest closes every position of the account, on every market, one by one through Vest's own Close button, as FLAT does, and until the reset hour it closes any position that opens on that account, like a resting order that fills. It needs Vest's Positions tab, and brings it up when it has to. It is your own limit, separate from any rule Vest has. A deposit, withdrawal or transfer moves the Account Value, so it counts as profit or loss. A lock stays until the reset hour, even through a reset or import of these settings. It is a lock on this screen, so it cannot stop an order sent from somewhere else. It needs the Account Value to be on Vest's page, and nothing is protected while the card says it is not reading it.</div>
+                        <div class="ax4p-hint">Today is Vest's own P&L of its day (your equity now minus your equity at Vest's last 8 pm reset) where Vest gives it, and otherwise your Account Value now minus the first one Better Vest saw today, kept for each account. At the limit, LONG, SHORT, REV, the pill, the W S E Q keys and Partials lock until 8 pm New York. With the last option on, Vest's own Sell button is locked too, even when it would reduce a long: use FLAT or 50% then. With Close my positions on, Better Vest closes every position of the account, on every market, one by one through Vest's own Close button, as FLAT does, and until the reset hour it closes any position that opens on that account, like a resting order that fills. It needs Vest's Positions tab, and brings it up when it has to. It is your own limit, separate from any rule Vest has. A deposit, withdrawal or transfer moves the Account Value, so it counts as profit or loss. A lock stays until 8 pm New York, even through a reset or import of these settings. It is a lock on this screen, so it cannot stop an order sent from somewhere else. It needs the Account Value to be on Vest's page, and nothing is protected while the card says it is not reading it.</div>
                     </details>
+                </div>
+                <div class="ax4p-sec" id="ax4p-plim-sec">
+                    <div class="ax4p-sec-t">Daily profit limit</div>
+                    <label class="ax4p-row"><span>Lock new trades at my profit limit</span><input type="checkbox" id="ax4p-plim-on"></label>
+                    <div class="ax4p-row"><span>Profit limit ($ a day, after fees)</span><input type="number" id="ax4p-plim" class="ax4p-in" min="1" step="10" style="width:72px;"></div>
+                    <div class="ax4p-row"><span>Accounts</span></div>
+                    ${gdPickHtml('ax4p-plim-acc')}
+                    <div class="ax4p-hint">Today's closed trades, after fees and funding as the Calendar counts them, read from Vest every 15 s and right after a close. At the limit, new trades lock until 8 pm New York. Open positions are left alone.</div>
+                </div>
+                <div class="ax4p-sec" id="ax4p-tilt-sec">
+                    <div class="ax4p-sec-t">Tilt guard</div>
+                    <label class="ax4p-row"><span>Cool down after a bad run</span><input type="checkbox" id="ax4p-tilt-on"></label>
+                    <div class="ax4p-row"><span>Losses in a row</span><input type="number" id="ax4p-tilt-losses" class="ax4p-in" min="0" max="100" step="1" style="width:56px;"></div>
+                    <div class="ax4p-row"><span>Trades in an hour</span><input type="number" id="ax4p-tilt-trades" class="ax4p-in" min="0" max="100" step="1" style="width:56px;"></div>
+                    <div class="ax4p-row"><span>Cooldown (minutes)</span><input type="number" id="ax4p-tilt-mins" class="ax4p-in" min="1" max="240" step="1" style="width:56px;"></div>
+                    <div class="ax4p-hint">A loss is a closed trade below zero after fees. 0 turns a count off. During the cooldown new trades wait, like a lock; it counts again only from the trades after it. Your own lock is the lock button on the Execute card.</div>
                 </div>`;
     }
 
@@ -10003,8 +11151,21 @@
         q('ax4p-dll-vest').checked = !!S.dll.vest;
         q('ax4p-dll-flat').checked = !!S.dll.flat;
         set('ax4p-dll-limit', S.dll.limit);
-        set('ax4p-dll-hour', S.dll.hour);
-        ['ax4p-dll-on', 'ax4p-dll-flat', 'ax4p-dll-limit', 'ax4p-dll-hour', 'ax4p-dll-vest'].forEach((id) => { q(id).disabled = any; });
+        ['ax4p-dll-on', 'ax4p-dll-flat', 'ax4p-dll-limit', 'ax4p-dll-vest'].forEach((id) => { q(id).disabled = any; });
+        // 9.0: the profit limit (read-only while a day lock runs, like the loss limit) and the tilt guard
+        if (q('ax4p-plim-on')) {
+            q('ax4p-plim-on').checked = !!S.dll.pon;
+            set('ax4p-plim', S.dll.plimit);
+            ['ax4p-plim-on', 'ax4p-plim'].forEach((id) => { q(id).disabled = any; });
+        }
+        // which accounts each limit watches (read-only while a day lock runs, like the rest)
+        if (DLL.picks) DLL.picks.forEach((p) => p.paint(any));
+        if (q('ax4p-tilt-on')) {
+            q('ax4p-tilt-on').checked = !!S.tilt.on;
+            set('ax4p-tilt-losses', S.tilt.losses);
+            set('ax4p-tilt-trades', S.tilt.trades);
+            set('ax4p-tilt-mins', S.tilt.mins);
+        }
         const info = xcHooks.dll();
         const msg = q('ax4p-dll-msg');
         const text = lk ? `Locked until ${lk.until}. These settings are read-only until then.` : any ? 'Another account is locked. These settings are read-only until its reset.' : info ? info.line : 'Off.';
@@ -10025,13 +11186,33 @@
             e.target.value = S.dll.limit;
             apply();
         };
-        q('ax4p-dll-hour').onchange = (e) => {
-            if (xcHooks.lockedAny()) return;
-            const v = parseInt(e.target.value, 10);
-            S.dll.hour = v >= 0 && v <= 23 ? v : 0;
-            e.target.value = S.dll.hour;
-            apply();
-        };
+        // 9.0: every account, or the ones ticked, for each limit
+        DLL.picks = [
+            gdPickWire('ax4p-dll-acc', () => S.dll.accs, (v) => { if (xcHooks.lockedAny()) return; S.dll.accs = v; apply(); }),
+            gdPickWire('ax4p-plim-acc', () => S.dll.paccs, (v) => { if (xcHooks.lockedAny()) return; S.dll.paccs = v; persist(); GD.dirty = true; gdTick(); dllPaintSettings(); })
+        ];
+        // 9.0: the profit limit and the tilt guard
+        if (q('ax4p-plim-on')) {
+            q('ax4p-plim-on').onchange = (e) => { if (xcHooks.lockedAny()) return; S.dll.pon = e.target.checked; persist(); gdTick(); };
+            q('ax4p-plim').onchange = (e) => {
+                if (xcHooks.lockedAny()) return;
+                const v = parseFloat(e.target.value);
+                S.dll.plimit = v > 0 ? Math.min(v, 1e7) : DEFAULTS.dll.plimit;
+                e.target.value = S.dll.plimit;
+                persist();
+            };
+        }
+        if (q('ax4p-tilt-on')) {
+            q('ax4p-tilt-on').onchange = (e) => { S.tilt.on = e.target.checked; persist(); gdTick(); };
+            [['losses', 100], ['trades', 100], ['mins', 240]].forEach(([k, max]) => {
+                q('ax4p-tilt-' + k).onchange = (e) => {
+                    const v = Math.round(Number(e.target.value));
+                    S.tilt[k] = v >= (k === 'mins' ? 1 : 0) && v <= max ? v : DEFAULTS.tilt[k];
+                    e.target.value = S.tilt[k];
+                    persist();
+                };
+            });
+        }
         dllPaintSettings();
     }
 
@@ -10200,295 +11381,866 @@
         try { win.postMessage({ bv: 1, dir: 'toExt', type: 'copen' }, location.origin); } catch (e) {}
     }
 
-    // A pill on the primary-account page (/portfolio). Fixed position so it never depends on Vest's markup;
-    // Vest is an SPA, so the route is re-checked on an interval and the pill comes and goes with it.
+    // Support Astral: code WICK at checkout (9.0: asks, never switches by itself)
+    // ---- wick: begin ----
     // ======================================================================================
-    // Support Astral: wherever an account can be bought, a small card suggests the code WICK.
-    // Covered: Vest's discount-code field, the plans dialog ("Get Your Funded Account Today", opened by every
-    // "Add Funded Account" / "Get More Capital" / account-switcher button), the discount step, the bespoke account
-    // builder, the repurchase / result dialog, the Stripe hand-off, and the Vest Capital pages. Inside a dialog the
-    // card is placed in the dialog itself, so using it never counts as a click outside (which would close Vest's dialog).
-    // The card can't be closed. "Use WICK" types the code into Vest's own field and presses Vest's own "Use" button,
-    // so Vest checks it the same way as when you type it (no request is built here).
-    // Where the field shows Vest's default code VEST, it is switched to WICK once per page load, in view, and only
-    // kept when WICK gives the same discount or more; otherwise VEST goes back. Undo puts VEST back and turns the
-    // switch off (More > Support Astral). Any other code is never touched.
+    // Support Astral (9.0): code WICK, asked at the click that buys.
+    // Vest reads the code for an order from its referral store at "Accept and Continue" (the terms, then Stripe or the card checkout), but the
+    // terms window has no code box and the windows that have one are closed under it (map: .work/bv9/wick2/FLOW.md). So the click that is
+    // held is the last one on a screen with Vest's code box: a plan's "Purchase Evaluation Account" (the plans window, the Vest Capital
+    // page), the builder's "Buy Your Bespoke Account", "Add Funded Account" under the order ticket of a closed account (straight to Stripe)
+    // and the discount window's "Buy Without a Discount". When the code on is not WICK, that click stops before Vest's handler sees it and
+    // a pop-up shows in front of Vest's window, in the middle of the screen: Use code WICK / Always use code WICK / No thanks.
+    // Use: WICK goes into Vest's own code box and Vest's own Use (Apply, ✓) is pressed, so Vest checks it like a code you type (no request is
+    // built here). Taken, and no less off than the code it replaced: the same button is pressed once more (your purchase goes on). Refused or
+    // less: the old code goes back the same way, the pop-up says so, and the purchase waits for your next press.
+    // Always (a click on a buy button is the user action the Chrome Web Store asks for): no pop-up any more; the held click puts WICK in by
+    // itself and goes on, never over a code you typed or picked in this purchase. No thanks (or a second press): the purchase goes on at
+    // once. Escape (or a click on the dimmed page): the pop-up closes and the purchase waits. One question per purchase; whenever something is unsure (no code box, no
+    // answer from Vest in a few seconds) the click goes through as it was.
     // ======================================================================================
     const WICK = 'WICK';
-    const WICK_DEFAULT = 'vest'; // Vest's own default code: lower case in Vest's data, shown in capitals
-    const WICK_ROUTE = /^\/(vest-capital(\/|$)|deposit\/get-funded(\/|$))/;
+    const WICK_GAP = 2500;          // ms with no purchase screen that ends a purchase
+    const WICK_KEEP = 20000;        // ms an answer covers even off the purchase screens (the order ticket's Add Funded Account is not one)
+    const WICK_ROUTE = /^\/(vest-capital(\/|$)|deposit\/get-funded(\/|$)|checkout(\/|$))/;
     const WICK_SKIP_ROUTE = /^\/affiliates(\/|$)/; // affiliates manage their own coupons there
+    // purchase windows (English and Chinese): they keep one purchase going from the plans to the payment
     const WICK_TEXT = ['get your funded account today', 'get funded today', 'discount code', 'have a discount', 'bespoke account',
         'use discount code', 'repurchase', 'add funded account', 'redirecting to stripe', 'buy 1 account', 'buy without a discount',
         'purchase evaluation account', 'purchase funded account', 'purchase another funded account', 'evaluation accounts', 'instant accounts',
-        '立即获得资金', '折扣码', '优惠码', '专属账户', '重新购买', '添加 funded account', '正在跳转到 stripe', '购买 1 个账户'];
+        'terms of service', '立即获得资金', '折扣码', '优惠码', '专属账户', '重新购买', '添加 funded account', '正在跳转到 stripe', '购买 1 个账户', '服务条款'];
     const WICK_INPUT = /discount|promo|coupon|voucher|折扣|优惠/i;
     const WICK_PCT = /(\d+(?:\.\d+)?)\s*%/;
     const WICK_USE = /^(use|使用)$/i;
-    let wickAutoTried = false; // one automatic switch per page load
-    let wickBusy = false;
-    let wickMsg = null;        // { text, until, on } shown on the card for a while; on = only while WICK is applied
-    let wickUndo = null;       // { code, until }: the code Undo goes back to, after a switch this page load
+    // the status beside Vest's code selector ("5% Discount", "No Discount Applied", "No eligible plans", "Invalid promo code") and beside the
+    // plain "Use discount code" box ("5% Code Applied!"), in Vest's two languages: Vest's exact words, so no other box with a status beside
+    // it (a 2FA code, an amount) is ever taken for a code box
+    const WICK_STATUS = /^(\d+(\.\d+)?\s*%\s*(discount|code applied!?|折扣|折扣码已应用！?)|no discount applied|no eligible plans|invalid promo code|未应用折扣|没有符合条件的方案|无效的折扣码)$/i;
+    const WICK_ADD_CODE = /^(add code|添加优惠码)$/i;
+    const WICK_ADD_FUNDED = /^(add funded account|添加 funded account)/i;
+    const WICK_SKIP_BUY = /^(buy without a discount|不使用折扣购买)$/i;
+    const WICK_MORE = /^(more options|更多选项)$/i;
+    const WICK_SAY = {
+        from: 'Better Vest by Astral',
+        ask: ['Better Vest is free. Using code ', ' costs you nothing extra and is what pays for updates.'],
+        busy: 'Putting in code WICK…',
+        thanks: 'Thank you for supporting Better Vest.',
+        refused: 'Vest did not take code WICK here. Your code stays as it was.',
+        noBox: 'Vest\'s code box was not there, so your purchase goes on as it was.',
+        noAnswer: 'Vest did not answer about code WICK, so your purchase goes on as it was.'
+    };
+
+    const WK = {
+        st: { ref: null, ui: null, acct: null }, findAt: 0,
+        until: 0, answered: false, typed: false,   // one purchase: asked yet, and a code the user typed or picked in it
+        hold: null,                                 // the held purchase click: { spot, on (the code on then) }
+        pass: null,                                 // the button whose next click is ours (the held purchase going on)
+        at: null,                                   // the purchase button the pop-up belongs to
+        open: false, state: '', msg: '', busy: false,
+        keyOn: false, toastT: null, last: ''
+    };
+
+    function wickIs(code) { return String(code == null ? '' : code).trim().toUpperCase() === WICK; }
+
+    // What a purchase click gets: 'ask' (the pop-up), 'apply' (Always: WICK goes in by itself, then the purchase goes on) or '' (it goes on).
+    // o = { ask, always, answered (this purchase had its question), loggedIn, on: { known, code } (the code on the order), typed }
+    function wickWant(o) {
+        const on = o.on || {};
+        if (o.answered || !o.loggedIn || !on.known || wickIs(on.code)) return '';
+        if (o.always) return o.typed ? '' : 'apply';
+        return o.ask ? 'ask' : '';
+    }
+
+    // Vest's stores, told apart by their shape: the referral store holds the code that is on, the UI store the purchase windows, the
+    // account store who is logged in
+    function wickClassify(api) {
+        let st = null;
+        try {
+            if (!api || typeof api.getState !== 'function' || typeof api.subscribe !== 'function') return null;
+            st = api.getState();
+        } catch (e) { return null; }
+        if (!st || typeof st !== 'object') return null;
+        if (typeof st.setAppliedDiscountGroup === 'function' && 'appliedDiscountGroup' in st && Array.isArray(st.discountGroups)) return 'ref';
+        if ('cardCheckout' in st && typeof st.isCapitalPlansModalOpen === 'boolean' && typeof st.isDiscountModalOpen === 'boolean') return 'ui';
+        if (typeof st.setUser === 'function' && 'user' in st && typeof st.setActiveAccountId === 'function' && 'primaryAccountId' in st) return 'acct';
+        return null;
+    }
+
+    // The code a referral-store state has on: { code, pct }
+    function wickGroupCode(st) {
+        const g = st && st.appliedDiscountGroup;
+        if (!g || typeof g !== 'object' || !g.code) return { code: '', pct: null };
+        const p = Number(g.discountPct);
+        return { code: String(g.code), pct: Number.isFinite(p) ? p : null };
+    }
+
+    // Found through React's fibers from the root, the way the accounts' stores are (a component that reads a store keeps the store's api in
+    // a hook). Looked for at most every 3 s while one is missing (at once on a purchase click), and only on purchase screens. Read only.
+    function wickFindStores(force) {
+        const ok = (k) => WK.st[k] && wickClassify(WK.st[k]) === k;
+        const all = () => ok('ref') && ok('ui') && ok('acct');
+        if (all()) return;
+        const t = now();
+        if (!force && t - WK.findAt < 3000) return;
+        WK.findAt = t;
+        let root = null;
+        try {
+            const el = document.getElementById('root');
+            for (const k of Object.keys(el || {})) {
+                if (k.indexOf('__reactContainer$') !== 0 || !el[k]) continue;
+                root = (el[k].stateNode && el[k].stateNode.current) || el[k];
+                break;
+            }
+        } catch (e) {}
+        if (!root) return;
+        const stack = [root];
+        for (let n = 0; stack.length && n < 60000; n++) {
+            const f = stack.pop();
+            if (!f) continue;
+            for (let h = f.memoizedState, i = 0; h && typeof h === 'object' && i < 100; h = h.next, i++) {
+                const m = h.memoizedState;
+                const a = Array.isArray(m) && Array.isArray(m[1]) ? m[1][0] : null;
+                if (!a || (typeof a !== 'object' && typeof a !== 'function')) continue;
+                const k = wickClassify(a);
+                if (k && !ok(k)) WK.st[k] = a;
+            }
+            if (all()) break;
+            if (f.sibling) stack.push(f.sibling);
+            if (f.child) stack.push(f.child);
+        }
+    }
+    function wickState(k) {
+        const a = WK.st[k];
+        if (!a || wickClassify(a) !== k) return null;
+        try { return a.getState(); } catch (e) { return null; }
+    }
+
+    // ---------- Vest's screens ----------
 
     function wickShown(e) {
         const r = e.getBoundingClientRect();
         return r.width > 0 && r.height > 0 && getComputedStyle(e).visibility !== 'hidden';
     }
+    function wickOurs(e) { return !!(e && e.closest && e.closest('[id^="ax4p"]')); }
+    function wickHostOf(e) { return e.closest('[role="dialog"], [role="alertdialog"]'); }
+    function wickLabel(b) { return (b.textContent || '').trim().replace(/\s+/g, ' '); }
 
-    // The status next to Vest's field: "5% Discount", "No Discount Applied" or "Invalid promo code" (red).
+    // The status beside a code box
     function wickStatusEl(row) {
-        let hit = null;
         for (const c of row.children) {
-            if (c.querySelector('input')) continue;
-            const t = (c.textContent || '').trim();
-            if (t && t.length < 60 && (/^\d+(\.\d+)?\s*%/.test(t) || /discount|promo|折扣|优惠/i.test(t))) hit = c;
-        }
-        return hit;
-    }
-
-    // Vest's discount selector: a combobox field holding the applied code, with the status beside it. Found from the
-    // field up, so it works in any language and wherever Vest puts it.
-    function wickSelector() {
-        for (const i of document.querySelectorAll('input[role="combobox"]')) {
-            if (i.closest('[id^="ax4p"]') || !wickShown(i)) continue;
-            let row = i.parentElement;
-            for (let k = 0; k < 3 && row && !wickStatusEl(row); k++) row = row.parentElement;
-            if (!row || !wickStatusEl(row)) continue;
-            return { input: i, row, host: i.closest('[role="dialog"], [role="alertdialog"]') };
+            if (c.tagName === 'INPUT' || c.querySelector('input')) continue;
+            if (WICK_STATUS.test((c.textContent || '').trim())) return c;
         }
         return null;
     }
 
-    function wickRead(sel) {
-        const st = wickStatusEl(sel.row);
-        const t = st ? (st.textContent || '').trim() : '';
-        const m = t.match(WICK_PCT);
-        return {
-            code: (sel.input.value || '').trim(),
-            pct: m ? parseFloat(m[1]) : null,
-            invalid: !!st && (st.classList.contains('text-short') || /invalid/i.test(t))
-        };
+    // Vest's code selector (the plans window, the Vest Capital page) and the plain "Use discount code" box (under the order ticket of a
+    // closed account): a box with Vest's status beside it, found from the box up. Outside a given scope only a combobox or a box in a window.
+    function wickSelector(scope) {
+        for (const i of (scope || document).querySelectorAll('input')) {
+            if (i.type === 'hidden' || i.readOnly) continue;
+            const host = wickHostOf(i);
+            if ((!scope && i.getAttribute('role') !== 'combobox' && !host) || wickOurs(i) || !wickShown(i)) continue;
+            let row = i.parentElement;
+            for (let k = 0; k < 3 && row && !wickStatusEl(row); k++) row = row.parentElement;
+            const status = row && wickStatusEl(row);
+            if (!status) continue;
+            return { kind: 'selector', field: i, row, status, host, scope: scope || null };
+        }
+        return null;
     }
 
-    // Puts a code in Vest's own field and presses Vest's own "Use" button. Vest rebuilds the field once the code is
-    // applied, so a new field holding the code means it took; the red "Invalid promo code" means it didn't.
-    async function wickApply(code) {
-        const sel = wickSelector();
-        if (!sel) return { ok: false };
-        setReactInputValue(sel.input, code);
+    // Vest's discount window (the step after a login that started from a purchase): a form with the code box, Apply and "Buy without a
+    // discount". Apply also moves on to the terms.
+    function wickWindow() {
+        for (const skip of document.querySelectorAll('[data-testid="discount-skip"]')) {
+            const form = skip.closest('form');
+            if (!form || wickOurs(form) || !wickShown(skip)) continue;
+            const field = Array.from(form.querySelectorAll('input')).find((i) => i.type !== 'hidden' && wickShown(i));
+            const submit = form.querySelector('button[type="submit"]');
+            if (!field || !submit) continue;
+            let anchor = field;
+            while (anchor.parentElement && anchor.parentElement !== form) anchor = anchor.parentElement;
+            return { kind: 'window', field, form, submit, host: wickHostOf(form), anchor };
+        }
+        return null;
+    }
+
+    // The bespoke builder's code box under "Cost Modifiers" (read-only while a code is on), or its "Add Code" badge while it is closed
+    function wickBuilderBox(host) {
+        const field = Array.from(host.querySelectorAll('input[role="combobox"]')).find((i) => !wickOurs(i) && !i.closest('form') &&
+            WICK_INPUT.test(i.getAttribute('placeholder') || '') && wickShown(i)) || null;
+        const badge = field ? null : Array.from(host.querySelectorAll('[role="button"]')).find((e) => !wickOurs(e) && WICK_ADD_CODE.test(wickLabel(e))) || null;
+        return { field, badge };
+    }
+    // Vest's own button in a box (the builder's ✓ while it is editable, its × while a code is on)
+    function wickBoxButton(field) { return (field.parentElement && field.parentElement.querySelector('button')) || null; }
+
+    // The purchase button a click landed on, and where its code box is: { kind, btn, host, label, id | form | scope }, or null
+    function wickSpot(b) {
+        if (!b || b.tagName !== 'BUTTON' || b.disabled || wickOurs(b) || WICK_SKIP_ROUTE.test(location.pathname)) return null;
+        const host = wickHostOf(b), label = wickLabel(b), tid = b.getAttribute('data-testid');
+        if (tid === 'plan-buy') return { kind: 'plans', btn: b, host, label, id: b.getAttribute('data-price-id') || '' };
+        if (tid === 'discount-skip') {
+            // it says "Cancel" when nothing is being bought
+            const form = b.closest('form'), ui = wickState('ui');
+            if (!form || !(ui ? ui.pendingPurchase : WICK_SKIP_BUY.test(label))) return null;
+            return { kind: 'window', btn: b, host, label, form };
+        }
+        const area = b.closest('[data-testid="order-form-closed-account"]');
+        // its words carry the price and the tier after Vest's own name for it
+        if (area && WICK_ADD_FUNDED.test(label)) return { kind: 'repurchase', btn: b, host, label: label.match(WICK_ADD_FUNDED)[0], scope: area };
+        const foot = host && b.getAttribute('data-slot') === 'button' ? b.closest('[data-slot="card-footer"]') : null;
+        if (foot && foot.querySelector('[data-testid="plan-qty"]')) {
+            const box = wickBuilderBox(host);
+            if (box.field || box.badge) return { kind: 'builder', btn: b, host, label };
+        }
+        return null;
+    }
+
+    // The plans' selector: in the button's own window first (a phone's plan window has none: the plans window's is under it)
+    function wickSelectorFor(spot) {
+        if (spot.kind === 'repurchase') return wickSelector(spot.scope);
+        return (spot.host && spot.host.isConnected && wickSelector(spot.host)) || wickSelector();
+    }
+
+    // The held purchase button again: Vest may have drawn its window anew, and the spot follows it there
+    function wickRefind(spot) {
+        if (spot.btn.isConnected) return spot.btn;
+        const sc = spot.host && spot.host.isConnected ? spot.host : document;
+        for (const x of sc.querySelectorAll(spot.kind === 'plans' ? '[data-testid="plan-buy"]' : 'button')) {
+            const s = wickSpot(x);
+            if (s && s.kind === spot.kind && (spot.kind !== 'plans' || s.id === spot.id)) { Object.assign(spot, s); return x; }
+        }
+        return null;
+    }
+
+    // A code box this purchase can type into now, or open with one of Vest's own buttons (the builder's Add Code or ×, More Options)
+    function wickCanPut(spot) {
+        if (spot.kind === 'window') return !!wickWindow();
+        if (spot.kind === 'builder') return true;   // wickSpot found its box or badge
+        if (wickSelectorFor(spot)) return true;
+        return spot.kind === 'repurchase' && !!wickMoreButton(spot.scope);
+    }
+    function wickMoreButton(scope) {
+        const bs = Array.from(scope.querySelectorAll('button')).filter((b) => !wickOurs(b));
+        return bs.find((b) => WICK_MORE.test(wickLabel(b))) || bs.find((b) => b.getAttribute('aria-expanded') === 'false') || null;
+    }
+
+    // Any purchase screen (code box or not): keeps one purchase going from the plans to the payment
+    function wickSurface() {
+        if (WK.open) return true;
+        if (WICK_SKIP_ROUTE.test(location.pathname)) return false;
+        if (WICK_ROUTE.test(location.pathname)) return true;
+        const ui = wickState('ui');
+        if (ui && (ui.isCapitalPlansModalOpen || ui.isCapitalBuilderModalOpen || ui.isDiscountModalOpen || ui.isRedirectingToStripe ||
+            (ui.isTermsOfServiceModalOpen && ui.pendingPurchase))) return true;
+        for (const id of ['tos-accept', 'discount-skip', 'plan-qty']) {
+            const el = document.querySelector('[data-testid="' + id + '"]');
+            if (el && !wickOurs(el) && wickShown(el)) return true;
+        }
+        for (const d of document.querySelectorAll('[role="dialog"], [role="alertdialog"]')) {
+            if (wickOurs(d) || !wickShown(d)) continue;
+            const t = (d.innerText || d.textContent || '').toLowerCase();
+            if (WICK_TEXT.some((k) => t.includes(k)) || /purchase \d+ (evaluation|funded) accounts?/.test(t)) return true;
+        }
+        return false;
+    }
+
+    // A purchase ends when its screens have been gone for a moment: the next one is asked again
+    function wickVisit(t, keep) {
+        if (t > WK.until) { WK.answered = false; WK.typed = false; }
+        WK.until = Math.max(WK.until, t + (keep || WICK_GAP));
+    }
+
+    // Vest's own Use beside the selector's box (it shows once the box holds something other than the code that is on)
+    function wickUseButton(row) {
+        return Array.from(row.querySelectorAll('button')).find((b) => WICK_USE.test((b.textContent || '').trim()) && !wickOurs(b)) || null;
+    }
+
+    // Vest refused what the box holds: the red status, or the box marked invalid
+    function wickInvalid(ctx) {
+        const f = ctx.field;
+        if (f && f.getAttribute('aria-invalid') === 'true') return true;
+        if (ctx.kind === 'selector' && ctx.status) return ctx.status.classList.contains('text-short') || /invalid|无效/i.test(ctx.status.textContent || '');
+        if (ctx.kind === 'window') {
+            const m = ctx.form.querySelector('[data-slot="form-message"]');
+            return !!m && !!(m.textContent || '').trim();
+        }
+        return false;
+    }
+
+    // The code Vest has on, as one of its boxes shows it while nobody edits it: { known, code, pct }
+    function wickApplied(ctx) {
+        const f = ctx.field;
+        if (!f || document.activeElement === f || wickInvalid(ctx)) return { known: false };
+        const v = (f.value || '').trim();
+        if (ctx.kind === 'selector') {
+            if (wickUseButton(ctx.row)) return { known: false };
+            const m = (ctx.status.textContent || '').match(WICK_PCT);
+            return { known: true, code: v, pct: v && m ? parseFloat(m[1]) : null };
+        }
+        // the builder's: read-only "CODE 5%" while a code is on, empty while none
+        if (f.readOnly) {
+            const m = v.match(WICK_PCT);
+            return { known: !!v, code: v.split(/\s+/)[0] || '', pct: m ? parseFloat(m[1]) : null };
+        }
+        return v ? { known: false } : { known: true, code: '', pct: null };
+    }
+
+    // The code the order gets if the purchase goes on now: Vest's store first, else what the purchase's code box shows
+    function wickOn(spot) {
+        if (spot.kind === 'window') return { known: true, code: '', pct: null };   // Buy Without a Discount takes the code off
+        const st = wickState('ref');
+        if (st) return Object.assign({ known: true }, wickGroupCode(st));
+        if (spot.kind === 'builder') {
+            const b = wickBuilderBox(spot.host);
+            return b.badge ? { known: true, code: '', pct: null } : b.field ? wickApplied({ kind: 'builder', field: b.field }) : { known: false };
+        }
+        const s = wickSelectorFor(spot);
+        return s ? wickApplied(s) : { known: false };
+    }
+
+    // Logged in: Vest's account store says so; without it, every code box but the builder's shows only with a login
+    function wickLoggedIn(spot) {
+        const a = wickState('acct');
+        if (a) return !!(a.user && a.user.id);
+        return spot.kind !== 'builder';
+    }
+
+    // A code box of a purchase screen (the user typing in one makes the code theirs)
+    function wickCodeBox(el) {
+        if (!el || el.tagName !== 'INPUT' || wickOurs(el)) return false;
+        if (WICK_INPUT.test(el.getAttribute('placeholder') || '')) return true;
+        const f = el.closest('form');
+        if (f && f.querySelector('[data-testid="discount-skip"]')) return true;
+        for (let row = el.parentElement, k = 0; row && k < 4; row = row.parentElement, k++) if (wickStatusEl(row)) return true;
+        return false;
+    }
+
+    // ---------- the pop-up ----------
+    // A modal of its own in front of Vest's window, never inside it: a dimmed layer over the whole page with the card in the middle. Vest's
+    // window is a Radix dialog: it closes on a press outside its content, pulls the focus back into itself, and while it is open the page's
+    // body takes no pointer events. So the layer takes pointer events itself, keeps every press, click and focus on it from reaching the
+    // document (where Radix listens), and never takes the focus: a press on it may not move the focus out of Vest's window.
+
+    function wickCss() {
+        if (document.getElementById('ax4p-wick-css')) return;
+        const st = document.createElement('style');
+        st.id = 'ax4p-wick-css';
+        st.textContent = `
+            #ax4p-wick-layer {
+                position: fixed; inset: 0; z-index: 2147483000; display: flex; align-items: center; justify-content: center;
+                box-sizing: border-box; padding: 16px; pointer-events: auto; animation: ax4p-wick-in .16s ease-out both;
+            }
+            #ax4p-wick-layer.ax4p-wick-out { animation: ax4p-wick-out .14s ease-in both; pointer-events: none; }
+            #ax4p-wick-layer .ax4p-wick-dim {
+                position: absolute; inset: 0; background: color-mix(in srgb, var(--ax-base, #000) 62%, transparent);
+                -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+            }
+            #ax4p-wick, #ax4p-wick-toast {
+                box-sizing: border-box; color: var(--ax-text, #e4e4e7); text-align: left; letter-spacing: normal; text-transform: none;
+                font-size: 14px; font-weight: 400; line-height: 1.5; font-family: var(--ax-font, inherit); -webkit-font-smoothing: antialiased;
+                background: var(--ax-raised, #18181b); border: 1px solid var(--ax-line, #34343a);
+            }
+            #ax4p-wick *, #ax4p-wick-toast * { box-sizing: border-box; }
+            #ax4p-wick {
+                position: relative; width: 100%; max-width: 420px; padding: 20px 22px 18px; border-radius: 16px;
+                box-shadow: 0 28px 72px -28px var(--ax-shadow, rgba(0, 0, 0, .75)), 0 0 0 1px color-mix(in srgb, var(--ax-text, #fff) 4%, transparent);
+                animation: ax4p-wick-pop .2s cubic-bezier(.2, .9, .3, 1.05) both;
+            }
+            @keyframes ax4p-wick-in { from { opacity: 0; } to { opacity: 1; } }
+            @keyframes ax4p-wick-out { from { opacity: 1; } to { opacity: 0; } }
+            @keyframes ax4p-wick-pop { from { opacity: 0; transform: translateY(8px) scale(.97); } to { opacity: 1; transform: none; } }
+            #ax4p-wick [hidden] { display: none !important; }
+            #ax4p-wick .ax4p-wick-from { display: flex; align-items: center; gap: 9px; margin: 0 0 12px; color: var(--ax-muted, #a1a1aa); font-size: 12px; font-weight: 600; letter-spacing: .02em; }
+            #ax4p-wick .ax4p-wick-mark, #ax4p-wick-toast .ax4p-wick-mark {
+                width: 24px; height: 24px; flex: none; border-radius: 50%; object-fit: cover; user-select: none; -webkit-user-drag: none;
+            }
+            #ax4p-wick .ax4p-wick-text { margin: 0; color: var(--ax-text, #e4e4e7); font-size: 14.5px; line-height: 1.55; }
+            #ax4p-wick .ax4p-wick-code { font-weight: 700; letter-spacing: .06em; color: var(--ax-accent-text, var(--ax-accent, #93c5fd)); }
+            #ax4p-wick .ax4p-wick-btns { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 18px; }
+            #ax4p-wick button {
+                appearance: none; margin: 0; height: 36px; padding: 0 14px; border: 1px solid transparent; border-radius: 10px; cursor: pointer;
+                font-family: inherit; font-size: 13px; font-weight: 600; line-height: 1; white-space: nowrap; transition: background-color .12s, border-color .12s, color .12s;
+            }
+            #ax4p-wick .ax4p-wick-use { flex: 1 0 100%; height: 40px; background: var(--ax-accent, #60a5fa); color: var(--ax-raised, #18181b); }
+            #ax4p-wick .ax4p-wick-use:hover { background: color-mix(in srgb, var(--ax-accent, #60a5fa) 88%, #fff); }
+            #ax4p-wick .ax4p-wick-always { flex: 1 1 auto; background: transparent; color: var(--ax-text, #e4e4e7); border-color: var(--ax-line, #34343a); }
+            #ax4p-wick .ax4p-wick-always:hover { border-color: color-mix(in srgb, var(--ax-accent, #60a5fa) 55%, var(--ax-line, #34343a)); }
+            #ax4p-wick .ax4p-wick-no { flex: 0 0 auto; padding: 0 10px; background: transparent; color: var(--ax-muted, #a1a1aa); }
+            #ax4p-wick .ax4p-wick-no:hover { color: var(--ax-text, #e4e4e7); }
+            #ax4p-wick .ax4p-wick-close { flex: 1 0 100%; background: var(--ax-btn, transparent); color: var(--ax-text, #e4e4e7); border-color: var(--ax-line, #34343a); }
+            #ax4p-wick-toast {
+                position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 2147483000; display: flex; align-items: center; gap: 10px;
+                width: max-content; max-width: min(420px, calc(100vw - 32px)); padding: 12px 16px; border-radius: 14px; pointer-events: none; font-size: 13.5px;
+                box-shadow: 0 22px 60px -24px var(--ax-shadow, rgba(0, 0, 0, .75)); animation: ax4p-wick-in .16s ease-out both;
+            }
+            #ax4p-wick-toast.ax4p-wick-out { animation: ax4p-wick-out .3s ease-in both; }
+            #ax4p-wick-toast .ax4p-wick-mark { width: 20px; height: 20px; }
+            @media (prefers-reduced-motion: reduce) { #ax4p-wick-layer, #ax4p-wick, #ax4p-wick-toast { animation: none !important; } }`;
+        (document.head || document.documentElement).appendChild(st);
+    }
+
+    function wickNode(tag, cls, text) {
+        const e = document.createElement(tag);
+        if (cls) e.className = cls;
+        if (text) e.textContent = text;
+        return e;
+    }
+    function wickMark() {
+        const m = wickNode('img', 'ax4p-wick-mark');
+        m.setAttribute('src', ASTRAL_LOGO);
+        m.setAttribute('alt', '');
+        m.setAttribute('aria-hidden', 'true');
+        m.setAttribute('draggable', 'false');
+        return m;
+    }
+
+    // The card in its layer (made once a page). The layer's own capture listeners answer every press on it; nothing on it reaches the page.
+    function wickPanel() {
+        const had = document.getElementById('ax4p-wick');
+        if (had) return had;
+        wickCss();
+        const layer = wickNode('div');
+        layer.id = 'ax4p-wick-layer';
+        const dim = wickNode('div', 'ax4p-wick-dim');
+        dim.setAttribute('aria-hidden', 'true');
+        const el = wickNode('section');
+        el.id = 'ax4p-wick';
+        el.setAttribute('role', 'dialog');
+        el.setAttribute('aria-modal', 'true');
+        el.setAttribute('aria-labelledby', 'ax4p-wick-from');
+        el.setAttribute('aria-describedby', 'ax4p-wick-text');
+        const from = wickNode('div', 'ax4p-wick-from');
+        from.id = 'ax4p-wick-from';
+        from.append(wickMark(), wickNode('span', '', WICK_SAY.from));
+        const text = wickNode('p', 'ax4p-wick-text');
+        text.id = 'ax4p-wick-text';
+        text.setAttribute('aria-live', 'polite');
+        const btns = wickNode('div', 'ax4p-wick-btns');
+        const mk = (cls, act, label) => {
+            const b = wickNode('button', cls, label);
+            b.setAttribute('type', 'button');
+            b.setAttribute('data-act', act);
+            return b;
+        };
+        btns.append(mk('ax4p-wick-use', 'use', 'Use code ' + WICK), mk('ax4p-wick-always', 'always', 'Always use code ' + WICK),
+            mk('ax4p-wick-no', 'no', 'No thanks'), mk('ax4p-wick-close', 'close', 'Close'));
+        el.append(from, text, btns);
+        layer.append(dim, el);
+        // a press keeps the focus where it is (inside Vest's window); none of it reaches Radix's listeners on the document
+        for (const t of ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'touchstart', 'touchend', 'focusin', 'dblclick', 'contextmenu']) {
+            layer.addEventListener(t, (e) => {
+                if (t === 'pointerdown' || t === 'mousedown') e.preventDefault();
+                e.stopPropagation();
+            }, true);
+        }
+        layer.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const b = e.target && e.target.closest ? e.target.closest('[data-act]') : null;
+            const act = b ? (b.hidden ? '' : b.getAttribute('data-act')) : e.target === dim ? 'close' : '';
+            if (act === 'use') wickUse(false, false);
+            else if (act === 'always') wickUse(true, false);
+            else if (act === 'no') wickNo();
+            else if (act === 'close') wickClose();
+        }, true);
+        return el;
+    }
+
+    // Text and buttons for WK.state: 'ask', 'busy' (Vest is checking WICK) or 'done' (Vest's answer); only touches the DOM on a change
+    function wickPaint(el) {
+        const key = WK.state + '|' + WK.msg;
+        if (el.getAttribute('data-paint') === key) return;
+        el.setAttribute('data-paint', key);
+        const text = el.querySelector('.ax4p-wick-text');
+        text.textContent = '';
+        if (WK.state === 'ask') text.append(WICK_SAY.ask[0], wickNode('b', 'ax4p-wick-code', WICK), WICK_SAY.ask[1]);
+        else text.textContent = WK.msg;
+        el.querySelector('.ax4p-wick-btns').hidden = WK.state === 'busy';
+        for (const b of el.querySelectorAll('button')) {
+            const act = b.getAttribute('data-act');
+            b.hidden = WK.state === 'done' ? act !== 'close' : act === 'close';
+        }
+    }
+
+    // In front of the page (its z-index is above Vest's windows and toasts)
+    function wickShow(state, msg) {
+        if (state) { WK.state = state; WK.msg = msg || ''; }
+        if (!WK.at) return;
+        WK.open = true;
+        const el = wickPanel();
+        const layer = el.parentElement;
+        layer.classList.remove('ax4p-wick-out');
+        if (layer.parentElement !== document.body) document.body.appendChild(layer);
+        wickPaint(el);
+    }
+
+    function wickRemove() {
+        const layer = document.getElementById('ax4p-wick-layer');
+        if (layer) layer.remove();
+    }
+
+    // Escape, Close and a click on the dimmed page: the pop-up fades out and the purchase waits for the user's next press (that one goes through)
+    function wickClose() {
+        if (WK.busy) return;
+        WK.hold = null;
+        WK.open = false;
+        WK.state = '';
+        const layer = document.getElementById('ax4p-wick-layer');
+        if (!layer) return;
+        layer.classList.add('ax4p-wick-out');
+        setTimeout(() => { if (!WK.open && layer.classList.contains('ax4p-wick-out')) layer.remove(); }, 160);
+    }
+
+    // No thanks: the held purchase goes on now
+    function wickNo() {
+        const h = WK.hold;
+        if (WK.busy) return;
+        wickClose();
+        if (h && !wickPress(h.spot)) wickLog('No thanks: ' + h.spot.label + ' was not there to press again');
+    }
+
+    // Vest's purchase screen went away: the pop-up goes with it, and so does a held click
+    function wickAway() {
+        WK.hold = null;
+        WK.open = false;
+        WK.state = '';
+        wickRemove();
+    }
+
+    // A short note in the middle of the screen, on the pop-up's layer, that fades by itself (it never takes a press)
+    function wickToast(msg) {
+        try {
+            wickCss();
+            let t = document.getElementById('ax4p-wick-toast');
+            if (!t) {
+                t = wickNode('div');
+                t.id = 'ax4p-wick-toast';
+                t.setAttribute('role', 'status');
+                t.setAttribute('aria-live', 'polite');
+                t.append(wickMark(), wickNode('span'));
+            }
+            if (t.parentElement !== document.body) document.body.appendChild(t);
+            t.classList.remove('ax4p-wick-out');
+            t.lastElementChild.textContent = msg;
+            clearTimeout(WK.toastT);
+            WK.toastT = setTimeout(() => {
+                t.classList.add('ax4p-wick-out');
+                WK.toastT = setTimeout(() => t.remove(), 320);
+            }, 3600);
+        } catch (e) {}
+    }
+
+    // Why a purchase went through without its question (the DEV build prints it)
+    function wickLog(why) {
+        WK.last = why;
+    }
+
+    // ---------- the held click ----------
+
+    // Presses the held purchase button once more for the user (they pressed it already): this one click goes through to Vest
+    function wickPress(spot) {
+        const b = wickRefind(spot);
+        if (!b || b.disabled) return false;
+        WK.pass = b;
+        try { b.click(); } finally { WK.pass = null; }
+        return true;
+    }
+
+    // A code picked from one of Vest's code lists is the user's too
+    function wickPicked(t, b) {
+        if (b && b.hasAttribute('value') && b.closest('[data-testid="order-form-closed-account"]')) return true;
+        if (!t.closest('[role="option"]')) return false;
+        const open = document.querySelector('input[aria-expanded="true"]');
+        return !!open && wickCodeBox(open);
+    }
+
+    // Capture phase on the window: runs before Vest's (React's) handlers, so a held click never reaches them
+    function wickClickCap(e) {
+        let held = null;
+        try {
+            const tg = e.target && e.target.nodeType === 1 ? e.target : e.target && e.target.parentElement;
+            if (!tg || !tg.closest) return;
+            const b = tg.closest('button');
+            if (b && b === WK.pass) return;
+            if (e.isTrusted && wickPicked(tg, b)) { wickVisit(now()); WK.typed = true; }
+            if (!b || wickOurs(b)) return;
+            const h = WK.hold;
+            if (h && b === h.spot.btn) {
+                // pressed again: while WICK goes in the purchase goes on by itself; while the pop-up asks it means "go on"
+                if (WK.busy) { e.preventDefault(); e.stopImmediatePropagation(); return; }
+                wickClose();
+                return;
+            }
+            const spot = wickSpot(b);
+            if (!spot) return;
+            if (WK.open && !WK.busy) wickClose();   // Vest's answer still showing: the purchase goes on
+            if (!e.isTrusted) return;
+            wickVisit(now());
+            const ask = !!(S.ui && S.ui.wickAsk !== false), always = !!(S.ui && S.ui.wickAlways === true);
+            if ((!ask && !always) || WK.answered) return;
+            wickFindStores(true);
+            const on = wickOn(spot);
+            const want = wickWant({ ask, always, answered: WK.answered, loggedIn: wickLoggedIn(spot), on, typed: WK.typed });
+            if (!want || !wickCanPut(spot)) return;
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            held = spot;
+            WK.answered = true;
+            wickVisit(now(), WICK_KEEP);
+            WK.hold = { spot, on };
+            WK.at = spot;
+            if (want === 'apply') wickUse(false, true);
+            else wickShow('ask');
+        } catch (err) {
+            // never stand in the way of a purchase: a click stopped here goes on
+            if (held) {
+                wickLog('error: ' + (err && err.message));
+                wickAway();
+                wickPress(held);
+            }
+        }
+    }
+
+    // A code typed by the user in this purchase is theirs: Always never puts WICK over it
+    function wickInput(e) {
+        try {
+            if (!e.isTrusted || !wickCodeBox(e.target)) return;
+            wickVisit(now());
+            WK.typed = true;
+        } catch (err) {}
+    }
+
+    // ---------- putting a code in, through Vest's own box and button ----------
+
+    function wickVestError(since) {
+        for (const t of document.querySelectorAll('[data-sonner-toast][data-type="error"]')) if (!since.has(t)) return true;
+        return false;
+    }
+
+    // The purchase's code box, ready to type into: { kind, field, row | form | host }, or null. The builder's opens with Vest's own "Add
+    // Code" (or Vest's own × first while a code is on: its box is read-only then); the order ticket's with Vest's own "More Options".
+    async function wickBoxFor(spot) {
+        if (spot.kind === 'window') return wickWindow();
+        if (spot.kind === 'builder') {
+            let pressed = null;
+            for (let i = 0; i < 12 && spot.host.isConnected; i++) {
+                const b = wickBuilderBox(spot.host);
+                if (b.field && !b.field.readOnly) return { kind: 'builder', field: b.field, host: spot.host };
+                const btn = b.field ? wickBoxButton(b.field) : b.badge;
+                if (!btn) return null;
+                if (btn !== pressed) { pressed = btn; btn.click(); }
+                await sleep(150);
+            }
+            return null;
+        }
+        let s = wickSelectorFor(spot);
+        if (s || spot.kind !== 'repurchase') return s;
+        const more = wickMoreButton(spot.scope);
+        if (!more) return null;
+        more.click();
+        for (let i = 0; i < 12 && !s; i++) {
+            await sleep(150);
+            s = wickSelectorFor(spot);
+        }
+        return s;
+    }
+
+    // Types `code` into Vest's box and presses Vest's own Use (selector), Apply (window) or ✓ (builder), then waits for Vest's answer.
+    // { ok, pct } when Vest has it on, { ok: false, invalid } when Vest refused it, { ok: false } when Vest did not answer in 6 s.
+    async function wickApplyIn(ctx, code) {
+        const field = ctx.field;
+        const errs = new Set(document.querySelectorAll('[data-sonner-toast][data-type="error"]'));
+        setReactInputValue(field, code);
         await sleep(150);
-        const use = [...sel.row.querySelectorAll('button')].find((b) => WICK_USE.test((b.textContent || '').trim()));
-        if (use) use.click();
-        else sel.input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', bubbles: true }));
+        if (ctx.kind === 'selector') {
+            const use = wickUseButton(ctx.row);
+            if (use) use.click();
+            else field.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', bubbles: true }));
+        } else {
+            const btn = ctx.kind === 'window' ? ctx.form.querySelector('button[type="submit"]') : wickBoxButton(field);
+            if (!btn || btn.disabled) return { ok: false };
+            btn.click();
+        }
         for (let i = 0; i < 30; i++) {
             await sleep(200);
-            const s = wickSelector();
-            if (!s) continue;
-            const r = wickRead(s);
-            if (s.input !== sel.input && r.code.toLowerCase() === code.toLowerCase()) return Object.assign(r, { ok: true });
-            if (r.invalid) return Object.assign(r, { ok: false });
+            const st = wickState('ref');
+            if (st) {
+                const g = wickGroupCode(st);
+                if (g.code && g.code.toUpperCase() === code.toUpperCase()) return { ok: true, pct: g.pct };
+            } else if (ctx.kind === 'selector') {
+                // Vest rebuilds its selector once a code is on: a new box holding the code means it took
+                const s = wickSelector(ctx.scope);
+                if (s && s.field !== field && (s.field.value || '').trim().toUpperCase() === code.toUpperCase() && !wickInvalid(s)) {
+                    const m = (s.status.textContent || '').match(WICK_PCT);
+                    return { ok: true, pct: m ? parseFloat(m[1]) : null };
+                }
+            } else if (ctx.kind === 'window' && !ctx.form.isConnected) return { ok: true, pct: null };
+            else if (ctx.kind === 'builder') {
+                // Vest rebuilds the builder's box once a code is on: read-only, holding "CODE 5%"
+                const ro = wickBuilderBox(ctx.host).field;
+                if (ro && ro.readOnly && (ro.value || '').trim().toUpperCase().indexOf(code.toUpperCase()) === 0) {
+                    const m = (ro.value || '').match(WICK_PCT);
+                    return { ok: true, pct: m ? parseFloat(m[1]) : null };
+                }
+            }
+            const cur = ctx.kind === 'selector' ? wickSelector(ctx.scope) : ctx;
+            if ((cur && cur.field && cur.field.isConnected && wickInvalid(cur)) || wickVestError(errs)) return { ok: false, invalid: true };
         }
         return { ok: false };
     }
 
-    // Leaves the field showing the code that is really applied (after a refused or timed-out attempt).
-    function wickRestoreText(code) {
-        const s = wickSelector();
-        if (s && s.input.value.trim().toLowerCase() !== code.toLowerCase()) setReactInputValue(s.input, code);
+    // The code that was on before WICK goes back on, the same way (the builder's box lost it to Vest's × on the way in)
+    async function wickPutBack(spot, code) {
+        const box = await wickBoxFor(spot);
+        if (!box) return false;
+        if (!code) {
+            if ((box.field.value || '') !== '') setReactInputValue(box.field, '');
+            return true;
+        }
+        return (await wickApplyIn(box, code)).ok;
     }
 
-    function wickSay(text, ms, on) {
-        wickMsg = { text, until: Date.now() + (ms || 9000), on: !!on };
-        wickTick();
-    }
-
-    async function wickUse(auto) {
-        const sel = wickSelector();
-        if (!sel || wickBusy) return;
-        const before = wickRead(sel);
-        if (before.code.toLowerCase() === WICK.toLowerCase()) return;
-        if (auto) wickAutoTried = true;
-        wickBusy = true;
-        try {
-            const r = await wickApply(WICK);
-            if (!r.ok) {
-                wickRestoreText(before.code);
-                if (!auto) wickSay(r.invalid ? 'Vest did not take WICK here. Your code stays as it was.' : 'Vest did not answer. Try again in a moment.');
-                return;
+    // WICK into the held purchase's code box: { how: 'on', pct } | { how: 'refused' | 'less', msg } | { how: 'lost', why, quiet }
+    async function wickPut(h) {
+        const box = await wickBoxFor(h.spot);
+        if (!box) return { how: 'lost', why: 'no code box', quiet: true };
+        const was = box.field.value || '', before = h.on;
+        const r = await wickApplyIn(box, WICK);
+        if (r.ok) {
+            // never leave anyone with a smaller discount: their code goes back the same way
+            if (before.code && !wickIs(before.code) && before.pct != null && r.pct != null && r.pct < before.pct) {
+                const name = before.code.toUpperCase();
+                const back = await wickPutBack(h.spot, before.code);
+                return { how: 'less', msg: back ? name + ' gives more off here (' + before.pct + '% vs ' + r.pct + '%), so it stays.'
+                    : 'WICK gives ' + r.pct + '% here, less than ' + name + ' (' + before.pct + '%). Pick ' + name + ' again in the code box.' };
             }
-            if (before.pct != null && (r.pct == null || r.pct < before.pct)) {
-                // never leave anyone with a smaller discount: put their code back
-                await wickApply(before.code);
-                wickSay(before.code.toUpperCase() + ' gives more off here (' + before.pct + '%' + (r.pct != null ? ' vs ' + r.pct + '%' : '') + '), so it stays.', 12000);
-                return;
+            return { how: 'on', pct: r.pct };
+        }
+        // Vest did not take it, or did not answer: the box and the code as they were
+        if (h.spot.kind === 'builder') {
+            // Vest's × took the old code off on the way in: when it can't go back on, the purchase must not go on without it
+            if (!(await wickPutBack(h.spot, before.code)) && before.code) {
+                const name = before.code.toUpperCase();
+                return { how: 'refused', msg: (r.invalid ? 'Vest did not take code WICK here, and ' : 'Vest did not answer about code WICK, and ') +
+                    name + ' did not go back on by itself. Pick ' + name + ' again in the code box.' };
             }
-            wickUndo = { code: before.code, until: Date.now() + 120000 };
-            const same = before.pct != null && r.pct === before.pct;
-            wickSay((auto ? 'Switched ' + (before.code || 'the code').toUpperCase() + ' to WICK' : 'Code WICK is on') +
-                (r.pct != null ? (same ? ', same ' + r.pct + '% off' : ', ' + r.pct + '% off') : '') + '. Thank you for supporting Astral.', 120000, true);
-        } finally {
-            wickBusy = false;
-            wickTick();
+        } else {
+            const again = h.spot.kind === 'window' ? wickWindow() : wickSelectorFor(h.spot);
+            if (again && again.field.value !== was) setReactInputValue(again.field, was);
+        }
+        return r.invalid ? { how: 'refused', msg: WICK_SAY.refused } : { how: 'lost', why: 'no answer from Vest' };
+    }
+
+    // Use, Always (from the pop-up) and Always by itself (auto, no pop-up): WICK goes in, then the purchase goes on or waits
+    async function wickUse(always, auto) {
+        const h = WK.hold;
+        if (!h || WK.busy) return;
+        if (always) {
+            S.ui.wickAlways = true;
+            persist();
+            wickSyncSettings();
+        }
+        WK.busy = true;
+        if (auto) wickToast(WICK_SAY.busy);
+        else wickShow('busy', WICK_SAY.busy);
+        let r;
+        try { r = await wickPut(h); } catch (e) { r = { how: 'lost', why: 'error: ' + (e && e.message) }; }
+        WK.busy = false;
+        WK.hold = null;
+        if (r.how === 'on') {
+            const off = r.pct != null ? ', ' + r.pct + '% off' : '';
+            const say = (auto ? 'Better Vest put in code WICK' + off + '.' : 'Code WICK is on' + off + '.') + ' ' + WICK_SAY.thanks +
+                (always ? ' From now on it goes in when you buy.' : '');
+            // the discount window's Apply moved on by itself (pressing its other button now would take the code off again)
+            if (h.spot.kind === 'window' || wickPress(h.spot)) {
+                wickAway();
+                wickToast(say);
+            } else wickDone(say + ' Press ' + h.spot.label + ' to go on.');
+            return;
+        }
+        if (r.how === 'lost') {
+            // never block a purchase: it goes on as it was
+            wickLog(r.why + ': ' + h.spot.label + ' went on as it was');
+            wickAway();
+            wickPress(h.spot);
+            if (!(auto && r.quiet)) wickToast(r.quiet ? WICK_SAY.noBox : WICK_SAY.noAnswer);
+            return;
+        }
+        wickDone(r.msg + ' Press ' + h.spot.label + ' again to go on.');
+    }
+
+    // Vest's answer in the pop-up; nothing goes on by itself (the next press does)
+    function wickDone(msg) {
+        if (WK.at && wickRefind(WK.at)) wickShow('done', msg);
+        else {
+            wickAway();
+            wickToast(msg);
         }
     }
 
-    async function wickUndoNow() {
-        const u = wickUndo;
-        if (!u || wickBusy) return;
-        wickUndo = null;
-        S.ui.wickAuto = false;
-        persist();
-        const box = document.getElementById('ax4p-ui-wickauto');
-        if (box) box.checked = false;
-        wickBusy = true;
-        try {
-            const r = await wickApply(u.code);
-            wickSay(r.ok ? 'Back to ' + u.code.toUpperCase() + '. Auto-switch is off; More > Support Astral turns it back on.'
-                : 'Could not put ' + u.code.toUpperCase() + ' back. Pick it from the list under the code field.', 12000);
-        } finally {
-            wickBusy = false;
-            wickTick();
-        }
-    }
+    // ---------- the tick ----------
 
-    function wickContext() {
-        if (WICK_SKIP_ROUTE.test(location.pathname)) return null;
-        const sel = wickSelector();
-        if (sel) return { mode: 'selector', sel, host: sel.host };
-        for (const i of document.querySelectorAll('input')) {
-            if (i.closest('[id^="ax4p"]')) continue;
-            const hint = (i.getAttribute('placeholder') || '') + ' ' + (i.getAttribute('aria-label') || '') + ' ' + (i.getAttribute('name') || '');
-            if (WICK_INPUT.test(hint) && wickShown(i)) return { mode: 'input', input: i, host: i.closest('[role="dialog"], [role="alertdialog"]') };
-        }
-        for (const d of document.querySelectorAll('[role="dialog"], [role="alertdialog"]')) {
-            if (d.closest('[id^="ax4p"]') || !wickShown(d)) continue;
-            const t = (d.innerText || '').toLowerCase();
-            if (WICK_TEXT.some((k) => t.includes(k)) || /purchase \d+ (evaluation|funded) accounts?/.test(t)) return { mode: 'dialog', host: d };
-        }
-        if (WICK_ROUTE.test(location.pathname)) return { mode: 'float', host: null };
-        return null;
-    }
-
-    function wickCopy(btn) {
-        const done = () => { btn.textContent = 'Copied ✓'; setTimeout(() => { btn.textContent = 'Copy code'; }, 1600); };
-        const fallback = () => {
-            try {
-                const ta = document.createElement('textarea');
-                ta.value = WICK;
-                ta.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0';
-                btn.parentElement.appendChild(ta);
-                ta.select();
-                document.execCommand('copy');
-                ta.remove();
-                done();
-            } catch (x) {}
-        };
-        try { navigator.clipboard.writeText(WICK).then(done, fallback); } catch (x) { fallback(); }
-    }
-
-    function wickCard() {
-        let el = document.getElementById('ax4p-wick');
-        if (el) return el;
-        if (!document.getElementById('ax4p-wick-css')) {
-            const st = document.createElement('style');
-            st.id = 'ax4p-wick-css';
-            st.textContent = `
-                #ax4p-wick { display: flex; align-items: center; gap: 10px; box-sizing: border-box; padding: 8px 8px 8px 14px; border-radius: 12px;
-                    font: 600 13px/1.3 var(--ax-font, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif); color: var(--ax-text, #f2f4ff);
-                    background: color-mix(in srgb, var(--ax-accent, #8fa2ff) 16%, var(--ax-raised, #12141c));
-                    border: 1px solid color-mix(in srgb, var(--ax-accent, #8fa2ff) 50%, transparent);
-                    box-shadow: 0 10px 28px -12px rgba(0, 0, 0, 0.7); pointer-events: auto; text-align: left; }
-                #ax4p-wick.float { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); z-index: 2147483000; }
-                #ax4p-wick.inline { margin: 10px 0 4px; width: 100%; }
-                #ax4p-wick.indialog { margin: 14px auto 2px; width: fit-content; max-width: 100%; flex-shrink: 0; }
-                #ax4p-wick .ax4p-wick-star { color: #ffd27a; font-size: 14px; }
-                #ax4p-wick .ax4p-wick-txt { flex: 1 1 auto; }
-                #ax4p-wick b { letter-spacing: 0.08em; color: var(--ax-accent, #8fa2ff); }
-                #ax4p-wick button { font: inherit; cursor: pointer; border-radius: 8px; border: 1px solid color-mix(in srgb, var(--ax-accent, #8fa2ff) 45%, transparent);
-                    background: var(--ax-accent, #8fa2ff); color: #060818; padding: 5px 11px; font-size: 12px; white-space: nowrap; }
-                #ax4p-wick button[hidden] { display: none; }
-                #ax4p-wick button.ax4p-wick-2 { background: transparent; color: var(--ax-text, #f2f4ff); }
-                #ax4p-wick button:disabled { opacity: 0.6; cursor: progress; }`;
-            (document.head || document.documentElement).appendChild(st);
-        }
-        el = document.createElement('div');
-        el.id = 'ax4p-wick';
-        el.setAttribute('role', 'note');
-        el.innerHTML = '<span class="ax4p-wick-star" aria-hidden="true">✦</span><span class="ax4p-wick-txt"></span>' +
-            '<button type="button" class="ax4p-wick-1"></button><button type="button" class="ax4p-wick-2" hidden></button>';
-        for (const b of el.querySelectorAll('button')) {
-            b.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                const act = b.dataset.act;
-                if (act === 'use') wickUse(false);
-                else if (act === 'undo') wickUndoNow();
-                else if (act === 'copy') wickCopy(b);
-            });
-        }
-        return el;
-    }
-
-    // Text and buttons for the current screen; only touches the DOM when something changed.
-    function wickPaint(el, ctx) {
-        const now = Date.now();
-        if (wickMsg && wickMsg.until < now) wickMsg = null;
-        if (wickUndo && wickUndo.until < now) wickUndo = null;
-        const sel = ctx.mode === 'selector' ? ctx.sel : null;
-        const code = sel ? wickRead(sel).code : '';
-        const on = !!sel && code.toLowerCase() === WICK.toLowerCase();
-        if (!sel && !wickBusy) wickMsg = null; // messages belong to the field they were about
-        if (!on && !wickBusy) {
-            // the code was changed by hand since: drop the thanks and the Undo
-            wickUndo = null;
-            if (wickMsg && wickMsg.on) wickMsg = null;
-        }
-        const text = wickBusy ? 'Putting in code <b>' + WICK + '</b>…'
-            : wickMsg ? escHtml(wickMsg.text).replace(/\bWICK\b/g, '<b>' + WICK + '</b>')
-            : on ? 'Code <b>' + WICK + '</b> is on. Thank you for supporting Astral.'
-            : 'Support Astral: use code <b>' + WICK + '</b> at checkout';
-        const b1 = on ? (wickUndo ? ['undo', 'Undo'] : null) : sel ? ['use', 'Use ' + WICK] : ['copy', 'Copy code'];
-        const b2 = !on && sel ? ['copy', 'Copy code'] : null;
-        const key = text + '|' + (b1 || []).join() + '|' + (b2 || []).join() + '|' + wickBusy;
-        if (el.dataset.paint === key) return;
-        el.dataset.paint = key;
-        el.querySelector('.ax4p-wick-txt').innerHTML = text;
-        [[el.querySelector('.ax4p-wick-1'), b1], [el.querySelector('.ax4p-wick-2'), b2]].forEach(([btn, spec]) => {
-            btn.hidden = !spec;
-            if (!spec) return;
-            btn.dataset.act = spec[0];
-            btn.textContent = spec[1];
-            btn.disabled = wickBusy;
-        });
+    // The pop-up is in front of everything, so Escape is its own: Vest's window under it listens on the document and would close too
+    function wickKey(e) {
+        if (e.key !== 'Escape' || !WK.open) return;
+        const layer = document.getElementById('ax4p-wick-layer');
+        if (!layer || !layer.isConnected) return;
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        wickClose();
     }
 
     function wickTick() {
         try {
-            const ctx = wickContext();
-            const old = document.getElementById('ax4p-wick');
-            if (!ctx) { if (old) old.remove(); return; }
-            const el = wickCard();
-            if (ctx.mode === 'selector' || ctx.mode === 'input') {
-                // right under the field's row, so the card spans the form's width
-                let field = ctx.mode === 'selector' ? ctx.sel.row : ctx.input;
-                while (ctx.mode === 'input' && field.parentElement && field.parentElement !== ctx.host && field.parentElement.children.length === 1) field = field.parentElement;
-                el.className = 'inline';
-                if (field.nextSibling !== el) field.after(el);
-            } else if (ctx.mode === 'dialog') {
-                el.className = 'indialog';
-                if (el.parentElement !== ctx.host || ctx.host.lastElementChild !== el) ctx.host.appendChild(el);
-            } else {
-                el.className = 'float';
-                if (el.parentElement !== document.body) document.body.appendChild(el);
+            if (!WK.keyOn) {
+                WK.keyOn = true;
+                window.addEventListener('keydown', wickKey, true);
+                window.addEventListener('click', wickClickCap, true);
+                window.addEventListener('input', wickInput, true);
             }
-            wickPaint(el, ctx);
-            // Vest's own default code, untouched by the user: switch it once per page load
-            if (ctx.mode === 'selector' && S.ui.wickAuto !== false && !wickAutoTried && !wickBusy && document.activeElement !== ctx.sel.input) {
-                const r = wickRead(ctx.sel);
-                if (r.code.toLowerCase() === WICK_DEFAULT && r.pct != null && !r.invalid) wickUse(true);
+            if (wickSurface()) {
+                wickVisit(now());
+                wickFindStores();
             }
+            if (WK.busy || !WK.open) return;
+            if (!WK.at || !wickRefind(WK.at)) { wickAway(); return; }
+            // WICK went on by hand while the pop-up asked: nothing left to ask (the purchase waits for the next press)
+            if (WK.state === 'ask') {
+                const on = wickOn(WK.at);
+                if (on.known && wickIs(on.code)) { wickClose(); return; }
+            }
+            wickShow();   // still in front (Vest may have drawn its window anew under it)
         } catch (e) {}
     }
+
+    // ---------- More > Support Astral ----------
+
+    function wickSettingsHtml() {
+        return `
+                <div class="ax4p-sec">
+                    <div class="ax4p-sec-t">Support Astral</div>
+                    <label class="ax4p-row"><span>Ask about code WICK when I buy</span><input type="checkbox" id="ax4p-ui-wickask"></label>
+                    <label class="ax4p-row"><span>Always use code WICK</span><input type="checkbox" id="ax4p-ui-wickalways"></label>
+                    <div class="ax4p-hint">Better Vest is free. Using code WICK costs you nothing extra and is what pays for updates. Always: when you press a buy button, WICK goes into Vest's code box for you, never over a code you typed.</div>
+                </div>`;
+    }
+    function wickSyncSettings() {
+        const ask = document.getElementById('ax4p-ui-wickask');
+        if (ask) ask.checked = S.ui.wickAsk !== false;
+        const always = document.getElementById('ax4p-ui-wickalways');
+        if (always) always.checked = S.ui.wickAlways === true;
+    }
+    function wickWireSettings() {
+        const ask = document.getElementById('ax4p-ui-wickask');
+        if (ask) ask.onchange = () => { S.ui.wickAsk = ask.checked; persist(); };
+        const always = document.getElementById('ax4p-ui-wickalways');
+        if (always) always.onchange = () => { S.ui.wickAlways = always.checked; persist(); };
+        wickSyncSettings();
+    }
+    // ---- wick: end ----
 
     // Two copies on one page (both editions, or Tampermonkey plus the extension): the second one stands down at load and
     // leaves its name in __bvSuiteBlocked. Say so, because its dock never shows and its Calendar never fills.
@@ -10499,6 +12251,8 @@
         const mine = EDITION === 'standard' ? 'Standard' : 'WICKED';
         tpToast('Two Better Vest copies are on. ' + mine + ' is running here; ' + other + ' is switched off on this page and its Calendar will stay empty. Turn one off in chrome://extensions.', 'warn', 14000);
     }
+    // A pill on the primary-account page (/portfolio). Fixed position so it never depends on Vest's markup;
+    // Vest is an SPA, so the route is re-checked on an interval and the pill comes and goes with it.
     function syncCertButton() {
         const on = IS_EXT && /^\/portfolio(\/|$)/.test(location.pathname);
         let b = document.getElementById('ax4p-cert-btn');
@@ -11120,6 +12874,21 @@
         return b[id];
     }
 
+    // 9.0: today's P&L on Vest's own day for one account (equity now minus its equity at Vest's last 8 pm reset), only when Vest gives
+    // that reset (capital accounts; under 30 h old), else null. The loss limit counts from it (dllUpdate).
+    function vuVestToday(id) {
+        try {
+            if (vuDemo() || !VU.st.cap || !VU.st.eq) return null;
+            const cap = (VU.st.cap.getState().accounts || {})[id];
+            const eq = (VU.st.eq.getState().accounts || {})[id];
+            const equity = eq && eq.value != null ? vuUsd(eq.value) : null;
+            const rEq = cap ? vuUsd(cap.dailyResetEquity) : null;
+            const rAt = cap ? vuMs(cap.dailyResetAt) : null;
+            const t = now();
+            return equity != null && rEq != null && rEq > 0 && rAt != null && rAt <= t + 60000 && t - rAt < 30 * VU_HOUR ? vuCents(equity - rEq) : null;
+        } catch (e) { return null; }
+    }
+
     // every account, read from Vest's stores now (or the demo's ten)
     function vuRead() {
         const t = now();
@@ -11206,12 +12975,11 @@
         vuChanged();
     }
 
-    // our own loss limit's lock on an account (Settings > Risk): its until-hour, or null
+    // our own lock on an account (Settings > Risk, the card's lock): "Locked by your loss limit until 02:00", or null (9.0: every reason)
     function vuLockOf(id) {
         try {
-            if (!S.dll || !S.dll.on) return null;
-            const rec = dllStore()[id];
-            return rec && dllRecLocked(rec, now(), S.dll.hour) ? dllHm(dllRecHour(rec, S.dll.hour)) : null;
+            const lk = gdLockOf(id);
+            return lk ? lk.label : null;
         } catch (e) { return null; }
     }
 
@@ -11227,7 +12995,7 @@
             m.pinned = !!(vu.pins && vu.pins[m.id]);
             m.hidden = !!(vu.hidden && vu.hidden[m.id]);
             m.group = gm[m.id] || null;
-            m.lock = vuDemo() ? (m.id === 'demo-10' ? '00:00' : null) : vuLockOf(m.id);
+            m.lock = vuDemo() ? (m.id === 'demo-10' ? 'Locked by your loss limit until 02:00' : null) : vuLockOf(m.id);
         });
         VU.list = list;
         VU.at = t;
@@ -11282,7 +13050,7 @@
             #ax4p-vu-btn .rail { width: 3px; height: 20px; border-radius: 2px; background: var(--g, var(--ax-line)); flex: none; }
             #ax4p-vu-btn .who { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; line-height: 1.15; }
             #ax4p-vu-btn .nm { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 210px; }
-            #ax4p-vu-btn .sub { font-size: 10px; color: var(--ax-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 230px; }
+            #ax4p-vu-btn .sub { font-size: 10px; color: var(--ax-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 130px; }
             #ax4p-vu-btn svg { flex: none; color: var(--ax-muted); }
 
             /* the menu */
@@ -11458,7 +13226,7 @@
     }
     const vuTodayCls = (n) => (n == null ? 'dim' : n > 0.004 ? 'up' : n < -0.004 ? 'dn' : 'dim');
     function vuMeta(m) {
-        if (m.lock) return { text: 'Locked by your loss limit until ' + m.lock, cls: 'lock' };
+        if (m.lock) return { text: m.lock, cls: 'lock' };
         const bits = [];
         if (m.nick) bits.push(m.nick);
         if (m.plan) bits.push(m.plan);
@@ -11559,6 +13327,8 @@
         b.dataset.sig = sig;
         b.setAttribute('aria-expanded', VU.menuOpen ? 'true' : 'false');
         b.setAttribute('aria-label', (m ? (m.nick || m.name) : 'Accounts') + ', switch account');
+        // 9.0 round 2: the line under the name is cut short to leave the top bar room for the dock; the whole of it on hover
+        b.title = m ? (m.nick || m.name) + (vuSubLine(m) ? ' · ' + vuSubLine(m) : '') : 'Accounts';
         b.style.setProperty('--g', m && m.group ? m.group.hue : 'var(--ax-line)');
         b.innerHTML = `<span class="rail"></span><span class="who"><span class="nm">${vuE(m ? (m.nick || m.name) : 'Accounts')}</span><span class="sub">${vuE(m ? vuSubLine(m) || m.plan || m.tag : 'Loading your accounts')}</span></span>${VU_CHEV}`;
     }
@@ -11982,7 +13752,7 @@
         if (m.max) { const s = vuPtsText(m.max.room); if (s) chips.push('Max room ' + s); }
         if (m.goal && m.goal.toGo > 0) { const s = vuPtsText(m.goal.toGo); if (s) chips.push('Target ' + s.replace(' pt at', ' pt away at')); }
         if (chips.length) body += `<div class="chips">${chips.map((c) => `<span>${vuE(c)}</span>`).join('')}</div>`;
-        if (m.lock) body += `<div class="c lv-warn" style="font-size:11px">Locked by your loss limit until ${vuE(m.lock)}.</div>`;
+        if (m.lock) body += `<div class="c lv-warn" style="font-size:11px">${vuE(m.lock)}.</div>`;
         body += `<div class="pf"><span>${vuDemo() ? 'Sample account (Demo)' : 'Vest\'s own numbers, live'}</span><button type="button" class="vu-link" data-act="manage">Manage accounts</button></div>`;
         const sig = head + body;
         if (p.dataset.sig === sig) return;
@@ -12332,6 +14102,1429 @@
             VU.menuOpen ? vuCloseMenu() : vuOpenMenu();
         }, true);
     }
+    // 9.0: the New York open and the news (official calendars, bundled; extension only: both files are <BV_EXT> blocks)
+    // ---------- Session and news: the bundled dates (9.0) ----------
+    // Made by tools/news.py; do not edit by hand. From the agencies' own release calendars, as published on 2026-10-11: BLS (CPI, PPI,
+    // the jobs report), the Federal Reserve (FOMC statement, press conference, minutes), BEA (GDP, personal income and outlays),
+    // and NYSE's holidays. `at` is UTC ms, worked out from each release's New York time. Nothing is fetched: each release of
+    // Better Vest carries a fresh list, and after SS_DATA_END the chip asks for an update.
+    const SS_EVENTS = Object.freeze([
+        { id: 'bls-cpi-20261014', kind: 'cpi', name: 'CPI (Consumer Price Index)', short: 'CPI', at: 1791981000000 }, // Wed 2026-10-14 08:30 New York
+        { id: 'bls-ppi-20261015', kind: 'ppi', name: 'PPI (Producer Price Index)', short: 'PPI', at: 1792067400000 }, // Thu 2026-10-15 08:30 New York
+        { id: 'fomc-statement-20261028', kind: 'fomc-statement', name: 'FOMC Statement and rate decision', short: 'FOMC', at: 1793210400000 }, // Wed 2026-10-28 14:00 New York
+        { id: 'fomc-presser-20261028', kind: 'fomc-presser', name: 'FOMC Chair\'s press conference', short: 'Fed presser', at: 1793212200000 }, // Wed 2026-10-28 14:30 New York
+        { id: 'bea-gdp-20261029', kind: 'gdp', name: 'GDP (Advance Estimate), Q3 2026', short: 'GDP', at: 1793277000000 }, // Thu 2026-10-29 08:30 New York
+        { id: 'bea-pce-20261029', kind: 'pce', name: 'Personal Income and Outlays (PCE / Core PCE price index)', short: 'PCE', at: 1793277000000 }, // Thu 2026-10-29 08:30 New York
+        { id: 'bls-nfp-20261106', kind: 'nfp', name: 'Employment Situation (NFP, unemployment rate)', short: 'NFP', at: 1793971800000 }, // Fri 2026-11-06 08:30 New York
+        { id: 'bls-cpi-20261110', kind: 'cpi', name: 'CPI (Consumer Price Index)', short: 'CPI', at: 1794317400000 }, // Tue 2026-11-10 08:30 New York
+        { id: 'bls-ppi-20261113', kind: 'ppi', name: 'PPI (Producer Price Index)', short: 'PPI', at: 1794576600000 }, // Fri 2026-11-13 08:30 New York
+        { id: 'fomc-minutes-20261118', kind: 'fomc-minutes', name: 'FOMC Meeting Minutes', short: 'FOMC minutes', at: 1795028400000 }, // Wed 2026-11-18 14:00 New York
+        { id: 'bea-gdp-20261125', kind: 'gdp', name: 'GDP (Second Estimate), Q3 2026', short: 'GDP', at: 1795613400000 }, // Wed 2026-11-25 08:30 New York
+        { id: 'bea-pce-20261125', kind: 'pce', name: 'Personal Income and Outlays (PCE / Core PCE price index)', short: 'PCE', at: 1795613400000 }, // Wed 2026-11-25 08:30 New York
+        { id: 'bls-nfp-20261204', kind: 'nfp', name: 'Employment Situation (NFP, unemployment rate)', short: 'NFP', at: 1796391000000 }, // Fri 2026-12-04 08:30 New York
+        { id: 'fomc-statement-20261209', kind: 'fomc-statement', name: 'FOMC Statement and rate decision + SEP (dot plot)', short: 'FOMC', at: 1796842800000 }, // Wed 2026-12-09 14:00 New York
+        { id: 'fomc-presser-20261209', kind: 'fomc-presser', name: 'FOMC Chair\'s press conference', short: 'Fed presser', at: 1796844600000 }, // Wed 2026-12-09 14:30 New York
+        { id: 'bls-cpi-20261210', kind: 'cpi', name: 'CPI (Consumer Price Index)', short: 'CPI', at: 1796909400000 }, // Thu 2026-12-10 08:30 New York
+        { id: 'bls-ppi-20261215', kind: 'ppi', name: 'PPI (Producer Price Index)', short: 'PPI', at: 1797341400000 }, // Tue 2026-12-15 08:30 New York
+        { id: 'bea-gdp-20261223', kind: 'gdp', name: 'GDP (Third Estimate), Q3 2026', short: 'GDP', at: 1798032600000 }, // Wed 2026-12-23 08:30 New York
+        { id: 'bea-pce-20261223', kind: 'pce', name: 'Personal Income and Outlays (PCE / Core PCE price index)', short: 'PCE', at: 1798032600000 }, // Wed 2026-12-23 08:30 New York
+        { id: 'fomc-minutes-20261230', kind: 'fomc-minutes', name: 'FOMC Meeting Minutes', short: 'FOMC minutes', at: 1798657200000 }, // Wed 2026-12-30 14:00 New York
+        { id: 'bls-nfp-20270108', kind: 'nfp', name: 'Employment Situation (NFP, unemployment rate)', short: 'NFP', at: 1799415000000 }, // Fri 2027-01-08 08:30 New York
+        { id: 'bls-cpi-20270113', kind: 'cpi', name: 'CPI (Consumer Price Index)', short: 'CPI', at: 1799847000000 }, // Wed 2027-01-13 08:30 New York
+        { id: 'bls-ppi-20270114', kind: 'ppi', name: 'PPI (Producer Price Index)', short: 'PPI', at: 1799933400000 }, // Thu 2027-01-14 08:30 New York
+        { id: 'fomc-statement-20270127', kind: 'fomc-statement', name: 'FOMC Statement and rate decision', short: 'FOMC', at: 1801076400000 }, // Wed 2027-01-27 14:00 New York
+        { id: 'fomc-presser-20270127', kind: 'fomc-presser', name: 'FOMC Chair\'s press conference', short: 'Fed presser', at: 1801078200000 }, // Wed 2027-01-27 14:30 New York
+        { id: 'bea-gdp-20270128', kind: 'gdp', name: 'GDP (Advance Estimate), Q4 and Year 2026', short: 'GDP', at: 1801143000000 }, // Thu 2027-01-28 08:30 New York
+        { id: 'bea-pce-20270128', kind: 'pce', name: 'Personal Income and Outlays (PCE / Core PCE price index)', short: 'PCE', at: 1801143000000 }, // Thu 2027-01-28 08:30 New York
+        { id: 'bls-nfp-20270205', kind: 'nfp', name: 'Employment Situation (NFP, unemployment rate)', short: 'NFP', at: 1801834200000 }, // Fri 2027-02-05 08:30 New York
+        { id: 'bls-cpi-20270211', kind: 'cpi', name: 'CPI (Consumer Price Index)', short: 'CPI', at: 1802352600000 }, // Thu 2027-02-11 08:30 New York
+        { id: 'bls-ppi-20270212', kind: 'ppi', name: 'PPI (Producer Price Index)', short: 'PPI', at: 1802439000000 }, // Fri 2027-02-12 08:30 New York
+        { id: 'fomc-minutes-20270217', kind: 'fomc-minutes', name: 'FOMC Meeting Minutes', short: 'FOMC minutes', at: 1802890800000 }, // Wed 2027-02-17 14:00 New York
+        { id: 'bea-gdp-20270225', kind: 'gdp', name: 'GDP (Second Estimate), Q4 and Year 2026', short: 'GDP', at: 1803562200000 }, // Thu 2027-02-25 08:30 New York
+        { id: 'bea-pce-20270225', kind: 'pce', name: 'Personal Income and Outlays (PCE / Core PCE price index)', short: 'PCE', at: 1803562200000 }, // Thu 2027-02-25 08:30 New York
+        { id: 'bls-nfp-20270305', kind: 'nfp', name: 'Employment Situation (NFP, unemployment rate)', short: 'NFP', at: 1804253400000 }, // Fri 2027-03-05 08:30 New York
+        { id: 'bls-cpi-20270310', kind: 'cpi', name: 'CPI (Consumer Price Index)', short: 'CPI', at: 1804685400000 }, // Wed 2027-03-10 08:30 New York
+        { id: 'bls-ppi-20270312', kind: 'ppi', name: 'PPI (Producer Price Index)', short: 'PPI', at: 1804858200000 }, // Fri 2027-03-12 08:30 New York
+        { id: 'fomc-statement-20270317', kind: 'fomc-statement', name: 'FOMC Statement and rate decision + SEP (dot plot)', short: 'FOMC', at: 1805306400000 }, // Wed 2027-03-17 14:00 New York
+        { id: 'fomc-presser-20270317', kind: 'fomc-presser', name: 'FOMC Chair\'s press conference', short: 'Fed presser', at: 1805308200000 }, // Wed 2027-03-17 14:30 New York
+        { id: 'bea-gdp-20270331', kind: 'gdp', name: 'GDP (Third Estimate), Q4 and Year 2026', short: 'GDP', at: 1806496200000 }, // Wed 2027-03-31 08:30 New York
+        { id: 'bea-pce-20270331', kind: 'pce', name: 'Personal Income and Outlays (PCE / Core PCE price index)', short: 'PCE', at: 1806496200000 }, // Wed 2027-03-31 08:30 New York
+        { id: 'bls-nfp-20270402', kind: 'nfp', name: 'Employment Situation (NFP, unemployment rate)', short: 'NFP', at: 1806669000000 }, // Fri 2027-04-02 08:30 New York
+        { id: 'fomc-minutes-20270407', kind: 'fomc-minutes', name: 'FOMC Meeting Minutes', short: 'FOMC minutes', at: 1807120800000 }, // Wed 2027-04-07 14:00 New York
+        { id: 'bls-cpi-20270413', kind: 'cpi', name: 'CPI (Consumer Price Index)', short: 'CPI', at: 1807619400000 }, // Tue 2027-04-13 08:30 New York
+        { id: 'bls-ppi-20270414', kind: 'ppi', name: 'PPI (Producer Price Index)', short: 'PPI', at: 1807705800000 }, // Wed 2027-04-14 08:30 New York
+        { id: 'fomc-statement-20270428', kind: 'fomc-statement', name: 'FOMC Statement and rate decision', short: 'FOMC', at: 1808935200000 }, // Wed 2027-04-28 14:00 New York
+        { id: 'fomc-presser-20270428', kind: 'fomc-presser', name: 'FOMC Chair\'s press conference', short: 'Fed presser', at: 1808937000000 }, // Wed 2027-04-28 14:30 New York
+        { id: 'bea-gdp-20270429', kind: 'gdp', name: 'GDP (Advance Estimate), Q1 2027', short: 'GDP', at: 1809001800000 }, // Thu 2027-04-29 08:30 New York
+        { id: 'bea-pce-20270429', kind: 'pce', name: 'Personal Income and Outlays (PCE / Core PCE price index)', short: 'PCE', at: 1809001800000 }, // Thu 2027-04-29 08:30 New York
+    ].map(Object.freeze));
+    // how sure each date is, where it is not simply on the agency's calendar ("scheduled"). Fed meetings are tentative until
+    // the meeting before confirms them; derived = worked out from the Fed's rule (minutes three weeks after), not posted yet.
+    const SS_STATUS = Object.freeze({
+        'fomc-statement-20261028': 'confirmed',
+        'fomc-presser-20261028': 'confirmed',
+        'fomc-statement-20261209': 'tentative',
+        'fomc-presser-20261209': 'tentative',
+        'fomc-statement-20270127': 'tentative',
+        'fomc-presser-20270127': 'tentative',
+        'fomc-minutes-20270217': 'derived',
+        'fomc-statement-20270317': 'tentative',
+        'fomc-presser-20270317': 'tentative',
+        'fomc-minutes-20270407': 'derived',
+        'fomc-statement-20270428': 'tentative',
+        'fomc-presser-20270428': 'tentative',
+    });
+    // New York dates NYSE is closed (no open to announce), and days it closes early (New York time)
+    const SS_NYSE_CLOSED = Object.freeze(['2026-11-26', '2026-12-25', '2027-01-01', '2027-01-18', '2027-02-15', '2027-03-26']);
+    const SS_NYSE_EARLY = Object.freeze({ '2026-11-27': '13:00', '2026-12-24': '13:00' });
+    // the list covers New York days from SS_DATA_FROM to SS_DATA_END
+    const SS_DATA_FROM = '2026-10-12';
+    const SS_DATA_END = '2027-04-30';
+    // ---------- Session and news (9.0) ----------
+    // The New York open and the US releases that move NQ (CPI, PPI, the jobs report, FOMC, GDP, PCE), from the dates bundled in
+    // src/data/us-events.js (tools/news.py, the agencies' own calendars). Nothing is fetched. A chip on the Execute card counts down the
+    // last hour before the open or a release, and bvEmit gets 'ny-open-5', 'ny-open', 'news-5' and 'news-1' at their moment, once across
+    // every Vest tab. Times are worked out in America/New_York, so the daylight-saving changes (2026-11-01, 2027-03-14) need nothing.
+    // Settings: S.session. Extension only; tools/build.py splices this file in where the suite names it.
+    // docs/superpowers/specs/2026-10-11-bv9-design.md, B4
+
+    // ---- ss pure: begin ----
+    // No DOM, no suite state: only the SS_ data, Date and Intl. tests/session/ runs this block as it is.
+    const SS_MIN = 60000;
+    const SS_HOUR = 3600000;
+    const SS_DAY = 86400000;
+    // a tab that slept (or was held back) longer than this keeps quiet about what it missed: a late "in one minute" is worse than none
+    const SS_STALE = 90000;
+    // the Settings switch that covers each kind of release
+    const SS_SWITCH = Object.freeze({ cpi: 'cpi', ppi: 'ppi', nfp: 'nfp', 'fomc-statement': 'fomc', 'fomc-presser': 'fomc', 'fomc-minutes': 'fomc', gdp: 'gdp', pce: 'pce' });
+    // releases at the same minute: the chip names the first in this order and counts the rest ("PCE +1")
+    const SS_RANK = ['fomc-statement', 'fomc-presser', 'nfp', 'cpi', 'pce', 'ppi', 'gdp', 'fomc-minutes'];
+    const SS_DEFAULTS = Object.freeze({ on: true, open: true, lead5: true, lead1: true, kinds: Object.freeze({ cpi: true, ppi: true, nfp: true, fomc: true, gdp: true, pce: true }) });
+    const SS_OPEN_NAME = 'NY open';
+    // Intl formatters are slow to make, so once; 9:30 of a New York date never changes
+    const SS_MEMO = { fmt: null, day: null, opens: new Map() };
+
+    // New York wall time of a moment: { y, m, d, hh, mm, ss, wd (0 = Sunday), date: 'YYYY-MM-DD' }
+    function ssEtParts(ms) {
+        if (!SS_MEMO.fmt) {
+            SS_MEMO.fmt = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        }
+        const o = {};
+        for (const p of SS_MEMO.fmt.formatToParts(new Date(ms))) o[p.type] = p.value;
+        const y = +o.year, m = +o.month, d = +o.day;
+        return { y, m, d, hh: +o.hour % 24, mm: +o.minute, ss: +o.second, wd: new Date(Date.UTC(y, m - 1, d)).getUTCDay(), date: o.year + '-' + o.month + '-' + o.day };
+    }
+    const ssEtDate = (ms) => ssEtParts(ms).date;
+    // UTC ms of a New York wall time. The offset is read at the moment itself, so it is right on both sides of a daylight-saving change.
+    function ssEtWallToUtc(y, m, d, hh, mm) {
+        const wall = Date.UTC(y, m - 1, d, hh, mm || 0);
+        let t = wall + 5 * SS_HOUR; // EST as a first guess, at most an hour off
+        for (let i = 0; i < 2; i++) {
+            const p = ssEtParts(t);
+            t = wall - (Date.UTC(p.y, p.m - 1, p.d, p.hh, p.mm, p.ss) - t);
+        }
+        return t;
+    }
+    // calendar arithmetic on 'YYYY-MM-DD' (no time zone in it)
+    function ssAddDays(date, n) {
+        return new Date(Date.UTC(+date.slice(0, 4), +date.slice(5, 7) - 1, +date.slice(8, 10)) + n * SS_DAY).toISOString().slice(0, 10);
+    }
+    // Monday to Friday and not a NYSE holiday. Past SS_DATA_END the holidays are unknown: every weekday counts.
+    function ssIsNyseDate(date) {
+        const wd = new Date(date + 'T00:00:00Z').getUTCDay();
+        return wd >= 1 && wd <= 5 && SS_NYSE_CLOSED.indexOf(date) < 0;
+    }
+    const ssIsNyseDay = (ms) => ssIsNyseDate(ssEtDate(ms));
+    // 9:30 New York on that date
+    function ssOpenOf(date) {
+        let t = SS_MEMO.opens.get(date);
+        if (t == null) {
+            if (SS_MEMO.opens.size > 64) SS_MEMO.opens.clear();
+            t = ssEtWallToUtc(+date.slice(0, 4), +date.slice(5, 7), +date.slice(8, 10), 9, 30);
+            SS_MEMO.opens.set(date, t);
+        }
+        return t;
+    }
+    // the next 9:30 New York on a NYSE day, after `ms`
+    function ssNextOpen(ms) {
+        let date = ssEtDate(ms);
+        for (let i = 0; i < 14; i++, date = ssAddDays(date, 1)) {
+            if (!ssIsNyseDate(date)) continue;
+            const t = ssOpenOf(date);
+            if (t > ms) return t;
+        }
+        return null;
+    }
+
+    // S.session as saved, with anything missing taken from the defaults (an older save, or none)
+    function ssCfg(raw) {
+        const r = raw && typeof raw === 'object' ? raw : {};
+        const k = r.kinds && typeof r.kinds === 'object' ? r.kinds : {};
+        const kinds = {};
+        for (const key of Object.keys(SS_DEFAULTS.kinds)) kinds[key] = k[key] == null ? SS_DEFAULTS.kinds[key] : !!k[key];
+        const pick = (key) => (r[key] == null ? SS_DEFAULTS[key] : !!r[key]);
+        return { on: pick('on'), open: pick('open'), lead5: pick('lead5'), lead1: pick('lead1'), kinds };
+    }
+    // kinds: the switches ({ cpi: true, ... }), or null for all of them
+    function ssKindOn(kinds, kind) {
+        const sw = SS_SWITCH[kind];
+        return !!sw && (kinds == null || kinds[sw] !== false);
+    }
+    const ssRank = (kind) => { const i = SS_RANK.indexOf(kind); return i < 0 ? SS_RANK.length : i; };
+    // the switched-on releases with `at` in (fromMs, toMs], one entry per minute: { at, ids, kinds, names, shorts, tentative }
+    function ssGroups(kinds, fromMs, toMs) {
+        const by = new Map();
+        for (const e of SS_EVENTS) {
+            if (!(e.at > fromMs && e.at <= toMs) || !ssKindOn(kinds, e.kind)) continue;
+            const t = Math.floor(e.at / SS_MIN) * SS_MIN;
+            if (!by.has(t)) by.set(t, []);
+            by.get(t).push(e);
+        }
+        return [...by.keys()].sort((a, b) => a - b).map((t) => {
+            const list = by.get(t).slice().sort((a, b) => ssRank(a.kind) - ssRank(b.kind));
+            return {
+                at: t,
+                ids: list.map((e) => e.id),
+                kinds: list.map((e) => e.kind),
+                names: list.map((e) => e.name),
+                shorts: list.map((e) => e.short),
+                tentative: list.some((e) => SS_STATUS[e.id] === 'tentative')
+            };
+        });
+    }
+    // the releases in the next horizonMs, grouped by minute
+    function ssUpcoming(ms, kinds, horizonMs) {
+        return ssGroups(kinds, ms, ms + horizonMs);
+    }
+    // Every announcement due in (fromMs, toMs], in order: { key, type, at, due, names, shorts, ids, kinds, tentative }. `at` is the moment
+    // itself (the open, the release minute), `due` when it is announced; the key is one per moment, so each is announced once. Releases
+    // at the same minute are one announcement. Also what the service worker's alarms are set from.
+    function ssMoments(fromMs, toMs, cfg) {
+        const c = ssCfg(cfg);
+        const out = [];
+        if (!c.on || !(toMs > fromMs)) return out;
+        const inside = (t) => t > fromMs && t <= toMs;
+        const add = (type, at, due, g) => out.push({
+            key: type + ':' + at, type, at, due,
+            names: g ? g.names : [SS_OPEN_NAME], shorts: g ? g.shorts : [SS_OPEN_NAME],
+            ids: g ? g.ids : [], kinds: g ? g.kinds : ['open'], tentative: !!(g && g.tentative)
+        });
+        if (c.open) {
+            const last = ssEtDate(toMs);
+            for (let date = ssEtDate(fromMs), n = 0; date <= last && n < 400; date = ssAddDays(date, 1), n++) {
+                if (!ssIsNyseDate(date)) continue;
+                const t = ssOpenOf(date);
+                if (inside(t - 5 * SS_MIN)) add('ny-open-5', t, t - 5 * SS_MIN);
+                if (inside(t)) add('ny-open', t, t);
+            }
+        }
+        if (c.lead5 || c.lead1) {
+            for (const g of ssGroups(c.kinds, fromMs + SS_MIN, toMs + 5 * SS_MIN)) {
+                if (c.lead5 && inside(g.at - 5 * SS_MIN)) add('news-5', g.at, g.at - 5 * SS_MIN, g);
+                if (c.lead1 && inside(g.at - SS_MIN)) add('news-1', g.at, g.at - SS_MIN, g);
+            }
+        }
+        return out.sort((a, b) => a.due - b.due);
+    }
+    // what to announce now, `lastMs` being the previous look: only moments of the last SS_STALE ms
+    function ssDue(ms, lastMs, cfg) {
+        if (lastMs == null || !(ms > lastMs)) return [];
+        return ssMoments(Math.max(lastMs, ms - SS_STALE), ms, cfg);
+    }
+
+    // "4:58", "59:59": what is left, rounded down to the second
+    function ssClock(left) {
+        const s = Math.max(0, Math.floor(left / 1000));
+        return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+    }
+    // "8:30", "14:00", New York
+    function ssEtClock(ms) {
+        const p = ssEtParts(ms);
+        return p.hh + ':' + String(p.mm).padStart(2, '0');
+    }
+    // "Wed, Oct 14" in New York
+    function ssEtDay(ms) {
+        if (!SS_MEMO.day) SS_MEMO.day = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', weekday: 'short', month: 'short', day: 'numeric' });
+        return SS_MEMO.day.format(new Date(ms));
+    }
+    // '2027-04-30' -> "April 30, 2027"
+    function ssDateName(date) {
+        return new Date(date + 'T12:00:00Z').toLocaleDateString('en-US', { timeZone: 'UTC', month: 'long', day: 'numeric', year: 'numeric' });
+    }
+    function ssNote(id) {
+        const st = SS_STATUS[id];
+        return st === 'tentative' ? ' (Fed: tentative)' : st === 'derived' ? ' (Fed: not posted yet)' : '';
+    }
+    // the hover text: what is left of today (the New York day) on the list
+    function ssTitle(ms, cfg) {
+        const c = ssCfg(cfg);
+        const p = ssEtParts(ms);
+        const next = ssAddDays(p.date, 1);
+        const dayEnd = ssEtWallToUtc(+next.slice(0, 4), +next.slice(5, 7), +next.slice(8, 10), 0, 0);
+        const rows = [];
+        if (c.open && ssIsNyseDate(p.date) && ssOpenOf(p.date) > ms) rows.push([ssOpenOf(p.date), 'NYSE open']);
+        for (const g of ssGroups(c.kinds, ms, dayEnd - 1)) g.ids.forEach((id, i) => rows.push([g.at, g.names[i] + ssNote(id)]));
+        rows.sort((a, b) => a[0] - b[0]);
+        const lines = ['Today, New York time:'];
+        if (rows.length) rows.forEach(([t, s]) => lines.push(ssEtClock(t) + '  ' + s));
+        else lines.push('Nothing else on the list today.');
+        if (p.wd >= 1 && p.wd <= 5 && !ssIsNyseDate(p.date)) lines.push('NYSE is closed today.');
+        else if (SS_NYSE_EARLY[p.date]) lines.push('NYSE closes early today, at ' + SS_NYSE_EARLY[p.date] + '.');
+        return lines.join('\n');
+    }
+    // The chip: { text, title, hot, kind } or null. "NY open 4:58" in the hour before 9:30 on a NYSE day, "CPI 12:30" in the hour before a
+    // release ("PCE +1 12:30" for two at once), whichever comes first; hot under 5 minutes. kind: 'open', 'news' or 'ended'.
+    function ssChip(nowMs, cfg) {
+        const c = ssCfg(cfg);
+        if (!c.on) return null;
+        if (ssEtDate(nowMs) > SS_DATA_END) {
+            return { text: 'News list ended: update Better Vest', title: 'This version of Better Vest has the news dates up to ' + ssDateName(SS_DATA_END) + '. An update brings the next months.', hot: false, kind: 'ended' };
+        }
+        let at = null, label = '', kind = '';
+        if (c.open) {
+            const t = ssNextOpen(nowMs);
+            if (t != null && t - nowMs < SS_HOUR) { at = t; label = SS_OPEN_NAME; kind = 'open'; }
+        }
+        const g = ssGroups(c.kinds, nowMs, nowMs + SS_HOUR - 1)[0];
+        if (g && (at == null || g.at < at)) {
+            at = g.at;
+            label = g.shorts[0] + (g.shorts.length > 1 ? ' +' + (g.shorts.length - 1) : '');
+            kind = 'news';
+        }
+        if (at == null) return null;
+        const left = at - nowMs;
+        return { text: label + ' ' + ssClock(left), title: ssTitle(nowMs, c), hot: left < 5 * SS_MIN, kind };
+    }
+    // the line under the Settings switches
+    function ssNextLine(ms, cfg) {
+        const c = ssCfg(cfg);
+        const end = ssDateName(SS_DATA_END);
+        if (ssEtDate(ms) > SS_DATA_END) return 'The news list ended on ' + end + '. Update Better Vest for the next months.';
+        if (!c.on) return 'Off.';
+        if (!Object.keys(c.kinds).some((k) => c.kinds[k])) return 'No news switched on. The list runs to ' + end + '.';
+        const g = ssGroups(c.kinds, ms, Infinity)[0];
+        if (!g) return 'No more releases on the list. It runs to ' + end + '.';
+        return 'Next: ' + g.shorts.join(' + ') + ', ' + ssEtDay(g.at) + ' at ' + ssEtClock(g.at) + ' New York time. The list runs to ' + end + '.';
+    }
+    // ---- ss pure: end ----
+
+    // ---- ss run: begin ----
+    // The announcements. The suite calls ssTick every second and from its live socket's messages (timers in a hidden tab can be held
+    // back to once a minute; the socket keeps coming), so it does nothing unless the second changed.
+    const SS = { last: null, sec: null };
+    const SS_FIRED = 'ax4p-ss-fired:';
+    // a tab in view goes first: a hidden one looks this far behind, so a visible tab (ticking every second) has the moment by then
+    const SS_HIDDEN_LAG = 1500;
+    // how long a tab keeps a moment's lock after announcing it: by then its stored claim has reached every other tab
+    const SS_HOLD = 3000;
+    const ssLiveCfg = () => (typeof S !== 'undefined' && S ? S.session : null);
+    function ssHidden() {
+        try { return typeof document !== 'undefined' && !!document && !!document.hidden; } catch (e) { return false; }
+    }
+    // The first tab to write the key announces; the others find it there. Without storage this tab announces on its own.
+    function ssClaim(key, now) {
+        try {
+            const k = SS_FIRED + key;
+            if (localStorage.getItem(k) != null) return false;
+            localStorage.setItem(k, String(now));
+        } catch (e) {}
+        return true;
+    }
+    // claims older than a day go (their moment never comes back)
+    function ssPrune(now) {
+        try {
+            const old = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const k = localStorage.key(i);
+                if (k && k.startsWith(SS_FIRED) && !(now - Number(localStorage.getItem(k)) < SS_DAY)) old.push(k);
+            }
+            for (const k of old) localStorage.removeItem(k);
+        } catch (e) {}
+    }
+    // Announces one moment unless another tab has. Every Vest tab gets the same socket frame at the same moment, and localStorage is no
+    // lock across tabs (each can read "free" before the other's write arrives), so the check and the claim run under a Web Lock named
+    // for the moment, kept SS_HOLD after; without Web Locks, the stored claim alone.
+    function ssSay(item, now) {
+        const emit = () => { if (typeof bvEmit === 'function') { try { bvEmit(item.type, item); } catch (e) {} } };
+        let locks = null;
+        try { if (typeof navigator !== 'undefined' && navigator && navigator.locks && typeof navigator.locks.request === 'function') locks = navigator.locks; } catch (e) {}
+        if (locks) {
+            try {
+                locks.request('ax4p-ss:' + item.key, { ifAvailable: true }, (lock) => {
+                    if (!lock || !ssClaim(item.key, now)) return null;
+                    emit();
+                    return new Promise((done) => setTimeout(done, SS_HOLD));
+                }).catch(() => { if (ssClaim(item.key, now)) emit(); }); // a refused lock: the stored claim still keeps it to once
+                return;
+            } catch (e) {}
+        }
+        if (ssClaim(item.key, now)) emit();
+    }
+    // returns the moments that came due in this tab (the claim settles which tab announces each)
+    function ssTick(nowMs, cfg) {
+        const real = nowMs == null ? Date.now() : nowMs;
+        const now = ssHidden() ? real - SS_HIDDEN_LAG : real;
+        const sec = Math.floor(now / 1000);
+        if (sec === SS.sec) return [];
+        SS.sec = sec;
+        const last = SS.last;
+        SS.last = now;
+        // the first look only sets the clock: a page that just loaded does not announce what came before it
+        if (last == null) { ssPrune(real); return []; }
+        const due = ssDue(now, last, cfg === undefined ? ssLiveCfg() : cfg);
+        if (!due.length) return due;
+        for (const item of due) ssSay(item, real);
+        ssPrune(real);
+        return due;
+    }
+    // ---- ss run: end ----
+
+    // ---------- the chip ----------
+    // Paints ssChip into `el` (the Execute card's chip). It runs every second, so it writes only what changed.
+    function ssPaintChip(el, nowMs, cfg) {
+        if (!el) return null;
+        const c = ssChip(nowMs == null ? Date.now() : nowMs, cfg === undefined ? ssLiveCfg() : cfg);
+        if (!c) {
+            if (!el.hidden) el.hidden = true;
+            return null;
+        }
+        if (el.textContent !== c.text) el.textContent = c.text;
+        if (el.title !== c.title) el.title = c.title;
+        if (el.classList.contains('hot') !== c.hot) el.classList.toggle('hot', c.hot);
+        if (el.getAttribute('data-kind') !== c.kind) el.setAttribute('data-kind', c.kind);
+        if (el.hidden) el.hidden = false;
+        return c;
+    }
+    function ssChipCss() {
+        return `
+            .ax4p-ss-chip { display: inline-flex; align-items: center; height: 18px; padding: 0 6px; border-radius: 5px; font-size: 10px; font-weight: 700; letter-spacing: .02em; font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--ax-muted); background: color-mix(in srgb, var(--ax-text) 8%, transparent); cursor: default; user-select: none; }
+            .ax4p-ss-chip[hidden] { display: none !important; }
+            .ax4p-ss-chip.hot { color: #fff; background: var(--ax-down); }
+            .ax4p-ss-chip[data-kind="ended"] { color: var(--ax-warn); background: color-mix(in srgb, var(--ax-warn) 14%, transparent); }`;
+    }
+
+    // ---------- Settings > Session & news ----------
+    const SS_KIND_ROWS = [
+        ['cpi', 'CPI', 'Consumer prices (BLS), 8:30.'],
+        ['ppi', 'PPI', 'Producer prices (BLS), 8:30.'],
+        ['nfp', 'NFP', 'The jobs report (BLS), 8:30.'],
+        ['fomc', 'FOMC', 'The Fed: rate decision 14:00, press conference 14:30, minutes 14:00.'],
+        ['gdp', 'GDP', 'Growth (BEA), 8:30.'],
+        ['pce', 'PCE', 'Personal income and spending, the Fed\'s inflation gauge (BEA), 8:30.']
+    ];
+    function ssSettingsHtml() {
+        const row = (k, t, d) => `<label class="ax4p-row"><span style="display:flex;flex-direction:column;gap:2px;padding:3px 0">${t}<span class="ax4p-hint" style="margin:0">${d}</span></span><input type="checkbox" id="ax4p-ss-${k}"></label>`;
+        return `
+                <div class="ax4p-sec" id="ax4p-ss-sec">
+                    <div class="ax4p-sec-t">Session &amp; news</div>
+                    <label class="ax4p-row"><span>Countdown to the open and to news</span><input type="checkbox" id="ax4p-ss-on"></label>
+                    ${row('open', 'New York open', 'The last hour before 9:30 on NYSE days, and a heads-up at 9:25 and 9:30.')}
+                    <label class="ax4p-row"><span>Heads-up 5 minutes before news</span><input type="checkbox" id="ax4p-ss-lead5"></label>
+                    <label class="ax4p-row"><span>Heads-up 1 minute before news</span><input type="checkbox" id="ax4p-ss-lead1"></label>
+                </div>
+                <div class="ax4p-sec" id="ax4p-ss-kinds">
+                    <div class="ax4p-sec-t">News to count down</div>
+                    ${SS_KIND_ROWS.map(([k, t, d]) => row('k-' + k, t, d)).join('')}
+                    <div class="ax4p-hint" id="ax4p-ss-msg"></div>
+                    <details class="ax4p-more"><summary>How it works</summary>
+                        <div class="ax4p-hint">The chip on the Execute card counts down the last hour before the New York open and before each release you keep on, and turns red under 5 minutes. Hover it for the rest of today. Times are New York time. Each heads-up comes once, from one of your Vest tabs. The dates are the agencies' own (BLS, the Federal Reserve, BEA) and NYSE's holidays, bundled with this version: nothing is fetched. An agency can still move a date, and the Fed's meetings stay tentative until the meeting before confirms them.</div>
+                    </details>
+                </div>`;
+    }
+    // the switches as saved, greyed out while the whole thing is off, and the line about the next release
+    function ssPaintSettings(S) {
+        const q = (id) => document.getElementById(id);
+        const c = ssCfg(S && S.session);
+        ['open', 'lead5', 'lead1'].concat(SS_KIND_ROWS.map(([k]) => 'k-' + k)).forEach((id) => {
+            const el = q('ax4p-ss-' + id);
+            if (el) el.disabled = !c.on;
+        });
+        const msg = q('ax4p-ss-msg');
+        if (msg) {
+            const t = ssNextLine(Date.now(), c);
+            if (msg.textContent !== t) msg.textContent = t;
+        }
+    }
+    function ssWireSettings(S, persist) {
+        const q = (id) => document.getElementById(id);
+        if (!S || !q('ax4p-ss-on')) return;
+        // fill in what an older save lacks, in place (other code may hold S.session)
+        if (!S.session || typeof S.session !== 'object') S.session = {};
+        if (!S.session.kinds || typeof S.session.kinds !== 'object') S.session.kinds = {};
+        const c = ssCfg(S.session);
+        const save = () => {
+            if (typeof persist === 'function') persist();
+            ssPaintSettings(S);
+        };
+        ['on', 'open', 'lead5', 'lead1'].forEach((k) => {
+            const el = q('ax4p-ss-' + k);
+            if (!el) return;
+            el.checked = c[k];
+            el.onchange = () => { S.session[k] = !!el.checked; save(); };
+        });
+        SS_KIND_ROWS.forEach(([k]) => {
+            const el = q('ax4p-ss-k-' + k);
+            if (!el) return;
+            el.checked = c.kinds[k];
+            el.onchange = () => { S.session.kinds[k] = !!el.checked; save(); };
+        });
+        ssPaintSettings(S);
+    }
+    // 9.0: multi-chart (extension only)
+    // ---------- Multi-chart (9.0) ----------
+    // Up to four charts in Vest's chart card: Vest's own chart, untouched, plus up to three more, each with its own market and timeframe.
+    // The extra charts are Vest's own charting library (the same build Vest loads, through the class of Vest's own chart) with Vest's own
+    // options and our theme. Their data never comes from the chart on screen: Vest's datafeed keeps one paging position and one live
+    // subscription per market and timeframe, so sharing it froze the main chart and left a hole in its history (measured 2026-10-11).
+    // Instead each market has a hidden Vest tab of its own (/trade/<market>?bvChart=<market>, opened by the service worker like the copy
+    // trader's follower tabs, in a collapsed "Charts" group): its own Vest datafeed loads the bars and the live updates, and a
+    // same-origin BroadcastChannel brings them here. Nothing is requested by our code; the hidden tab is Vest's own page doing what it
+    // does for its own chart. A hidden tab's timers slow to a crawl, so this tab sends it a tick every 100 ms and the tab runs its short
+    // timers on those (a message is never throttled), and a loopback data channel keeps Chrome from freezing it (Turbo's keep-awake).
+    const MCH_CH = 'bv-mch';
+    const MCH_LAYOUTS = ['1', '2h', '2v', '3', '4'];
+    const MCH_PAGE = 500; // bars a history page asks for (Vest answers up to 500 a request)
+    const MCH_ASK_MS = 15000;
+
+    // ---- the hidden data tab ----
+    // Runs before Vest's own scripts (the suite stands down in this tab and calls only this). Self-contained: nothing of the suite exists here.
+    function mchDataTab() {
+        // only literals here: this runs at the top of the suite, before any const of this file exists
+        const CH = 'bv-mch', PAGE = 500;
+        const market = (/[?&]bvChart=([\w.:-]{1,64})/.exec(location.search) || [])[1] || '';
+        if (!market) return;
+        // timers of 200 ms or less run on the main tab's ticks once the pump is on (Vest's datafeed waits on short timers)
+        const realSet = window.setTimeout.bind(window), realClear = window.clearTimeout.bind(window);
+        const queue = new Map();
+        let qid = 0, pump = false;
+        window.setTimeout = function (fn, ms, ...args) {
+            const d = Number(ms) || 0;
+            if (!pump || typeof fn !== 'function' || d > 200) return realSet(fn, ms, ...args);
+            const id = -(++qid);
+            queue.set(id, { fn, args, at: Date.now() + d });
+            return id;
+        };
+        window.clearTimeout = function (id) {
+            if (typeof id === 'number' && id < 0) { queue.delete(id); return; }
+            return realClear(id);
+        };
+        const runDue = () => {
+            const t = Date.now();
+            for (const [id, q] of [...queue]) { if (q.at > t) continue; queue.delete(id); try { q.fn(...q.args); } catch (e) {} }
+        };
+        // Chrome freezes a fresh background tab after a few seconds; an open loopback data channel keeps it running (nothing leaves the computer)
+        (async () => {
+            try {
+                const a = new RTCPeerConnection({ iceServers: [] }), b = new RTCPeerConnection({ iceServers: [] });
+                a.onicecandidate = (e) => { if (e.candidate) b.addIceCandidate(e.candidate).catch(() => {}); };
+                b.onicecandidate = (e) => { if (e.candidate) a.addIceCandidate(e.candidate).catch(() => {}); };
+                a.createDataChannel('bv-mch-awake');
+                await a.setLocalDescription(await a.createOffer());
+                await b.setRemoteDescription(a.localDescription);
+                await b.setLocalDescription(await b.createAnswer());
+                await a.setRemoteDescription(b.localDescription);
+                window.__bvMchAwake = [a, b];
+            } catch (e) {}
+        })();
+        // Vest's chart widget, from React's tree (as the suite's findTvWidget finds it), for its datafeed
+        const isW = (o) => { try { return !!o && typeof o === 'object' && typeof o.activeChart === 'function' && typeof o.applyOverrides === 'function'; } catch (e) { return false; } };
+        const findW = () => {
+            for (const el of document.querySelectorAll('iframe[id*="tradingview"], [class*="chart"], [id*="chart"]')) {
+                for (const key of Object.keys(el)) {
+                    if (!key.startsWith('__reactFiber')) continue;
+                    let f = el[key];
+                    for (let d = 0; f && d < 35; d++, f = f.return) {
+                        let s = f.memoizedState;
+                        for (let n = 0; s && typeof s === 'object' && n < 80; n++, s = s.next) {
+                            const v = s.memoizedState;
+                            if (isW(v)) return v;
+                            if (v && typeof v === 'object' && isW(v.current)) return v.current;
+                        }
+                        const p = f.memoizedProps;
+                        if (p && typeof p === 'object') for (const k of Object.keys(p)) if (isW(p[k])) return p[k];
+                    }
+                }
+            }
+            return null;
+        };
+        const df = () => { const w = findW(); return w && w._options && w._options.datafeed ? w._options.datafeed : null; };
+        // the name Vest's own chart here asks its datafeed for (BTC-PERP, NDX-USD-PERP): the extra charts use the very same
+        const mySym = () => { const w = findW(); return w && w._options && typeof w._options.symbol === 'string' ? w._options.symbol : ''; };
+        const syms = new Map();
+        const resolve = (d, name) => (syms.has(name) ? Promise.resolve(syms.get(name)) : new Promise((ok) => {
+            let done = false;
+            d.resolveSymbol(name, (s) => { done = true; syms.set(name, s); ok(s); }, () => { done = true; ok(null); });
+            realSet(() => { if (!done) ok(null); }, 10000);
+        }));
+        const subs = new Map(); // key -> our uid at Vest's datafeed
+        let ch = null, ticks = 0;
+        const start = () => {
+            if (ch) return;
+            ch = new BroadcastChannel(CH);
+            const say = (m) => { try { ch.postMessage(Object.assign({ market }, m)); } catch (e) {} };
+            ch.onmessage = async (ev) => {
+                const m = ev.data;
+                if (!m || typeof m !== 'object') return;
+                if (m.k === 'tick') {
+                    pump = true;
+                    runDue();
+                    if (++ticks % 10 === 0) say({ k: 'alive', ready: !!df(), sym: mySym() });
+                    return;
+                }
+                if (m.market !== market) return;
+                const d = df();
+                if (m.k === 'ping') { say({ k: 'alive', ready: !!d, sym: mySym() }); return; }
+                if (!d) { if (m.id) say({ k: 'reply', id: m.id, err: 'not ready' }); return; }
+                try {
+                    if (m.k === 'resolve') {
+                        const si = await resolve(d, m.sym);
+                        say({ k: 'reply', id: m.id, si: si ? JSON.parse(JSON.stringify(si)) : null });
+                    } else if (m.k === 'config') {
+                        d.onReady((cfg) => say({ k: 'reply', id: m.id, cfg: JSON.parse(JSON.stringify(cfg || {})) }));
+                    } else if (m.k === 'bars') {
+                        const si = await resolve(d, m.sym);
+                        if (!si) { say({ k: 'reply', id: m.id, err: 'unknown market' }); return; }
+                        const now = Math.floor(Date.now() / 1000);
+                        const pp = { from: now - 86400 * 365, to: now, countBack: PAGE, firstDataRequest: !!m.first };
+                        d.getBars(si, m.res, pp, (bars, meta) => say({ k: 'reply', id: m.id, bars: bars || [], noData: !!(meta && meta.noData) }),
+                            (e) => say({ k: 'reply', id: m.id, err: String(e) }));
+                    } else if (m.k === 'sub') {
+                        if (subs.has(m.key)) return;
+                        const si = await resolve(d, m.sym);
+                        if (!si) return;
+                        const uid = 'bv-mch-' + m.key;
+                        subs.set(m.key, uid);
+                        d.subscribeBars(si, m.res, (bar) => say({ k: 'bar', key: m.key, bar }), uid, () => say({ k: 'reset', key: m.key }));
+                    } else if (m.k === 'unsub') {
+                        const uid = subs.get(m.key);
+                        if (uid) { subs.delete(m.key); try { d.unsubscribeBars(uid); } catch (e) {} }
+                    }
+                } catch (e) { if (m.id) say({ k: 'reply', id: m.id, err: String(e && e.message || e) }); }
+            };
+            say({ k: 'alive', ready: !!df(), sym: mySym() });
+        };
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
+    }
+
+    // ---- the main tab: the panes ----
+    const MCH = { ch: null, id: 0, wait: new Map(), alive: new Map(), opened: new Map(), cache: new Map(), subs: new Map(), panes: [],
+        layout: '1', host: null, pump: 0, watch: 0, cfg: null, markets: null, styled: false, nav: null };
+
+    function mchCfg() {
+        const c = S.mch && typeof S.mch === 'object' ? S.mch : (S.mch = {});
+        if (MCH_LAYOUTS.indexOf(c.layout) < 0) c.layout = '1';
+        if (!Array.isArray(c.panes)) c.panes = [];
+        return c;
+    }
+    // A pane's market is the page route of it (/trade/BTC-PERP, /trade/NQ-PERP, /trade/AAPL-USD-PERP): the hidden tab is opened there
+    // and tells the name its Vest chart uses (BTC-PERP, NDX-USD-PERP), which the pane's chart then asks for.
+    // (checked live 2026-10-11: the page is the ticker + "-PERP": AAPL-USD-PERP, RTY-USD-PERP, EUR-USD-PERP, GC-PERP, BTC-PERP; AAPL-PERP is
+    // no market; NQ and ES keep their own pages, NQ-PERP and ES-PERP, for NDX-USD-PERP and SPX-USD-PERP)
+    function mchRoute(r) {
+        const s0 = String(r || '').toUpperCase().replace(/^.*:/, '');
+        if (!s0) return '';
+        const s = /-PERP$/.test(s0) ? s0 : s0 + '-PERP';
+        for (const k of Object.keys(API_SYMBOLS)) if (API_SYMBOLS[k] === s) return k;
+        return s;
+    }
+    function mchChannel() {
+        if (MCH.ch) return MCH.ch;
+        MCH.ch = new BroadcastChannel(MCH_CH);
+        MCH.ch.onmessage = (ev) => {
+            const m = ev.data;
+            if (!m || typeof m !== 'object') return;
+            if (m.k === 'alive') { MCH.alive.set(m.market, { at: now(), ready: !!m.ready, sym: typeof m.sym === 'string' ? m.sym : '' }); return; }
+            if (m.k === 'reply') { const w = MCH.wait.get(m.id); if (w) { MCH.wait.delete(m.id); w(m); } return; }
+            if (m.k === 'bar') { mchOnBar(m.key, m.bar); return; }
+            if (m.k === 'reset') { mchResetKey(m.key); return; }
+        };
+        return MCH.ch;
+    }
+    // the hidden tab of a market: asked of the service worker once, then watched
+    // 9.0 round 2 (the owner: a switched chart "takes long to load"): a market whose tab was let go is asked for again at once, and one
+    // still not answering 12 s after it was asked for is asked for again (it used to wait for the 30 s watch)
+    function mchOpen(market) {
+        const r = mchRoute(market);
+        if (mchReady(r)) return;
+        const at = MCH.opened.get(r);
+        if (at && now() - at < 12000) return;
+        MCH.opened.set(r, now());
+        try { win.postMessage({ bv: 1, dir: 'toExt', type: 'mch', op: 'open', market: r }, location.origin); } catch (e) {}
+    }
+    function mchReady(market) {
+        const a = MCH.alive.get(mchRoute(market));
+        return !!a && a.ready && now() - a.at < 20000;
+    }
+    async function mchAsk(market, msg) {
+        mchChannel();
+        mchOpen(market);
+        const r = mchRoute(market);
+        // the tab may still be loading Vest: wait for its first word, up to the time a cold Vest takes
+        for (let i = 0; i < 120 && !mchReady(market); i++) {
+            if (i % 10 === 0) MCH.ch.postMessage({ k: 'ping', market: r });
+            await sleep(250);
+        }
+        if (!mchReady(market)) throw new Error('the chart data tab is not ready');
+        if (msg.k === 'wait') return MCH.alive.get(r);
+        const id = ++MCH.id;
+        return new Promise((ok, no) => {
+            const t = setTimeout(() => { MCH.wait.delete(id); no(new Error('no answer from the chart data tab')); }, MCH_ASK_MS);
+            MCH.wait.set(id, (m) => { clearTimeout(t); if (m.err) no(new Error(m.err)); else ok(m); });
+            MCH.ch.postMessage(Object.assign({}, msg, { id, market: r }));
+        });
+    }
+
+    // ---- the datafeed our panes are given: everything comes from the market's own hidden tab ----
+    // bars are cached per market, symbol and timeframe, oldest first; history is paged back on demand, one page at a time (the
+    // hidden tab's datafeed keeps its own paging position, so pages of one key are never asked twice at once)
+    function mchKey(market, sym, res) { return mchRoute(market) + '|' + sym + '|' + res; }
+    function mchBarsFor(market, sym, res, pp) {
+        const key = mchKey(market, sym, res);
+        let c = MCH.cache.get(key);
+        if (!c) MCH.cache.set(key, (c = { bars: [], done: false, loaded: false, q: Promise.resolve() }));
+        const job = c.q.then(async () => {
+            if (pp.firstDataRequest || !c.loaded) {
+                const r = await mchAsk(market, { k: 'bars', sym, res, first: true });
+                c.bars = (r.bars || []).slice().sort((a, b) => a.time - b.time);
+                c.done = !c.bars.length || !!r.noData;
+                c.loaded = true;
+            }
+            const fromMs = pp.from * 1000, toMs = pp.to * 1000, want = Math.max(0, Number(pp.countBack) || 0);
+            const enough = () => c.bars.length && c.bars[0].time <= fromMs && c.bars.filter((b) => b.time < toMs).length >= want;
+            for (let i = 0; i < 8 && !c.done && !enough(); i++) {
+                const r = await mchAsk(market, { k: 'bars', sym, res, first: false });
+                const oldest = c.bars.length ? c.bars[0].time : Infinity;
+                const older = (r.bars || []).filter((b) => b.time < oldest).sort((a, b) => a.time - b.time);
+                if (!older.length) { c.done = true; break; }
+                c.bars = older.concat(c.bars);
+            }
+            const before = c.bars.filter((b) => b.time < toMs);
+            const inRange = before.filter((b) => b.time >= fromMs);
+            const out = inRange.length >= want ? inRange : before.slice(-Math.max(want, inRange.length));
+            return { bars: out, noData: !out.length && c.done };
+        });
+        c.q = job.catch(() => {});
+        return job;
+    }
+    function mchOnBar(key, bar) {
+        if (!bar || !(bar.time > 0)) return;
+        const c = MCH.cache.get(key);
+        if (c && c.bars.length) {
+            const last = c.bars[c.bars.length - 1];
+            if (bar.time === last.time) c.bars[c.bars.length - 1] = bar;
+            else if (bar.time > last.time) c.bars.push(bar);
+        }
+        const s = MCH.subs.get(key);
+        if (s) for (const cb of s.cbs.values()) { try { cb(bar); } catch (e) {} }
+    }
+    // the hidden tab started again (its datafeed lost its place): each chart on that key loads afresh
+    function mchResetKey(key) {
+        MCH.cache.delete(key);
+        const s = MCH.subs.get(key);
+        if (s) for (const r of s.resets.values()) { try { r(); } catch (e) {} }
+    }
+    function mchDatafeed(market) {
+        return {
+            onReady(cb) {
+                mchAsk(market, { k: 'config' }).then((m) => setTimeout(() => cb(m.cfg || {}), 0), () => setTimeout(() => cb({}), 0));
+            },
+            searchSymbols(q, ex, type, cb) { setTimeout(() => cb([]), 0); },
+            resolveSymbol(name, ok, no) {
+                mchAsk(market, { k: 'resolve', sym: name }).then((m) => (m.si ? ok(m.si) : no('unknown market')), (e) => no(String(e.message || e)));
+            },
+            getBars(si, res, pp, ok, no) {
+                mchBarsFor(market, si.name, res, pp).then((r) => ok(r.bars, { noData: r.noData }), (e) => no(String(e.message || e)));
+            },
+            subscribeBars(si, res, cb, uid, reset) {
+                const key = mchKey(market, si.name, res);
+                let s = MCH.subs.get(key);
+                if (!s) {
+                    MCH.subs.set(key, (s = { cbs: new Map(), resets: new Map(), market, sym: si.name, res }));
+                    mchAsk(market, { k: 'sub', key, sym: si.name, res }).catch(() => {});
+                }
+                s.cbs.set(uid, cb);
+                if (typeof reset === 'function') s.resets.set(uid, reset);
+            },
+            unsubscribeBars(uid) {
+                for (const [key, s] of MCH.subs) {
+                    if (!s.cbs.delete(uid)) continue;
+                    s.resets.delete(uid);
+                    if (!s.cbs.size) {
+                        MCH.subs.delete(key);
+                        try { mchChannel().postMessage({ k: 'unsub', key, market: mchRoute(s.market) }); } catch (e) {}
+                    }
+                }
+            }
+        };
+    }
+
+    // ---- the layout ----
+    // Vest's chart container shrinks to the main chart's cell; our cells sit beside it in Vest's chart card (measured: Vest's chart resizes
+    // itself and React leaves the sizes alone). Each cell: a thin header (market, timeframe, close) and the chart.
+    const MCH_GRID = {
+        '1': { main: [0, 0, 100, 100], cells: [] },
+        '2h': { main: [0, 0, 50, 100], cells: [[50, 0, 50, 100]] },
+        '2v': { main: [0, 0, 100, 50], cells: [[0, 50, 100, 50]] },
+        '3': { main: [0, 0, 50, 100], cells: [[50, 0, 50, 50], [50, 50, 50, 50]] },
+        '4': { main: [0, 0, 50, 50], cells: [[50, 0, 50, 50], [0, 50, 50, 50], [50, 50, 50, 50]] }
+    };
+    function mchHost() {
+        const h = document.getElementById('tv-chart-container');
+        return h && h.parentElement ? h : null;
+    }
+    function mchCss() {
+        if (MCH.styled) return;
+        MCH.styled = true;
+        ensureStyle('ax4p-mch-css').textContent = `
+            .ax4p-mch-cell { position: absolute; box-sizing: border-box; display: flex; flex-direction: column; border-left: 1px solid var(--ax-line);
+                border-top: 1px solid var(--ax-line); background: var(--ax-base); z-index: 1; }
+            .ax4p-mch-hd { display: flex; align-items: center; gap: 6px; height: 26px; padding: 0 6px; flex: none; font: 600 11px/1 Inter, system-ui, sans-serif;
+                color: var(--ax-text); background: var(--ax-raised); border-bottom: 1px solid var(--ax-line); }
+            .ax4p-mch-hd select { height: 20px; max-width: 140px; border-radius: 5px; border: 1px solid var(--ax-line); background: var(--ax-btn); color: var(--ax-text);
+                font: 600 11px Inter, system-ui, sans-serif; padding: 0 4px; }
+            .ax4p-mch-hd .ax4p-mch-x { margin-left: auto; width: 20px; height: 20px; border: 0; border-radius: 5px; background: none; color: var(--ax-dim); cursor: pointer; }
+            .ax4p-mch-hd .ax4p-mch-x:hover { color: var(--ax-text); background: var(--ax-btn); }
+            .ax4p-mch-hd .ax4p-mch-st { color: var(--ax-dim); font-weight: 500; }
+            .ax4p-mch-body { position: relative; flex: 1; min-height: 0; }
+            #ax4p-mch-menu { position: fixed; z-index: 1000002; padding: 10px; border-radius: 10px; background: var(--ax-inset); border: 1px solid var(--ax-line);
+                box-shadow: 0 12px 32px var(--ax-shadow); display: flex; gap: 8px; }
+            #ax4p-mch-menu[hidden] { display: none; }
+            #ax4p-mch-menu button { width: 44px; height: 36px; padding: 5px; border-radius: 7px; border: 1px solid var(--ax-line); background: var(--ax-btn); cursor: pointer; }
+            #ax4p-mch-menu button.on, #ax4p-mch-menu button:hover { border-color: var(--ax-accent); }
+            #ax4p-mch-menu svg { width: 100%; height: 100%; color: var(--ax-text); }
+            .ax4p-mch-ask { position: absolute; left: 50%; bottom: 40px; transform: translateX(-50%); z-index: 3; display: flex; align-items: center; gap: 8px;
+                height: 28px; padding: 0 4px 0 12px; border-radius: 8px; border: 1px solid var(--ax-accent); background: var(--ax-raised); color: var(--ax-text);
+                box-shadow: 0 8px 24px var(--ax-shadow); font: 600 12px/1 Inter, system-ui, sans-serif; white-space: nowrap; }
+            .ax4p-mch-ask[hidden] { display: none; }
+            .ax4p-mch-ask .ax4p-mch-go { height: 20px; padding: 0 10px; border-radius: 5px; border: 1px solid var(--ax-accent); background: var(--ax-sel); color: #fff;
+                font: 700 11px/1 Inter, system-ui, sans-serif; cursor: pointer; }
+            .ax4p-mch-ask .ax4p-mch-no { width: 20px; height: 20px; padding: 0; border: 0; border-radius: 5px; background: none; color: var(--ax-dim); font-size: 11px; cursor: pointer; }
+            .ax4p-mch-ask .ax4p-mch-no:hover { color: var(--ax-text); background: var(--ax-btn); }`;
+    }
+    function mchCells() { return Array.from(document.querySelectorAll('.ax4p-mch-cell')); }
+    // the grid as the settings say; called on a change and every second (Vest may rebuild its chart card on a market switch)
+    function mchApply() {
+        const cfg = mchCfg();
+        const host = mchHost();
+        if (!host) return;
+        const g = MCH_GRID[cfg.layout] || MCH_GRID['1'];
+        const card = host.parentElement;
+        if (cfg.layout === '1') {
+            if (host.style.width || host.style.height) { host.style.width = ''; host.style.height = ''; host.style.left = ''; host.style.top = ''; host.style.position = ''; }
+            mchCells().forEach((el) => mchClose(el, true));
+            MCH.layout = '1';
+            mchPumpCheck();
+            return;
+        }
+        mchCss();
+        if (getComputedStyle(card).position === 'static') card.style.position = 'relative';
+        const pos = (el, r) => { el.style.left = r[0] + '%'; el.style.top = r[1] + '%'; el.style.width = r[2] + '%'; el.style.height = r[3] + '%'; };
+        if (host.style.position !== 'absolute') host.style.position = 'absolute';
+        pos(host, g.main);
+        // cells: keep the ones that are there (their charts too), add what is missing, drop the extra ones
+        let cells = mchCells().filter((el) => el.parentElement === card);
+        mchCells().filter((el) => el.parentElement !== card).forEach((el) => mchClose(el, true));
+        while (cells.length > g.cells.length) mchClose(cells.pop(), true);
+        for (let i = cells.length; i < g.cells.length; i++) cells.push(mchNewCell(card, i));
+        cells.forEach((el, i) => pos(el, g.cells[i]));
+        MCH.layout = cfg.layout;
+        mchPumpCheck();
+    }
+    function mchPaneCfg(i) {
+        const cfg = mchCfg();
+        const p = cfg.panes[i] && typeof cfg.panes[i] === 'object' ? cfg.panes[i] : {};
+        // a new pane starts on this page's market at a longer timeframe
+        const ladder = ['5', '15', '60', '240'];
+        return { sym: mchRoute(p.sym || detectedSymbol || 'NQ-PERP'), res: String(p.res || ladder[i] || '15') };
+    }
+    function mchNewCell(card, i) {
+        const el = document.createElement('div');
+        el.className = 'ax4p-mch-cell';
+        el.id = 'ax4p-mch-' + (++MCH.id);
+        el.dataset.i = String(i);
+        el.innerHTML = `<div class="ax4p-mch-hd"><select class="ax4p-mch-sym" aria-label="Market"></select><select class="ax4p-mch-res" aria-label="Timeframe"></select><span class="ax4p-mch-st"></span><button type="button" class="ax4p-mch-x" title="Close this chart" aria-label="Close this chart">✕</button></div><div class="ax4p-mch-body"></div>`;
+        card.appendChild(el);
+        const pc = mchPaneCfg(i);
+        el.querySelector('.ax4p-mch-x').onclick = () => mchRemovePane(el);
+        el.querySelector('.ax4p-mch-sym').onchange = (e) => mchSetPane(el, { sym: e.target.value });
+        el.querySelector('.ax4p-mch-res').onchange = (e) => mchSetPane(el, { res: e.target.value });
+        mchFillPickers(el, pc);
+        mchMount(el, pc);
+        return el;
+    }
+    // Vest's market list and timeframes for the pickers (read from Vest's own datafeed: no request of ours)
+    function mchFillPickers(el, pc) {
+        const symSel = el.querySelector('.ax4p-mch-sym'), resSel = el.querySelector('.ax4p-mch-res');
+        const res = (MCH.cfg && Array.isArray(MCH.cfg.supported_resolutions) && MCH.cfg.supported_resolutions.length ? MCH.cfg.supported_resolutions : ['1', '5', '15', '30', '60', '240', '1D']).map(String);
+        const label = (r) => (/^\d+$/.test(r) ? (Number(r) >= 60 && Number(r) % 60 === 0 ? Number(r) / 60 + 'h' : r + 'm') : r);
+        resSel.innerHTML = res.map((r) => `<option value="${escHtml(r)}"${r === pc.res ? ' selected' : ''}>${escHtml(label(r))}</option>`).join('');
+        const list = (MCH.markets && MCH.markets.length ? MCH.markets : []).slice();
+        if (!list.some((m) => m.route === pc.sym)) list.unshift({ route: pc.sym, label: pc.sym.replace(/-PERP$/, '').replace(/-USD$/, '') });
+        symSel.innerHTML = list.map((m) => `<option value="${escHtml(m.route)}"${m.route === pc.sym ? ' selected' : ''}>${escHtml(m.label)}</option>`).join('');
+    }
+    function mchLoadLists() {
+        if (MCH.markets && MCH.cfg) return;
+        const w = findTvWidget();
+        const df = w && w._options && w._options.datafeed;
+        if (!df) return;
+        try { df.onReady((c) => { MCH.cfg = c || {}; mchCells().forEach((el) => mchFillPickers(el, mchPaneCfg(Number(el.dataset.i)))); }); } catch (e) {}
+        try {
+            df.searchSymbols('', '', '', (r) => {
+                // Vest's list: symbol "AAPL", ticker "AAPL-USD" -> the page /trade/AAPL-USD-PERP; NQ's ticker is NQ -> /trade/NQ-PERP
+                MCH.markets = (Array.isArray(r) ? r : []).filter((m) => m && (m.ticker || m.symbol))
+                    .map((m) => ({ route: mchRoute(String(m.ticker || m.symbol)), label: String(m.symbol || m.ticker).replace(/^.*:/, '') }))
+                    .sort((a, b) => a.label.localeCompare(b.label));
+                mchCells().forEach((el) => mchFillPickers(el, mchPaneCfg(Number(el.dataset.i))));
+            });
+        } catch (e) {}
+    }
+    // a pane's chart: Vest's own class and options, our container, our datafeed, our theme, its own saved drawings
+    async function mchMount(el, pc) {
+        const body = el.querySelector('.ax4p-mch-body');
+        const st = el.querySelector('.ax4p-mch-st');
+        const W = findTvWidget();
+        if (!W || typeof W.constructor !== 'function' || !W._options) { st.textContent = 'waiting for Vest\'s chart…'; setTimeout(() => { if (el.isConnected) mchMount(el, mchPaneCfg(Number(el.dataset.i))); }, 1500); return; }
+        const tag = (el.__mchTag = {});
+        st.textContent = 'loading ' + pc.sym.replace(/-PERP$/, '') + '…';
+        let a = null;
+        try { a = await mchAsk(pc.sym, { k: 'wait' }); } catch (e) {}
+        if (!el.isConnected || el.__mchTag !== tag) return;
+        if (!a || !a.sym) { st.textContent = 'no data for ' + pc.sym.replace(/-PERP$/, '') + ' yet'; setTimeout(() => { if (el.isConnected && el.__mchTag === tag) mchMount(el, pc); }, 4000); return; }
+        st.textContent = '';
+        const o = Object.assign({}, W._options);
+        const saved = (mchCfg().panes[Number(el.dataset.i)] || {}).saved;
+        delete o.save_load_adapter;
+        delete o.auto_save_delay;
+        const inner = document.createElement('div');
+        inner.id = el.id + '-tv';
+        inner.style.cssText = 'position:absolute;inset:0;';
+        body.innerHTML = '';
+        body.appendChild(inner);
+        Object.assign(o, {
+            container: inner, datafeed: mchDatafeed(pc.sym), symbol: a.sym, interval: pc.res, autosize: true,
+            disabled_features: Array.from(new Set([].concat(o.disabled_features || [], ['header_saveload', 'header_symbol_search', 'symbol_search_hot_key']))),
+            overrides: Object.assign({}, o.overrides || {}, chartOverrides()),
+            saved_data: saved && typeof saved === 'object' ? saved : undefined
+        });
+        try {
+            const w = new W.constructor(o);
+            el.__mchW = w;
+            mchOpen(pc.sym);
+            mchHookFrame(el);
+            try { w.onChartReady(() => { try { w.applyOverrides(chartOverrides()); } catch (e) {} mchHookFrame(el); }); } catch (e) {}
+        } catch (e) { st.textContent = 'could not start this chart'; }
+    }
+    function mchSave(el) {
+        const w = el && el.__mchW;
+        const i = Number(el.dataset.i);
+        const cfg = mchCfg();
+        if (!w || typeof w.save !== 'function') return;
+        try {
+            w.save((data) => {
+                const p = cfg.panes[i] && typeof cfg.panes[i] === 'object' ? cfg.panes[i] : (cfg.panes[i] = {});
+                const txt = JSON.stringify(data || null);
+                // drawings and studies, kept on this computer; a layout that grew too big is not kept (localStorage is small)
+                if (txt.length < 200000) p.saved = data;
+                persist();
+            });
+        } catch (e) {}
+    }
+    function mchSetPane(el, change) {
+        const i = Number(el.dataset.i);
+        const cfg = mchCfg();
+        const cur = mchPaneCfg(i);
+        const next = Object.assign({}, cur, change);
+        const p = cfg.panes[i] && typeof cfg.panes[i] === 'object' ? cfg.panes[i] : (cfg.panes[i] = {});
+        const marketChanged = next.sym !== cur.sym;
+        p.sym = next.sym;
+        p.res = next.res;
+        if (marketChanged) delete p.saved; // another market's drawings don't belong here
+        persist();
+        // the pane's pickers say what it shows (a Switch changes its market without them)
+        mchFillPickers(el, next);
+        const w = el.__mchW;
+        if (w && !marketChanged) { try { w.activeChart().setResolution(next.res); return; } catch (e) {} }
+        mchUnmount(el);
+        mchMount(el, next);
+    }
+    function mchUnmount(el) {
+        const w = el && el.__mchW;
+        el.__mchW = null;
+        if (w) { try { w.remove(); } catch (e) {} }
+    }
+    // a pane's own close button: one chart less (the layout steps down)
+    function mchRemovePane(el) {
+        const cfg = mchCfg();
+        const i = Number(el.dataset.i);
+        mchSave(el);
+        cfg.panes.splice(i, 1);
+        const n = mchCells().length - 1;
+        cfg.layout = n <= 0 ? '1' : n === 1 ? (cfg.layout === '2v' ? '2v' : '2h') : '3';
+        persist();
+        mchClose(el, false);
+        mchCells().forEach((c, k) => { c.dataset.i = String(k); });
+        mchApply();
+    }
+    function mchClose(el, save) {
+        if (!el) return;
+        if (save) mchSave(el);
+        mchUnmount(el);
+        el.remove();
+    }
+
+    // ---- the pump, the watch and the hidden tabs' lifetime ----
+    function mchPumpCheck() {
+        const any = mchCells().length > 0;
+        if (any && !MCH.pump) {
+            mchChannel();
+            MCH.pump = setInterval(() => { try { MCH.ch.postMessage({ k: 'tick' }); } catch (e) {} }, 100);
+            MCH.watch = setInterval(mchWatch, 5000);
+        } else if (!any && MCH.pump) {
+            clearInterval(MCH.pump); clearInterval(MCH.watch);
+            MCH.pump = 0; MCH.watch = 0;
+            MCH.opened.clear();
+            try { win.postMessage({ bv: 1, dir: 'toExt', type: 'mch', op: 'close' }, location.origin); } catch (e) {}
+        }
+    }
+    // a hidden tab that stopped answering is reloaded by the service worker; the panes on it load again when it is back
+    function mchWatch() {
+        const want = new Set(mchCells().map((el) => mchRoute(mchPaneCfg(Number(el.dataset.i)).sym)));
+        for (const r of want) {
+            const a = MCH.alive.get(r);
+            if (!a || now() - a.at > 20000) {
+                const asked = MCH.opened.get(r) || 0;
+                if (now() - asked > 30000) {
+                    MCH.opened.set(r, now());
+                    try { win.postMessage({ bv: 1, dir: 'toExt', type: 'mch', op: 'open', market: r, reload: !!a }, location.origin); } catch (e) {}
+                    for (const key of MCH.cache.keys()) if (key.startsWith(r + '|')) mchResetKey(key);
+                }
+            }
+        }
+        // the market a Switch would bring into a pane is kept warm while its offer is up
+        if (MCH.pre && now() < MCH.pre.until) want.add(MCH.pre.r);
+        // markets no pane shows any more: their tabs are let go, and forgotten here, so a pane that wants one again asks at once
+        try { win.postMessage({ bv: 1, dir: 'toExt', type: 'mch', op: 'keep', markets: Array.from(want) }, location.origin); } catch (e) {}
+        for (const r of Array.from(MCH.opened.keys())) if (!want.has(r)) { MCH.opened.delete(r); MCH.alive.delete(r); }
+        mchCells().forEach(mchSave);
+    }
+    // the theme changed: every pane takes the same colours as the main chart
+    function mchTheme(tvTheme, overrides) {
+        for (const el of mchCells()) {
+            const w = el.__mchW;
+            if (!w) continue;
+            try {
+                if (typeof w.changeTheme === 'function' && String(w.getTheme() || '').toLowerCase() !== tvTheme) w.changeTheme(tvTheme, { disableUndo: true }).then(() => { try { w.applyOverrides(overrides); } catch (e) {} });
+                else w.applyOverrides(overrides);
+            } catch (e) {}
+        }
+    }
+
+    // ---- trading from an extra chart: the order keys and the offer to switch ----
+    // The order keys trade what this page trades (Vest's ticket follows the page's market). In a pane on that same market they work as on
+    // the main chart; in a pane on another market they never act: the pane offers to make its market this page's market instead, as a
+    // click into it does. The offer is a small bar at the foot of the pane's chart (the pane's header can sit under our floating Execute
+    // card), gone again after a few seconds.
+    const MCH_OFFER_MS = 8000;   // the offer goes away by itself after this
+    const MCH_QUIET_MS = 120000; // after a no (✕, Escape, or left alone) that pane stays quiet this long, unless its market changes
+
+    // the pane of a chart window (a pane's chart is an iframe in our cell), else null: the page itself, Vest's chart, anything else
+    function mchPaneOf(w) {
+        try {
+            const f = w && w.frameElement;
+            return (f && f.closest && f.closest('.ax4p-mch-cell')) || null;
+        } catch (e) { return null; }
+    }
+    // the market this page trades: its route (/trade/NQ-PERP), as the panes name theirs
+    function mchMainRoute() {
+        const m = /^\/trade\/([^/?#]+)/.exec(location.pathname || '');
+        return mchRoute(m ? decodeURIComponent(m[1]) : detectedSymbol);
+    }
+    // Should a pane offer its market? Never for this page's own market; after a no, not again for that market until the quiet time is over.
+    // An order key pressed in the pane (force) asks anyway: the key did nothing, and the offer says why.
+    function mchOfferWanted(paneSym, mainSym, quiet, t, force) {
+        const a = mchRoute(paneSym), m = mchRoute(mainSym);
+        if (!a || !m || a === m) return false;
+        if (force) return true;
+        return !(quiet && quiet.sym === a && t < quiet.until);
+    }
+    // The switch: this page goes to the pane's market and the pane takes this page's market (each chart keeps its own timeframe)
+    function mchSwapPlan(paneSym, mainSym) {
+        const a = mchRoute(paneSym), m = mchRoute(mainSym);
+        return a && m && a !== m ? { main: a, pane: m } : null;
+    }
+    // an order key pressed in a chart window (mcOnDown, after it swallowed the key): true = trade it as on the main chart
+    function mchPaneKey(w) {
+        const el = mchPaneOf(w);
+        if (!el) return true;
+        if (mchRoute(mchPaneCfg(Number(el.dataset.i)).sym) === mchMainRoute()) return true;
+        mchOffer(el, true);
+        return false;
+    }
+    function mchOfferShown(el) {
+        const a = el && el.querySelector('.ax4p-mch-ask');
+        return !!a && !a.hidden;
+    }
+    function mchOffer(el, force) {
+        if (!el || !el.isConnected) return false;
+        const sym = mchRoute(mchPaneCfg(Number(el.dataset.i)).sym);
+        if (!mchOfferWanted(sym, mchMainRoute(), el.__mchQuiet, now(), force)) return false;
+        if (mchOfferShown(el) && !force) return true; // already up: another click changes nothing
+        mchCss();
+        let a = el.querySelector('.ax4p-mch-ask');
+        if (!a) {
+            a = document.createElement('span');
+            a.className = 'ax4p-mch-ask';
+            a.setAttribute('role', 'status');
+            a.innerHTML = '<span class="ax4p-mch-q"></span><button type="button" class="ax4p-mch-go">Switch</button><button type="button" class="ax4p-mch-no" title="Not now" aria-label="Not now">✕</button>';
+            el.querySelector('.ax4p-mch-body').appendChild(a);
+            a.querySelector('.ax4p-mch-go').onclick = () => mchSwitch(el);
+            a.querySelector('.ax4p-mch-no').onclick = () => mchOfferHide(el, true);
+        }
+        const label = sym.replace(/-PERP$/, '').replace(/-USD$/, '');
+        a.querySelector('.ax4p-mch-q').textContent = 'Trade ' + label + ' here?';
+        a.querySelector('.ax4p-mch-go').title = 'Make ' + label + ' this page\'s market; this chart takes ' + mchMainRoute().replace(/-PERP$/, '').replace(/-USD$/, '');
+        a.dataset.sym = sym;
+        a.hidden = false;
+        // a Switch gives this pane the page's market: its data tab starts loading now, so the swap is quick
+        const main = mchMainRoute();
+        MCH.pre = { r: main, until: now() + MCH_OFFER_MS + 15000 };
+        mchChannel();
+        mchOpen(main);
+        clearTimeout(el.__mchOfferT);
+        el.__mchOfferT = setTimeout(() => mchOfferHide(el, true), MCH_OFFER_MS);
+        return true;
+    }
+    function mchOfferHide(el, quiet) {
+        const a = el && el.querySelector('.ax4p-mch-ask');
+        if (!a || a.hidden) return;
+        clearTimeout(el.__mchOfferT);
+        a.hidden = true;
+        if (quiet) el.__mchQuiet = { sym: a.dataset.sym || '', until: now() + MCH_QUIET_MS };
+    }
+    // every second: an offer whose pane now shows this page's market, or another market than the one offered, goes away
+    function mchOfferCheck() {
+        for (const el of mchCells()) {
+            mchHookFrame(el);
+            const a = el.querySelector('.ax4p-mch-ask');
+            if (!a || a.hidden) continue;
+            const sym = mchRoute(mchPaneCfg(Number(el.dataset.i)).sym);
+            if (a.dataset.sym !== sym || !mchOfferWanted(sym, mchMainRoute(), null, 0, true)) mchOfferHide(el, false);
+        }
+    }
+    // A press in a pane's chart: its events stay inside its iframe and never reach this page, so the pane's window is listened to itself.
+    // (TradingView writes the frame as it creates it, before this runs, so these listeners are not wiped by its document.open().)
+    function mchHookFrame(el) {
+        const f = el && el.querySelector('.ax4p-mch-body iframe');
+        let w = null;
+        try { w = f && f.contentWindow; if (!w || w.__bvMchOn) return; void w.document; } catch (e) { return; }
+        w.__bvMchOn = 1;
+        w.addEventListener('pointerdown', () => { try { mchOffer(el, false); } catch (e) {} }, true);
+        w.addEventListener('keydown', (e) => { if (e.key === 'Escape') mchOfferHide(el, true); }, true);
+    }
+    // Vest's own router: the history its market links push to (React Router's navigator), found once in React's tree
+    function mchNavigator() {
+        const ok = (v) => { try { return !!v && typeof v === 'object' && typeof v.push === 'function' && typeof v.listen === 'function' && typeof v.location.pathname === 'string'; } catch (e) { return false; } };
+        if (ok(MCH.nav)) return MCH.nav;
+        MCH.nav = null;
+        const root = document.getElementById('root');
+        const key = root ? Object.keys(root).find((k) => k.startsWith('__reactContainer')) : '';
+        const stack = key ? [root[key]] : [];
+        for (let n = 0; stack.length && n < 50000; n++) {
+            const f = stack.pop();
+            if (!f) continue;
+            const p = f.memoizedProps;
+            if (p && typeof p === 'object' && ok(p.navigator)) return (MCH.nav = p.navigator);
+            if (f.sibling) stack.push(f.sibling);
+            if (f.child) stack.push(f.child);
+        }
+        return null;
+    }
+    // Switch: this page moves to the pane's market through Vest's own router (no reload: Vest's chart, its ticket and our card follow the
+    // page as they do for Vest's own market list), then the pane takes the page's old market.
+    function mchSwitch(el) {
+        const plan = mchSwapPlan(mchPaneCfg(Number(el.dataset.i)).sym, mchMainRoute());
+        mchOfferHide(el, false);
+        if (!plan) return false;
+        // never under the user's hand or a Vest window, nor while an order is on its way (the ticket would change under it)
+        const why = TP.drag ? 'a TP/SL line is being dragged' : mcDialogOpen(document) ? 'a Vest window is open' : (XC.busy || now() < mc.lockUntil) ? 'an order is on its way' : '';
+        if (why) { tpToast('Not switched: ' + why + '.', 'warn'); return false; }
+        const url = '/trade/' + plan.main + location.search + location.hash;
+        let moved = false;
+        try { const nav = mchNavigator(); if (nav) { nav.push(url); moved = mchMainRoute() === plan.main; } } catch (e) {}
+        mchSetPane(el, { sym: plan.pane });
+        if (!moved) location.assign(url); // Vest's router not found: a full page load, the only way left (the pane's new market is saved)
+        return true;
+    }
+
+    // ---- the dock's Charts button and its layout menu ----
+    const MCH_ICON = {
+        '1': '<rect x="3" y="3" width="18" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/>',
+        '2h': '<rect x="3" y="3" width="18" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 3v18" stroke="currentColor" stroke-width="1.6"/>',
+        '2v': '<rect x="3" y="3" width="18" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M3 12h18" stroke="currentColor" stroke-width="1.6"/>',
+        '3': '<rect x="3" y="3" width="18" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 3v18M12 12h9" stroke="currentColor" stroke-width="1.6"/>',
+        '4': '<rect x="3" y="3" width="18" height="18" rx="2" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 3v18M3 12h18" stroke="currentColor" stroke-width="1.6"/>'
+    };
+    function mchSetLayout(layout) {
+        if (MCH_LAYOUTS.indexOf(layout) < 0) return;
+        mchCfg().layout = layout;
+        persist();
+        mchLoadLists();
+        mchApply();
+        mchPaintMenu();
+    }
+    function mchPaintMenu() {
+        const m = document.getElementById('ax4p-mch-menu');
+        if (m) m.querySelectorAll('button').forEach((b) => b.classList.toggle('on', b.dataset.l === mchCfg().layout));
+        const t = document.getElementById('ax4p-tog-charts');
+        if (t) t.classList.toggle('on', mchCfg().layout !== '1');
+    }
+    function mchMenuToggle(btn) {
+        mchCss();
+        let m = document.getElementById('ax4p-mch-menu');
+        if (!m) {
+            m = document.createElement('div');
+            m.id = 'ax4p-mch-menu';
+            m.hidden = true;
+            m.setAttribute('role', 'menu');
+            const names = { '1': 'One chart', '2h': 'Two side by side', '2v': 'Two stacked', '3': 'Three', '4': 'Four' };
+            m.innerHTML = MCH_LAYOUTS.map((l) => `<button type="button" data-l="${l}" title="${names[l]}" aria-label="${names[l]}"><svg viewBox="0 0 24 24">${MCH_ICON[l]}</svg></button>`).join('');
+            m.addEventListener('click', (e) => { const b = e.target.closest('button[data-l]'); if (b) { mchSetLayout(b.dataset.l); m.hidden = true; } });
+            document.body.appendChild(m);
+            document.addEventListener('click', (e) => { if (!m.hidden && !e.target.closest('#ax4p-mch-menu, #ax4p-tog-charts')) m.hidden = true; });
+        }
+        m.hidden = !m.hidden;
+        if (m.hidden) return;
+        mchPaintMenu();
+        const r = btn.getBoundingClientRect();
+        m.style.left = Math.max(8, Math.min(window.innerWidth - m.offsetWidth - 8, r.left)) + 'px';
+        m.style.top = Math.max(8, r.top - m.offsetHeight - 8) + 'px';
+    }
+    // from bootUi: the grid as saved, kept up while Vest rebuilds its page
+    function mchStart() {
+        const t = document.getElementById('ax4p-tog-charts');
+        if (t) t.onclick = (e) => { e.stopPropagation(); mchMenuToggle(t); };
+        mchPaintMenu();
+        setInterval(() => {
+            try {
+                if (mchCfg().layout !== '1') { mchLoadLists(); mchApply(); mchOfferCheck(); }
+                else if (mchCells().length) mchApply();
+            } catch (e) {}
+        }, 1000);
+        window.addEventListener('pagehide', () => { mchCells().forEach(mchSave); });
+        // Escape on the page takes every offer away (in a pane's chart its own window hears it: mchHookFrame)
+        window.addEventListener('keydown', (e) => { if (e.key === 'Escape') mchCells().forEach((el) => mchOfferHide(el, true)); }, true);
+    }
+    // 9.0: the chart's price second by second, for the P&L card's Replay (extension only)
+    // ---------- Seconds for the P&L card's Replay (9.0) ----------
+    // The owner: "the replay is tooo fast make it possible to (record second data while user is trading) so it can play at different
+    // speeds". While a Vest trade page is open, the price of the market on its chart is kept second by second. The source is Vest's own
+    // chart: TradingView's onTick hands over every bar update Vest's datafeed gives the chart (its mid price), so each second's open,
+    // high, low and close add up to the chart's own candles (measured 2026-10-11: every minute equal). No subscription of ours at Vest's
+    // datafeed (a second one for the same market and timeframe would replace the chart's, see src/multichart.js) and no request: the
+    // chart already has these prices. Per update only a few comparisons; every 15 s the finished seconds go to the extension
+    // (bridge.js -> sw.js -> IndexedDB 'bv-tape', better-vest/cert/tape-db.js), which keeps 30 days. The P&L card's GIF plays them
+    // inside each bar (better-vest/cert/tape.js). One tab records a market (a Web Lock per market); copy, leader and chart data tabs
+    // never do. Settings: S.share.tape (on by default). Extension only; tools/build.py splices this file in where the suite names it.
+
+    // ---- tape pure: begin ----
+    // No DOM, no suite state. tests/share/tape-rec.test.mjs runs this block as it is.
+    const TAPE_FLUSH_MS = 15000;    // finished seconds go to the extension this often
+    const TAPE_HOLD = 7200;         // seconds held at most while nothing takes them (two hours): older ones go first
+    const TAPE_MSG_ROWS = 3600;     // seconds in one message at most (better-vest/cert/tape.js TAPE_ROWS_MAX)
+    const TAPE_JOIN_MS = 3000;      // a bar first heard of later than this into it was joined part way: its seconds are not kept
+    const TAPE_QUIET_MS = 60000;    // ...unless the bar before was followed and heard from this recently (a quiet start, not a gap)
+
+    // TradingView's onTick gives a bar's time in a unit of its own (seen 2026-10-11: ms / 1e6): the reading that lands nearest to now,
+    // 0 when none is within 40 days (a monthly bar is the oldest a chart forms)
+    function tapeBarMs(t, now) {
+        const v = Number(t);
+        if (!(v > 0)) return 0;
+        let best = 0, err = Infinity;
+        for (const k of [1, 1e3, 1e6]) {
+            const ms = Math.round(v * k), e = Math.abs(ms - now);
+            if (e < err) { err = e; best = ms; }
+        }
+        return err <= 40 * 86400e3 ? best : 0;
+    }
+    // a chart timeframe in seconds: '1' 60, '5' 300, '60' 3600, '1D' 86400, '5S' 5; 0 when unknown
+    function tapeResS(res) {
+        const m = /^(\d*)([SDWM]?)$/i.exec(String(res == null ? '' : res).trim());
+        if (!m || (!m[1] && !m[2])) return 0;
+        const n = m[1] ? Number(m[1]) : 1, u = m[2].toUpperCase();
+        return n > 0 ? n * (u === 'S' ? 1 : u === 'D' ? 86400 : u === 'W' ? 604800 : u === 'M' ? 2678400 : 60) : 0;
+    }
+    // one market on one timeframe: the bar being followed, the second being filled (cur) and the finished seconds (rows, flat: second,
+    // open, high, low, close)
+    const tapeNew = (resS) => ({ resS, bar: 0, open: 0, hi: 0, lo: 0, keep: false, last: 0, cur: null, rows: [] });
+    // One update of the chart's last bar (TradingView's { time, open, high, low, close }) at `now` (ms). Its second is the moment it came,
+    // held inside the bar's own time, so the seconds of a bar always add up to it: the first one opens at the bar's open (Vest opens a bar
+    // at the last close), every update adds its close, and a high or a low the bar reached since the last update (updates may be merged).
+    // Returns true when it was kept.
+    function tapeAdd(st, b, now) {
+        if (!b || typeof b !== 'object') return false;
+        const o = Number(b.open), h = Number(b.high), l = Number(b.low), c = Number(b.close);
+        if (!(o > 0 && h > 0 && l > 0 && c > 0) || !Number.isFinite(o + h + l + c) || h < l) return false;
+        const t = tapeBarMs(b.time, now), len = st.resS * 1000;
+        // a bar already over (Vest filling a gap from its history) or not begun: not this moment's price
+        if (!t || !(len > 0) || t < st.bar || now < t - TAPE_JOIN_MS || now >= t + len + TAPE_JOIN_MS) return false;
+        const fresh = h <= Math.max(o, c) + 1e-9 && l >= Math.min(o, c) - 1e-9;
+        const newBar = t > st.bar;
+        if (newBar) {
+            if (st.cur) { st.rows.push(st.cur[0], st.cur[1], st.cur[2], st.cur[3], st.cur[4]); st.cur = null; }
+            st.keep = fresh && (now - t <= TAPE_JOIN_MS || (st.keep && now - st.last <= TAPE_QUIET_MS));
+            st.bar = t; st.open = o;
+        } else if (st.keep && (h < st.hi - 1e-9 || l > st.lo + 1e-9 || Math.abs(o - st.open) > 1e-9)) {
+            // the bar was redone (Vest read it again after a gap): what was kept of it no longer adds up, the rest is not kept
+            st.keep = false;
+        }
+        const pHi = st.hi, pLo = st.lo;
+        st.hi = h; st.lo = l; st.last = now;
+        if (!st.keep) return false;
+        const uo = newBar ? o : c, uh = newBar || h > pHi ? h : c, ul = newBar || l < pLo ? l : c;
+        let sec = Math.min(Math.floor((t + len) / 1000) - 1, Math.max(Math.floor(t / 1000), Math.floor(now / 1000)));
+        const cur = st.cur;
+        if (cur && sec < cur[0]) sec = cur[0];   // the clock went back: never a second before the last
+        if (cur && cur[0] === sec) {
+            if (uh > cur[2]) cur[2] = uh;
+            if (ul < cur[3]) cur[3] = ul;
+            cur[4] = c;
+        } else {
+            if (cur) st.rows.push(cur[0], cur[1], cur[2], cur[3], cur[4]);
+            st.cur = [sec, uo, Math.max(uo, uh, c), Math.min(uo, ul, c), c];
+            if (st.rows.length > TAPE_HOLD * 5) st.rows.splice(0, st.rows.length - TAPE_HOLD * 5);
+        }
+        return true;
+    }
+    // The finished seconds, handed over once (all: the one being filled too, and the rest of its bar is then not kept)
+    function tapeTake(st, all) {
+        if (all && st.cur) { st.rows.push(st.cur[0], st.cur[1], st.cur[2], st.cur[3], st.cur[4]); st.cur = null; st.keep = false; }
+        const out = st.rows;
+        st.rows = [];
+        return out;
+    }
+    // ---- tape pure: end ----
+
+    const TAPE = { w: null, chart: null, sym: '', res: '', st: null, lockSym: '', lock: null, held: false, flushAt: 0, started: false,
+        calls: 0, kept: 0, ms: 0 };
+    const tapeWanted = () => !!(S.share && S.share.tape !== false) && !/[?&](bvCopy|bvLead|bvChart)=/.test(location.search);
+    // the market's name as Vest's datafeed knows it (NDX-USD-PERP, BTC-PERP): the key the seconds are kept under. The chart's symbol() is
+    // the ticker ("NQ"); its symbolExt() carries the datafeed's name (checked 2026-10-12)
+    function tapeSymOf(w) {
+        try {
+            const c = w.activeChart();
+            const x = typeof c.symbolExt === 'function' ? c.symbolExt() : null;
+            return String((x && x.name) || c.symbol() || '').toUpperCase().replace(/^.*:/, '');
+        } catch (e) { return ''; }
+    }
+    function tapeResOf(w) {
+        try { return String(w.activeChart().resolution() || ''); } catch (e) { return ''; }
+    }
+    // read only, for the P&L card (src/copy/35-share.js): the chart's market under that key
+    function tapeSymbol() {
+        const w = findTvWidget();
+        return w ? tapeSymOf(w) : '';
+    }
+
+    function tapeOnTick(bar) {
+        if (!TAPE.held || !TAPE.st) return;
+        const p0 = performance.now(), t = Date.now();
+        if (tapeAdd(TAPE.st, bar, t)) TAPE.kept++;
+        if (t - TAPE.flushAt >= TAPE_FLUSH_MS) tapeFlush(false, t);
+        TAPE.calls++;
+        TAPE.ms += performance.now() - p0;
+    }
+    function tapeFlush(all, t) {
+        TAPE.flushAt = t;
+        const st = TAPE.st;
+        if (!st || !TAPE.sym) return;
+        const rows = tapeTake(st, all);
+        for (let i = 0; i < rows.length; i += 5 * TAPE_MSG_ROWS) {
+            try { win.postMessage({ bv: 1, dir: 'toExt', type: 'tape', sym: TAPE.sym, rows: rows.slice(i, i + 5 * TAPE_MSG_ROWS) }, location.origin); } catch (e) {}
+        }
+    }
+    // a new market or timeframe on the chart: what was kept goes out, and nothing is kept until the next look (tapeTick) starts afresh
+    function tapeChanged() {
+        tapeFlush(true, Date.now());
+        TAPE.st = null;
+        TAPE.sym = TAPE.res = '';
+    }
+
+    // one tab records a market: the one holding its lock (a tab on another market, or one closing, lets the next take it)
+    function tapeLock(sym) {
+        if (TAPE.lockSym === sym) return;
+        tapeUnlock();
+        TAPE.lockSym = sym;
+        const L = typeof navigator !== 'undefined' ? navigator.locks : null;
+        if (!L || typeof L.request !== 'function') { TAPE.held = true; return; }
+        const ac = typeof AbortController === 'function' ? new AbortController() : null;
+        let free = null;
+        const hold = new Promise((r) => { free = r; });
+        const me = { ac, free: () => { if (free) free(); } };
+        TAPE.lock = me;
+        Promise.resolve().then(() => L.request('bv-tape:' + sym, ac ? { signal: ac.signal } : {}, () => {
+            if (TAPE.lock !== me) return undefined;
+            TAPE.held = true;
+            // taken over from another tab: the bar under way was not followed here
+            if (TAPE.st) TAPE.st = tapeNew(TAPE.st.resS);
+            return hold;
+        })).catch(() => {});
+    }
+    function tapeUnlock() {
+        const l = TAPE.lock;
+        TAPE.lock = null;
+        TAPE.held = false;
+        TAPE.lockSym = '';
+        if (l) { try { if (l.ac) l.ac.abort(); } catch (e) {} l.free(); }
+    }
+    function tapeAttach(w) {
+        try { w.subscribe('onTick', tapeOnTick); } catch (e) { return; }
+        TAPE.w = w;
+        try {
+            const c = w.activeChart();
+            c.onSymbolChanged().subscribe(null, tapeChanged);
+            c.onIntervalChanged().subscribe(null, tapeChanged);
+            TAPE.chart = c;
+        } catch (e) { TAPE.chart = null; }
+    }
+    function tapeDetach() {
+        if (TAPE.w) { try { TAPE.w.unsubscribe('onTick', tapeOnTick); } catch (e) {} }
+        if (TAPE.chart) {
+            try { TAPE.chart.onSymbolChanged().unsubscribe(null, tapeChanged); TAPE.chart.onIntervalChanged().unsubscribe(null, tapeChanged); } catch (e) {}
+        }
+        TAPE.w = TAPE.chart = null;
+        tapeChanged();
+    }
+    function tapeStop() {
+        if (TAPE.w) tapeDetach();
+        tapeUnlock();
+    }
+    // every 2 s: the setting, the chart (a new one after Vest rebuilds it), its market and timeframe, the lock; and the 15 s flush when
+    // the market is quiet
+    function tapeTick() {
+        const t = Date.now();
+        if (!tapeWanted()) { tapeStop(); return; }
+        const w = findTvWidget();
+        if (w !== TAPE.w) { tapeStop(); if (w) tapeAttach(w); }
+        if (!TAPE.w) return;
+        const sym = tapeSymOf(TAPE.w), res = tapeResOf(TAPE.w), resS = tapeResS(res);
+        if (!sym || !resS || !/^[A-Z0-9][A-Z0-9._-]{0,40}$/.test(sym)) { tapeChanged(); tapeUnlock(); return; }
+        if (sym !== TAPE.sym || res !== TAPE.res || !TAPE.st) {
+            tapeChanged();
+            TAPE.sym = sym;
+            TAPE.res = res;
+            TAPE.st = tapeNew(resS);
+        }
+        tapeLock(sym);
+        if (t - TAPE.flushAt >= TAPE_FLUSH_MS) tapeFlush(false, t);
+    }
+    function tapeStart() {
+        if (TAPE.started) return;
+        TAPE.started = true;
+        setInterval(tapeTick, 2000);
+        setTimeout(tapeTick, 1500);
+        // the seconds not sent yet go out as the page closes
+        window.addEventListener('pagehide', () => tapeFlush(true, Date.now()));
+    }
 
     function bootUi() {
         injectAstralTheme();
@@ -12356,6 +15549,22 @@
         mcBoot();
         setInterval(dllTick, 2000);
         setTimeout(dllTick, 1200);
+        // 9.0: the New York open and the news: the moments, the card's countdown chip, and a toast for them while the voice is off
+        ensureStyle('ax4p-ss-css').textContent = ssChipCss();
+        setInterval(() => { try { ssTick(); ssPaintChip(document.getElementById('ax4p-ss-chip')); } catch (e) {} }, 1000);
+        BV_EV.push((type, d) => {
+            if (!/^(ny-open-5|ny-open|news-5|news-1)$/.test(type) || (S.voice && S.voice.on !== false)) return;
+            const names = d && Array.isArray(d.shorts) ? d.shorts.join(' + ') : 'News';
+            const text = type === 'ny-open-5' ? 'New York opens in five minutes.' : type === 'ny-open' ? 'New York is open.' : names + (type === 'news-5' ? ' in five minutes.' : ' in one minute.');
+            tpToast(text, type === 'news-1' ? 'warn' : '', 6000);
+        });
+        // 9.0: the extra charts as saved (multi-chart)
+        mchStart();
+        // 9.0: the chart's seconds for the P&L card's Replay
+        tapeStart();
+        // 9.0: the other locks (yours, the profit limit, the tilt guard) and their voice lines
+        setInterval(gdTick, 2000);
+        setTimeout(gdTick, 1300);
         syncCertButton();
         setInterval(syncCertButton, 1500);
         setTimeout(warnSecondCopy, 6000);
@@ -12491,7 +15700,8 @@
             const keep = activeSelectedSize;
             activeSelectedSize = Number(size);
             xcSyncUsd(); // a stop / target in dollars: its points for this size
-            try { return await xcExecute(side); } finally { activeSelectedSize = keep; xcSyncUsd(); }
+            xcPinned++;
+            try { return await xcExecute(side); } finally { activeSelectedSize = keep; xcPinned--; xcSyncUsd(); }
         },
         // A click on the card's FLAT, so its Demo guard and its "stop 50% / REV first" handling still apply.
         flat() {
@@ -12505,10 +15715,15 @@
         chartBars: () => rpChartBars(),
         feedBars: (res, first, sym) => rpFeedBars(res, first, sym),
         chartColors: () => rpChartColors(),
+        // 9.0: the chart's market as the recorded seconds are kept under it (src/tape.js), for the Replay's GIF
+        tapeSym: () => tapeSymbol(),
         sameMarket: (sym) => tpSameSym(sym, tpSymbol()),
         // Accounts and limits (8.2, overview contract 2): the copier hands over its groups and its setter for Manage accounts'
         // copy group column: { groups(): [{ id, leaderId, followerIds }], setGroup(accountId, groupId | null): { ok, why? } }
         accountsHooks: (h) => vuSetHooks(h),
+        // 9.0: the suite's events (bvEmit), for voice feedback
+        onEvent: (cb) => { if (typeof cb === 'function' && BV_EV.length < 20) BV_EV.push(cb); },
+        voicePacks: () => VOICE_PACKS.map((v) => Object.assign({}, v)),
         // 8.2 round 2: the copier's "Switch this tab to <leader>", through Vest's own account menu (src/vest-accounts.js vuSwitchTo)
         switchAccount: (id) => (typeof vuSwitchTo === 'function' ? vuSwitchTo(id) : Promise.resolve({ ok: false, why: 'Switch accounts in Vest\'s own menu.' })),
         bridge: () => tpBridge()
@@ -13271,7 +16486,8 @@
             guard(vestGet('/v3/capital/accounts/active', null, sig).then((r) => { run.pages++; return r; }), 'accounts'),
             light ? Promise.resolve([]) : guard(pagedList(run, '/v3/capital/accounts/history', { limit: 100 }, 'accounts'), 'history'),
             guard(pagedList(run, '/v3/accounts', { active: 'true', limit: 500 }, 'accounts'), 'primary'),
-            light ? Promise.resolve([]) : guard(pagedList(run, '/v3/capital/withdrawals', { limit: 100 }, 'withdrawals', 100), 'payouts'),
+            // 9.0 (fix 7): the quick sync reads the payouts too, so a payout paid today shows without a full sync (the same GET as the full run)
+            guard(pagedList(run, '/v3/capital/withdrawals', { limit: 100 }, 'withdrawals', 100), 'payouts'),
             light ? Promise.resolve(null) : vestGet('/v3/capital/accounts', null, sig).then((r) => { run.pages++; return r; }, (e) => {
                 if (e instanceof JError && FATAL.has(e.code)) throw e;
                 return null;
@@ -13512,10 +16728,24 @@
         firstTokenTimer = setTimeout(() => { firstTokenTimer = null; maybeAuto('token'); }, 5000);
     }
 
+    // a payout Vest reports as paid (9.0): its private socket's profit_withdrawal frame with status EXECUTED (Vest's own "payout received"
+    // toast). Parsed only when both words are in the frame.
+    function payoutPaid(d) {
+        if (d.indexOf('profit_withdrawal') === -1 || d.indexOf('EXECUTED') === -1) return false;
+        let j = null;
+        try { j = JSON.parse(d); } catch (e) { return false; }
+        for (const f of Array.isArray(j) ? j : [j]) {
+            if (isObj(f) && f.channel === 'profit_withdrawal' && isObj(f.data) && String(f.data.status).toUpperCase() === 'EXECUTED') return true;
+        }
+        return false;
+    }
+
     let closedTimer = null;
     function onPrivateMessage(ev) {
         const d = ev && ev.data;
-        if (typeof d !== 'string' || d.indexOf('POSITION_EVENT_TYPE_CLOSED') === -1) return;
+        if (typeof d !== 'string') return;
+        // a closed position, or (9.0) a payout paid: a quick sync, which reads the payouts too
+        if (d.indexOf('POSITION_EVENT_TYPE_CLOSED') === -1 && !payoutPaid(d)) return;
         if (closedTimer) clearTimeout(closedTimer);
         closedTimer = setTimeout(() => { closedTimer = null; requestRun('delta'); }, 1200);
     }
@@ -17613,6 +20843,9 @@ function vxDerivedPnl(reg, p) {
 // One account's live numbers, from Vest's own stores, no request:
 //   positions: [{ id, symbol (as given), side, qty, entry, mark, upnl, src: 'vest' | 'computed' | '' }] or null when they cannot be read
 //   upnl, equity, balance: USD numbers or null;  live: the position store is one Vest keeps current for this account (see vx.storePositions)
+//   cash: the account value minus its open P&L, from the equity store's one row (Vest's value = balance + open P&L + the collateral of its
+//   positions and orders), so it does not move when a trade opens or closes, only by what a trade books; `balance` is Vest's free cash,
+//   which drops by the collateral at an open and gets it back at the close
 // The store is read even when it is not trusted for trading (a follower's rows are at most Vest's own 60 s refetch old until its socket has
 // been seen streaming the other accounts: fine to show, not to trade on). rows: what to use when the store holds nothing for the account
 // (the copier's own last read, same shape as vx.positions). A P&L comes from Vest's derived store; failing that it is computed from the
@@ -17672,11 +20905,12 @@ function vxAccountView(accountId, rows) {
         });
     }
     // account value, balance, total P&L: the equity store, with the capital record's breach figures first (what Vest's own screens show)
-    let equity = null, balance = null, total = null;
+    let equity = null, balance = null, total = null, cash = null;
     try {
         const es = vxStore('eq');
         const row = es ? es.getState().accounts[id] : null;
         if (row) { equity = vxUsd(row.value); total = vxUsd(row.unrealizedPnl); }
+        if (row && typeof row.value === 'bigint' && typeof row.unrealizedPnl === 'bigint') cash = vxUsd(row.value - row.unrealizedPnl);
     } catch (e) {}
     try {
         const as = vxStore('acct');
@@ -17696,7 +20930,7 @@ function vxAccountView(accountId, rows) {
     if (positions && positions.every((p) => p.upnl != null)) upnl = positions.reduce((n, p) => n + p.upnl, 0);
     else if (total != null) upnl = total;
     if (positions == null && upnl == null && equity == null && balance == null) return null;
-    return { positions, upnl, equity, balance, live };
+    return { positions, upnl, equity, balance, cash, live };
 }
 
 // ---------- writers ----------
@@ -20294,10 +23528,11 @@ function cpAcceptConfirmed(rec) {
 // ticker frame of every account that holds the market, and its equity store). Vest's own number is preferred; failing that the P&L is
 // computed from the market's price in Vest's market store; a number that cannot be read is null (the UI shows "-"), never a guess.
 
-// { positions: [{ symbol, side, qty, entry, mark, upnl }], upnl, equity, balance, source, live } or null when the account's positions cannot
-// be read at all. upnl / equity / balance are USD numbers or null; mark is the price Vest valued the position at (its mid price); source is
-// 'vest' (Vest's own P&L), 'computed' (from the market price), 'mixed' or '' (nothing readable); live: the position store is the one Vest
-// keeps current for this account (false: the rows are at most Vest's own 60 s refetch old, or come from the copier's last read).
+// { positions: [{ symbol, side, qty, entry, mark, upnl }], upnl, equity, balance, cash, source, live } or null when the account's positions
+// cannot be read at all. upnl / equity / balance / cash are USD numbers or null (cash: the account value minus its open P&L, see
+// vxAccountView); mark is the price Vest valued the position at (its mid price); source is 'vest' (Vest's own P&L), 'computed' (from the
+// market price), 'mixed' or '' (nothing readable); live: the position store is the one Vest keeps current for this account (false: the rows
+// are at most Vest's own 60 s refetch old, or come from the copier's last read).
 function cpAccountInfo(accountId) {
     const id = String(accountId == null ? '' : accountId);
     const v = cpVx();
@@ -20323,7 +23558,7 @@ function cpAccountInfo(accountId) {
         msg: 'P&L of ' + cpName(id) + ' is read from ' + (source === 'vest' ? 'Vest\'s own numbers' : source === 'computed' ? 'the market price (Vest gave none)' : source === 'mixed' ? 'Vest\'s numbers and the market price' : 'nothing readable') + ', ' + (view.live ? 'live' : 'not live (at most Vest\'s own 60 s refetch old)')
             + ', ' + positions.length + ' position' + (positions.length === 1 ? '' : 's') + (view.equity != null ? '' : ', no account value') + (view.balance != null ? '' : ', no balance'), acc: id, source, live: !!view.live, positions: positions.length }));
     return { positions, upnl: view.upnl == null ? null : cpCents(view.upnl), equity: view.equity == null ? null : cpCents(view.equity),
-        balance: view.balance == null ? null : cpCents(view.balance), source, live: !!view.live };
+        balance: view.balance == null ? null : cpCents(view.balance), cash: view.cash == null ? null : cpCents(view.cash), source, live: !!view.live };
 }
 
 function cpCents(n) { return Math.round(n * 100) / 100; }
@@ -25018,18 +28253,19 @@ cuBoot();
 // P&L card (8.1): the dock's "P&L" button and the share poster's data (WICKED and STANDARD, which carry the copy trader).
 // Pressing it sends a snapshot of today's P&L per account to the share poster (better-vest/cert/share.html, through bridge.js and sw.js, which
 // cleans it with cert/share-model.js). After a winning exit worth 1% or more of the account's balance the button glows green for 45 s, so the
-// moment to post is obvious. Read only: Vest's own stores through the copier's readers (cuAccounts, cuToday, cpAccountInfo); nothing is sent
-// to Vest, and the snapshot never holds an id Vest did not show.
+// moment to post is obvious; 9.0: the card also pops up on Vest's page (shPop*, below). Read only: Vest's own stores through the copier's
+// readers (cuAccounts, cuToday, cpAccountInfo); nothing is sent to Vest, and the snapshot never holds an id Vest did not show.
 // ======================================================================================
 const SH_GLOW_MS = 45000;   // the owner: "highlight green for like 45s"
 const SH_GAIN = 0.01;       // "a green trade whose P&L is over 1% of his balance"
 // a card with a rising line: the P&L card (the owner: not "Share", which reads as sharing the extension; the colour is on the icon only)
 const SH_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="m7 15 3.5-3.5 2.5 2.5L17 9.5"/><path d="M14 9.5h3v3"/></svg>';
 const SH_TIP = 'P&L card: today\'s P&L as an image to post, with Vest\'s logo';
-const SH = { bal: {}, glowUntil: 0, gain: null, busy: false };
+const SH_OPEN_MS = 60000;    // a winning exit realizes an open profit seen within this
+const SH = { bal: {}, last: {}, open: {}, glowUntil: 0, gain: null, busy: false, base: '', origin: '', pop: null };
 
-// A winning exit worth `pct` of the balance or more: the account's balance (its cash: realized P&L, not the open one) went from `prev` to
-// `now` in one step. A balance not read yet (null, or 0 while Vest's page loads) never counts, so a page load or an account switch never glows.
+// A winning exit worth `pct` of the balance or more: the account's cash (its value minus its open P&L, see shRead) went from `prev` to `now`.
+// A balance not read yet (null, or 0 while Vest's page loads) never counts, so a page load or an account switch never glows.
 function shGainHit(prev, now, pct) {
     return typeof prev === 'number' && typeof now === 'number' && prev > 0 && now > 0 && now - prev >= prev * pct - 1e-9;
 }
@@ -25045,23 +28281,46 @@ function shWatched() {
     if (lead && ov && ov.running && ids.indexOf(lead) < 0) ids.push(lead);
     return ids;
 }
-function shBalance(id) {
-    if (CU.demo) { const d = CU.demo; return String(d.leader.id) === id ? d.leader.bal : null; }
-    try { const i = typeof cpAccountInfo === 'function' ? cpAccountInfo(id) : null; return i && typeof i.balance === 'number' ? i.balance : null; } catch (e) { return null; }
+// { cash, upnl } of an account, or null. 9.0 fix: Vest's `balance` is its free cash: an open takes the position's collateral out of it and the
+// close puts it back, so a losing NQ close read as "Green exit +$8,878" (the margin coming back). Its value minus its open P&L is the cash
+// with the collateral in: it moves only by what a trade books (and fees, funding). The demo's balance is its booked cash already.
+function shRead(id) {
+    if (CU.demo) { const d = CU.demo; return String(d.leader.id) === id ? { cash: d.leader.bal, upnl: null, demo: true } : null; }
+    try {
+        const i = typeof cpAccountInfo === 'function' ? cpAccountInfo(id) : null;
+        return i && typeof i.cash === 'number' ? { cash: i.cash, upnl: typeof i.upnl === 'number' ? i.upnl : null } : null;
+    } catch (e) { return null; }
 }
 
-// once a second: a balance jump of 1% or more on a watched account lights the button for 45 s
+// once a second: a winning exit of 1% or more on a watched account lights the button for 45 s. The cash counts once it reads the same twice in
+// a row (Vest updates its stores one after the other: a value seen once may be half-way), and a gain counts only when that account had at
+// least half of it open in profit within the last minute: no deposit, no store hiccup, no collateral coming back can pass for a trade.
 function shWatch(t) {
     const ids = shWatched();
     for (const id of ids) {
-        const b = shBalance(id);
-        const prev = SH.bal[id];
-        if (b != null) SH.bal[id] = b;
-        if (shGainHit(prev, b, SH_GAIN)) {
-            SH.glowUntil = t + SH_GLOW_MS;
-            SH.gain = { id, usd: Math.round((b - prev) * 100) / 100, pct: Math.round(((b - prev) / prev) * 10000) / 100 };
-            typeof cpDev === 'function' && cpDev('ui', () => ({ msg: 'The P&L card button glows for 45 s: ' + cpName(id) + ' booked +' + SH.gain.usd + ' (' + SH.gain.pct + '% of its balance)', acc: id }));
+        const r = shRead(id);
+        if (!r) { delete SH.last[id]; continue; }
+        if (r.upnl != null && r.upnl > 0) {
+            const o = SH.open[id];
+            if (!o || t - o.at > SH_OPEN_MS || r.upnl >= o.usd) SH.open[id] = { usd: r.upnl, at: t };
         }
+        const last = SH.last[id];
+        SH.last[id] = r.cash;
+        if (typeof last !== 'number' || Math.abs(r.cash - last) > 0.005) continue;
+        const prev = SH.bal[id];
+        SH.bal[id] = r.cash;
+        if (!shGainHit(prev, r.cash, SH_GAIN)) continue;
+        const usd = Math.round((r.cash - prev) * 100) / 100;
+        const o = SH.open[id];
+        if (!r.demo && !(o && t - o.at <= SH_OPEN_MS + 2000 && o.usd >= usd * 0.5)) {
+            typeof cpDev === 'function' && cpDev('ui', () => ({ msg: 'Cash of ' + cpName(id) + ' rose ' + usd + ' with no open profit behind it: not a winning exit, no glow', acc: id }));
+            continue;
+        }
+        delete SH.open[id];
+        SH.glowUntil = t + SH_GLOW_MS;
+        SH.gain = { id, usd, pct: Math.round(((r.cash - prev) / prev) * 10000) / 100 };
+        typeof cpDev === 'function' && cpDev('ui', () => ({ msg: 'The P&L card button glows for 45 s: ' + cpName(id) + ' booked +' + SH.gain.usd + ' (' + SH.gain.pct + '% of its balance)', acc: id }));
+        shPopHit(Object.assign({}, SH.gain), t);
     }
 }
 
@@ -25298,6 +28557,10 @@ async function shBarsAlt(su, sym, wanted) {
     }
     return null;
 }
+// 9.0: the chart's market as its recorded seconds are kept (src/tape.js), so the Replay's GIF can play them; '' when not known
+function shTapeSym(su) {
+    try { const v = su && typeof su.tapeSym === 'function' ? String(su.tapeSym() || '') : ''; return /^[A-Z0-9][A-Z0-9._-]{0,40}$/.test(v) ? v : ''; } catch (e) { return ''; }
+}
 // "NDX-USD-PERP" -> "NQ": the market's short name on the card (cert/share-summary.js mktName says the same)
 function shMktName(sym) {
     const base = String(sym || '').toUpperCase().replace(/-USD-PERP$|-PERP$|-USD$/, '');
@@ -25313,7 +28576,7 @@ async function shReplayAlt(su, other, day, t) {
         const win = shWindow(rows, t);
         if (!win) continue;
         const b = await shBarsAlt(su, sym, win).catch(() => null);
-        if (b) out.push({ market: shMktName(sym), day, res: b.res, tz: b.tz, bars: b.bars, rows });
+        if (b) out.push({ market: shMktName(sym), sym: String(sym).toUpperCase(), day, res: b.res, tz: b.tz, bars: b.bars, rows });
     }
     return out;
 }
@@ -25383,6 +28646,8 @@ async function shReplay(snap, t) {
             const lead = CU.demo && CU.demo.leader;
             const target = lead ? cuDemoToday(CU.demo, lead) : null;
             const out = { accountId: snap.activeId, market: snap.market, day: snap.day, res: b.res, tz: b.tz, bars: b.bars, rows: [], sample: true, sampleTarget: target > 0 ? target : null };
+            const tsym = shTapeSym(su);
+            if (tsym) out.sym = tsym;
             const fine = await inTime(shFine(su, b));
             if (fine) out.fine = fine;
             return out;
@@ -25401,6 +28666,8 @@ async function shReplay(snap, t) {
         const b = await shBars(su, win);
         if (!b) return { accountId: acc, market: snap.market, day: got.day, others: got.others, err: 'no-bars' };
         const out = { accountId: acc, market: snap.market, day: got.day, res: b.res, tz: b.tz, bars: b.bars, rows: got.rows, others: got.others };
+        const tsym = shTapeSym(su);
+        if (tsym) out.sym = tsym;
         // 8.2 round 2: finer candles of the same time (the card's other timeframes), next to the other markets
         const fineP = shFine(su, b);
         if (altP) {
@@ -25467,6 +28734,147 @@ async function shOpen() {
     }
 }
 
+// ---------- the card pops up on Vest's page (9.0) ----------
+// The owner: "when user close a trade and its 1% or more of the account pnl it auto generate a pnl card and it pops up for the user with a
+// toggle to not show again". The close that lights the button (the account you trade on, or the copy leader) also shows its card in a small
+// frame at the bottom right of Vest's page: the extension's own cert/pop.html (web accessible to Vest's page only), which draws it with the
+// share page's code in your remembered look. The frame never takes the keyboard: it is out of the tab order and, after any click in it, the
+// focus comes back to Vest's page, so Vest's and Better Vest's hotkeys keep working. One at a time: a new big close replaces the card.
+// "Don't show again" turns S.share.autoPop off (the glow stays). The snapshot is the P&L button's, bounded the same way (shFit: under 256 KB,
+// at most one card a second), and goes to the frame with postMessage to the extension's own origin only (the frame cleans it with the share
+// page's cleanSnap); it never passes through the service worker or opens a tab. What is read for it are the P&L button's own GETs, for the one
+// account that closed, and only what the remembered card needs (the frame says: the Replay's, or today's trades for rows other than accounts).
+const SH_POP_W = 420, SH_POP_H = 560;   // the frame's largest size (the frame asks for its own)
+const SH_POP_READY_MS = 10000;          // a frame that never says it is ready (it could not load) is taken away
+
+// S.share.autoPop: on unless switched off ("Don't show again"; read through the suite, as the other S settings)
+function shAutoPop() {
+    try { const su = cpSuite(); const s = su && su.settings ? su.settings.get('share') : null; return !(s && s.autoPop === false); } catch (e) { return true; }
+}
+function shSetAutoPop(on) {
+    try {
+        const su = cpSuite();
+        if (!su || !su.settings) return;
+        const s = su.settings.get('share');
+        if (s && typeof s === 'object') { s.autoPop = !!on; if (typeof su.persist === 'function') su.persist(); }
+        else su.settings.set('share', { autoPop: !!on });
+        typeof cpDev === 'function' && cpDev('ui', () => ({ msg: on ? 'The P&L card pops up again after a big close' : 'Don\'t show again: the P&L card no longer pops up (the button still glows)' }));
+    } catch (e) {}
+}
+
+// a big close: the card for it, in the frame (made now, or the open one reused). Only while this tab is in front: a hidden tab (a copy
+// group's leader tab) would show a stale card later.
+function shPopHit(gain, t) {
+    if (!SH.base || !shAutoPop()) return;
+    try { if (document.visibilityState === 'hidden') return; } catch (e) {}
+    const pop = shPopFrame();
+    if (!pop) return;
+    const gen = ++pop.gen;
+    pop.gain = gain;
+    typeof cpDev === 'function' && cpDev('ui', () => ({ msg: 'The P&L card pops up on Vest\'s page for ' + cpName(gain.id) + ' (+' + gain.usd + ', ' + gain.pct + '%)' + (gen > 1 ? ': it replaces the one shown' : ''), acc: gain.id }));
+    shPopBuild(pop, gen, gain, t);
+}
+function shPopFrame() {
+    if (SH.pop && SH.pop.frame && SH.pop.frame.isConnected !== false) return SH.pop;
+    let f = null;
+    try {
+        f = document.createElement('iframe');
+        f.id = 'ax4p-share-pop';
+        f.title = 'P&L card';
+        f.setAttribute('tabindex', '-1');
+        f.setAttribute('aria-hidden', 'true');
+        // Copy in the frame writes the image to the clipboard
+        f.setAttribute('allow', 'clipboard-write');
+        f.style.cssText = 'position:fixed;right:16px;bottom:16px;width:0;height:0;border:0;border-radius:16px;z-index:2147483000;visibility:hidden;'
+            + 'color-scheme:normal;background:transparent;box-shadow:0 18px 50px rgba(0,0,0,.55)';
+        f.src = SH.base + 'cert/pop.html';
+        (document.body || document.documentElement).appendChild(f);
+    } catch (e) { return null; }
+    const pop = { frame: f, ready: false, need: null, gen: 0, gain: null, snap: null, onReady: null };
+    pop.readyP = new Promise((res) => { pop.onReady = res; });
+    SH.pop = pop;
+    return pop;
+}
+// the snapshot for the card: the P&L button's, about the account that closed, with only what the card needs read
+async function shPopSnap(gain, t, need) {
+    const snap = shSnapshot(t);
+    if (!snap.accounts.length) return null;
+    if (snap.accounts.some((a) => a.id === gain.id)) snap.activeId = gain.id;
+    if (!snap.demo && need.trades) {
+        const one = Object.assign({}, snap, { accounts: snap.accounts.filter((a) => a.id === gain.id) });
+        const tr = await shTodayTrades(one, Date.now() + SH_REPLAY_MS).catch(() => ({ rows: [], err: 'read-failed' }));
+        snap.trades = tr.rows;
+        if (tr.err) snap.tradesErr = tr.err;
+    }
+    if (need.replay) {
+        snap.replay = await shReplay(snap, t);
+        try { const su = cpSuite(); const cc = su && typeof su.chartColors === 'function' ? su.chartColors() : null; if (cc) snap.chartColors = cc; } catch (e) {}
+    }
+    shFit(snap);
+    return snap;
+}
+async function shPopBuild(pop, gen, gain, t) {
+    let tm = null;
+    const ready = await Promise.race([pop.readyP.then(() => true), new Promise((res) => { tm = setTimeout(() => res(false), SH_POP_READY_MS); })]);
+    clearTimeout(tm);
+    if (SH.pop !== pop || gen !== pop.gen) return;
+    if (!ready) { shPopClose(); return; }
+    const snap = await shPopSnap(gain, t, pop.need || {}).catch(() => null);
+    if (!snap || SH.pop !== pop || gen !== pop.gen) return;
+    pop.snap = snap;
+    shPopSend(pop);
+}
+function shPopSend(pop) {
+    if (!pop.snap || !pop.frame || !pop.frame.contentWindow) return;
+    try { if (JSON.stringify(pop.snap).length > 256 * 1024) return; } catch (e) { return; }
+    try { pop.frame.contentWindow.postMessage({ bvPop: 1, type: 'card', snap: pop.snap, gain: pop.gain }, SH.origin); } catch (e) {}
+}
+function shPopClose() {
+    const pop = SH.pop;
+    SH.pop = null;
+    if (pop && pop.frame) { try { pop.frame.remove(); } catch (e) {} }
+}
+// after a click in the frame the keyboard goes back to Vest's page
+function shPopUnfocus(pop) {
+    try { if (document.activeElement === pop.frame && typeof pop.frame.blur === 'function') pop.frame.blur(); } catch (e) {}
+    try { if (typeof window.focus === 'function') window.focus(); } catch (e) {}
+}
+// what the frame says: only our frame, from the extension's own origin
+function shPopMsg(ev) {
+    const pop = SH.pop;
+    if (!pop || !pop.frame || !SH.origin || ev.source !== pop.frame.contentWindow || ev.origin !== SH.origin) return;
+    const d = ev.data;
+    if (!d || typeof d !== 'object' || d.bvPop !== 1 || typeof d.type !== 'string') return;
+    if (d.type === 'ready') {
+        pop.ready = true;
+        pop.need = { replay: !!(d.need && d.need.replay === true), trades: !!(d.need && d.need.trades === true) };
+        pop.onReady();
+        return;
+    }
+    if (d.type === 'size') {
+        const n = (v, lo, hi) => Math.max(lo, Math.min(hi, Math.round(Number(v) || 0)));
+        pop.frame.style.width = n(d.w, 160, SH_POP_W) + 'px';
+        pop.frame.style.height = n(d.h, 100, SH_POP_H) + 'px';
+        pop.frame.style.visibility = 'visible';
+        return;
+    }
+    if (d.type === 'close') shPopClose();
+    else if (d.type === 'never') shSetAutoPop(false);
+    else if (d.type === 'again') shSetAutoPop(true);
+    else if (d.type === 'edit') shOpen();
+    else if (d.type !== 'blur') return;
+    shPopUnfocus(pop);
+}
+// The extension's own address: the bridge tells the page (as for the voice clips, src/copy/45-voice.js); only that address is taken
+function shOnMessage(ev) {
+    const d = ev && ev.data;
+    if (ev && ev.source === window && d && d.bv === 1 && d.dir === 'toPage' && d.cmd === 'base') {
+        if (typeof d.url === 'string' && /^chrome-extension:\/\/[a-p]{32}\/$/.test(d.url)) { SH.base = d.url; SH.origin = d.url.slice(0, -1); }
+        return;
+    }
+    shPopMsg(ev);
+}
+
 // ---------- the dock button ----------
 // The dock is built by the suite a moment after load (and rebuilt on route changes), so this keeps checking, like the Copy button.
 function shEnsureButton() {
@@ -25511,6 +28919,7 @@ function shTick() {
 function shBoot() {
     if (typeof BV_COPY !== 'undefined' && !BV_COPY) return;
     try { if (window.__bvShareUi) return; window.__bvShareUi = true; } catch (e) {}
+    try { window.addEventListener('message', shOnMessage); } catch (e) {}
     setInterval(shTick, 1000);
     shTick();
 }
@@ -25917,6 +29326,366 @@ async function crRun(opts) {
     crEmit();
     return rep;
 }
+// ---- 45-voice.js ----
+// ---------- Voice feedback (9.0) ----------
+// Short spoken lines when something happens: fills, a resting order placed, cancelled or rejected, how a position ended (stop,
+// target, partial targets, a close), 50% / REV / breakeven, the loss limit and the other locks, and the New York open and the news
+// warnings. The clips ship with the extension (page/voice/<id>.ogg, made once with ElevenLabs by tools/voice.py); nothing is fetched
+// from anywhere else and nothing is sent anywhere.
+// Sources: Vest's private socket as the copier already reads it (vx.onPrivate: every order of the account, Vest's own ticket
+// included), and the suite's own events (bvSuiteApi.onEvent: 50%, REV, BE, the limits, the session). Only this tab's own account
+// speaks; follower and leader tabs of the copier never do; with several Vest tabs, one says each line (a Web Lock per line).
+
+// every line, by its group (Settings > Alerts switches the groups)
+const VO_LINES = {
+    orders: ['long_opened', 'short_opened', 'long_added', 'short_added', 'buy_filled', 'sell_filled', 'buy_limit_placed', 'sell_limit_placed',
+        'buy_limit_filled', 'sell_limit_filled', 'limit_moved', 'order_cancelled', 'order_rejected'],
+    exits: ['stopped_out', 'target_hit', 'target_1', 'target_2', 'target_3', 'target_4', 'target_final', 'position_closed', 'half_closed',
+        'position_reversed', 'stop_breakeven'],
+    risk: ['loss_limit_near', 'trading_locked', 'locked_loss', 'locked_profit', 'cooldown_started', 'cooldown_over', 'trading_unlocked'],
+    session: ['ny_open_5', 'market_open', 'news_5', 'news_1', 'news_cpi_5', 'news_cpi_1', 'news_ppi_5', 'news_ppi_1', 'news_nfp_5', 'news_nfp_1',
+        'news_fomc_statement_5', 'news_fomc_statement_1', 'news_fomc_presser_5', 'news_fomc_presser_1', 'news_fomc_minutes_5', 'news_fomc_minutes_1',
+        'news_gdp_5', 'news_gdp_1', 'news_pce_5', 'news_pce_1']
+};
+const VO_IDS = [].concat(VO_LINES.orders, VO_LINES.exits, VO_LINES.risk, VO_LINES.session);
+// each line's group, and its priority (0 first; a waiting line is dropped after VO_STALE_MS)
+const VO_GROUP = {};
+Object.keys(VO_LINES).forEach((g) => VO_LINES[g].forEach((id) => { VO_GROUP[id] = g; }));
+const VO_PRIO = { order_rejected: 0, trading_locked: 1, locked_loss: 1, locked_profit: 1, stopped_out: 2, target_hit: 2, target_1: 2, target_2: 2, target_3: 2,
+    target_4: 2, target_final: 2, position_closed: 2 };
+const VO_STALE_MS = 3000;
+// the suite's events -> lines ('locked' and the news pick a more exact line in voOnSuite)
+const VO_SUITE = { 'half-closed': 'half_closed', reversed: 'position_reversed', breakeven: 'stop_breakeven', 'loss-limit-near': 'loss_limit_near',
+    locked: 'trading_locked', unlocked: 'trading_unlocked', 'cooldown-start': 'cooldown_started', 'cooldown-end': 'cooldown_over',
+    'ny-open-5': 'ny_open_5', 'ny-open': 'market_open', 'news-5': 'news_5', 'news-1': 'news_1' };
+// frames of one market are read together this long, so a fill and the position event it caused give one line, not two
+const VO_BURST_MS = 300;
+// Vest moves a resting limit by cancelling it and placing a new one (its chart line's onMove): a cancel waits this long for its new
+// order, so a move is one line ("Limit order moved"), not "cancelled" and "placed"
+const VO_MOVE_MS = 1500;
+// E / Q and the LIMIT tile: when Vest's socket has not shown the order this long after the click, the line comes from the click
+const VO_SENT_MS = 2500;
+// heard: the last lines queued (newest last), for the DEV log and the tests
+const VO = { base: '', ctx: null, gain: null, clips: new Map(), queue: [], playing: false, seen: new Map(), burst: new Map(), revUntil: 0,
+    tpOrder: new Map(), legs: new Map(), pos: new Map(), cancels: new Map(), orderAt: { buy: 0, sell: 0 }, rejAt: 0, sentSaid: { buy: 0, sell: 0 },
+    started: false, told: false, heard: [] };
+
+function voCfg() {
+    let v = null;
+    try { v = bvSuite().settings.get('voice'); } catch (e) {}
+    return v && typeof v === 'object' ? v : { on: false };
+}
+// the copier's follower / leader tabs (and any helper tab) stay silent: the owner's own tab speaks
+function voQuietTab() {
+    try { return /[?&](bvCopy|bvLead|bvChart)=/.test(location.search); } catch (e) { return true; }
+}
+function voActive() {
+    try { const a = vx.active(); return a == null ? '' : String(a); } catch (e) { return ''; }
+}
+function voLog(msg, extra) {
+    typeof cpDev === 'function' && cpDev('voice', () => Object.assign({ msg: 'Voice: ' + msg }, extra || {}));
+}
+
+// ---- audio ----
+// Chrome lets a page make sound only after the user clicked or typed on it: the context starts on the first press
+function voUnlock() {
+    if (VO.ctx) { if (VO.ctx.state === 'suspended') VO.ctx.resume().catch(() => {}); return; }
+    try {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return;
+        VO.ctx = new AC();
+        VO.gain = VO.ctx.createGain();
+        VO.gain.connect(VO.ctx.destination);
+        if (VO.ctx.state === 'suspended') VO.ctx.resume().catch(() => {});
+    } catch (e) { VO.ctx = null; }
+}
+// a line in the chosen voice (page/voice/<pack>/<id>.ogg); Eddie's when that voice lacks it
+function voPack() {
+    const p = VO.packOverride || voCfg().pack;
+    return typeof p === 'string' && /^[a-z0-9-]{1,24}$/.test(p) ? p : 'arthur';
+}
+function voClip(id, pack0) {
+    if (!VO.base || !VO.ctx || VO_IDS.indexOf(id) < 0) return Promise.resolve(null);
+    const pack = pack0 || voPack();
+    const k = pack + '/' + id;
+    if (!VO.clips.has(k)) {
+        const p = fetch(VO.base + 'page/voice/' + k + '.ogg').then((r) => (r.ok ? r.arrayBuffer() : null))
+            .then((b) => (b ? VO.ctx.decodeAudioData(b) : null)).catch(() => null);
+        VO.clips.set(k, p);
+        p.then((buf) => { if (!buf) VO.clips.delete(k); });
+    }
+    return VO.clips.get(k).then((buf) => buf || (pack !== 'eddie' ? voClip(id, 'eddie') : null));
+}
+async function voPlayNext() {
+    if (VO.playing) return;
+    const t = Date.now();
+    VO.queue = VO.queue.filter((q) => t - q.at <= VO_STALE_MS);
+    if (!VO.queue.length) return;
+    VO.queue.sort((a, b) => a.prio - b.prio || a.at - b.at);
+    const q = VO.queue.shift();
+    VO.playing = true;
+    try {
+        const buf = await voClip(q.id, q.pack);
+        const cfg = voCfg();
+        if (buf && VO.ctx && cfg.on) {
+            const src = VO.ctx.createBufferSource();
+            src.buffer = buf;
+            VO.gain.gain.value = Math.max(0, Math.min(1, Number(cfg.vol) >= 0 ? Number(cfg.vol) : 1));
+            src.connect(VO.gain);
+            await new Promise((res) => { src.onended = res; src.start(); setTimeout(res, Math.ceil(buf.duration * 1000) + 400); });
+            voLog('said "' + q.id + '"', { id: q.id, why: q.why });
+            voFirstToast();
+        }
+    } catch (e) {}
+    VO.playing = false;
+    if (VO.queue.length) voPlayNext();
+}
+function voFirstToast() {
+    if (VO.told) return;
+    VO.told = true;
+    try {
+        const v = bvSuite().settings.get('voice');
+        if (v && !v.told) {
+            v.told = true;
+            bvSuite().persist();
+            bvSuite().toast('Voice feedback is on. Settings > Voice turns it off or picks which lines you hear.', 'good');
+        }
+    } catch (e) {}
+}
+
+// One line. key: what makes it this line and not another (a Web Lock holds it for a while, so a second Vest tab skips it).
+function voSay(id, key, why) {
+    const cfg = voCfg();
+    if (!cfg.on || cfg[VO_GROUP[id]] === false || voQuietTab()) return;
+    const k = 'bv-voice:' + (key || id + ':' + Math.floor(Date.now() / 1000));
+    const go = () => {
+        VO.heard.push(id);
+        if (VO.heard.length > 50) VO.heard.shift();
+        VO.queue.push({ id, at: Date.now(), prio: VO_PRIO[id] == null ? 3 : VO_PRIO[id], why: why || '' });
+        voPlayNext();
+    };
+    try {
+        if (navigator.locks && navigator.locks.request) {
+            navigator.locks.request(k, { ifAvailable: true }, (lock) => {
+                if (!lock) { voLog('"' + id + '" is said by another tab', { id }); return null; }
+                go();
+                return new Promise((res) => setTimeout(res, 4000));
+            }).catch(() => go());
+            return;
+        }
+    } catch (e) {}
+    go();
+}
+
+// ---- Vest's private socket ----
+const voEv = (s) => String(s == null ? '' : s).replace(/^(ORDER|POSITION)_EVENT_TYPE_/, '').toUpperCase();
+const voType = (s) => String(s == null ? '' : s).toLowerCase();
+// once per order event / position event: Vest may send the same rows again with later frames
+function voFirst(key) {
+    const t = Date.now();
+    if (VO.seen.size > 500) for (const [k, at] of VO.seen) if (t - at > 120000) VO.seen.delete(k);
+    if (VO.seen.has(key)) return false;
+    VO.seen.set(key, t);
+    return true;
+}
+// the stop and target legs of each position as Vest last showed them, and the order its targets were first seen in (TP1..TP4)
+function voLegs(r) {
+    const id = r.position_id == null ? '' : String(r.position_id);
+    if (!id) return;
+    const ids = (arr) => (Array.isArray(arr) ? arr.map((l) => (l && typeof l === 'object' ? { id: String(l.id != null ? l.id : l.order_id != null ? l.order_id : ''), px: Number(l.trigger_price != null ? l.trigger_price : l.triggerPrice) } : null)).filter((l) => l && l.id) : []);
+    const tp = ids(r.take_profits), sl = ids(r.stop_losses);
+    if (!tp.length && !sl.length && !VO.legs.has(id)) return;
+    const long = /^(long|buy)$/i.test(String(r.side || ''));
+    VO.legs.set(id, { tp: new Set(tp.map((l) => l.id)), sl: new Set(sl.map((l) => l.id)) });
+    const known = VO.tpOrder.get(id) || [];
+    const fresh = tp.filter((l) => known.indexOf(l.id) < 0).sort((a, b) => (long ? a.px - b.px : b.px - a.px));
+    if (fresh.length) VO.tpOrder.set(id, known.concat(fresh.map((l) => l.id)));
+}
+function voLegOf(orderId) {
+    for (const [pos, l] of VO.legs) {
+        if (l.sl.has(orderId)) return { pos, kind: 'sl' };
+        if (l.tp.has(orderId)) return { pos, kind: 'tp' };
+    }
+    return null;
+}
+const voNum = (v) => { const n = Number(v); return Number.isFinite(n) ? n : 0; };
+function voOnState(evt, sim) {
+    if (!evt || (!sim && (evt.accountId == null || evt.accountId !== voActive()))) return;
+    const d = evt.data || {};
+    const pos = Array.isArray(d.positions) ? d.positions : [], ord = Array.isArray(d.orders) ? d.orders : [];
+    // fills are matched to the legs as they were before this frame (the frame that fills a leg may already show it gone)
+    for (const r of ord) {
+        if (!r || typeof r !== 'object') continue;
+        const ev = voEv(r.event_type), type = voType(r.order_type), oid = r.order_id == null ? '' : String(r.order_id), side = voType(r.side);
+        const exec = voNum(r.executed_quantity);
+        if (!oid || !voFirst('o:' + oid + ':' + ev)) continue;
+        if (side === 'buy' || side === 'sell') VO.orderAt[side] = Date.now();
+        if (ev === 'REJECTED') { VO.rejAt = Date.now(); voSay('order_rejected', 'rej:' + oid, 'order ' + oid + ' rejected' + (r.error_code != null ? ' (' + r.error_code + ')' : '')); continue; }
+        // a stop or target that triggers is placed (and filled) under its leg's own id, as a limit when its execution is Limit: not a
+        // new resting order (Vest's own toasts tell them apart the same way)
+        const leg = voLegOf(oid);
+        if (ev === 'PLACED' && type === 'limit' && !leg) { voBurst(r.symbol, { kind: 'placed', oid, side }); continue; }
+        if (ev === 'CANCELLED' && type === 'limit' && !(exec > 0) && !leg) { voBurst(r.symbol, { kind: 'cancel', oid, side }); continue; }
+        // a fill (an IOC order cancelled after part of it filled is one too)
+        if (ev === 'FILLED' || (ev === 'CANCELLED' && exec > 0)) voBurst(r.symbol, { kind: 'fill', oid, type, side, leg });
+    }
+    for (const r of pos) if (r && typeof r === 'object') voLegs(r);
+    const t = Date.now();
+    if (VO.pos.size > 300) for (const [k, p] of VO.pos) if (!(p.qty > 0) && t - p.at > 600000) VO.pos.delete(k);
+    for (const r of pos) {
+        if (!r || typeof r !== 'object') continue;
+        const ev = voEv(r.event_type), pid = r.position_id == null ? '' : String(r.position_id), qty = voNum(r.quantity);
+        if (!pid) continue;
+        // the biggest size each record had. Vest keeps a record at size 0 for a resting opening limit; it opens, closes and reopens as the
+        // order is placed, moved or cancelled, and none of that is a trade. Vest repeats open positions in later frames, so a position
+        // opened before this tab loaded gets its size too.
+        const known = VO.pos.get(pid);
+        const max0 = known ? known.max : null;
+        VO.pos.set(pid, { max: Math.max(max0 || 0, qty), qty, at: t });
+        if (!/^(OPENED|APPENDED|REDUCED|CLOSED)$/.test(ev)) continue;
+        if (!voFirst('p:' + pid + ':' + ev + ':' + r.quantity)) continue;
+        voBurst(r.symbol, { kind: 'pos', ev, pid, qty, max0, reason: voType(r.close_reason) });
+    }
+}
+function voOnCommand(evt, sim) {
+    if (!evt || (!sim && (evt.accountId == null || evt.accountId !== voActive()))) return;
+    const d = evt.data || {};
+    if (String(d.status || '').toUpperCase() !== 'REJECTED') return;
+    const key = d.command_id != null ? 'cmd:' + d.command_id : d.order_id != null ? 'rej:' + d.order_id : '';
+    if (!key || !voFirst(key)) return;
+    VO.rejAt = Date.now();
+    voSay('order_rejected', key, 'command rejected' + (d.error_code != null ? ' (' + d.error_code + ')' : ''));
+}
+// everything one market did in one moment, then one line for it
+function voBurst(sym, item) {
+    const k = String(sym || '?');
+    let b = VO.burst.get(k);
+    if (!b) {
+        b = { items: [], timer: 0 };
+        VO.burst.set(k, b);
+        b.timer = setTimeout(() => { VO.burst.delete(k); try { voDecide(b.items, k); } catch (e) {} }, VO_BURST_MS);
+    }
+    b.items.push(item);
+}
+// Resting limits of one market: a cancel and a new order of the same side close together are Vest moving the order. Several at once
+// (Cancel all, a bracket) are one line.
+function voLimits(items, sym) {
+    const placed = items.filter((x) => x.kind === 'placed'), cancels = items.filter((x) => x.kind === 'cancel');
+    for (const side of ['buy', 'sell']) {
+        const p = placed.find((x) => x.side === side), c = cancels.find((x) => x.side === side);
+        const k = sym + ':' + side;
+        const waiting = VO.cancels.get(k);
+        if (p && (c || waiting)) {
+            if (waiting) { clearTimeout(waiting.timer); VO.cancels.delete(k); }
+            voSay('limit_moved', 'moved:' + p.oid, 'limit ' + (c || waiting).oid + ' moved to ' + p.oid);
+        } else if (p) {
+            // E / Q said it already from the click when the socket was slow
+            if (Date.now() - VO.sentSaid[side] > 10000) voSay(side === 'buy' ? 'buy_limit_placed' : 'sell_limit_placed', 'placed:' + p.oid, 'limit ' + p.oid);
+        } else if (c && !waiting) {
+            const w = { oid: c.oid, timer: 0 };
+            w.timer = setTimeout(() => { if (VO.cancels.get(k) === w) { VO.cancels.delete(k); voSay('order_cancelled', 'cxl:' + c.oid, 'limit ' + c.oid); } }, VO_MOVE_MS);
+            VO.cancels.set(k, w);
+        }
+    }
+}
+function voDecide(items, sym) {
+    voLimits(items, String(sym || '?'));
+    const fills = items.filter((x) => x.kind === 'fill'), poss = items.filter((x) => x.kind === 'pos');
+    const grew = (p) => (p.ev === 'OPENED' || p.ev === 'APPENDED') && p.qty > 0;
+    const anyGrew = poss.some(grew);
+    // a record that only ever held a resting limit (size 0) is not a position. One this tab never saw: a close with a fill is real
+    // unless the same moment opened something (Vest turns a size-0 record into the new position that way).
+    const real = (p) => p.max0 > 0 || p.qty > 0 && p.ev === 'CLOSED' || (p.max0 == null && fills.length > 0 && !anyGrew);
+    const closed = poss.find((x) => x.ev === 'CLOSED' && real(x)), reduced = poss.find((x) => x.ev === 'REDUCED' && real(x));
+    const inRev = Date.now() < VO.revUntil;
+    const slFill = fills.find((f) => f.type === 'stop_loss' || (f.leg && f.leg.kind === 'sl')) || (closed && closed.reason === 'stop_loss' ? closed : null);
+    const tpFill = fills.find((f) => f.type === 'take_profit' || (f.leg && f.leg.kind === 'tp')) || ((closed || reduced) && (closed || reduced).reason === 'take_profit' ? closed || reduced : null);
+    if (slFill) { voSay('stopped_out', 'sl:' + (slFill.oid || slFill.pid), 'stop filled'); return; }
+    if (tpFill) {
+        const pid = (tpFill.leg && tpFill.leg.pos) || (closed || reduced || {}).pid;
+        const order = pid ? VO.tpOrder.get(pid) || [] : [];
+        const n = tpFill.oid ? order.indexOf(tpFill.oid) + 1 : 0;
+        // one target: "Take profit hit"; Partials: "First target hit" ... and the one that closes the position "Final target hit"
+        const id = order.length <= 1 ? 'target_hit' : closed ? 'target_final' : n >= 1 && n <= 4 ? 'target_' + n : 'target_hit';
+        voSay(id, 'tp:' + (tpFill.oid || tpFill.pid), 'target filled');
+        if (closed && pid) { VO.tpOrder.delete(pid); VO.legs.delete(pid); }
+        return;
+    }
+    if (inRev) return; // REV says "Position reversed" itself
+    if (closed) { voSay('position_closed', 'close:' + closed.pid, 'position closed'); VO.tpOrder.delete(closed.pid); VO.legs.delete(closed.pid); return; }
+    const f = fills[0];
+    if (!f) return;
+    const buy = f.side !== 'sell';
+    const limit = f.type === 'limit';
+    // a resting limit that fills is said as one (it fills while you are not pressing anything), opening, adding or taking a part off
+    if (limit) { voSay(buy ? 'buy_limit_filled' : 'sell_limit_filled', 'fill:' + f.oid, 'limit filled ' + f.side); return; }
+    if (reduced) return; // 50% speaks for itself; a part closed by hand stays quiet
+    const g = poss.find(grew);
+    if (g) {
+        const added = g.max0 > 0 || (g.ev === 'APPENDED' && g.max0 == null);
+        voSay(added ? (buy ? 'long_added' : 'short_added') : (buy ? 'long_opened' : 'short_opened'), 'fill:' + f.oid, (added ? 'added ' : 'opened ') + f.side);
+        return;
+    }
+    // the position's rows did not come with the fill: say the order by its side
+    if (!poss.some(real)) voSay(buy ? 'buy_filled' : 'sell_filled', 'fill:' + f.oid, 'fill ' + f.side);
+}
+
+// E / Q, the LIMIT tile: the click is the order; when Vest's socket says nothing of it in VO_SENT_MS (nor a rejection), the line comes
+// from here
+function voSent(data) {
+    const side = data && data.side === 'sell' ? 'sell' : data && data.side === 'buy' ? 'buy' : '';
+    if (!side) return;
+    const at = Date.now();
+    setTimeout(() => {
+        if (VO.orderAt[side] >= at - 250 || VO.rejAt >= at - 250) return;
+        VO.sentSaid[side] = Date.now();
+        voSay(side === 'buy' ? 'buy_limit_placed' : 'sell_limit_placed', 'sent:' + side + ':' + at, 'limit sent, no word from Vest\'s socket yet');
+    }, VO_SENT_MS);
+}
+
+// ---- the suite's events ----
+const VO_NEWS = ['cpi', 'ppi', 'nfp', 'fomc-statement', 'fomc-presser', 'fomc-minutes', 'gdp', 'pce'];
+function voOnSuite(type, data) {
+    // Settings > Alerts: one line now, whatever the groups say (the press that asked for it also starts the sound)
+    if (type === 'voice-test') {
+        voUnlock();
+        VO.queue.push({ id: 'buy_limit_placed', at: Date.now(), prio: 0, why: 'test' });
+        voPlayNext();
+        return;
+    }
+    if (type === 'rev-start') { VO.revUntil = Date.now() + 15000; return; }
+    if (type === 'rev-end') { VO.revUntil = Math.min(VO.revUntil, Date.now() + 1500); return; }
+    if (type === 'limit-sent') { voSent(data); return; }
+    let id = VO_SUITE[type];
+    if (!id) return;
+    // the lock says why; the news says which release (the first is the one that moves the market most)
+    if (type === 'locked' && data && (data.reason === 'loss' || data.reason === 'profit')) id = 'locked_' + data.reason;
+    if ((type === 'news-5' || type === 'news-1') && data && Array.isArray(data.kinds) && VO_NEWS.indexOf(data.kinds[0]) >= 0) {
+        id = 'news_' + data.kinds[0].replace(/-/g, '_') + (type === 'news-5' ? '_5' : '_1');
+    }
+    // the same moment in two tabs (a lock seen by both, the open) is one line: keyed by the line and the minute
+    const key = data && data.key ? String(data.key) : id + ':' + Math.floor(Date.now() / 60000);
+    voSay(id, key, type);
+}
+
+
+function voStart() {
+    if (VO.started) return;
+    VO.started = true;
+    window.addEventListener('message', (ev) => {
+        const d = ev.data;
+        if (ev.source !== window || !d || d.bv !== 1 || d.dir !== 'toPage' || d.cmd !== 'base') return;
+        // only the extension's own address (chrome-extension://<32 letters>/) is taken
+        if (typeof d.url === 'string' && /^chrome-extension:\/\/[a-p]{32}\/$/.test(d.url)) VO.base = d.url;
+    });
+    const press = () => voUnlock();
+    window.addEventListener('pointerdown', press, true);
+    window.addEventListener('keydown', press, true);
+    try { vx.onPrivate('account_state', voOnState); } catch (e) {}
+    try { vx.onPrivate('command_events', voOnCommand); } catch (e) {}
+    try { bvSuite().onEvent(voOnSuite); } catch (e) {}
+}
+voStart();
 })();
 
 })(); // end of the function around the suite, the Calendar engine and the copy trader

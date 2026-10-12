@@ -14,7 +14,9 @@
         <span class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="m7 15 3.5-3.5 2.5 2.5L17 9.5"/><path d="M14 9.5h3v3"/></svg></span>
         <div><b>P&amp;L card</b><span id="sub">Today, from Vest</span></div>
     </div>
-    <div class="seg" id="kind" aria-label="Which card"><button type="button" data-v="summary" title="Today's P&amp;L, one account or the copy group">Summary</button><button type="button" data-v="replay" title="Today's trades on Vest's own candles, every entry and exit">Replay</button></div>
+    <div class="seg" id="kind" aria-label="Which card"><button type="button" data-v="summary" title="Today's P&amp;L, one account or the copy group">Summary</button><button type="button" data-v="replay" title="Today's trades on Vest's own candles, every entry and exit">Replay</button><button type="button" data-v="payout" title="The payout Vest paid you today, or every payout so far, from your Calendar">Payout</button></div>
+    <!-- 9.0, Payout: today's payout or every payout so far -->
+    <div class="seg" id="payk" aria-label="Which payouts" hidden><button type="button" data-v="today" title="What Vest paid you this Vest day (it ends at 8 pm New York)">Today</button><button type="button" data-v="lifetime" title="Every payout Vest has paid you: the total, how many, the biggest, the first and the latest">Lifetime</button></div>
     <div class="seg" id="mode" role="tablist" aria-label="What the card is about"><button type="button" data-v="accounts">Accounts</button><button type="button" data-v="copy">Copy trading</button></div>
     <div class="pop" id="pick-pop">
         <button type="button" class="ctl" id="pick-btn" aria-haspopup="true" aria-expanded="false"><span id="pick-t">Accounts</span><b id="pick-count"></b><svg class="chev" viewBox="0 0 12 12"><path d="M3 4.5 6 7.5 9 4.5"/></svg></button>
@@ -58,12 +60,35 @@
     </div>
     <div class="grow"></div>
     <button type="button" class="btn" id="video" hidden title="The day plays out: a short video of this card. It plays here first; nothing is saved until you press Save"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l10.5-6.5z"/></svg>Video</button>
+    <button type="button" class="btn" id="gif" title="Save the card as a GIF. It is made here first; nothing is saved until you press Save GIF"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M10.5 10H8.8a1.3 1.3 0 0 0-1.3 1.3v1.4A1.3 1.3 0 0 0 8.8 14h1.7v-2H9.3"/><path d="M13 10v4"/><path d="M16.5 14v-4h2"/><path d="M16.5 12h1.6"/></svg>GIF</button>
     <button type="button" class="btn" id="copy" title="Copy the image (⌘C / Ctrl+C), then paste it into your post"><svg viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>Copy image</button>
     <button type="button" class="btn primary" id="save" title="Save the image as a PNG (⌘S / Ctrl+S)"><svg viewBox="0 0 24 24"><path d="M12 4v11"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/></svg>Download PNG</button>
 </header>
 <nav class="opts" aria-label="How the card looks">
     <div class="grp"><span class="k">Theme</span><div class="seg sm" id="theme"><button type="button" data-v="dark">Dark</button><button type="button" data-v="light">Light</button></div></div>
     <div class="grp"><span class="k">Style</span><div class="seg sm" id="style"><button type="button" data-v="vest">Vest</button><button type="button" data-v="silver">Silver</button><button type="button" data-v="oled">OLED</button><button type="button" data-v="neon">Neon</button></div></div>
+    <!-- 9.0: the card's background, down to your own picture or GIF, and its accent color (page-only names: lk-*) -->
+    <div class="pop" id="bg-pop">
+        <button type="button" class="ctl sm" id="bg-btn" aria-haspopup="true" aria-expanded="false"><span class="lk-sw" id="bg-sw"></span>Background<span class="cx-dot" id="bg-dot" hidden></span><svg class="chev" viewBox="0 0 12 12"><path d="M3 4.5 6 7.5 9 4.5"/></svg></button>
+        <div class="dd lkp" id="bg-panel" hidden>
+            <div class="ddh"><span>Background</span><span class="links"><button type="button" id="bg-reset" title="Back to the style's own background and color">Reset</button></span></div>
+            <div class="lk-sec"><div class="seg sm lk-wrap" id="bg-kind"><button type="button" data-v="style">Style</button><button type="button" data-v="solid">Color</button><button type="button" data-v="gradient">Gradient</button><button type="button" data-v="image">Picture or GIF</button></div>
+                <div class="note" id="bg-kind-note"></div></div>
+            <div class="lk-sec" id="bg-solid" hidden><div class="lk-k">Color</div><div class="lk-row"><label class="lk-col"><input type="color" id="bg-color" aria-label="Background color"></label></div></div>
+            <div class="lk-sec" id="bg-grad" hidden><div class="lk-k">Gradient</div>
+                <div class="lk-row"><label class="lk-col"><input type="color" id="bg-c1" aria-label="First color"></label><label class="lk-col"><input type="color" id="bg-c2" aria-label="Second color"></label><button type="button" class="lk-mini" id="bg-swap" title="Swap the two colors">Swap</button></div>
+                <div class="lk-range"><span>Angle</span><input type="range" id="bg-angle" min="0" max="360" step="1" aria-label="Angle"><b id="bg-angle-t"></b></div></div>
+            <div class="lk-sec" id="bg-img" hidden><div class="lk-k">Your picture</div>
+                <div class="lk-row"><button type="button" class="lk-pick" id="bg-file-btn">Choose a picture or GIF</button><input type="file" id="bg-file" accept="image/png,image/jpeg,image/webp,image/gif" hidden><button type="button" class="lk-mini" id="bg-remove" title="Remove the picture from this computer">Remove</button></div>
+                <div class="lk-meta" id="bg-meta"></div>
+                <div class="lk-row"><span class="lk-l">Fit</span><div class="seg sm" id="bg-fit"><button type="button" data-v="fill" title="The picture covers the whole card">Fill</button><button type="button" data-v="fit" title="The whole picture, the card's own color around it">Fit</button></div></div>
+                <div class="lk-range"><span>Dim</span><input type="range" id="bg-dim" min="0" max="85" step="1" aria-label="Dim"><b id="bg-dim-t"></b></div>
+                <div class="lk-range"><span>Blur</span><input type="range" id="bg-blur" min="0" max="24" step="1" aria-label="Blur"><b id="bg-blur-t"></b></div>
+                <div class="note">It stays on this computer, any size, and is never uploaded. A GIF moves on the card, in Video and in GIF; the PNG takes its first frame.</div></div>
+            <div class="lk-sec"><div class="lk-k">Accent</div><div class="lk-row"><label class="lk-col"><input type="color" id="bg-accent" aria-label="Accent color"></label><span class="lk-l" id="bg-accent-t"></span><button type="button" class="lk-mini" id="bg-accent-off">The style's own</button></div>
+                <div class="note">The glow, the badge dot, the OLED line and the Neon number. A losing day keeps its red.</div></div>
+        </div>
+    </div>
     <div class="grp"><span class="k">Format</span><div class="seg sm" id="format"><button type="button" data-v="feed" title="4:5, for the feed">4:5</button><button type="button" data-v="square" title="1:1">1:1</button><button type="button" data-v="wide" title="16:9, best on X">16:9</button><button type="button" data-v="story" title="9:16, for a story">9:16</button></div></div>
     <div class="grp"><span class="k">Number</span><div class="seg sm" id="hero"><button type="button" data-v="usd">$</button><button type="button" data-v="pct">%</button><button type="button" data-v="both" title="The amount, with the % return beside it">$ and %</button><button type="button" data-v="pts" title="Price moved in your favor, sizes left out. Several markets: each market's own points">Points</button></div></div>
     <span class="vsep"></span>
@@ -116,6 +141,22 @@
             <button type="button" class="btn" id="vm-again" hidden title="The card changed since this video: record it again">Record again</button>
             <button type="button" class="btn" id="vm-close">Close</button>
             <button type="button" class="btn primary" id="vm-save"><svg viewBox="0 0 24 24"><path d="M12 4v11"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/></svg>Save video</button></div>
+    </div>
+</div>
+<!-- 9.0: Save as GIF (cert/share-gif-make.js): made here first, shown, then saved (page-only names: gm-*) -->
+<div class="vm" id="gm" hidden>
+    <div class="vm-box gm-box" role="dialog" aria-modal="true" aria-labelledby="gm-t">
+        <div class="vm-hd"><b id="gm-t">GIF</b><span class="vm-info" id="gm-info"></span><button type="button" class="vm-x" id="gm-x" aria-label="Close" title="Close (Esc)"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+        <div class="vm-stage gm-stage"><img id="gm-img" alt="The GIF, as it will be saved" hidden>
+            <div class="gm-work" id="gm-work" hidden><div class="gm-what" id="gm-what">Making the GIF</div><div class="gm-bar"><i id="gm-bar"></i></div><div class="gm-pct" id="gm-pct">0%</div>
+                <button type="button" class="btn" id="gm-cancel">Cancel</button></div></div>
+        <div class="vm-bar gm-opts"><span class="gm-k" id="gm-mode-k">Chart</span><div class="seg sm" id="gm-mode"><button type="button" data-v="replay">Replay bars</button><button type="button" data-v="still">Whole chart</button></div><span class="gm-k">Size</span><div class="seg sm" id="gm-size"><button type="button" data-v="full"></button><button type="button" data-v="half"></button></div>
+            <span class="gm-hint" id="gm-hint"></span></div>
+        <div class="vm-bar gm-opts gm-spd" id="gm-spd-bar" hidden><span class="gm-k">Speed</span><div class="seg sm" id="gm-speed"><button type="button" data-v="fit">Fit</button><button type="button" data-v="10">10×</button><button type="button" data-v="30">30×</button><button type="button" data-v="60">60×</button></div>
+            <span class="gm-hint" id="gm-tape"></span></div>
+        <div class="vm-ft"><span class="vm-note" id="gm-note"></span>
+            <button type="button" class="btn" id="gm-close">Close</button>
+            <button type="button" class="btn primary" id="gm-save"><svg viewBox="0 0 24 24"><path d="M12 4v11"/><path d="m7 10 5 5 5-5"/><path d="M5 20h14"/></svg>Save GIF</button></div>
     </div>
 </div>
 <script type="module" src="share-page.js"></script>

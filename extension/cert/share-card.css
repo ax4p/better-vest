@@ -170,3 +170,18 @@
 .rp-svg .db, .rp-svg .ds { stroke: var(--k-bg); stroke-width: 1.4; }
 .rp-svg .db { fill: var(--k-up); }
 .rp-svg .ds { fill: var(--k-down); }
+
+/* ---------------------------------------------------------------- 9.0: the Payout card (share-card.js payoutHtml) */
+.card .panel .r .nm .pdt { min-width: 48px; }
+.card.pay .panel .r b.up { color: var(--k-up); }
+/* ---------------------------------------------------------------- 9.0: your own background and accent (share-look.js lookParts) */
+.card.own .bgx.bgim { background: var(--k-bg); overflow: hidden; }
+.card .bgx .bgi { position: absolute; left: 0; top: 0; width: 100%; height: 100%; object-fit: cover; display: block; max-width: none; }
+.card .bgx .bgi.bgf { object-fit: contain; }
+.card .bgx .bgd { position: absolute; inset: 0; background: var(--k-bg); }
+/* the accent lights the Neon number too (Vest, Silver and OLED take it through --k-glow and --k-neon) */
+.card.acc.s-neon:not(.red) .amt { background: linear-gradient(180deg, #FFFFFF 0%, var(--k-neon) 62%, var(--k-neon) 100%); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 0 26px rgba(var(--k-glow), .4)); }
+.card.acc.s-neon.light:not(.red) .amt { background: var(--k-neon); -webkit-background-clip: text; background-clip: text; filter: drop-shadow(0 0 18px rgba(var(--k-glow), .35)); }
+/* the video of a moving background draws the card once over every frame: the card without its background (share-video.js) */
+.card.bgv { background: transparent; }
+.card.bgv .bgx { display: none; }

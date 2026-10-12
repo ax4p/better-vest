@@ -99,6 +99,8 @@ export function cleanReplay(r) {
         sample: r.sample === true, sampleTarget: num(r.sampleTarget), err
     };
     if (!out.bars.length && !out.err) out.err = 'no-bars';
+    // 9.0: the market as Vest's datafeed names it, the key its recorded seconds are kept under (cert/tape-db.js); only when the page sent it
+    if (typeof r.sym === 'string' && /^[A-Z0-9][A-Z0-9._-]{0,40}$/.test(r.sym)) out.sym = r.sym;
     // 8.2 round 2: finer candles over the same time (the page's other timeframes), only when finer than the card's own
     if (r.fine && typeof r.fine === 'object' && !Array.isArray(r.fine) && out.bars.length) {
         const fr = REPLAY_FINE_RES.includes(String(r.fine.res)) ? String(r.fine.res) : '';
