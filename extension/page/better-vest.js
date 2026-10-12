@@ -23,10 +23,11 @@
     const VERSION = '9.0.1';
     // true only in the Chrome extension build (tools/build.py defines BV_EXT there)
     const IS_EXT = typeof BV_EXT !== 'undefined' && !!BV_EXT;
-    // 'standard' = the shareable build; anything else = WICKED, the author's own full build.
-    // tools/build.py defines BV_EDITION in the extension builds and cuts the full-build-only blocks out of the standard one;
-    // the Tampermonkey script is always the full build.
-    const EDITION = typeof BV_EDITION !== 'undefined' && BV_EDITION === 'standard' ? 'standard' : 'wicked';
+    // 'standard' = the shareable feature set, which every public edition has (Standard, Lite, No stats: 9.0.1); 'wicked' = the author's
+    // own full build. tools/build.py defines BV_EDITION (the edition's own name) in the extension builds and cuts the full-build-only blocks
+    // out of the public ones; the Tampermonkey script is always the full build. EDITION_NAME is what the notices call this copy.
+    const EDITION = typeof BV_EDITION !== 'undefined' && /^(standard|lite|nostats)$/.test(BV_EDITION) ? 'standard' : 'wicked';
+    const EDITION_NAME = typeof BV_EDITION === 'undefined' ? 'WICKED' : ({ standard: 'Standard', lite: 'Lite', nostats: 'No stats' })[BV_EDITION] || 'WICKED';
     const WICKED = EDITION === 'wicked';
     const win = typeof unsafeWindow !== 'undefined' ? unsafeWindow : window;
     // the TradingView chart is a same-origin iframe; one copy of the suite, in the top page only
@@ -34,7 +35,7 @@
     // one copy per page: both editions, or Tampermonkey plus the extension, would double the dock, the overlay and the hotkeys
     if (win.__bvSuiteLoaded) {
         // the copy already running names us in a notice (otherwise this copy's Calendar just looks empty)
-        try { win.__bvSuiteBlocked = (EDITION === 'standard' ? 'Standard' : 'WICKED') + (IS_EXT ? '' : ' (Tampermonkey)'); } catch (e) {}
+        try { win.__bvSuiteBlocked = EDITION_NAME + (IS_EXT ? '' : ' (Tampermonkey)'); } catch (e) {}
         return;
     }
     try { win.__bvSuiteLoaded = EDITION; } catch (e) {}
@@ -237,7 +238,9 @@
             // 9.0: the card's size on markets other than NQ / MNQ, by market ("BTC": 0.05); NQ keeps the presets and Custom
             sizeBy: {},
             // 9.0: PRICE mode (slUnit / tpUnit 'price'): the levels themselves; RISK: the size follows riskUsd and the stop
-            slPx: null, tpPx: null, riskOn: false, riskUsd: null },
+            slPx: null, tpPx: null, riskOn: false, riskUsd: null,
+            // 9.0.1: your own share in the row above 50% (10%, 25%, 75% and this one), a whole percent from 1 to 99
+            partPct: 33 },
         // MNQ view (8.1): on NQ, sizes and the market name read as MNQ contracts (Vest's size ÷ 2). Display only; Settings > Market.
         mnqView: false,
         // Voice feedback (9.0, extension: src/copy/45-voice.js): on by default; the four groups of lines; told: the first-line toast was shown
@@ -411,6 +414,8 @@
         S.xc[k + 'Px'] = Number.isFinite(px) && px > 0 && px < 1e9 ? px : null;
     });
     S.xc.riskOn = S.xc.riskOn === true;
+    // 9.0.1: your own share for the row above 50%: a whole percent from 1 to 99 (partPct's rule; that one is extension code)
+    S.xc.partPct = Number.isInteger(S.xc.partPct) && S.xc.partPct >= 1 && S.xc.partPct <= 99 ? S.xc.partPct : DEFAULTS.xc.partPct;
     S.xc.riskUsd = Number(S.xc.riskUsd) > 0 ? Math.min(Number(S.xc.riskUsd), 1e7) : null;
     // with RISK the stop sets the size, so it can't also be dollars
     if (S.xc.riskOn && S.xc.slUnit === 'usd') S.xc.slUnit = 'pt';
@@ -1115,6 +1120,17 @@
                 color: var(--ax-down); background: var(--ax-raised); border: 1px solid color-mix(in srgb, var(--ax-down) 45%, var(--ax-line)); box-shadow: 0 6px 18px var(--ax-shadow); }
             #ax4p-exec-deck .xc-cxl button:hover { background: color-mix(in srgb, var(--ax-down) 14%, var(--ax-raised)); }
             #ax4p-exec-deck .xc-cxl button:disabled { opacity: .5; cursor: progress; }
+            /* 9.0.1: 10%, 25%, 75% and your own %: the same rise above 50% (a caret on it too), its left edge on 50%'s, growing right */
+            #ax4p-exec-deck #ax4p-half-btn::after { content: ""; position: absolute; top: 3px; right: 4px; border: 3px solid transparent; border-top: 0; border-bottom: 4px solid currentColor; opacity: .55; }
+            #ax4p-exec-deck .xc-part { position: absolute; left: 49px; bottom: 100%; display: flex; gap: 4px; padding: 0 0 6px; z-index: 3; visibility: hidden; opacity: 0; transform: translateY(3px); transition: opacity .12s, transform .12s, visibility 0s linear .25s; }
+            #ax4p-exec-deck .xc-part[hidden] { display: none; }
+            #ax4p-exec-deck #ax4p-half-btn:not(:disabled):hover ~ .xc-part, #ax4p-exec-deck #ax4p-half-btn:focus-visible ~ .xc-part, #ax4p-exec-deck .xc-part:hover, #ax4p-exec-deck .xc-part:has(button:focus-visible) { visibility: visible; opacity: 1; transform: none; transition: opacity .12s, transform .12s, visibility 0s; }
+            #ax4p-exec-deck .xc-part button { display: inline-flex; align-items: center; justify-content: center; min-width: 40px; height: 26px; padding: 0 8px; border-radius: 6px; white-space: nowrap; font-size: 10px; font-weight: 700; letter-spacing: .04em;
+                color: var(--ax-text); background: var(--ax-raised); border: 1px solid color-mix(in srgb, var(--ax-accent) 40%, var(--ax-line)); box-shadow: 0 6px 18px var(--ax-shadow); }
+            #ax4p-exec-deck .xc-part button small { margin-left: 1px; font-size: 10px; font-weight: 600; letter-spacing: 0; opacity: .8; }
+            #ax4p-exec-deck .xc-part button:hover:not(:disabled) { background: color-mix(in srgb, var(--ax-accent) 14%, var(--ax-raised)); }
+            #ax4p-exec-deck .xc-part button:disabled { opacity: .5; cursor: not-allowed; }
+            #ax4p-exec-deck .xc-sec.busy .xc-part { display: none; }
             #ax4p-exec-deck .xc-m + .xc-m::before { content: ""; position: absolute; left: -2px; top: 8px; bottom: 8px; width: 1px; background: linear-gradient(to bottom, transparent, var(--ax-line) 25%, var(--ax-line) 75%, transparent); transition: opacity .12s; }
             #ax4p-exec-deck .xc-m:hover:not(:disabled) { background: color-mix(in srgb, var(--t) 9%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--t) 40%, transparent); color: var(--ax-accent); }
             #ax4p-exec-deck .xc-m:hover:not(:disabled) svg { color: var(--t); }
@@ -3740,7 +3756,7 @@
     // The extension fills xcHooks (positions, Demo, hotkey labels, 50% and REV). The userscript keeps these stubs, so there
     // the card trades exactly like the old strip and 50% / REV stay off.
     // known() is false when the card cannot see your position: then it shows no position line instead of "Flat".
-    const xcHooks = { known: () => false, unknownWhy: () => '', position: () => null, demo: () => false, keyFor: () => '', half: null, rev: null, flat: null, stop: null, limit: null, entry: null, cancelAll: null,
+    const xcHooks = { known: () => false, unknownWhy: () => '', position: () => null, demo: () => false, keyFor: () => '', half: null, part: null, rev: null, flat: null, stop: null, limit: null, entry: null, cancelAll: null,
         exits: false, trailSet: null, autoBeSet: null, trailDesc: null, busy: () => false, armed: () => false,
         partials: () => 'Partials need the Better Vest extension.', assetOf: () => null, applyPartials: null,
         // the daily loss limit (extension): locked() is { text } while new trades are locked, dll() is what the card shows
@@ -4283,6 +4299,19 @@
         if (flat) flat.classList.toggle('idle', known && !pos);
         const half = document.getElementById('ax4p-half-btn');
         if (half) half.disabled = !pos || !xcHooks.half;
+        // 9.0.1: the row above 50% (10%, 25%, 75%, your own %): live with 50%; the last one shows your % (Settings > Sizes)
+        const part = document.getElementById('ax4p-part-row');
+        if (part) {
+            part.hidden = !xcHooks.part;
+            part.querySelectorAll('button').forEach((b) => { b.disabled = !pos || !xcHooks.part; });
+            const c = document.getElementById('ax4p-part-custom');
+            const v = String(S.xc.partPct);
+            if (c && c.dataset.v !== v) {
+                c.dataset.v = v;
+                c.innerHTML = v + '<small>%</small>';
+                c.title = 'Close ' + v + '% of the position (your own share: Settings > Sizes)';
+            }
+        }
         xcPaintExits();
         // STOP: entries need no position, so it is never dimmed; only the extension has it (it watches the book and draws on the chart)
         const stp = document.getElementById('ax4p-stop-btn');
@@ -4398,6 +4427,13 @@
         });
         document.getElementById('ax4p-xc-p-apply').addEventListener('click', () => { if (xcHooks.applyPartials) xcHooks.applyPartials(); });
         document.getElementById('ax4p-half-btn').addEventListener('click', () => { if (xcHooks.half) xcHooks.half(); });
+        // 9.0.1: the row above 50%; a mouse press must not keep it open by focus once the pointer has left (as Cancel all)
+        document.getElementById('ax4p-part-row').addEventListener('click', (e) => {
+            const b = e.target && e.target.closest ? e.target.closest('button[data-part]') : null;
+            if (!b || b.disabled) return;
+            if (e.detail) b.blur();
+            if (xcHooks.part) xcHooks.part(b.dataset.part === 'custom' ? S.xc.partPct : Number(b.dataset.part));
+        });
         document.getElementById('ax4p-rev-btn').addEventListener('click', () => { if (xcHooks.rev) xcHooks.rev(); });
         const carry = document.getElementById('ax4p-xc-carry-tg');
         carry.addEventListener('click', () => xcSetCarry(!xcCarryOn()));
@@ -4639,6 +4675,7 @@
                             <button type="button" id="ax4p-stop-btn" class="xc-m xc-m--stop" title="Stop entry: then click the chart where it goes. Above the price a buy stop, below a sell stop, for this size. Held by Better Vest: it sends a market order when the mid touches it, while this tab is open. The stop and target go with it only if SL/TP on Stop &amp; Limit (above) is on." hidden>${XC_ICON.stop}<span>Stop</span></button>
                             <button type="button" id="ax4p-limit-btn" class="xc-m xc-m--limit" title="Limit order: then click the chart where it goes. Below the price a buy limit, above a sell limit, for this size. A real resting order on Vest, placed through its own ticket like the E / Q keys. The stop and target go with it only if SL/TP on Stop &amp; Limit (above) is on." hidden>${XC_ICON.limit}<span>Limit</span></button>
                             <div class="xc-cxl" id="ax4p-cxl" hidden><button type="button" id="ax4p-cxl-btn" title="Cancel all orders of this account: your STOP orders (held by Better Vest) and your limit orders on Vest, on every market. TP and SL are not touched, and positions stay open.">Cancel all orders</button></div>
+                            <div class="xc-part" id="ax4p-part-row" role="group" aria-label="Close part of the position" hidden>${[10, 25, 75].map((n) => `<button type="button" data-part="${n}" title="Close ${n}% of the position" disabled>${n}<small>%</small></button>`).join('')}<button type="button" data-part="custom" id="ax4p-part-custom" disabled></button></div>
                         </div>
                     </div>
                 </div>
@@ -4908,6 +4945,11 @@
                     <div class="ax4p-btnrow"><button id="ax4p-preset-reset" class="ax4p-btn">Reset this account to default</button></div>
                     <div class="ax4p-hint">Sizes are NQ units (MNQ = size ÷ 2). Switching the account size selects its smallest size.</div>
                 </div>
+                ${IS_EXT ? `<div class="ax4p-sec">
+                    <div class="ax4p-sec-t">Close part of a position</div>
+                    <div class="ax4p-row"><span>Your own share (%)</span><input type="number" id="ax4p-part-pct" class="ax4p-in" min="1" max="99" step="1"></div>
+                    <div class="ax4p-hint">Hover 50% on the Execute card: 10%, 25%, 75% and this one rise above it. Each closes that share of the position through Vest's own close window, rounded down to the size step. A whole percent from 1 to 99.</div>
+                </div>` : ''}
             </div>
             <div class="ax4p-tabpane" data-pane="risk">
                 <div class="ax4p-pane-h"><div class="ax4p-pane-t">Risk</div><div class="ax4p-pane-d">Your own limits: a daily loss limit, a daily profit limit and a cooldown after a bad run. The lock button on the Execute card locks you out by hand.</div></div>
@@ -5022,8 +5064,19 @@
             uiDockCal.onchange = () => { S.ui.dockCalendar = uiDockCal.checked; persist(); applyUiPrefs(); };
         }
         wickWireSettings(); // 9.0: More > Support Astral (src/wick.js)
-        // 9.0 voice (extension): the switches, the volume and a test line (src/copy/45-voice.js reads S.voice when it speaks)
+        // the extension's own settings
         if (IS_EXT) {
+            // 9.0.1: your own share for the row above 50%: a whole percent from 1 to 99, anything else keeps the last good one
+            const pp = document.getElementById('ax4p-part-pct');
+            if (pp) {
+                pp.value = String(S.xc.partPct);
+                pp.onchange = () => {
+                    const v = partPct(pp.value, null);
+                    if (v != null && v !== S.xc.partPct) { S.xc.partPct = v; persist(); xcPaint(); }
+                    pp.value = String(S.xc.partPct);
+                };
+            }
+            // 9.0 voice: the switches, the volume and a test line (src/copy/45-voice.js reads S.voice when it speaks)
             ['on', 'orders', 'exits', 'risk', 'session'].forEach((k) => {
                 const el = document.getElementById('ax4p-vo-' + k);
                 if (!el) return;
@@ -5627,6 +5680,27 @@
         if (!(u > 0) || !(p > 0)) return 0;
         const n = Math.floor(Number((u / p / st).toPrecision(12)));
         return n > 0 ? Number((n * st).toPrecision(12)) : 0;
+    }
+    // 9.0.1, the row above 50% (10%, 25%, 75%, your own %): a whole percent from 1 to 99 (a number or what was typed), else fallback
+    function partPct(v, fallback) {
+        const t = typeof v === 'string' ? v.trim() : v;
+        const n = typeof t === 'number' ? t : typeof t === 'string' && /^\d{1,2}$/.test(t) ? Number(t) : NaN;
+        return Number.isInteger(n) && n >= 1 && n <= 99 ? n : fallback;
+    }
+    // the share of a position to close: the size times the percent, rounded down to the size step, never all of it; 0 when the share is
+    // less than one step (then nothing is sent)
+    function partSize(qty, pct, step) {
+        const q = Number(qty), p = partPct(pct, 0), st = step > 0 ? step : 0.01;
+        if (!(q > 0) || !p) return 0;
+        const n = Math.floor(Number((q * p / 100 / st).toPrecision(12)));
+        const z = n > 0 ? Number((n * st).toPrecision(12)) : 0;
+        return z > 0 && z < q ? z : 0;
+    }
+    // Vest's close window, set to the share, says n ("Close n NQ"): a part of the position, never more than the share itself, and less
+    // than one step under partSize (Vest rounds its own percentage at its own, finer, step)
+    function partOk(n, qty, pct, step) {
+        const want = partSize(qty, pct, step), st = step > 0 ? step : 0.01, v = Number(n), q = Number(qty);
+        return want > 0 && v > 0 && v < q && v <= q * partPct(pct, 0) / 100 + 1e-9 && v > want - st + 1e-9;
     }
     // @@BV-TPSL-MATH-END
 
@@ -9807,6 +9881,77 @@
         document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true }));
     }
 
+    // ---------- Vest's size unit in its close window (9.0.1, for the row above 50%) ----------
+    // Vest keeps one size unit for the whole page (the ticket's drop-down: USD, NQ, Minis, Micros), and its close window uses it with the
+    // same drop-down inside. In Minis or Micros the window's percentages round DOWN to whole contracts, so before the row above 50% sets
+    // one, the window goes to the market's own unit ('token': NQ on NQ) through Vest's own setter, the way the ticket does before an order
+    // (xcUnitToNq); the trader's unit goes back once the window is gone. Markets with the old USD / coin toggle have no whole contracts and
+    // are left as they are. FLAT, 50% and REV do the same (a trader after Vest's update of 2026-10-12: "the flatten or reduce 50% is not
+    // working": in Minis, 100% of a position under one Mini is 0 and Vest greys its Close out; 50% closed less than half).
+    function xcCloseUnitSel(dlg) {
+        const el = dlg ? dlg.querySelector('[data-testid="size-unit-select"]') : null;
+        return el && !isOurs(el) ? el : null;
+    }
+    // Vest's own value for the unit now ('USD', 'token', 'mini', 'micro'), from the drop-down's props. Not its data-unit: that says 'usd'
+    // for USD, which Vest's store does not know, so putting it back would leave the page on a unit that matches nothing.
+    function xcUnitValue(sel) {
+        const k = sel ? Object.keys(sel).find((x) => x.startsWith('__reactFiber$') || x.startsWith('__reactInternalInstance$')) : null;
+        for (let f = k ? sel[k] : null, i = 0; f && i < 40; f = f.return, i++) {
+            const p = f.memoizedProps;
+            if (p && typeof p === 'object' && typeof p.onValueChange === 'function' && typeof p.value === 'string') return p.value;
+        }
+        return '';
+    }
+    // { ok, prev, set }: ok once the window reads 'token' (or has no drop-down); prev: Vest's own value of the unit to put back, '' when none
+    // was changed; set: Vest's setter from the window's drop-down (it writes the page's unit store, so it still works once the window is gone)
+    async function xcCloseUnitToken(dlg) {
+        let sel = xcCloseUnitSel(dlg);
+        if (!sel) return { ok: true, prev: '', set: null };
+        if (sel.getAttribute('data-unit') === 'token') return { ok: true, prev: '', set: null };
+        const prev = xcUnitValue(sel);
+        const set = xcUnitHooks(sel).set;
+        if (!set) return { ok: false, prev: '', set: null };
+        try { set('token'); } catch (e) { return { ok: false, prev: '', set: null }; }
+        for (let i = 0; i < 20; i++) {
+            await sleep(25);
+            sel = xcCloseUnitSel(dlg);
+            if (sel && sel.getAttribute('data-unit') === 'token') return { ok: true, prev, set };
+        }
+        return { ok: false, prev, set };
+    }
+    // the trader's own unit back (u: what xcCloseUnitToken gave) once Vest's close window is gone. Not while a close window is still up, and
+    // not when the ticket shows a unit other than the one set here (the trader changed it meanwhile).
+    async function xcCloseUnitBack(u) {
+        if (!u || !u.prev || typeof u.set !== 'function') return;
+        const up = () => document.querySelector('[data-testid="close-dialog"]');
+        if (up()) await xcWait(() => !up(), 4000, 100);
+        if (up()) return;
+        const sel = xcUnitSelect();
+        if (sel && sel.getAttribute('data-unit') !== 'token') return;
+        try { u.set(u.prev); } catch (e) {}
+    }
+    // 9.0.1, the row above 50%: the size in Vest's "Close 4 NQ" in Vest's NQ size, also with MNQ view on, where the window's text reads
+    // "Close 8 MNQ" (mnqRelabel)
+    function xcPartQty(btn) {
+        const m = String((btn && btn.textContent) || '').replace(/,/g, '').match(/(\d+(?:\.\d+)?)(\s?MNQ\b)?/);
+        return m ? (m[2] ? Number((parseFloat(m[1]) * MNQ_DIV).toPrecision(12)) : parseFloat(m[1])) : null;
+    }
+    // Vest's close window to p percent: its own button for it (25, 50, 75, 100), else the setter of its percentage slider, the control
+    // those buttons set (found up the slider's React tree: the props { value: <percent>, onChange }). True once pressed or set.
+    function xcClosePct(dlg, p) {
+        const b = dlg.querySelector(`[data-testid="size-pct-${p}"]`);
+        if (b) return !!invokeReactClick(b);
+        const th = dlg.querySelector('[role="slider"]');
+        const k = th ? Object.keys(th).find((x) => x.startsWith('__reactFiber$') || x.startsWith('__reactInternalInstance$')) : null;
+        for (let f = k ? th[k] : null, i = 0; f && i < 40; f = f.return, i++) {
+            const pr = f.memoizedProps;
+            if (pr && typeof pr === 'object' && typeof pr.onChange === 'function' && typeof pr.value === 'number') {
+                try { pr.onChange(p); return true; } catch (e) { return false; }
+            }
+        }
+        return false;
+    }
+
     function xcPts() {
         return {
             sl: parseFloat(document.getElementById('ax4p-sl-pts')?.value) || 0,
@@ -9847,46 +9992,6 @@
         if (el) return el;
         if (!(await xcShowPositions())) return null;
         return xcWait(find, 1500);
-    }
-
-    // ---------- Vest's close window in the market's own unit (9.0.1) ----------
-    // Vest keeps ONE size unit for the whole page (USD, the market's own, Minis, Micros), and its close window takes it too, with the same
-    // drop-down. In Minis or Micros the window's percentage buttons round DOWN to whole contracts: 100% of a position under one Mini is 0
-    // (Vest greys its Close out, so FLAT sent nothing) and a bigger one keeps the rest open; 50% closed less than half. A trader reported it
-    // after Vest's update of 2026-10-12 ("the flatten or reduce 50% is not working"). So before FLAT, 50% or REV press a percentage, the
-    // window goes to the market's own unit ('token') through Vest's own setter, and the trader's unit comes back once the window is gone.
-    // A window without the drop-down (the old USD / NQ toggle, markets without Minis) never rounds and is left alone.
-    function xcCloseUnitSel(dlg) {
-        const sel = dlg && dlg.querySelector('[data-testid="size-unit-select"]');
-        return sel && !isOurs(sel) ? sel : null;
-    }
-    // Vest's own value for the unit now ('USD', 'token', 'mini', 'micro'), from the drop-down's props
-    function xcUnitValue(sel) {
-        const k = sel ? Object.keys(sel).find((x) => x.startsWith('__reactFiber$') || x.startsWith('__reactInternalInstance$')) : null;
-        for (let f = k ? sel[k] : null, i = 0; f && i < 40; f = f.return, i++) {
-            const p = f.memoizedProps;
-            if (p && typeof p === 'object' && typeof p.onValueChange === 'function' && typeof p.value === 'string') return p.value;
-        }
-        return '';
-    }
-    // { ok, back }: ok once the window reads the market's own unit (or has no drop-down); back puts the trader's unit back (null: nothing to)
-    async function xcCloseToToken(dlg) {
-        const sel = xcCloseUnitSel(dlg);
-        if (!sel || sel.getAttribute('data-unit') === 'token') return { ok: true, back: null };
-        const prev = xcUnitValue(sel);
-        const set = xcUnitHooks(sel).set;
-        if (!set) return { ok: false, back: null };
-        try { set('token'); } catch (e) { return { ok: false, back: null }; }
-        const ok = !!(await xcWait(() => { const s = xcCloseUnitSel(dlg); return !!s && s.getAttribute('data-unit') === 'token'; }, 1000, 25));
-        // Vest's setter writes the page's unit store, so it still works after the window has gone
-        const back = prev && prev !== 'token' ? () => { try { set(prev); } catch (e) {} } : null;
-        return { ok, back };
-    }
-    // the trader's unit back once Vest's close window is gone
-    async function xcUnitBack(u) {
-        if (!u || !u.back) return;
-        await xcWait(() => !document.querySelector('[data-testid="close-dialog"]'), 4000, 100);
-        u.back();
     }
 
     // ---------- FLAT (7.7.1): the panic button ----------
@@ -9939,18 +10044,18 @@
             } else {
                 // not known here: the first row Vest shows, as FLAT always did, with the tab brought up first if need be
                 await xcRowShown(positionCloseTrigger);
-                // 9.0.1: its window opened here (the click the protected code would make), so its unit is set before 100% is pressed
+                // its window opened here (the click the protected code would make), so its unit is set before 100% is pressed
                 const first = positionCloseTrigger();
                 if (first) { invokeReactClick(first); await xcWait(() => document.querySelector('[data-testid="close-dialog"]'), 1500); }
             }
         }
-        // 9.0.1: the window in the market's own unit before the protected code presses 100% (Minis and Micros round it down). FLAT is the
-        // panic button, so it closes even when the unit would not change, and says so.
+        // the window in the market's own unit before the protected code presses 100% (Minis and Micros round it down). FLAT is the panic
+        // button, so it closes even when the unit would not change, and says so.
         const dlgNow = document.querySelector('[data-testid="close-dialog"]');
-        const unit = dlgNow ? await xcCloseToToken(dlgNow) : null;
+        const unit = dlgNow ? await xcCloseUnitToken(dlgNow) : null;
         if (unit && !unit.ok) xcSay("FLAT: Vest's close window would not switch to this market's own units, so it may close less than all of it in Minis or Micros. Check Positions.", 'warn');
         await triggerCloseAll();
-        xcUnitBack(unit).catch(() => {});
+        xcCloseUnitBack(unit).catch(() => {});
         // Vest's own questions after the close, one after the other (at most three)
         for (let i = 0; i < 3; i++) {
             const c = await xcWait(() => xcVestConfirms().find((x) => !before.has(x.d)), i ? 1000 : 1500);
@@ -9976,7 +10081,7 @@
         xcPaint();
         // FLAT pressed meanwhile: from then on Vest's close window is FLAT's, so 50% steps aside and touches nothing
         const flatPressed = () => { if (XC.abort) xcSay('50% stopped: you pressed FLAT.', 'warn'); return XC.abort; };
-        let unit = null; // 9.0.1: the trader's size unit, put back at the end
+        let unit = null; // the trader's size unit, put back at the end
         try {
             const fresh = await mcFreshPositions();
             if (flatPressed()) return;
@@ -9990,8 +10095,8 @@
             const dlg = await xcWait(() => XC.abort || document.querySelector('[data-testid="close-dialog"]'), 2500);
             if (flatPressed()) return;
             if (!dlg) { xcSay("Vest's close window did not open. Nothing sent.", 'bad'); return; }
-            // 9.0.1: the window in the market's own unit before 50% is pressed (Minis and Micros round it down)
-            unit = await xcCloseToToken(dlg);
+            // the window in the market's own unit before 50% is pressed (Minis and Micros round it down)
+            unit = await xcCloseUnitToken(dlg);
             if (flatPressed()) return;
             if (!unit.ok) { xcDismiss(dlg); xcSay("Vest's close window would not switch to this market's own units. Nothing sent.", 'bad'); return; }
             const p50 = await xcWait(() => XC.abort || dlg.querySelector('[data-testid="size-pct-50"]'), 1500);
@@ -10029,7 +10134,95 @@
             if (done) { xcSay(`50% done: closed ${fmtSize(got.n)}, ${fmtSize(left)} left.`, 'good'); typeof bvEmit === 'function' && bvEmit('half-closed'); }
             else xcSay(`50% sent: ${fmtSize(got.n)} of ${fmtSize(qty)}. Vest is not showing the smaller position yet, so check Positions.`, 'warn');
         } finally {
-            xcUnitBack(unit).catch(() => {});
+            xcCloseUnitBack(unit).catch(() => {});
+            XC.busy = false;
+            XC.what = '';
+            XC.abort = false;
+            xcPaint();
+        }
+    }
+
+    // ---------- 10%, 25%, 75% and your own % (9.0.1): the row above 50% ----------
+    // The owner: "option to hover over 50% and close 25%, 75%, 10% or custom % (can be set in settings)". The steps are 50%'s: this
+    // position's own Close button, Vest's close window in the market's own unit, Vest's own percentage (its 25% or 75% button, else its
+    // percentage slider, the control those buttons set), Vest's "Close N NQ" checked before Vest's own Close is pressed, then the smaller
+    // position read back. The size is the position times the share, rounded down to the card's size step (partSize, never all of it); a
+    // share under one step sends nothing. Like 50%: never locked, Vest's own questions are left to you, and in Demo it only says what it
+    // would do. It says no voice line ("Half the position closed" is 50%'s only).
+    async function xcPart(pct) {
+        if (XC.busy) return;
+        const p = partPct(pct, 0);
+        if (!p) return;
+        const label = p + '%';
+        const pos = xcPositionNow();
+        if (!pos) { xcSay('No position on this market.'); return; }
+        const step = xcRiskStep();
+        const small = (q) => `${label} of ${fmtSize(q)} is less than one size step (${fmtSize(step)}): the position is too small for that share.`;
+        const want = partSize(pos.qty, p, step);
+        if (xcDemoOn()) { xcSay(want > 0 ? `[DEMO] ${label} would close ${fmtSize(want)} of ${fmtSize(pos.qty)}. Nothing sent.` : `[DEMO] ${small(pos.qty)} Nothing sent.`); return; }
+        if (!(want > 0)) { xcSay(small(pos.qty) + ' Nothing sent.', 'bad'); return; }
+        if (!tpSymbolsAgree()) { xcSay('The chart and the page show different markets. Nothing sent.', 'bad'); return; }
+        XC.busy = true;
+        XC.what = label;
+        XC.abort = false;
+        xcPaint();
+        const flatPressed = () => { if (XC.abort) xcSay(label + ' stopped: you pressed FLAT.', 'warn'); return XC.abort; };
+        let unitBack = '';
+        try {
+            const fresh = await mcFreshPositions();
+            if (flatPressed()) return;
+            if (!fresh || fresh.length !== 1) { xcSay('Could not confirm the position just now. Nothing sent.', 'bad'); return; }
+            const qty = fresh[0].qty;
+            const n0 = partSize(qty, p, step);
+            if (!(n0 > 0)) { xcSay(small(qty) + ' Nothing sent.', 'bad'); return; }
+            if (document.querySelector('[data-testid="close-dialog"]')) { xcSay('A close window is already open. Nothing sent.', 'bad'); return; }
+            const row = await xcRowShown(() => xcRowFor(pos));
+            if (flatPressed()) return;
+            if (!row) { xcSay("Vest's Close button for this position is not on screen, even in the Positions tab. Nothing sent.", 'bad'); return; }
+            invokeReactClick(row);
+            const dlg = await xcWait(() => XC.abort || document.querySelector('[data-testid="close-dialog"]'), 2500);
+            if (flatPressed()) return;
+            if (!dlg) { xcSay("Vest's close window did not open. Nothing sent.", 'bad'); return; }
+            const u = await xcCloseUnitToken(dlg);
+            unitBack = u.prev ? u : null;
+            if (flatPressed()) return;
+            if (!u.ok) { xcDismiss(dlg); xcSay(label + ": Vest's close window could not be set to " + xcMarket() + ' units. Nothing sent.', 'bad'); return; }
+            const set = await xcWait(() => XC.abort || xcClosePct(dlg, p), 1500);
+            if (flatPressed()) return;
+            if (!set) { xcDismiss(dlg); xcSay("Vest's close window has no way to set " + label + '. Nothing sent.', 'bad'); return; }
+            // Vest fills in the size one render later: its own Close label must show the share before it is pressed
+            let seen = null;
+            const got = await xcWait(() => {
+                if (XC.abort) return { abort: true };
+                const b = dlg.querySelector('[data-testid="close-submit"]');
+                const n = xcPartQty(b);
+                seen = n;
+                return b && n != null && partOk(n, qty, p, step) ? { b, n } : null;
+            }, 2000);
+            if (flatPressed()) return;
+            if (!got) {
+                xcDismiss(dlg);
+                xcSay(`${label} did not line up (the window says ${seen != null ? fmtSize(seen) : 'no size'} of ${fmtSize(qty)}, ${fmtSize(n0)} expected). Nothing sent.`, 'bad');
+                return;
+            }
+            if (got.b.disabled) { xcDismiss(dlg); xcSay('Vest kept its Close button disabled. Nothing sent.', 'bad'); return; }
+            invokeReactClick(got.b);
+            flashExec(`${label}: closing ${fmtSize(got.n)} of ${fmtSize(qty)}`);
+            const gone = await xcWait(() => !document.querySelector('[data-testid="close-dialog"]'), 4000, 100);
+            if (!gone) { xcSay('Vest kept the close window open. Check it before anything else.', 'bad'); return; }
+            await sleep(250);
+            if (xcOtherDialog()) { xcSay('Vest is asking you to confirm in its own window. Nothing is closed until you do.', 'warn'); return; }
+            const left = Number((qty - got.n).toPrecision(12));
+            let done = false;
+            for (let i = 0; i < 4 && !done; i++) {
+                const f = await mcFreshPositions();
+                done = !!f && f.length === 1 && mcSameNum(f[0].qty, left);
+                if (!done) await sleep(500);
+            }
+            if (done) xcSay(`${label} done: closed ${fmtSize(got.n)}, ${fmtSize(left)} left.`, 'good');
+            else xcSay(`${label} sent: ${fmtSize(got.n)} of ${fmtSize(qty)}. Vest is not showing the smaller position yet, so check Positions.`, 'warn');
+        } finally {
+            if (unitBack) { try { await xcCloseUnitBack(unitBack); } catch (e) {} }
             XC.busy = false;
             XC.what = '';
             XC.abort = false;
@@ -10066,7 +10259,7 @@
         XC.abort = false;
         xcPaint();
         typeof bvEmit === 'function' && bvEmit('rev-start'); // voice: the close and the new fill are REV's, not lines of their own
-        let unit = null; // 9.0.1: the trader's size unit, put back at the end
+        let unit = null; // the trader's size unit, put back at the end
         try {
             // every check for the new side runs BEFORE anything is closed
             const why = mcGate(want);
@@ -10086,11 +10279,11 @@
             if (XC.abort) { xcSay('REV stopped: you pressed FLAT.', 'warn'); return; }
             // 1. close all of it through Vest's own window, the same steps FLAT takes
             invokeReactClick(row);
-            // 9.0.1: the window in the market's own unit before the protected code presses 100% (Minis and Micros round it down: REV
-            // would then open the new side on top of what was left of the old one)
+            // the window in the market's own unit before the protected code presses 100% (Minis and Micros round it down: REV would then
+            // open the new side on top of what was left of the old one)
             const rdlg = await xcWait(() => document.querySelector('[data-testid="close-dialog"]'), 1500);
             if (rdlg) {
-                unit = await xcCloseToToken(rdlg);
+                unit = await xcCloseUnitToken(rdlg);
                 if (!unit.ok) { xcDismiss(rdlg); xcSay("REV stopped: Vest's close window would not switch to this market's own units. Nothing sent.", 'bad'); return; }
             }
             if (!(await confirmCloseDialog())) { xcSay("REV stopped: Vest's close window did not confirm. Nothing opened.", 'bad'); return; }
@@ -10139,7 +10332,7 @@
             }
             else xcSay(`REV sent the ${names[1]} ${fmtSize(qty)}, but Vest is not showing it yet. Check Positions before you press anything.`, 'warn');
         } finally {
-            xcUnitBack(unit).catch(() => {});
+            xcCloseUnitBack(unit).catch(() => {});
             typeof bvEmit === 'function' && bvEmit('rev-end');
             XC.busy = false;
             XC.what = '';
@@ -10410,6 +10603,7 @@
         return S.macros && S.macros.on && a && a.on && a.key && mcMarketOk(detectedSymbol) ? mcKeyLabel(a.key) : '';
     };
     xcHooks.half = () => { xcHalf().catch(() => { XC.busy = false; xcPaint(); }); };
+    xcHooks.part = (pct) => { xcPart(pct).catch(() => { XC.busy = false; xcPaint(); }); };
     xcHooks.flat = () => xcFlat().catch(() => {});
 
     // ---------- Cancel all orders (8.1.5): the button above FLAT ----------
@@ -11348,7 +11542,10 @@
         if (d.cmd === 'theme' && THEMES[d.value]) setTheme(d.value);
         else if (d.cmd === 'open') openSettings(d.tab || 'look');
         else if (d.cmd === 'focusAll') toggleFocusAll();
-        else if (d.cmd === 'update') showUpdateButton(d.version);
+        else if (d.cmd === 'update') {
+            showUpdateButton(d.version);
+            upHear(d.version, d.heads);
+        }
         else if (d.cmd === 'widget' && ['exec', 'settings'].includes(d.key)) {
             S.widgets[d.key] = d.key === 'settings' ? !S.widgets.settings : S.widgets[d.key] === false;
             persist();
@@ -11437,6 +11634,194 @@
         b.title = 'Better Vest ' + v + ' is out: see what is new and update in one click';
         b.innerHTML = ic('<path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/>') + '<span class="ax4p-lbl">Update ' + v + '</span>';
         fitDock();
+    }
+
+    // ---------- 9.0.1: the update pop-up (the public editions; WICKED and DEV never update from GitHub) ----------
+    // The owner: "start showing pop outs of when it finds new update and user is flat and it shows new features so more people update".
+    // A newer release (the worker's 30-minute check; the bridge brings its version and its "What's new" lines, as text) shows in a small
+    // panel at the bottom right of Vest's page, only while you are flat in this tab: no position on the account in front (the demo position
+    // counts), no order on its way from the card or a hotkey, this tab not copying, not a copier or chart helper tab, no Vest window open.
+    // At most once a Vest day (8 pm New York) per version, and in one Vest tab: a Web Lock and a record in this site's localStorage, which
+    // every Vest tab shares. "See what's new and update" opens the update page as the dock's Update button does; Later hides it until Vest's
+    // next day. A position that opens while it shows hides it until you are flat again. The dock's Update button stays as it was.
+    // ---- up pure: begin ----
+    const UP_KEY = 'ax4p-upd-pop';
+    const UP_TICK_MS = 2000;
+    // the bridge's lines: at most six short strings
+    function upClean(heads) {
+        return Array.isArray(heads) ? heads.filter((h) => typeof h === 'string' && h.trim() && h.length <= 80).slice(0, 6).map((h) => h.trim()) : [];
+    }
+    // the record every Vest tab reads: { v, day } (that version's turn of that Vest day is taken), or null
+    function upRecord(text) {
+        let r = null;
+        try { r = JSON.parse(text); } catch (e) { return null; }
+        return r && typeof r === 'object' && typeof r.v === 'string' && typeof r.day === 'string' ? { v: r.v, day: r.day } : null;
+    }
+    // What the pop-up does now. s: v (the newer version, '' for none), mine (the version this tab's own panel shows, '' for none), rec (the
+    // record), day (Vest's day now), helper (a copier or chart helper tab), visible, flat, copying, dialog (a Vest window), other (our P&L
+    // card pop-up is up). 'new': this tab takes the day's turn and shows it; 'show' / 'pause': this tab's own panel back / hidden for now;
+    // 'drop': it goes; '': nothing.
+    function upDecide(s) {
+        if (s.mine && s.mine !== s.v) return 'drop';
+        if (!s.v) return '';
+        const clear = !s.helper && s.visible && s.flat && !s.copying && !s.dialog && !s.other;
+        if (s.mine) return clear ? 'show' : 'pause';
+        if (!clear) return '';
+        if (s.rec && s.rec.v === s.v && s.rec.day === s.day) return '';
+        return 'new';
+    }
+    // ---- up pure: end ----
+    const UP = { v: '', heads: [], el: null, mine: '', timer: 0, taking: false };
+    function upHear(version, heads) {
+        UP.v = /^\d{1,4}\.\d{1,4}\.\d{1,4}$/.test(String(version || '')) ? String(version) : '';
+        UP.heads = upClean(heads);
+        if (UP.el && UP.mine === UP.v) upFill();
+        if ((UP.v || UP.el) && !UP.timer) UP.timer = setInterval(upTick, UP_TICK_MS);
+        upTick();
+    }
+    function upRead() {
+        try { return upRecord(LS.getItem(UP_KEY)); } catch (e) { return null; }
+    }
+    function upWrite(v, day) {
+        try { LS.setItem(UP_KEY, JSON.stringify({ v, day })); } catch (e) {}
+    }
+    // Flat in this tab. Logged out there is no account, so only the demo position counts. Signed in, every market of the account in front
+    // is read from Vest's own positions store (the one the chart's labels read); a store not read yet is not flat.
+    function upFlat() {
+        const t = now();
+        if (TP.demo || tpPositions().length || TP.prov || XC.busy || t < mc.lockUntil || t < TP.blockUntil || bvCopyLock) return false;
+        let uid = null;
+        try { const b = tpBridge(); uid = b && b.userId ? b.userId() : null; } catch (e) {}
+        if (!uid) return true;
+        const acc = tpActiveAccount();
+        if (!acc) return false;
+        if (!TPS.api) tpFindStores();
+        let reg = null;
+        try { reg = TPS.api && tpIsPosStore(TPS.api) ? TPS.api.getState().accounts[acc] : null; } catch (e) { reg = null; }
+        if (!reg || reg.hasHydrated !== true || !reg.positions || typeof reg.positions !== 'object') return false;
+        for (const p of Object.values(reg.positions)) {
+            if (!p || p.closedAt) continue;
+            if (typeof p.quantity !== 'bigint' || p.quantity > 0n) return false;
+        }
+        return true;
+    }
+    // this tab copies a group (the copier says so through the hooks it gives Manage accounts)
+    function upCopying() {
+        try {
+            const rows = VU.hooks && typeof VU.hooks.groups === 'function' ? VU.hooks.groups() : null;
+            return Array.isArray(rows) && rows.some((r) => r && r.here === true);
+        } catch (e) { return false; }
+    }
+    // the P&L card's own pop-up sits in the same corner
+    function upOtherUp() {
+        const f = document.getElementById('ax4p-share-pop');
+        return !!f && f.style.visibility !== 'hidden' && f.getClientRects().length > 0;
+    }
+    function upTick() {
+        if (!UP.v && !UP.el) {
+            if (UP.timer) { clearInterval(UP.timer); UP.timer = 0; }
+            return;
+        }
+        const day = dllDayKey(now());
+        const rec = upRead();
+        const s = { v: UP.v, mine: UP.mine, rec, day, helper: /[?&](bvCopy|bvLead|bvChart)=/.test(location.search), visible: document.visibilityState !== 'hidden' };
+        // the day's turn is taken (here, in another Vest tab, or Later): nothing else to read
+        if (!s.mine && s.v && rec && rec.v === s.v && rec.day === day) return;
+        s.dialog = mcDialogOpen(document);
+        s.other = upOtherUp();
+        s.copying = upCopying();
+        s.flat = !s.helper && s.visible && !s.dialog && !s.other && !s.copying && upFlat();
+        const what = upDecide(s);
+        if (what === 'drop') upDrop();
+        else if (what === 'pause') UP.el.hidden = true;
+        else if (what === 'show') { UP.el.hidden = false; UP.el.classList.toggle('up-low', !!document.getElementById('ax4p-cert-btn')); }
+        else if (what === 'new') upTake(day);
+    }
+    // the day's turn, under a Web Lock so that two Vest tabs never both take it
+    function upTake(day) {
+        if (UP.taking) return;
+        UP.taking = true;
+        const go = () => {
+            UP.taking = false;
+            const rec = upRead();
+            if (!UP.v || UP.el || (rec && rec.v === UP.v && rec.day === day)) return;
+            upWrite(UP.v, day);
+            upShow();
+        };
+        try {
+            if (navigator.locks && navigator.locks.request) {
+                navigator.locks.request(UP_KEY, { ifAvailable: true }, (lock) => { if (lock) go(); else UP.taking = false; return null; }).catch(() => { UP.taking = false; });
+                return;
+            }
+        } catch (e) {}
+        go();
+    }
+    function upCss() {
+        ensureStyle('ax4p-upd-pop-css').textContent = `
+            #ax4p-upd-pop { position: fixed; right: 16px; bottom: 16px; z-index: 2147483000; box-sizing: border-box; width: 320px; max-width: calc(100vw - 32px);
+                padding: 10px 12px 12px; border-radius: 16px; background: var(--ax-raised); color: var(--ax-text); border: 1px solid var(--ax-line);
+                box-shadow: 0 18px 50px var(--ax-shadow); font: 12.5px/1.4 Inter, system-ui, -apple-system, sans-serif; animation: ax4pUpIn .28s cubic-bezier(.2, .8, .2, 1); }
+            #ax4p-upd-pop[hidden], #ax4p-upd-pop [hidden] { display: none; }
+            #ax4p-upd-pop.up-low { bottom: 68px; }
+            #ax4p-upd-pop * { box-sizing: border-box; }
+            @keyframes ax4pUpIn { from { opacity: 0; transform: translateY(14px) scale(.98); } to { opacity: 1; transform: none; } }
+            #ax4p-upd-pop .up-hd { display: flex; align-items: center; gap: 8px; min-height: 26px; }
+            #ax4p-upd-pop .up-dot { width: 8px; height: 8px; flex: none; border-radius: 50%; background: var(--ax-accent); box-shadow: 0 0 10px var(--ax-glow); }
+            #ax4p-upd-pop .up-t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+            #ax4p-upd-pop .up-x { display: grid; place-items: center; width: 26px; height: 26px; flex: none; padding: 0; border: 0; border-radius: 7px; background: none; color: var(--ax-dim); cursor: pointer; }
+            #ax4p-upd-pop .up-x:hover { background: var(--ax-btn); color: var(--ax-text); }
+            #ax4p-upd-pop .up-x svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+            #ax4p-upd-pop .up-lab { margin: 8px 0 4px; font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--ax-dim); }
+            #ax4p-upd-pop .up-list { display: grid; gap: 2px; margin: 0; padding: 0 0 0 16px; color: var(--ax-muted); list-style: disc; }
+            #ax4p-upd-pop .up-list li { margin: 0; padding: 0; }
+            #ax4p-upd-pop .up-acts { display: flex; gap: 6px; margin-top: 12px; }
+            #ax4p-upd-pop .up-acts button { height: 32px; padding: 0 12px; border-radius: 9px; border: 1px solid var(--ax-line); background: var(--ax-btn); color: var(--ax-text);
+                font-family: inherit; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+            #ax4p-upd-pop .up-acts .up-go { flex: 1; border-color: color-mix(in srgb, var(--ax-accent) 65%, transparent); background: color-mix(in srgb, var(--ax-accent) 30%, var(--ax-btn)); }
+            #ax4p-upd-pop .up-acts .up-go:hover { background: color-mix(in srgb, var(--ax-accent) 40%, var(--ax-btn)); }
+            #ax4p-upd-pop .up-acts .up-later:hover { border-color: var(--ax-accent); }`;
+    }
+    function upShow() {
+        upCss();
+        const el = document.createElement('div');
+        el.id = 'ax4p-upd-pop';
+        el.setAttribute('role', 'status');
+        el.setAttribute('aria-label', 'Better Vest update');
+        // fixed markup only: the version and the lines go in as text (upFill)
+        el.innerHTML = '<div class="up-hd"><span class="up-dot" aria-hidden="true"></span><b class="up-t"></b>'
+            + '<button type="button" class="up-x" tabindex="-1" title="Later" aria-label="Later"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>'
+            + '<div class="up-lab">What\'s new</div><ul class="up-list"></ul>'
+            + '<div class="up-acts"><button type="button" class="up-go" tabindex="-1">See what\'s new and update</button><button type="button" class="up-later" tabindex="-1">Later</button></div>';
+        el.addEventListener('click', (e) => {
+            const b = e.target && e.target.closest ? e.target.closest('button') : null;
+            if (!b) return;
+            e.stopPropagation();
+            // either way the turn is today's: Later (or the update page) is not asked again until Vest's next day
+            upWrite(UP.mine, dllDayKey(now()));
+            if (b.classList.contains('up-go')) {
+                try { win.postMessage({ bv: 1, dir: 'toExt', type: 'uopen' }, location.origin); } catch (x) {}
+            }
+            upDrop();
+        });
+        UP.el = el;
+        UP.mine = UP.v;
+        upFill();
+        el.classList.toggle('up-low', !!document.getElementById('ax4p-cert-btn'));
+        (document.body || document.documentElement).appendChild(el);
+    }
+    function upFill() {
+        const el = UP.el;
+        if (!el) return;
+        el.querySelector('.up-t').textContent = 'Better Vest ' + UP.mine + ' is out';
+        const list = el.querySelector('.up-list');
+        list.replaceChildren(...UP.heads.map((h) => { const li = document.createElement('li'); li.textContent = h; return li; }));
+        list.hidden = !UP.heads.length;
+        el.querySelector('.up-lab').hidden = !UP.heads.length;
+    }
+    function upDrop() {
+        if (UP.el) { try { UP.el.remove(); } catch (e) {} }
+        UP.el = null;
+        UP.mine = '';
     }
 
     // The total-payouts certificate is an extension page too (certificate.html); same page -> bridge -> SW route.
@@ -12312,7 +12697,7 @@
         let other = null;
         try { other = win.__bvSuiteBlocked; } catch (e) {}
         if (!other || typeof other !== 'string') return;
-        const mine = EDITION === 'standard' ? 'Standard' : 'WICKED';
+        const mine = EDITION_NAME;
         tpToast('Two Better Vest copies are on. ' + mine + ' is running here; ' + other + ' is switched off on this page and its Calendar will stay empty. Turn one off in chrome://extensions.', 'warn', 14000);
     }
     // A pill on the primary-account page (/portfolio). Fixed position so it never depends on Vest's markup;
@@ -15613,11 +15998,13 @@
         mcBoot();
         setInterval(dllTick, 2000);
         setTimeout(dllTick, 1200);
-        // 9.0: the New York open and the news: the moments, the card's countdown chip, and a toast for them while the voice is off
+        // 9.0: the New York open and the news: the moments, the card's countdown chip, and a toast for them while the voice is off (Lite has
+        // no voice: always the toast)
         ensureStyle('ax4p-ss-css').textContent = ssChipCss();
         setInterval(() => { try { ssTick(); ssPaintChip(document.getElementById('ax4p-ss-chip')); } catch (e) {} }, 1000);
         BV_EV.push((type, d) => {
-            if (!/^(ny-open-5|ny-open|news-5|news-1)$/.test(type) || (S.voice && S.voice.on !== false)) return;
+            if (!/^(ny-open-5|ny-open|news-5|news-1)$/.test(type)) return;
+            if (S.voice && S.voice.on !== false) return;
             const names = d && Array.isArray(d.shorts) ? d.shorts.join(' + ') : 'News';
             const text = type === 'ny-open-5' ? 'New York opens in five minutes.' : type === 'ny-open' ? 'New York is open.' : names + (type === 'news-5' ? ' in five minutes.' : ' in one minute.');
             tpToast(text, type === 'news-1' ? 'warn' : '', 6000);
@@ -19427,7 +19814,8 @@ function cpHookAccounts() {
     CP.hooked = true;
     try {
         su.accountsHooks({
-            groups: () => cpGroups().map((g) => ({ id: g.id, leaderId: g.leaderId, followerIds: cpMemberIds(g), running: cpRunsHere(g.id) || cpPeerRunning(g.id) })),
+            // here (9.0.1): this tab copies the group (the update pop-up waits while it does)
+            groups: () => cpGroups().map((g) => ({ id: g.id, leaderId: g.leaderId, followerIds: cpMemberIds(g), running: cpRunsHere(g.id) || cpPeerRunning(g.id), here: cpRunsHere(g.id) })),
             setGroup: (accountId, groupId) => cpSetAccountGroup(accountId, groupId),
             lockedTo: () => cpLeadLock()
         });
@@ -19955,7 +20343,7 @@ function cpFastSend(it, c, predicted, info, from, again) {
 
 // The Switch engine has this tab on a follower account for a moment: an order the owner clicks then would go to that follower. The
 // owner's real clicks (isTrusted) on the order buttons and Vest's order windows are stopped; the engine's own clicks are not trusted events.
-const CP_ORDER_BTN = '#ax4p-buy-btn, #ax4p-sell-btn, #ax4p-flatten-btn, #ax4p-half-btn, #ax4p-rev-btn, [data-testid="submit-long"], [data-testid="submit-short"], ' +
+const CP_ORDER_BTN = '#ax4p-buy-btn, #ax4p-sell-btn, #ax4p-flatten-btn, #ax4p-half-btn, #ax4p-part-row button, #ax4p-rev-btn, [data-testid="submit-long"], [data-testid="submit-short"], ' +
     '[data-testid="close-submit"], [data-testid="tpsl-edit-submit"], [data-testid^="position-close-"]';
 function cpSwitching() { try { return typeof ceExecuting === 'function' && !!ceExecuting(); } catch (e) { return false; } }
 
