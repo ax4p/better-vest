@@ -246,8 +246,8 @@
     // first state once the page has booted
     setTimeout(() => window.postMessage({ bv: 1, dir: 'toPage', cmd: 'ping' }, location.origin), 2500);
 
-    // 9.0 voice: the page script has no chrome.runtime, so it learns where the extension's own clips are (page/voice/*.ogg, the only
-    // files the manifest lets the page read). Only this address goes to the page.
+    // 9.0: the page script has no chrome.runtime, so it learns the extension's own address, for the few files the manifest lets the page
+    // read (the voice clips, the P&L card's pop-up). Only this address goes to the page.
     function tellBase() {
         if (!alive()) return;
         try { window.postMessage({ bv: 1, dir: 'toPage', cmd: 'base', url: chrome.runtime.getURL('') }, location.origin); } catch (e) {}
@@ -255,12 +255,14 @@
     setTimeout(tellBase, 1500);
     setTimeout(tellBase, 6000);
 
-    // a newer release waiting on GitHub: the dock shows an Update button (only the version number goes to the page)
+    // a newer release waiting on GitHub: the dock shows an Update button and (9.0.1, the public editions) the update pop-up. Only the version
+    // number and the release's "What's new" lines (at most six short plain strings) go to the page.
     function tellUpdate() {
         if (!alive()) return;
         chrome.runtime.sendMessage({ type: 'update-state' }).then((s) => {
             const v = s && s.available && /^\d{1,4}\.\d{1,4}\.\d{1,4}$/.test(String(s.available.version)) ? String(s.available.version) : '';
-            window.postMessage({ bv: 1, dir: 'toPage', cmd: 'update', version: v }, location.origin);
+            const heads = v && Array.isArray(s.heads) ? s.heads.filter((h) => typeof h === 'string' && h.length <= 80).slice(0, 6) : [];
+            window.postMessage({ bv: 1, dir: 'toPage', cmd: 'update', version: v, heads }, location.origin);
         }).catch(() => {});
     }
     setTimeout(tellUpdate, 3000);

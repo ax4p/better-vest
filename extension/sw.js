@@ -3,16 +3,20 @@
 // 2. Journal hub: receives the trade history that the Vest page streams over the 'journal' port,
 //    validates and normalizes it, writes it to IndexedDB, runs the post-conditions, and serves
 //    the popup summary, the sync command relay and the Calendar tab opener.
-// 3. Updates (Standard, loaded unpacked): asks GitHub for the latest release every 6 hours; update.html does the rest.
+// 3. Updates (the public editions, loaded unpacked): asks GitHub for the latest release every 30 minutes; update.html does the rest.
+// 4. Usage counts (9.0.1: update/count.js, in the public editions and the WICKED zip; DEV and this working folder do not carry it). The
+//    only address it talks to is https://bv.astrals.dev/api/count: an install count (every edition that counts) and, in Standard, Lite and
+//    WICKED, a heartbeat every 10 minutes while a Vest tab is open (a random id, the version and the edition).
 
 import { openDb, getAll, get, putMany, putMeta, getMeta, listUserIds } from './journal/db.js';
 import {
     normalizeCapitalAccount, normalizePrimaryAccount, mergeAccount, normalizePosition, normalizePayout, normalizeSymbol, NORMALIZER_VERSION
 } from './journal/model.js';
 import { filterTrades, reconcile, summary } from './journal/stats.js';
-import { LATEST_URL, compareVersions, parseLatest } from './update/core.js';
+import { LATEST_URL, compareVersions, parseLatest, whatsNew } from './update/core.js';
 import { cleanSnap } from './cert/share-model.js';
 import { tapeWrite } from './cert/tape-db.js';
+import { countStart } from './update/count.js';
 
 const stateKey = (tabId) => 'tab:' + tabId;
 
@@ -604,10 +608,9 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 });
 
 // ---------- updates ----------
-// Only the Standard build loaded unpacked from the GitHub zip updates from GitHub: the WICKED build is rebuilt from
-// its own source, and the private Copier build must never take a public Standard release (it would lose the copy
-// trader), so the line below stays a comment in both. Web Store copies are updated by Chrome. The check is a plain GET
-// to GitHub's API with nothing from the user in it; nothing is downloaded until Update is clicked.
+// Only the public editions (Standard, Lite, No stats) loaded unpacked from the GitHub zip update from GitHub: the WICKED build is
+// rebuilt from its own source, and the DEV build never updates itself, so the line below stays a comment in both. Web Store copies are
+// updated by Chrome. The check is a plain GET to GitHub's API with nothing from the user in it; nothing is downloaded until Update is clicked.
 let UPDATER = false;
 UPDATER = true;
 const UPDATE_ALARM = 'bv-update-check';
@@ -622,12 +625,15 @@ async function updaterSupported() {
     return true;
 }
 
+// available: a newer release; latest (9.0.1): the newest release whatever its version (the update page switches edition with it); heads:
+// the newer release's "What's new" lines, for the pop-up on Vest's page (the bridge passes them on, as text)
 async function updateState() {
     const supported = await updaterSupported();
-    const st = await chrome.storage.local.get(['bvUpdate', 'bvUpdateCheck', 'bvUpdateAt']);
+    const st = await chrome.storage.local.get(['bvUpdate', 'bvUpdateCheck', 'bvUpdateAt', 'bvLatest']);
     const version = chrome.runtime.getManifest().version;
     const available = supported && st.bvUpdate && compareVersions(st.bvUpdate.version, version) > 0 ? st.bvUpdate : null;
-    return { supported, on: st.bvUpdateCheck !== false, available, checkedAt: st.bvUpdateAt || null, version };
+    const latest = supported && isObj(st.bvLatest) && typeof st.bvLatest.tag === 'string' ? st.bvLatest : null;
+    return { supported, on: st.bvUpdateCheck !== false, available, checkedAt: st.bvUpdateAt || null, version, latest, heads: available ? whatsNew(available.notes) : [] };
 }
 
 async function paintUpdateBadge() {
@@ -645,7 +651,7 @@ async function checkUpdate(force) {
         const r = await fetch(LATEST_URL, { headers: { Accept: 'application/vnd.github+json' }, cache: 'no-store' });
         if (r.ok) {
             const rel = parseLatest(await r.json());
-            await chrome.storage.local.set({ bvUpdateAt: Date.now() });
+            await chrome.storage.local.set(rel ? { bvUpdateAt: Date.now(), bvLatest: rel } : { bvUpdateAt: Date.now() });
             if (rel && compareVersions(rel.version, chrome.runtime.getManifest().version) > 0) await chrome.storage.local.set({ bvUpdate: rel });
             else await chrome.storage.local.remove('bvUpdate');
         }
@@ -674,12 +680,15 @@ async function afterSelfUpdate() {
     const { bvUpdated } = await chrome.storage.local.get('bvUpdated');
     if (!bvUpdated) return;
     const v = chrome.runtime.getManifest().version;
-    if (bvUpdated.to !== v) {
+    // 9.0.1: an edition switch keeps the version and changes the name (Better Vest by Astral Lite...), so both say whether it landed
+    const name = chrome.runtime.getManifest().name;
+    if (bvUpdated.to !== v || (bvUpdated.toName && bvUpdated.toName !== name)) {
         // Running again and still the old version: the new files went into a copy Chrome doesn't run (an identical one
         // in another folder), or the page closed before the restart. Say so once. A worker that starts before reloadAt
         // is the old one waking up early (the restart is a timer set for reloadAt, never sooner).
         const t = Date.now();
-        if (bvUpdated.from === v && t >= (bvUpdated.reloadAt || bvUpdated.at || 0) && t - (bvUpdated.at || 0) < 10 * 60 * 1000) {
+        const stillOld = bvUpdated.from === v && (!bvUpdated.fromName || bvUpdated.fromName === name);
+        if (stillOld && t >= (bvUpdated.reloadAt || bvUpdated.at || 0) && t - (bvUpdated.at || 0) < 10 * 60 * 1000) {
             await chrome.storage.local.remove('bvUpdated');
             await chrome.tabs.create({ url: chrome.runtime.getURL('update.html#elsewhere') }).catch(() => {});
         }
@@ -701,6 +710,10 @@ chrome.runtime.onInstalled.addListener(() => { scheduleUpdates(); afterSelfUpdat
 paintUpdateBadge().catch(() => {});
 scheduleUpdates().catch(() => {});
 afterSelfUpdate().catch(() => {});
+
+// ---------- usage counts (9.0.1: the public editions and the WICKED zip) ----------
+// update/count.js: the install count, and in Standard, Lite and WICKED the heartbeat. Only the builds that count carry that file and the line below.
+countStart();
 
 // Whenever the worker starts, bring the last user's stored trades up to the current derivation rules.
 lastUserId().then((uid) => { if (uid) dbFor(uid).catch(() => {}); }).catch(() => {});

@@ -19,6 +19,11 @@ Better Vest by Astral - how to install (2 minutes, Chrome / Brave / Edge / Arc)
 7. Calendar: click "Calendar" in the dock (or press Alt+J), then "Build my calendar".
    It reads your own trade history from Vest (read-only) and keeps it on this computer.
 
+This is the Standard edition. To count its users it sends Astral one small message when it is installed, updated
+or switched to (the version and the edition) and, every 10 minutes while a Vest tab is open, a random number made
+in this browser with the version and the edition. That is all it sends to Astral: no account, no trades, no
+balances. The No stats edition sends only the install message; the Lite edition is this one without the voice.
+Do not load it next to another Better Vest: pick one.
 
 WHAT YOU GET
 - Exec strip: size presets per account (5K / 10K / 25K / custom), LONG / SHORT / FLAT with a stop and target in points.
@@ -41,6 +46,7 @@ UPDATING: from 7.4 on it updates itself. When a new version is out, the dock sho
 "Update" button (and the toolbar icon says NEW). Click it, then Update. The first time,
 Chrome asks for this folder: pick it and allow editing. Every file is checked against
 a signed list before anything is written. Leave Developer mode on.
+The same page switches to another edition (Standard, Lite, No stats) if you pick one there.
 By hand (or coming from 7.3): unzip the new zip over the old folder (replace files),
 then on chrome://extensions press the circular arrow on the Better Vest card.
 
