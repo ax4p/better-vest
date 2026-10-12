@@ -61,8 +61,8 @@
   "journal/views/shared.js": "30b1c9b67dd07d7f61ca6e86ed06805b3800b31c8aeeb03de1ce952c199a68aa",
   "journal/views/stats.js": "1bddadc7bd33f9d42854320fe3c9fc68e68cc9102787db5b7d5e215bbcbdcd3f",
   "journal/views/trades.js": "c266b799a68e14b68d912efdcbc81ba541671cc8b99e394eec719c7443404e83",
-  "manifest.json": "25724db6c9a3e5f51083e77b7e0f8ae5bbfcef9989cd069c298671eb2d2137a5",
-  "page/better-vest.js": "08e4e5403abeb5ba9525815770949637f7d91fcaeee30193be3041e2fbc8cd5a",
+  "manifest.json": "3b1b6148dfd404e775bab86ec0319581157bc5a11a4422d9427e8df836f1331e",
+  "page/better-vest.js": "cbd3ca623bdef4451992d48a440cf823a2680313f775dff40240aca3f6efe6b9",
   "popup.css": "0153bf508f4bfdb53158ce4b51cd189b21e745ed07a00f1051b5e8d10b3cd231",
   "popup.html": "de23e9701c459ab80096aac695ba89dd0c7bf069810745b6aaaed41ea883ce42",
   "popup.js": "05cd059e1e3502d101d0fae41597302d7d13db15d36a2a64abe121cffac5f49f",
@@ -75,5 +75,5 @@
   "update/update.css": "467474eefc767a3b032bc1937e386b808858421a196304a866744d62f79042e9"
  },
  "name": "Better Vest by Astral Lite",
- "version": "9.0.1"
+ "version": "9.0.2"
 }
