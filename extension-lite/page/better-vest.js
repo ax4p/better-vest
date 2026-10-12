@@ -20,7 +20,7 @@
 (function () {
     'use strict';
 
-    const VERSION = '9.0.1';
+    const VERSION = '9.0.2';
     // true only in the Chrome extension build (tools/build.py defines BV_EXT there)
     const IS_EXT = typeof BV_EXT !== 'undefined' && !!BV_EXT;
     // 'standard' = the shareable feature set, which every public edition has (Standard, Lite, No stats: 9.0.1); 'wicked' = the author's
@@ -24905,6 +24905,66 @@ function ceKeepLeaderKey(st) {
     } catch (e) {}
 }
 
+// What a follower tab cannot do goes from this tab (9.0.1+). Vest's update of 2026-10-12 left its reduce and TP/SL functions only in a
+// position's own row, its Close and Edit TP/SL windows and the chart's TP/SL chips, which a hidden follower tab never draws: the tab answers
+// "Vest has no tpAdd writer here" (the owner's test on 9.0.1, Turbo: the entry was copied, then every stop and target failed; Light, which runs
+// from this visible tab, copied them). Nothing was sent for such an action, so this tab sends it the way Light does: Vest's own function,
+// inside a switch to the follower and straight back (vx.withAccount), with the functions this tab has (its own rows, its chart, and the ones
+// learned from the owner's own clicks). The actions the follower tab skipped after it, for the same follower, follow in their order. Any
+// other failure (Vest's refusal, a timeout, an expired or refused action) is never sent again.
+const CE_NO_WRITER = /^Vest has no (\w+) writer here/;
+async function ceTabsFromLeader(st, list, results, idxs, t0, opts) {
+    const queues = new Map(); // accountId -> indexes, from its first missing-writer failure on
+    for (const i of idxs) {
+        const r = results[i];
+        if (!r || r.ok) continue;
+        const id = String(list[i].accountId);
+        const q = queues.get(id);
+        if (q) { if (/^skipped: /.test(String(r.error || ''))) q.push(i); continue; }
+        if (CE_NO_WRITER.test(String(r.error || ''))) queues.set(id, [i]);
+    }
+    if (!queues.size) return;
+    let via = '';
+    const run = async (id, q) => {
+        let dead = false;
+        for (const i of q) {
+            const a = list[i];
+            if (dead) { results[i] = Object.assign({}, results[i], { error: 'skipped: an earlier action for this account failed' }); continue; }
+            const no = cePermit(opts, a);
+            if (no) { results[i] = { action: a, ok: false, ms: ceRound(ceNow() - t0), error: 'stopped: ' + no }; dead = true; continue; }
+            // this tab shows another account (Vest itself, or the owner): never guessed, the tab's own reason stays
+            let active = null;
+            try { active = vx.active(); } catch (e) {}
+            if (st.halted || !st.leader || active !== st.leader) { dead = true; continue; }
+            let writers = null, plan = null;
+            try { writers = vx.ready() ? ceWriters() : null; } catch (e) { writers = null; }
+            try { plan = ceCloseFallback(cePlan(a, st.cfg), a, writers, st.cfg); } catch (e) { dead = true; continue; }
+            const fns = plan.calls.map((c) => c.fn);
+            // this tab lacks it too: the tab's own reason stays (the reconciler tries again on a later pass)
+            if (!writers || writers.why || fns.some((fn) => typeof writers[fn] !== 'function')) { dead = true; continue; }
+            const t = ceNow();
+            let ps;
+            try {
+                ps = fns[0] === 'open' ? plan.calls.map((c) => ceCall(writers, c)) : vx.withAccount(id, () => plan.calls.map((c) => ceCall(writers, c)));
+            } catch (e) {
+                ps = [Promise.reject(e)];
+            }
+            ceAssertLeader(st);
+            typeof cpDev === 'function' && cpDev('send', () => ({ msg: 'Turbo: ' + ceDevName(id) + '\'s tab has no ' + fns.join('+') + ' function of Vest\'s, so this tab sends ' + ceDevAct(a) + ' the Light way (inside a switch to the follower and back)', symbol: a.symbol, acc: id, engine: 'tabs', kind: a.kind, writers: fns, via: 'leader' }));
+            const r = await ceSettle(ps, st.T.actionMs);
+            const done = ceNow();
+            const warn = 'sent from the leader tab (the follower\'s hidden tab has no ' + fns.join('+') + ' function of Vest\'s)';
+            results[i] = Object.assign({ action: a, ok: r.ok, ms: ceRound(done - t0), own: ceRound(done - t), via: 'leader' }, r.ok ? { resp: r.resp } : { error: r.error },
+                { warn: plan.warn ? plan.warn + '; ' + warn : warn });
+            if (r.ok) via = id;
+            else dead = true;
+        }
+    };
+    await Promise.all([...queues].map(([id, q]) => run(id, q)));
+    // Vest keeps one account token: the follower's order replaced the leader's, so it is renewed now, as Light does after a batch
+    if (via) ceWarmLeader(st, via, 'after sending from the leader tab what a follower tab could not');
+}
+
 function ceMakeTabs() {
     const st = ceMakeState();
     st.tabs = new Map();   // accountId -> 'opening' | 'ready' | 'lost' | 'failed'
@@ -25140,6 +25200,8 @@ function ceMakeTabs() {
                         typeof r.ms === 'number' ? { own: r.ms } : {}, r.ok === true ? { resp: r.resp === undefined ? null : r.resp } : { error: typeof r.error === 'string' ? r.error.slice(0, 200) : 'failed' },
                         typeof r.warn === 'string' ? { warn: r.warn } : warns.has(i) ? { warn: warns.get(i) } : {});
                 });
+                // what a follower tab had no function of Vest's for goes from this tab, the Light way (ceTabsFromLeader)
+                await ceTabsFromLeader(st, list, results, sendIdx, t0, opts);
                 // A tab the worker found not ready (it was reloading or gone while this side still believed it ready): from now on its actions are refused
                 // here, which is not an attempt, so a tab that reloads between two orders never costs its follower a pause.
                 for (const i of sendIdx) {
