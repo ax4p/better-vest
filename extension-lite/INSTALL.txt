@@ -1,0 +1,53 @@
+Better Vest by Astral Lite - how to install (2 minutes, Chrome / Brave / Edge / Arc)
+
+1. Download better-vest-lite-9.0.1.zip and double-click it.
+   You now have a folder called "better-vest-lite-9.0.1". Keep it somewhere safe
+   (Documents is fine). Chrome loads the extension from this folder, so don't delete it.
+
+2. Open Chrome and type in the address bar:  chrome://extensions
+   (Brave: brave://extensions - Edge: edge://extensions)
+
+3. Top-right corner: turn ON "Developer mode".
+
+4. Click "Load unpacked" (top-left) and pick the "better-vest-lite-9.0.1" folder.
+   "Better Vest by Astral Lite" appears in the list. Done.
+
+5. Pin it: click the puzzle icon in Chrome's toolbar and pin Better Vest.
+
+6. Open https://next.vestmarkets.com - the ASTRAL dock appears at the top.
+
+7. Calendar: click "Calendar" in the dock (or press Alt+J), then "Build my calendar".
+   It reads your own trade history from Vest (read-only) and keeps it on this computer.
+
+This is the Lite edition: Standard without the voice feedback (no voice clips, a smaller download). It sends Astral
+the same counts as Standard: one small message when it is installed, updated or switched to, and every 10 minutes
+while a Vest tab is open a random number made in this browser, with the version and the edition. Nothing else.
+Do not load it next to another Better Vest: pick one.
+
+WHAT YOU GET
+- Exec strip: size presets per account (5K / 10K / 25K / custom), LONG / SHORT / FLAT with a stop and target in points.
+- Chart TP/SL: your position, TP and SL on the chart. Drag the TP / SL buttons or labels to set them with the dollar value live.
+  The BE button moves the stop to breakeven (entry + a small share of the open profit; every part is a setting).
+- Macros (hotkeys): W = long, S = short, E = limit buy at the best bid, Q = limit sell at the best ask, H = breakeven.
+  They use Vest's own ticket, ignore the keys while you type, and stop TradingView's type-to-search from opening.
+  The dock button "Macros" is the master switch; Settings > Hotkeys remaps every key.
+  Order keys (W S E Q) work on NQ and MNQ with the Exec strip showing; E and Q also need Chart TP/SL on, to see your position.
+  Standard installs start with Macros OFF (and E / Q unarmed): switch them on in the dock / Settings when you want them.
+- Copy trader: the Copy button in the dock. Pick a leader account and the accounts that follow it, and every order,
+  stop, target, reduce, reverse and flatten on the leader is repeated on them at each one's ratio. It starts off, asks
+  you to read a short risk note first and never switches itself on after a reload. Alt+Shift+K stops it.
+- Focus mode, themes (Dark is the default), Calendar (PnL per day, risk, RR, payouts; Alt+J).
+
+Using the Tampermonkey version, or the other edition of this extension, too? Keep only ONE on:
+turn the others OFF, otherwise the dock and the overlay show twice (the suite also refuses to start a second copy). Your settings carry over automatically.
+
+UPDATING: from 7.4 on it updates itself. When a new version is out, the dock shows an
+"Update" button (and the toolbar icon says NEW). Click it, then Update. The first time,
+Chrome asks for this folder: pick it and allow editing. Every file is checked against
+a signed list before anything is written. Leave Developer mode on.
+The same page switches to another edition (Standard, Lite, No stats) if you pick one there.
+By hand (or coming from 7.3): unzip the new zip over the old folder (replace files),
+then on chrome://extensions press the circular arrow on the Better Vest card.
+
+Chrome may show "Disable developer mode extensions" on start-up. Click the X /
+"Keep" - it's a normal warning for extensions not installed from the Chrome Web Store.
