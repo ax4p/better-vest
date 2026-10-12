@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en" data-theme="astral">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Update · Better Vest by Astral</title>
+<link rel="icon" href="icons/icon32.png">
+<link rel="stylesheet" href="update/update.css">
+<!-- blocking on purpose: applies the Calendar's cached theme before first paint (MV3 forbids inline scripts) -->
+<script src="journal/theme-boot.js"></script>
+</head>
+<body data-state="checking">
+<div class="app">
+  <header class="top">
+    <div class="brand">
+      <img src="icons/icon48.png" alt="" class="logo">
+      <div class="brand-t"><b>Better Vest</b><small>Updates · by Astral</small></div>
+    </div>
+    <span class="grow"></span>
+    <span class="pill" title="The version Chrome runs now"><i class="dot"></i><span class="pill-k">Installed</span> <b id="cur"></b></span>
+    <a id="rel" class="btn ghost" href="https://github.com/ax4p/better-vest/releases" target="_blank" rel="noopener">All releases
+      <svg class="ic sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg></a>
+  </header>
+
+  <main class="wrap">
+    <div class="col">
+      <section id="card" class="card hero">
+        <div class="head">
+          <span class="badge" aria-hidden="true">
+            <i class="spin"></i>
+            <svg class="ic i-up" viewBox="0 0 24 24"><path d="M12 19V6M6 12l6-6 6 6"/></svg>
+            <svg class="ic i-ok" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+            <svg class="ic i-warn" viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+            <svg class="ic i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg>
+          </span>
+          <div class="head-t">
+            <div id="eyebrow" class="lab">Checking</div>
+            <h1 id="lead" class="lead" aria-live="polite">Checking GitHub…</h1>
+          </div>
+        </div>
+
+        <div id="ribbon" class="ribbon" hidden></div>
+
+        <p id="msg" class="msg" role="status" hidden></p>
+
+        <div id="how" class="how" hidden>
+          <div class="how-h">
+            <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+            <b>Picking the folder</b>
+          </div>
+          <ol class="how-steps">
+            <li>Click Update. The first time, Chrome asks for a folder.</li>
+            <li>Pick your Better Vest folder, the one you loaded on <code>chrome://extensions</code>, or any folder it is in, like Documents.</li>
+            <li>Allow it to edit files.</li>
+          </ol>
+          <p class="hint">Not sure where it is? On <code>chrome://extensions</code>, click <b>Details</b> on Better Vest: <b>Source</b> shows the folder.
+          On a Mac, folders whose name starts with a dot are hidden in the picker: press <kbd>Cmd</kbd> <kbd>Shift</kbd> <kbd>.</kbd> to show them.</p>
+        </div>
+
+        <fieldset id="eds" class="eds" hidden>
+          <legend class="lab">Edition</legend>
+          <div id="eds-list" class="eds-list"></div>
+        </fieldset>
+
+        <button id="go" class="primary" type="button" hidden></button>
+        <p class="go-note">Takes a few seconds. Your settings and Calendar stay as they are.</p>
+
+        <div id="run" class="run" hidden>
+          <div class="bar-row"><span id="bar-what"></span><span id="bar-n" class="num"></span></div>
+          <div id="bar" class="bar"><i id="bar-fill"></i></div>
+          <ol id="steps" class="steps">
+            <li data-step="folder">Your Better Vest folder <span class="n"></span></li>
+            <li data-step="download">Download and check the signature <span class="n"></span></li>
+            <li data-step="write">Write the new files <span class="n"></span></li>
+            <li data-step="restart">Restart Better Vest and reload your Vest tabs</li>
+          </ol>
+        </div>
+      </section>
+
+      <section class="card prefs">
+        <label class="sw">
+          <input type="checkbox" id="auto">
+          <span class="track" aria-hidden="true"><i></i></span>
+          <span class="sw-t"><b>Check for updates</b><small>One request to GitHub every 30 minutes</small></span>
+        </label>
+        <div class="acts">
+          <button id="check" class="btn" type="button">Check now</button>
+          <button id="forget" class="btn ghost" type="button">Forget the folder</button>
+        </div>
+      </section>
+    </div>
+
+    <section id="news" class="card news" hidden>
+      <div class="news-head">
+        <div><div class="lab">What's new</div><b id="news-v"></b></div>
+        <a id="news-gh" class="btn ghost" href="https://github.com/ax4p/better-vest/releases" target="_blank" rel="noopener">Read on GitHub
+          <svg class="ic sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg></a>
+      </div>
+      <div id="notes" class="notes"></div>
+    </section>
+  </main>
+</div>
+<script type="module" src="update/page.js"></script>
+</body>
+</html>
