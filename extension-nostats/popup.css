@@ -18,7 +18,6 @@ body {
   color: var(--text); font: 12px/1.35 system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-.logo { width: 36px; height: 36px; border-radius: 22%; }
 .name { font-weight: 800; font-size: 14px; letter-spacing: .02em; }
 .by { color: var(--muted); font-size: 11px; }
 .muted { color: var(--muted); }
@@ -71,3 +70,18 @@ button.cal-open { display: flex; justify-content: center; align-items: center; g
 .upd button.mini { background: #2563eb; border-color: var(--accent); color: #fff; }
 .upd-pref { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; color: var(--muted); font-size: 11px; }
 .upd-pref input { accent-color: #2563eb; vertical-align: -2px; }
+
+/* the Better Vest mark (9.0.4): the B breathes, its glow swelling and fading every 3.6 s, while a band of light crosses it along Vest's
+   38.66° angle; the light theme gets the inverted tile. The same as the page script's .ax4p-tile / .ax4p-b. */
+.bv-tile { display: inline-grid; place-items: center; flex: none; width: var(--t); height: var(--t); border-radius: 22%;
+    background: #050506; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .1); }
+.bv-b { position: relative; display: inline-block; flex: none; height: calc(var(--t) * .58); width: calc(var(--t) * .58 * 38 / 64);
+    margin-left: calc(var(--t) * .04); --b-fill: #f5f5f7; --b-shine: #7dd3fc; --b-glow: color-mix(in srgb, var(--accent) 75%, transparent);
+    animation: bv-b-breathe 3.6s ease-in-out infinite; }
+.bv-b > i { position: absolute; inset: 0; overflow: hidden; background: var(--b-fill);
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 38 64'%3E%3Cpolygon points='0,0 18,0 38,16 18,32 38,48 18,64 0,64'/%3E%3C/svg%3E") center / 100% 100% no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 38 64'%3E%3Cpolygon points='0,0 18,0 38,16 18,32 38,48 18,64 0,64'/%3E%3C/svg%3E") center / 100% 100% no-repeat; }
+.bv-b > i::after { content: ''; position: absolute; left: -150%; top: -100%; width: 400%; height: 300%;
+    background: linear-gradient(38.66deg, transparent 45%, var(--b-shine) 50%, transparent 55%); animation: bv-b-sheen 3.6s ease-in-out infinite; }
+@keyframes bv-b-sheen { 0% { transform: translate(-32%, 24%); } 60%, 100% { transform: translate(32%, -24%); } }
+@keyframes bv-b-breathe { 0%, 100% { filter: drop-shadow(0 0 0 transparent); } 45% { filter: drop-shadow(0 0 2px var(--b-glow)) drop-shadow(0 0 7px var(--b-glow)); } }
+@media (prefers-reduced-motion: reduce) { .bv-b, .bv-b > i::after { animation: none; } }
