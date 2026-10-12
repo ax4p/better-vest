@@ -93,7 +93,6 @@ kbd { font: 600 10px/1 var(--font); padding: 3px 5px; border-radius: 5px; backgr
 }
 @supports not (backdrop-filter: blur(1px)) { .topbar, .drawer, .pop { background: var(--ax-raised); } }
 .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.logo { width: 26px; height: 26px; border-radius: 22%; display: block; background: var(--ax-base); }
 .brand b { font-size: 15px; font-weight: 600; letter-spacing: -.01em; }
 .brand small { font-size: 11px; color: var(--j-t2); white-space: nowrap; }
 .tabs { display: flex; gap: 2px; margin-left: 8px; }
@@ -511,3 +510,20 @@ button.chip:hover { color: var(--j-t1); }
 
 /* keep text legible where a star sits behind it */
 .mh-nav h1, .hero-sub, .paid, .wd, .legend, .notice { text-shadow: 0 0 10px var(--ax-base), 0 0 3px var(--ax-base); }
+
+/* the Better Vest mark (9.0.4): the B breathes, its glow swelling and fading every 3.6 s, while a band of light crosses it along Vest's
+   38.66° angle; the light theme gets the inverted tile. The same as the page script's .ax4p-tile / .ax4p-b. */
+.bv-tile { display: inline-grid; place-items: center; flex: none; width: var(--t); height: var(--t); border-radius: 22%;
+    background: #050506; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .1); }
+.bv-b { position: relative; display: inline-block; flex: none; height: calc(var(--t) * .58); width: calc(var(--t) * .58 * 38 / 64);
+    margin-left: calc(var(--t) * .04); --b-fill: #f5f5f7; --b-shine: var(--ax-accent-text); --b-glow: color-mix(in srgb, var(--ax-accent) 75%, transparent);
+    animation: bv-b-breathe 3.6s ease-in-out infinite; }
+.bv-b > i { position: absolute; inset: 0; overflow: hidden; background: var(--b-fill);
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 38 64'%3E%3Cpolygon points='0,0 18,0 38,16 18,32 38,48 18,64 0,64'/%3E%3C/svg%3E") center / 100% 100% no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 38 64'%3E%3Cpolygon points='0,0 18,0 38,16 18,32 38,48 18,64 0,64'/%3E%3C/svg%3E") center / 100% 100% no-repeat; }
+.bv-b > i::after { content: ''; position: absolute; left: -150%; top: -100%; width: 400%; height: 300%;
+    background: linear-gradient(38.66deg, transparent 45%, var(--b-shine) 50%, transparent 55%); animation: bv-b-sheen 3.6s ease-in-out infinite; }
+@keyframes bv-b-sheen { 0% { transform: translate(-32%, 24%); } 60%, 100% { transform: translate(32%, -24%); } }
+@keyframes bv-b-breathe { 0%, 100% { filter: drop-shadow(0 0 0 transparent); } 45% { filter: drop-shadow(0 0 2px var(--b-glow)) drop-shadow(0 0 7px var(--b-glow)); } }
+@media (prefers-reduced-motion: reduce) { .bv-b, .bv-b > i::after { animation: none; } }
+:root[data-theme="light"] .bv-tile { background: #f5f5f7; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .1); }
+:root[data-theme="light"] .bv-b { --b-fill: #050506; --b-shine: var(--ax-accent); }
