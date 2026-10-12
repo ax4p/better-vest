@@ -12,6 +12,7 @@ import {
 import { filterTrades, reconcile, summary } from './journal/stats.js';
 import { LATEST_URL, compareVersions, parseLatest } from './update/core.js';
 import { cleanSnap } from './cert/share-model.js';
+import { tapeWrite } from './cert/tape-db.js';
 
 const stateKey = (tabId) => 'tab:' + tabId;
 
@@ -549,6 +550,15 @@ async function shareOpen(snap, sender) {
 const EXT_BASE = chrome.runtime.getURL('');
 const fromExtensionPage = (sender) => !!sender && sender.id === chrome.runtime.id && typeof sender.url === 'string' && sender.url.startsWith(EXT_BASE);
 const fromVestScript = (sender) => !!sender && sender.id === chrome.runtime.id && !!sender.tab && String(sender.url || '').startsWith('https://next.vestmarkets.com/');
+
+// 9.0: the chart's price second by second, for the P&L card's Replay (src/tape.js -> bridge.js). Only from a Vest tab of the user's own,
+// never a copy follower's, a copy group leader's or a chart data tab; cleaned again and kept in IndexedDB 'bv-tape' for 30 days.
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+    if (!isObj(msg) || msg.type !== 'tape') return;
+    if (!fromVestScript(sender) || /[?&](bvCopy|bvLead|bvChart)=/.test(String(sender.tab.url || ''))) { sendResponse({ ok: false }); return false; }
+    tapeWrite(msg.sym, msg.rows, Date.now()).then((n) => sendResponse({ ok: true, n }), () => sendResponse({ ok: false }));
+    return true;
+});
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (!isObj(msg) || typeof msg.type !== 'string') return;
@@ -1320,3 +1330,93 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
 
 chrome.alarms.onAlarm.addListener((a) => { if (a.name === COPY_WATCH_ALARM) copyWatch().catch(() => {}); });
 copySweep().catch(() => {});
+
+// ---------- 9.0 multi-chart: the hidden chart data tabs ----------
+// A Vest tab showing extra charts (src/multichart.js) asks for one hidden Vest tab per market they show: /trade/<market>?bvChart=<market>,
+// opened in the background next to it, never discarded, in a collapsed "Charts" group. That tab's own Vest chart's datafeed feeds the
+// extra charts over a same-origin BroadcastChannel; the suite stands down there. The tabs close with the tab that asked for them, or as
+// soon as it no longer shows that market (it says which it keeps every few seconds). The map lives in chrome.storage.session: this
+// worker sleeps. Up to three markets a tab (four charts, one of them Vest's own).
+const MCH_KEY = 'mchTabs';
+const MCH_RE = /^[A-Z0-9][A-Z0-9-]{0,40}$/;
+let mchQueue = Promise.resolve();
+function mchLock(fn) {
+    const p = mchQueue.then(fn, fn);
+    mchQueue = p.catch(() => {});
+    return p;
+}
+async function mchLoad() {
+    const r = await chrome.storage.session.get(MCH_KEY).catch(() => null);
+    const v = r && r[MCH_KEY];
+    return isObj(v) ? v : {};
+}
+const mchSave = (all) => chrome.storage.session.set({ [MCH_KEY]: all }).catch(() => {});
+const mchTab = (id) => (Number.isInteger(id) ? chrome.tabs.get(id).catch(() => null) : Promise.resolve(null));
+const mchIsData = (tab, market) => !!tab && String(tab.url || tab.pendingUrl || '').indexOf('bvChart=' + market) >= 0;
+
+async function mchGroup(tab) {
+    try {
+        const found = await chrome.tabGroups.query({ windowId: tab.windowId, title: 'Charts' });
+        if (found && found.length) { await chrome.tabs.group({ groupId: found[0].id, tabIds: [tab.id] }); return; }
+        const gid = await chrome.tabs.group({ tabIds: [tab.id], createProperties: { windowId: tab.windowId } });
+        await chrome.tabGroups.update(gid, { title: 'Charts', color: 'grey', collapsed: true });
+    } catch (e) {}
+}
+async function mchOpen(opener, market, reload) {
+    const all = await mchLoad();
+    const key = String(opener.id);
+    const mine = isObj(all[key]) ? all[key] : (all[key] = {});
+    const cur = await mchTab(mine[market]);
+    if (mchIsData(cur, market)) {
+        if (reload) await chrome.tabs.reload(cur.id).catch(() => {});
+        return { ok: true, tabId: cur.id };
+    }
+    if (!(market in mine) && Object.keys(mine).length >= 3) return { ok: false, error: 'max' };
+    const tab = await chrome.tabs.create({ windowId: opener.windowId, url: 'https://next.vestmarkets.com/trade/' + market + '?bvChart=' + market, active: false, index: opener.index + 1 });
+    chrome.tabs.update(tab.id, { autoDiscardable: false }).catch(() => {});
+    mine[market] = tab.id;
+    await mchSave(all);
+    await mchGroup(tab);
+    return { ok: true, tabId: tab.id };
+}
+// the markets the tab still shows; every other data tab of it closes
+async function mchKeep(opener, markets) {
+    const all = await mchLoad();
+    const key = String(opener.id);
+    const mine = isObj(all[key]) ? all[key] : {};
+    const close = [];
+    for (const m of Object.keys(mine)) if (markets.indexOf(m) < 0) { close.push(mine[m]); delete mine[m]; }
+    if (Object.keys(mine).length) all[key] = mine; else delete all[key];
+    await mchSave(all);
+    for (const id of close) { const t = await mchTab(id); if (t && /[?&]bvChart=/.test(String(t.url || t.pendingUrl || ''))) chrome.tabs.remove(id).catch(() => {}); }
+    return { ok: true };
+}
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+    if (!isObj(msg) || msg.type !== 'mch') return;
+    // only a Vest page tab, never a data tab itself
+    if (!fromVestScript(sender) || /[?&]bvChart=/.test(String(sender.tab.url || ''))) { sendResponse({ ok: false, error: 'sender' }); return false; }
+    const opener = sender.tab;
+    const list = Array.isArray(msg.markets) ? msg.markets.filter((m) => typeof m === 'string' && MCH_RE.test(m)).slice(0, 3) : [];
+    const p = msg.op === 'open' && typeof msg.market === 'string' && MCH_RE.test(msg.market) ? mchLock(() => mchOpen(opener, msg.market, msg.reload === true))
+        : msg.op === 'keep' ? mchLock(() => mchKeep(opener, list))
+            : msg.op === 'close' ? mchLock(() => mchKeep(opener, [])) : null;
+    if (!p) { sendResponse({ ok: false, error: 'op' }); return false; }
+    p.then(sendResponse, () => sendResponse({ ok: false, error: 'failed' }));
+    return true;
+});
+chrome.tabs.onRemoved.addListener((tabId) => {
+    mchLock(async () => {
+        const all = await mchLoad();
+        const key = String(tabId);
+        let changed = false;
+        // the tab that asked closed: its data tabs go too
+        if (isObj(all[key])) {
+            for (const id of Object.values(all[key])) { const t = await mchTab(id); if (t && /[?&]bvChart=/.test(String(t.url || t.pendingUrl || ''))) chrome.tabs.remove(id).catch(() => {}); }
+            delete all[key];
+            changed = true;
+        }
+        // a data tab closed (by hand): forgotten; the extra chart's watch asks for it again
+        for (const k of Object.keys(all)) for (const [m, id] of Object.entries(all[k] || {})) if (id === tabId) { delete all[k][m]; changed = true; }
+        if (changed) await mchSave(all);
+    }).catch(() => {});
+});
