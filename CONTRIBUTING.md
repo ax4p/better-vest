@@ -2,7 +2,7 @@
 
 About two minutes, in Chrome, Brave, Edge or Arc on a computer (not on phones). The site has a video of every step, for a Mac and for Windows: **[bv.astrals.dev/#install](https://bv.astrals.dev/#install)**.
 
-1. Download a zip from the [latest release](https://github.com/ax4p/better-vest/releases/latest), under Assets. Not "Source code": that one won't install. `better-vest-9.0.2.zip` is the one most people want ([which zip?](README.md#download)).
+1. Download a zip from the [latest release](https://github.com/ax4p/better-vest/releases/latest), under Assets. Not "Source code": that one won't install. `better-vest-9.0.3.zip` is the one most people want ([which zip?](README.md#download)).
 2. Unzip it into a folder you keep, like Documents. On a Mac, double-click the zip. On Windows, right-click it and choose **Extract All**. Chrome runs Better Vest from that folder, so don't delete it.
 3. Open `chrome://extensions` (Brave: `brave://extensions`, Edge: `edge://extensions`).
 4. Turn on **Developer mode**, top right, then click **Load unpacked** and pick the folder you unzipped (the folder, not the zip).
