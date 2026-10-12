@@ -1,0 +1,45 @@
+/* Better Vest total-payouts certificate card (vertical poster, 415.5 x 587.25 CSS px, exported at 3x).
+ * Self-contained on purpose: this exact stylesheet is inlined into the SVG foreignObject used for the PNG,
+ * so nothing here may depend on the page around it (no page variables, no inherited fonts).
+ * The card keeps its own fixed Vest-like palette whatever Calendar theme the page wears. */
+@font-face { font-family: Inter; src: url(assets/inter.woff2) format('woff2'); font-weight: 100 900; font-display: block; }
+
+.bvc, .bvc * { box-sizing: border-box; }
+.bvc {
+    --surface: #757575; --shadow: #0F0F0F; --mut: #A3A3A3; --gold: #E9CB78;
+    position: relative; isolation: isolate; overflow: hidden; width: 415.5px; height: 587.25px; border-radius: 12px; color: #fff;
+    font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: 16px; line-height: 1.5; text-align: left;
+    -webkit-font-smoothing: antialiased; font-feature-settings: normal; letter-spacing: normal;
+    background: linear-gradient(to top, var(--surface) 0%, var(--shadow) 112.26%);
+}
+.bvc .bvc-bg { position: absolute; inset: 0; z-index: -10; overflow: hidden; border-radius: inherit; pointer-events: none; }
+.bvc .bvc-bg img { position: absolute; max-width: none; }
+.bvc .bvc-a { position: absolute; }
+.bvc p, .bvc dl, .bvc dd, .bvc dt { margin: 0; padding: 0; }
+.bvc .bvc-lbl { font-size: 9px; line-height: 11px; letter-spacing: .18px; color: var(--mut); white-space: nowrap; font-weight: 400; }
+.bvc .bvc-val { font-size: 17px; line-height: 20px; font-weight: 600; letter-spacing: -.3px; white-space: nowrap; }
+.bvc .bvc-kick { font-size: 10px; line-height: 13px; font-weight: 600; letter-spacing: .32em; text-transform: uppercase; color: var(--mut); padding-left: .32em; }
+.bvc .bvc-hero {
+    font-weight: 600; white-space: nowrap; line-height: 1.15;
+    background: linear-gradient(to bottom, #fff 26.431%, #999 124.9%); -webkit-background-clip: text; background-clip: text; color: transparent;
+    text-shadow: 0 0 19.5px rgb(255 255 255 / .38); filter: drop-shadow(0 0 22px rgb(255 255 255 / .12));
+}
+.bvc .bvc-hero .bvc-c { font-size: .42em; letter-spacing: -.5px; opacity: .8; }
+.bvc .bvc-sub { font-size: 14px; line-height: 17px; color: var(--mut); letter-spacing: .28px; white-space: nowrap; }
+.bvc .bvc-sil {
+    background: linear-gradient(to bottom, #fff 24.639%, #999 96.732%); -webkit-background-clip: text; background-clip: text; color: transparent;
+    text-align: center; font-size: 24px; line-height: 29px; font-weight: 600; letter-spacing: -.48px; white-space: nowrap;
+}
+.bvc .bvc-div { height: .75px; background: rgb(255 255 255 / .1); }
+.bvc .bvc-prov { font-size: 7.5px; line-height: 9px; letter-spacing: .15px; color: var(--mut); text-align: center; white-space: nowrap; }
+.bvc .bvc-vw { font-size: 11px; line-height: 15px; font-weight: 700; letter-spacing: .2em; color: #F5F5F5; white-space: nowrap; }
+.bvc .bvc-pill {
+    display: inline-flex; align-items: center; gap: 5px; border-radius: 999px; padding: 3px 8px; font-size: 8.5px; line-height: 11px; font-weight: 600;
+    letter-spacing: .16px; color: var(--gold); background: rgb(233 203 120 / .08); box-shadow: inset 0 0 0 .75px rgb(233 203 120 / .38); white-space: nowrap;
+}
+.bvc .bvc-pill b { width: 5px; height: 5px; transform: rotate(45deg); background: linear-gradient(135deg, #FDE9A7, #B08D2A); display: block; }
+.bvc .bvc-stat { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1; }
+.bvc .bvc-sep { width: .75px; background: rgb(255 255 255 / .1); align-self: stretch; }
+.bvc .bvc-recip { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.bvc .bvc-recip img { position: absolute; }
+.bvc svg { display: block; overflow: visible; }

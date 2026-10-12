@@ -1,0 +1,63 @@
+/* Better Vest certificate page chrome. Follows the Calendar theme through the --ax-* / --j-* tokens from
+   journal/journal.css (the cached theme is replayed by journal/theme-boot.js). The card itself (card.css) never does. */
+
+body.cp { overflow: auto; }
+.cp-app { min-height: 100vh; display: flex; flex-direction: column; position: relative; z-index: 1; }
+.cp-top {
+    flex: 0 0 44px; height: 44px; display: flex; align-items: center; gap: 12px; padding: 0 var(--gut);
+    background: var(--j-glass); border-bottom: 1px solid var(--j-edge);
+    backdrop-filter: blur(14px) saturate(1.4); -webkit-backdrop-filter: blur(14px) saturate(1.4);
+}
+.cp-top b { font-size: 15px; font-weight: 600; letter-spacing: -.01em; }
+.cp-top small { font-size: 11px; color: var(--j-t2); white-space: nowrap; }
+.cp-top .grow { flex: 1; }
+.cp-main { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 28px; padding: 28px var(--gut) 40px; align-items: start; max-width: 1180px; width: 100%; margin: 0 auto; }
+.cp-stage {
+    position: sticky; top: 24px; display: grid; place-items: center; min-height: 420px; padding: 24px 12px;
+    border-radius: 16px; border: 1px solid var(--j-hair); background: var(--j-card);
+}
+.cp-card { position: relative; border-radius: 12px; box-shadow: 0 30px 80px var(--ax-shadow), 0 0 0 1px rgb(255 255 255 / .06); }
+.cp-card .bvc { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+.cp-side { display: flex; flex-direction: column; gap: 18px; }
+.cp-side h1 { margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -.02em; }
+.cp-lead { margin: 4px 0 0; color: var(--j-t2); font-size: 13px; }
+.cp-box { border: 1px solid var(--j-hair); background: var(--j-card); border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+.cp-field { display: flex; flex-direction: column; gap: 6px; }
+.cp-field > span, .cp-label { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--j-t2); }
+.cp-input {
+    height: 38px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--ax-field-line); background: var(--ax-field);
+    color: var(--ax-field-text); font-size: 14px; width: 100%;
+}
+.cp-input:focus { border-color: var(--ax-accent); }
+.cp-hint { font-size: 11.5px; color: var(--j-t3); }
+.cp-toggle { display: flex; align-items: center; gap: 12px; cursor: pointer; user-select: none; }
+.cp-toggle input { position: absolute; opacity: 0; pointer-events: none; }
+.cp-switch { width: 36px; height: 20px; border-radius: 999px; background: var(--ax-btn); border: 1px solid var(--j-hair-2); position: relative; flex: none; transition: background var(--d2); }
+.cp-switch::after { content: ''; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--j-t2); transition: transform var(--d2), background var(--d2); }
+.cp-toggle input:checked + .cp-switch { background: color-mix(in srgb, var(--ax-accent) 35%, var(--ax-btn)); }
+.cp-toggle input:checked + .cp-switch::after { transform: translateX(16px); background: var(--j-t1); }
+.cp-toggle input:focus-visible + .cp-switch { box-shadow: var(--j-focus); }
+.cp-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.cp-btn {
+    height: 40px; border-radius: 10px; border: 1px solid var(--j-hair-2); background: var(--ax-btn); color: var(--j-t1);
+    font-weight: 600; font-size: 13px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; transition: border-color var(--d2), background var(--d2), opacity var(--d2);
+}
+.cp-btn:hover { border-color: var(--ax-accent); }
+.cp-btn.pri { background: color-mix(in srgb, var(--ax-accent) 22%, var(--ax-btn)); border-color: color-mix(in srgb, var(--ax-accent) 55%, var(--j-hair-2)); }
+.cp-btn[disabled] { opacity: .55; cursor: progress; }
+.cp-status { min-height: 18px; font-size: 12px; color: var(--j-t2); }
+.cp-status.err { color: color-mix(in srgb, var(--ax-down) 70%, var(--j-t1)); }
+.cp-status.ok { color: color-mix(in srgb, var(--ax-up) 70%, var(--j-t1)); }
+.cp-facts { display: grid; grid-template-columns: auto 1fr; gap: 5px 14px; margin: 0; font-size: 12.5px; }
+.cp-facts dt { color: var(--j-t2); }
+.cp-facts dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.cp-facts dd.gold { color: var(--j-gold); font-weight: 600; }
+.cp-empty { flex: 1; display: grid; place-items: center; padding: 40px var(--gut); }
+.cp-empty > div { max-width: 440px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.cp-empty h1 { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -.02em; }
+.cp-empty p { margin: 0; color: var(--j-t2); }
+.cp-empty .cp-btn { padding: 0 22px; }
+@media (max-width: 860px) {
+    .cp-main { grid-template-columns: 1fr; padding-top: 18px; }
+    .cp-stage { position: static; }
+}
