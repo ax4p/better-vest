@@ -1,17 +1,17 @@
 # Installing Better Vest
 
-About two minutes. Works in Chrome, Brave, Edge and Arc on a computer (not on phones).
+About two minutes. Works in Chrome, Brave, Edge and Arc on a computer (not on phones). If you'd rather watch it done, [bv.astrals.dev](https://bv.astrals.dev/#install) has a video of every step.
 
 ## Install
 
-1. Download **better-vest-8.2.2.zip** from the [latest release](https://github.com/ax4p/better-vest/releases/latest).
+1. Download **better-vest-9.0.0.zip** from the [latest release](https://github.com/ax4p/better-vest/releases/latest).
 2. Unzip it.
    - **Mac:** double-click the zip.
    - **Windows:** right-click the zip and choose **Extract All**.
 
    Keep the folder somewhere it can stay, like Documents. Chrome runs the extension from that folder, so don't delete it afterwards.
 3. Go to `chrome://extensions` (Brave: `brave://extensions`, Edge: `edge://extensions`).
-4. Turn on **Developer mode** in the top right corner, then click **Load unpacked** and pick the `better-vest-8.2.2` folder.
+4. Turn on **Developer mode** in the top right corner, then click **Load unpacked** and pick the `better-vest-9.0.0` folder.
 5. Pin it: click the puzzle piece in the toolbar, then the pin next to Better Vest.
 6. Open [next.vestmarkets.com](https://next.vestmarkets.com). The dock appears at the top of the page.
 
@@ -29,7 +29,7 @@ Start with your smallest size. Watch the first few orders in Vest's Positions ta
 
 From 7.4 on, Better Vest updates itself.
 
-1. When a new version is out, an **Update** button shows up in the dock and the toolbar icon says NEW. It checks every 30 minutes, or right away with **Check now** in the toolbar popup.
+1. When a new version is out, an **Update** button shows up in the dock and the toolbar icon says NEW. It checks every 30 minutes, or right away with **Check now** in the toolbar popup. **Settings > More > About > Check for updates** opens the update page any time.
 2. Click it, read what's new, then click **Update**.
 3. The first time, Chrome asks for your Better Vest folder. Pick the one you loaded in step 4, or any folder it's in, like Documents, then allow it to edit files. After that it's one click.
 
@@ -57,6 +57,7 @@ Your settings and your Calendar stay as they are.
   3. If you have another copy installed too (a userscript or a second version of the extension), keep just one on.
 - **Better Vest was switched off after an update.** Developer mode is off. Turn it on, then switch Better Vest back on.
 - **A group of tabs called "Copy" opened.** That's the copy trader's Turbo mode: one hidden Vest tab per follower account. Leave them open while you copy on Turbo; they close when you switch copying off. On Light there are none.
+- **A group of tabs called "Charts" opened.** That's multi-chart: one hidden Vest tab for each extra chart's market, which feeds that chart. They close when you go back to one chart or close your Vest tab.
 - **The card shows no position line.** Check that chart TP/SL is on in Settings > Chart, then reload the Vest tab. If the card asks you to pick your account, choose it once in Vest's account menu.
 
 ## Removing it

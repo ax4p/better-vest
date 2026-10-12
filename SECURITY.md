@@ -11,7 +11,8 @@ People keep asking, and they should. Anything that sits next to your trading acc
 - It never withdraws, never changes account settings, never creates anything. The one account action it has is **Request payouts**: when you press it and confirm, it claims profit from your funded accounts to your Primary account through Vest's own Claim profit window. See [Request payouts](#request-payouts).
 - The copy trader is off until you switch it on. Then it copies your leader account's trades to your other Vest accounts through Vest's own order code. See [The copy trader](#the-copy-trader).
 - Some tools act on their own once you switch them on: the copy trader, a trailing stop or auto breakeven moving your stop (only ever tighter), and a stop order you armed sending its order when the price gets there. See [How it places orders](#how-it-places-orders).
-- The one thing it does without you switching anything on: at checkout it switches Vest's default discount code VEST to my code WICK, and only keeps it when you get the same discount or more. You can turn that off. See [The WICK code](#the-wick-code).
+- At checkout it does nothing until you press a button that buys. Then, if the code on isn't my code WICK, it asks you first, and only keeps WICK when you get the same discount or more. See [The WICK code](#the-wick-code).
+- Multi-chart opens hidden Vest tabs, one for each extra market, in a group called Charts. They're Vest's own page, logged in like yours. See [Multi-chart's tabs](#multi-charts-tabs).
 - Orders go through Vest's own buttons, the same ones you click.
 - The code is all in this repo, readable, exactly what's in the zip.
 
@@ -21,10 +22,12 @@ People keep asking, and they should. Anything that sits next to your trading acc
 |---|---|
 | `storage` | To keep your settings and the update status. |
 | `alarms` | For the update check every 30 minutes. |
-| `tabGroups` | Only for the copy trader. Turbo's hidden follower tabs go into one collapsed group per copy group (Copy A, Copy B), out of your way. A copy group whose leader isn't your tab's account gets a Vest tab of its own, in a group called Better Vest. Light doesn't use it when you start copying from the tab that's on the leader account. |
+| `tabGroups` | For the copy trader and multi-chart. Turbo's hidden follower tabs go into one collapsed group per copy group (Copy A, Copy B), out of your way. A copy group whose leader isn't your tab's account gets a Vest tab of its own, in a group called Better Vest. Light doesn't use it when you start copying from the tab that's on the leader account. Multi-chart's hidden tabs go into a collapsed group called Charts. |
 | Site access: `https://next.vestmarkets.com/*` | That's where the dock, the card and the chart tools live. It doesn't run on any other site. |
 
 That's the full list. It can't read your browsing history or cookies, and it doesn't touch your other tabs or downloads. You can see the same list yourself on `chrome://extensions` → Better Vest → **Details**.
+
+Two kinds of its own files can be loaded by the Vest page (Chrome calls them web-accessible): the voice's sound files, and the small page that shows the P&L card's pop-up. Only next.vestmarkets.com can load them. It also means Vest's page can tell that Better Vest is installed.
 
 ## Where it connects
 
@@ -34,12 +37,12 @@ Every address in the code, and when each one is used:
 |---|---|---|
 | `next.vestmarkets.com` | The page it adds its tools to. | While you have Vest open. |
 | `ws.hz.vestmarkets.com` | Vest's public market feed: live trades, prices and the order book. | While you have Vest open. |
-| `api-gateway.hz.vestmarkets.com` | Read-only (GET) requests: your trade history for the Calendar, open positions for the chart TP/SL and the copy trader, today's positions for the P&L card, and your accounts' resting orders for the copy trader's limit-order mirror. They use the login your Vest tab already has and keep it in memory only, never on disk. The chart and the copy trader can only ask for positions, resting orders and market info. The copy trader's orders and Request payouts' claims go here too, but Vest's own code sends them, the same way it sends yours. | When the Calendar syncs, while you hold a position with chart TP/SL on, while copying is on, and when you press P&L. |
+| `api-gateway.hz.vestmarkets.com` | Read-only (GET) requests: your trade history and payouts for the Calendar and the Payout card, open positions for the chart TP/SL and the copy trader, today's positions for the P&L card, the daily profit limit and the tilt guard, and your accounts' resting orders for the copy trader's limit-order mirror. They use the login your Vest tab already has and keep it in memory only, never on disk. The chart and the copy trader can only ask for positions, resting orders and market info. The copy trader's orders and Request payouts' claims go here too, but Vest's own code sends them, the same way it sends yours. | When the Calendar syncs, while you hold a position with chart TP/SL on, while copying is on, when you press P&L or the card pops up after a big close, and every 15 seconds while the daily profit limit or the tilt guard is on. |
 | `api.github.com` | "Which version is the latest?" Nothing about you is in that request. | Every 30 minutes, and when Chrome starts. You can turn it off in the toolbar popup. |
 | `raw.githubusercontent.com` | The files of a new version, from this repo. | Only when you click Update. |
-| `fonts.googleapis.com` | A font. | Only if you pick one of the Google fonts in Settings > Look. The default is Vest's own font, which loads nothing. |
+| `fonts.googleapis.com` | A font (the file itself comes from `fonts.gstatic.com`). | Only if you pick one of the Google fonts in Settings > Look. The default is Vest's own font, which loads nothing. |
 
-There's no other address in the code. No analytics, no tracking, no ads.
+There's no other address in the code. No analytics, no tracking, no ads. The voice, the news dates and the P&L pop-up are files inside the extension. Multi-chart's hidden tabs are Vest's own page, so they make Vest's own requests, the same as any Vest tab you open.
 
 ## How it places orders
 
@@ -54,6 +57,8 @@ It doesn't have its own way to trade. It works the page the way you would:
 
 - **Limit orders from the chart (LIMIT):** fill in Vest's own order ticket on its Limit tab (size and the price you clicked) and press Vest's own Buy or Sell button, the way the E and Q hotkeys do, then put the ticket back on Market. A price the market already reached is refused.
 - **Cancel all orders:** presses Vest's own Cancel button on each row of its Open Orders tab, and removes the stop orders it holds in your tab. It never presses the cancel button of a TP or SL, and never closes a position.
+- **Other markets:** off NQ, LONG, SHORT, E, Q, LIMIT and STOP first put Vest's own size unit on that market's unit, through Vest's own toggle or drop-down.
+- **Switch, in multi-chart:** when you press Switch, it moves the page to that market through Vest's own navigation, with no reload. It sends no order.
 
 - **The copy trader:** calls Vest's own order code with each follower's account. See [The copy trader](#the-copy-trader).
 - **Switching accounts from the account menu:** clicks that account's row in Vest's own account menu.
@@ -61,9 +66,9 @@ It doesn't have its own way to trade. It works the page the way you would:
 
 Better Vest never builds a trading request of its own. Vest's code sends everything, exactly as if you'd clicked.
 
-One more thing it does to your clicks: with the daily loss limit on and hit, it can swallow a click on Vest's own Buy and Sell on your screen, until the reset hour. You can turn that option off in Settings > Risk. It never blocks a close. With **Close my positions at the limit** on (the default), hitting the limit also closes every position of that account, one by one through Vest's own Close button and close window, the way FLAT does, and any position that opens on that account until the reset hour.
+One more thing it does to your clicks: while a lock is on (your own lock, the daily loss limit, the daily profit limit or the tilt guard), it swallows a click on Vest's own Buy and Sell on your screen, until the lock runs out. **Also block Vest's own Buy and Sell** in Settings > Risk turns that off. It never blocks a close. With **Close my positions at the limit** on (the default), hitting the daily loss limit also closes every position of that account, one by one through Vest's own Close button and close window, the way FLAT does, and any position that opens on that account until Vest's day resets at 8 pm New York. The profit limit never closes anything.
 
-The P&L card makes its image and its video in your browser. For Replay it takes the candles from Vest's own chart, and for an older day, another market you traded that day, or a finer timeframe, it asks Vest's own chart code for them, the way the chart does when you scroll back. **My chart** takes the candle colors from your own chart's settings on the page. The image or video only leaves your computer if you post it.
+The P&L card makes its image, its video and its GIF in your browser. For Replay it takes the candles from Vest's own chart, and for an older day, another market you traded that day, or a finer timeframe, it asks Vest's own chart code for them, the way the chart does when you scroll back. **My chart** takes the candle colors from your own chart's settings on the page. The image, video or GIF only leaves your computer if you post it. The pop-up after a big close is that small page of the extension inside Vest's page: it only draws the card it's given, and Save and Copy work on your computer.
 
 And one thing it does to the chart by itself: while you hold a position, it widens TradingView's right margin just enough for the TP/SL labels, and puts it back when you're flat. Settings > TP/SL turns that off.
 
@@ -82,6 +87,18 @@ It's off until you open it and switch it on. Then:
 - **Keeping the tab awake:** Chrome slows down tabs in the background. While copying is on, the tab keeps itself awake with a data channel between two ends inside the same tab. It needs no server and nothing goes to the internet.
 - **Its log:** it keeps a log of what it sent (accounts, markets, sizes, prices, timings, Vest's answer ids) in the extension's storage on your computer, the last 500 entries. No token, no password. **Export** in the copy trader saves it as a file, so you can check it or send it to me when something looks wrong.
 
+## The voice
+
+- It plays sound files that ship inside the extension. Nothing is sent anywhere, and no text is turned into speech online.
+- To know what happened, it reads what Vest's own page already receives about your orders and positions, read-only.
+- With several Vest tabs open, the tabs take turns through the browser (a Web Lock, on your computer), so each line is said once. The copy trader's tabs and multi-chart's tabs never speak.
+
+## Multi-chart's tabs
+
+- Each extra chart's market gets one Vest tab of its own (`/trade/<market>?bvChart=<market>`), opened next to yours, at most three, in a gray collapsed group called Charts. It's Vest's own page, logged in like your tab, and it feeds the chart.
+- Chrome is told not to free these tabs, and they keep themselves awake the way the copy trader's tabs do, with a data channel between two ends inside the same tab. Nothing goes to the internet for that.
+- They close when you go back to one chart, when a chart stops showing that market, or when you close the Vest tab that opened them.
+
 ## Request payouts
 
 It's in Manage accounts, in the account menu, and does nothing until you press it.
@@ -93,12 +110,14 @@ It's in Manage accounts, in the account menu, and does nothing until you press i
 
 ## The WICK code
 
-This is how Better Vest stays free, and it's the one thing it does without you pressing a button.
+This is how Better Vest stays free. Since 9.0 it does nothing at checkout until you press a button that buys.
 
-- On Vest's purchase screens, a small card suggests my code **WICK**. **Use WICK** puts it in Vest's own discount field and presses Vest's own **Use** button.
-- When Vest has filled in its own default code **VEST**, Better Vest switches it to WICK by itself, once each time the page loads, where you can see it. It keeps WICK only if Vest shows the same discount or more. Otherwise VEST goes back.
-- A code you typed or picked yourself is never touched.
-- **Undo** on the card puts VEST back and turns the switch off. **Settings > More > Support Astral** turns it on or off.
+- It only shows up when you press Purchase Evaluation Account, Buy Your Bespoke Account, Add Funded Account or Buy Without a Discount, while you're logged in and the code on isn't WICK. Your press waits, and a pop-up asks.
+- **Use code WICK** puts WICK in Vest's own code box and presses Vest's own button for it. If Vest takes it and the discount is the same or more, your purchase goes on: Better Vest presses your button once more. If not, your code goes back, the pop-up says so, and nothing goes on until you press again.
+- **No thanks**, or pressing the button again, goes on at once, as it was.
+- **Always use code WICK** (off until you switch it on) skips the question: your press puts WICK in and goes on. It never replaces a code you typed or picked in that purchase, and never keeps WICK when it gives less off.
+- When something is unsure (no code box, or no answer from Vest within a few seconds), your press goes through as it was.
+- **Settings > More > Support Astral** has both switches: **Ask about code WICK when I buy** and **Always use code WICK**.
 
 With WICK you pay the same or less, and the purchase supports me.
 
@@ -111,6 +130,10 @@ With WICK you pay the same or less, and the purchase supports me.
 - The P&L card's look (theme, style, size, what shows) in its own page's storage, and the numbers for the card you opened in Chrome's session storage, which Chrome clears when it closes.
 - If you use the copy trader: its settings (groups, leaders, followers, ratios, the markets it copies, the ids of limit orders it placed) with your other settings, and its log in Chrome's storage for the extension.
 - The account menu's nicknames, pins and hidden accounts, and whether the limits panel is open, with your other settings. For accounts Vest gives no daily reset for, each account's first value of the trading day (`ax4p_vu_day` in the Vest page's storage), read from the page.
+- The price of every second while a Vest trade page is open, for the P&L card's replays, in the extension's own database, kept for 30 days (under 1 MB a day for a market). Settings > More > P&L card turns it off.
+- Your own picture or GIF for the P&L card's background, in the extension's own database, until you remove it.
+- Locks and the tilt guard's cooldown, with the loss limit's numbers (`ax4p_dll`). The profit limit and the tilt guard read your closed trades from Vest each time and keep no history of them.
+- Multi-chart's layout and each chart's drawings, with your other settings.
 - For one-click updates: a link to the folder you picked, so Chrome can write the new files there.
 
 None of it is sent anywhere. Removing the extension removes its storage. The copy of your settings in the Vest page's storage goes when you clear that site's data.
@@ -126,18 +149,18 @@ When you click Update, Better Vest:
 2. checks the signature and every hash;
 3. writes the files only if all of it matches.
 
-If anything is off, nothing changes. If writing fails halfway, the old files go back.
+If anything is off, nothing changes. If writing fails halfway, the old files go back. **Settings > More > About > Check for updates** opens the update page any time.
 
 ## Check it yourself
 
 1. **Read the code.** The [`extension`](extension) folder in this repo is the zip, file for file. It isn't minified or obfuscated, so you can read it in your browser.
-2. **Check the zip is that code.** The SHA-256 of `better-vest-8.2.2.zip` is:
+2. **Check the zip is that code.** The SHA-256 of `better-vest-9.0.0.zip` is:
 
-   `269c25b93a7711a6874bc5934cc66127f6b5be5a1a419a75b1e64e62e194af2b`
+   `91a8ebcb17e69a0fede2a7a5ddd0a0b5fc582933e6cb341a94940327426a67e3`
 
-   - On Mac: `shasum -a 256 better-vest-8.2.2.zip`
-   - On Windows: `certutil -hashfile better-vest-8.2.2.zip SHA256`
-3. **Scan it.** VirusTotal checks a file with more than 60 antivirus engines. Upload the zip at [virustotal.com](https://www.virustotal.com) and you get the result for that exact file. The last version I scanned there, 8.2.2, came back with 0 of 64 engines flagging it ([report](https://www.virustotal.com/gui/file/269c25b93a7711a6874bc5934cc66127f6b5be5a1a419a75b1e64e62e194af2b)). The one before, 8.2.0, was 0 of 66 ([report](https://www.virustotal.com/gui/file/b949d5355c3272b4b9a0c41741051d6598351184499324a6e1ec6194211c8737)).
+   - On Mac: `shasum -a 256 better-vest-9.0.0.zip`
+   - On Windows: `certutil -hashfile better-vest-9.0.0.zip SHA256`
+3. **Scan it.** VirusTotal checks a file with more than 60 antivirus engines. Upload the zip at [virustotal.com](https://www.virustotal.com) and you get the result for that exact file. The last version I scanned there, 9.0.0, came back with 0 of 65 engines flagging it ([report](https://www.virustotal.com/gui/file/91a8ebcb17e69a0fede2a7a5ddd0a0b5fc582933e6cb341a94940327426a67e3)), and its Code insights found nothing malicious. The one before, 8.2.2, was 0 of 64 ([report](https://www.virustotal.com/gui/file/269c25b93a7711a6874bc5934cc66127f6b5be5a1a419a75b1e64e62e194af2b)).
 
    Reports for earlier versions also had an AI summary, "Code insights", which marked two things as suspicious. Both are on this page: the WICK code switch ([The WICK code](#the-wick-code)) and the updater writing its own files ([Updates are signed](#updates-are-signed)).
 4. **Watch it work.** Open Chrome's DevTools on the Vest tab (F12), go to Network, and use Better Vest. You'll only see the addresses listed above.
