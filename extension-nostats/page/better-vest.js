@@ -20,7 +20,7 @@
 (function () {
     'use strict';
 
-    const VERSION = '9.0.3';
+    const VERSION = '9.0.4';
     // true only in the Chrome extension build (tools/build.py defines BV_EXT there)
     const IS_EXT = typeof BV_EXT !== 'undefined' && !!BV_EXT;
     // 'standard' = the shareable feature set, which every public edition has (Standard, Lite, No stats: 9.0.1); 'wicked' = the author's
@@ -71,8 +71,11 @@
         : 'wss://ws.hz.vestmarkets.com/ws?version=1.0&xwebsocketserver=restserver0';
     // the only markets whose API symbol differs from the name in Vest's UI and URL
     const API_SYMBOLS = { 'NQ-PERP': 'NDX-USD-PERP', 'ES-PERP': 'SPX-USD-PERP' };
-    // the Better Vest mark: a B whose every diagonal is Vest's own angle (no profile picture)
-    const ASTRAL_LOGO = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="#050506"/><rect x=".5" y=".5" width="99" height="99" rx="21.5" fill="none" stroke="#fff" stroke-opacity=".1"/><polygon points="34.78,21 51.09,21 69.22,35.5 51.09,50 69.22,64.5 51.09,79 34.78,79" fill="#f5f5f7" stroke="#f5f5f7" stroke-width="1.2" stroke-linejoin="round"/></svg>');
+    // the Better Vest mark: a B whose every diagonal is Vest's own angle (no profile picture). Its shape is a CSS mask, so its fill,
+    // its light and its glow are plain CSS and follow the theme (see .ax4p-b)
+    const BV_B_MASK = 'url("data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 38 64"><polygon points="0,0 18,0 38,16 18,32 38,48 18,64 0,64"/></svg>') + '")';
+    // the mark on its tile, at size px (Settings, the WICK prompt)
+    const bvTile = (size, cls = '') => `<span class="ax4p-tile ${cls}" style="--t:${size}px" role="img" aria-label="Better Vest"><span class="ax4p-b"><i></i></span></span>`;
 
     // --- Themes ---
     // page/chrome/surface/field paint Vest itself, raised..shadow paint the Astral widgets,
@@ -838,6 +841,26 @@
                 z-index: 10;
             }
             #ax4p-brand:hover #ax4p-brand-tag { display: block; }
+            /* the Better Vest mark (9.0.4): the B breathes, its glow swelling and fading every 3.6 s, while a band of light crosses it along
+               Vest's 38.66° angle as the glow swells. Its shape is a mask (BV_B_MASK), so fill, light and glow follow the theme. */
+            .ax4p-b { position: relative; display: inline-block; flex: none; width: var(--b-w); height: var(--b-h); animation: ax4p-b-breathe 3.6s ease-in-out infinite; }
+            .ax4p-b > i { position: absolute; inset: 0; overflow: hidden; background: var(--b-fill);
+                -webkit-mask: ${BV_B_MASK} center / 100% 100% no-repeat; mask: ${BV_B_MASK} center / 100% 100% no-repeat; }
+            .ax4p-b > i::after { content: ''; position: absolute; left: -150%; top: -100%; width: 400%; height: 300%;
+                background: linear-gradient(38.66deg, transparent 45%, var(--b-shine) 50%, transparent 55%); animation: ax4p-b-sheen 3.6s ease-in-out infinite; }
+            @keyframes ax4p-b-sheen { 0% { transform: translate(-32%, 24%); } 60%, 100% { transform: translate(32%, -24%); } }
+            @keyframes ax4p-b-breathe { 0%, 100% { filter: drop-shadow(0 0 0 transparent); } 45% { filter: drop-shadow(0 0 2px var(--b-glow)) drop-shadow(0 0 7px var(--b-glow)); } }
+            @media (prefers-reduced-motion: reduce) { .ax4p-b, .ax4p-b > i::after { animation: none; } }
+            #ax4p-brand .ax4p-b { --b-w: 8.3px; --b-h: 14px; --b-fill: linear-gradient(90deg, var(--ax-accent), var(--ax-accent-text), var(--ax-accent));
+                --b-shine: rgba(255, 255, 255, .95); --b-glow: color-mix(in srgb, var(--ax-accent) 70%, transparent); display: block; }
+            :root[data-ax4p-theme="oled"] #ax4p-brand .ax4p-b { --b-shine: #a5b4fc; --b-glow: rgba(165, 180, 252, .7); }
+            /* the tile: ink with a white B; the light theme gets the inverted tile (light, ink B) */
+            .ax4p-tile { display: inline-grid; place-items: center; flex: none; width: var(--t); height: var(--t); border-radius: 22%;
+                background: #050506; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .1); }
+            .ax4p-tile > .ax4p-b { --b-h: calc(var(--t) * .58); --b-w: calc(var(--t) * .58 * 38 / 64); margin-left: calc(var(--t) * .04);
+                --b-fill: #f5f5f7; --b-shine: var(--ax-accent-text); --b-glow: color-mix(in srgb, var(--ax-accent) 75%, transparent); }
+            :root[data-ax4p-theme="light"] .ax4p-tile { background: #f5f5f7; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .1); }
+            :root[data-ax4p-theme="light"] .ax4p-tile > .ax4p-b { --b-fill: #050506; --b-shine: var(--ax-accent); }
 
             .ax4p-shell {
                 position: fixed; box-sizing: border-box;
@@ -4589,7 +4612,7 @@
         const dock = document.createElement('div');
         dock.id = 'ax4p-master-dock';
         dock.innerHTML = `
-            <span id="ax4p-brand">ASTRAL<span id="ax4p-brand-tag">@ax4p · v${VERSION}</span></span>
+            <span id="ax4p-brand" role="img" aria-label="Better Vest"><span class="ax4p-b"><i></i></span><span id="ax4p-brand-tag">@ax4p · v${VERSION}</span></span>
             <button id="ax4p-tog-exec" class="ax4p-dock-btn">${ic('<path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/>')}<span class="ax4p-lbl">Exec</span></button>
             ${IS_EXT ? `<button id="ax4p-tog-macros" class="ax4p-dock-btn" title="Hotkey macros">${ic('<rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10h.01M11 10h.01M15 10h.01M7 14h10"/>')}<span class="ax4p-lbl">Macros</span><span class="ax4p-mc-state">OFF</span></button>` : ''}
             ${IS_EXT ? `<button id="ax4p-tog-charts" class="ax4p-dock-btn" title="More charts beside Vest's: another timeframe or another market">${ic('<rect x="3.5" y="3.5" width="17" height="17" rx="2"/><path d="M12 3.5v17M12 12h8.5"/>')}<span class="ax4p-lbl">Charts</span></button>` : ''}
@@ -4817,7 +4840,7 @@
         settings.innerHTML = `
             <div id="ax4p-settings-handle" class="ax4p-head">
                 <div class="ax4p-set-brand">
-                    <img class="ax4p-set-logo" src="${ASTRAL_LOGO}" alt="Astral" draggable="false">
+                    ${bvTile(38, 'ax4p-set-logo')}
                     <div>
                         <div class="ax4p-title">Settings</div>
                         <div class="ax4p-sub">Better Vest by Astral v${VERSION} · saved automatically</div>
@@ -12205,7 +12228,7 @@
             #ax4p-wick [hidden] { display: none !important; }
             #ax4p-wick .ax4p-wick-from { display: flex; align-items: center; gap: 9px; margin: 0 0 12px; color: var(--ax-muted, #a1a1aa); font-size: 12px; font-weight: 600; letter-spacing: .02em; }
             #ax4p-wick .ax4p-wick-mark, #ax4p-wick-toast .ax4p-wick-mark {
-                width: 24px; height: 24px; flex: none; border-radius: 22%; user-select: none; -webkit-user-drag: none;
+                width: 24px; height: 24px; flex: none; display: inline-grid; user-select: none; -webkit-user-drag: none;
             }
             #ax4p-wick .ax4p-wick-text { margin: 0; color: var(--ax-text, #e4e4e7); font-size: 14.5px; line-height: 1.55; }
             #ax4p-wick .ax4p-wick-code { font-weight: 700; letter-spacing: .06em; color: var(--ax-accent-text, var(--ax-accent, #93c5fd)); }
@@ -12228,6 +12251,7 @@
             }
             #ax4p-wick-toast.ax4p-wick-out { animation: ax4p-wick-out .3s ease-in both; }
             #ax4p-wick-toast .ax4p-wick-mark { width: 20px; height: 20px; }
+            #ax4p-wick-toast .ax4p-wick-mark .ax4p-tile { --t: 20px; }
             @media (prefers-reduced-motion: reduce) { #ax4p-wick-layer, #ax4p-wick, #ax4p-wick-toast { animation: none !important; } }`;
         (document.head || document.documentElement).appendChild(st);
     }
@@ -12239,11 +12263,9 @@
         return e;
     }
     function wickMark() {
-        const m = wickNode('img', 'ax4p-wick-mark');
-        m.setAttribute('src', ASTRAL_LOGO);
-        m.setAttribute('alt', '');
+        const m = wickNode('span', 'ax4p-wick-mark');
+        m.innerHTML = bvTile(24);
         m.setAttribute('aria-hidden', 'true');
-        m.setAttribute('draggable', 'false');
         return m;
     }
 
