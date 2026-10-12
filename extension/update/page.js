@@ -1,6 +1,8 @@
 // Better Vest by Astral - update page (update.html). Shows what's new on GitHub and updates the folder Chrome
 // loaded this extension from, in one click. The checks and the writing live in core.js.
-import { compareVersions, fetchRelease, findFolder, planRemove, applyUpdate, parseList, notesHtml } from './core.js';
+// 9.0.1: it also installs another public edition (Standard, Lite, No stats) when you pick one; by default a copy stays
+// the edition it is (every copy before 9.0.1 is Standard).
+import { compareVersions, fetchRelease, findFolder, planRemove, applyUpdate, parseList, notesHtml, PUBLIC_EDITIONS } from './core.js';
 import { RELEASE_PUBLIC_KEY } from './key.js';
 
 // false when the Node tests import the pure helpers below: nothing then touches the page or chrome.*
@@ -8,6 +10,8 @@ const IN_EXT = typeof chrome !== 'undefined' && !!(chrome.runtime && chrome.runt
 const $ = (s) => document.querySelector(s);
 const manifest = IN_EXT ? chrome.runtime.getManifest() : { name: 'Better Vest by Astral', version: '0.0.0' };
 let release = null;   // { version, tag, notes, url } when newer than this copy
+let current = null;   // the release the button is for: the newer one, else the latest when it is this version (an edition switch)
+let target = 'standard'; // the edition to install (defaultEdition, or the one picked)
 let runningCopy = null;
 let folder = null;    // FileSystemDirectoryHandle, remembered in IndexedDB
 let busy = false;
@@ -63,6 +67,32 @@ export function tilesFor(kind, d) {
         ];
     }
     return [];
+}
+
+// 9.0.1: the public editions as the page offers them (the owner: "update to the normal standard but show option to install
+// different variance"). Each comes from its own folder of the release (core.js EDITION_DIRS).
+export const EDITION_INFO = Object.freeze({
+    standard: { name: 'Standard', d: 'Everything, voice included. Counts installs and users.' },
+    lite: { name: 'Lite', d: 'Everything but the voice, a smaller download. Counts installs and users.' },
+    nostats: { name: 'No stats', d: 'Everything, voice included. Counts only the install.' }
+});
+
+// The edition picked for you: the one you have (an update never undoes your choice), Standard for anything else
+export function defaultEdition(have) {
+    return PUBLIC_EDITIONS.includes(have) ? have : 'standard';
+}
+
+// What the button does for a release and the edition picked: 'update' (a newer version), 'switch' (this version, another
+// edition) or 'none' (the same version and edition, an older release, or no edition to install).
+export function goPlan(have, haveEd, rel, edition) {
+    const none = { kind: 'none', label: '' };
+    if (!rel || !/^\d{1,4}\.\d{1,4}\.\d{1,4}$/.test(String(rel.version)) || !PUBLIC_EDITIONS.includes(edition) || !PUBLIC_EDITIONS.includes(haveEd)) return none;
+    const c = compareVersions(rel.version, have);
+    const other = edition !== haveEd;
+    if (c < 0 || (c === 0 && !other)) return none;
+    const name = EDITION_INFO[edition].name;
+    if (c === 0) return { kind: 'switch', label: 'Switch to ' + name + ' (v' + rel.version + ')' };
+    return { kind: 'update', label: 'Update to v' + rel.version + (other ? ' (' + name + ')' : '') };
 }
 
 // The Calendar's theme: its own pick, else Better Vest's theme, else nothing (update.css is Astral).
@@ -181,12 +211,57 @@ export function ribbon(tiles) {
 }
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const leadAvailable = () => lead('<b>v' + esc(release.version) + '</b> is out. You have v' + esc(manifest.version) + '.');
+const leadLatest = () => lead('You have the latest version, <b>v' + esc(manifest.version) + '</b>.');
+const editionName = (ed) => (Object.prototype.hasOwnProperty.call(EDITION_INFO, ed) ? EDITION_INFO[ed].name : '');
+
+// the edition list (9.0.1): only for a public copy and a release it can take; yours is marked, the picked one checked
+function paintEditions() {
+    const box = $('#eds');
+    const have = runningCopy && runningCopy.edition;
+    box.hidden = !current || !PUBLIC_EDITIONS.includes(have);
+    if (box.hidden) return;
+    $('#eds-list').replaceChildren(...PUBLIC_EDITIONS.map((ed) => {
+        const row = document.createElement('label');
+        row.className = 'ed';
+        const input = document.createElement('input');
+        input.type = 'radio';
+        input.name = 'ed';
+        input.value = ed;
+        input.checked = ed === target;
+        input.onchange = () => { if (input.checked) { target = ed; paintGo(); } };
+        const t = document.createElement('span');
+        t.className = 'ed-t';
+        const b = document.createElement('b');
+        b.textContent = EDITION_INFO[ed].name;
+        const small = document.createElement('small');
+        small.textContent = EDITION_INFO[ed].d;
+        t.append(b, small);
+        row.append(input, t);
+        if (ed === have) {
+            const you = document.createElement('span');
+            you.className = 'ed-you';
+            you.textContent = 'Yours';
+            row.appendChild(you);
+        }
+        return row;
+    }));
+}
+// the one button: what goPlan says for the release and the edition picked
+function paintGo() {
+    const plan = goPlan(manifest.version, runningCopy && runningCopy.edition, current, target);
+    $('#go').textContent = plan.label;
+    $('#go').hidden = plan.kind === 'none';
+    $('#go').disabled = false;
+    $('#how').hidden = plan.kind === 'none' || !!folder;
+    return plan;
+}
 
 export function paint(state) {
     $('#auto').checked = !!(state && state.on);
     $('#go').hidden = true;
     $('#how').hidden = true;
     $('#news').hidden = true;
+    $('#eds').hidden = true;
     $('#run').hidden = true; // a stopped attempt's bar; paint never runs during an update
     ribbon([]);
     if (!state) {
@@ -206,11 +281,14 @@ export function paint(state) {
         return;
     }
     release = state.available;
+    current = release || (state.latest && compareVersions(state.latest.version, manifest.version) === 0 ? state.latest : null);
     if (!release) {
         setState('latest');
-        lead('You have the latest version, <b>v' + esc(manifest.version) + '</b>.');
+        leadLatest();
         ribbon(tilesFor('latest', { have: manifest.version, checkedAt: state.checkedAt, on: state.on, now: Date.now() }));
         say('');
+        paintEditions();
+        paintGo();
         return;
     }
     setState('available');
@@ -223,10 +301,8 @@ export function paint(state) {
     }
     ribbon(tilesFor('available', { have: manifest.version, next: release.version, items: notes.items }));
     if (/^https:\/\/github\.com\/ax4p\/better-vest\//.test(release.url || '')) $('#rel').href = $('#news-gh').href = release.url;
-    $('#go').textContent = 'Update to v' + release.version;
-    $('#go').hidden = false;
-    $('#go').disabled = false;
-    $('#how').hidden = !!folder;
+    paintEditions();
+    paintGo();
     say('');
 }
 
@@ -251,6 +327,7 @@ export function explain(e) {
     if (e && (e.name === 'NotAllowedError' || e.name === 'SecurityError')) return ['Chrome did not allow editing that folder. Click Update again and allow it to edit files. Nothing changed.', 'warn'];
     if (code === 'no-list') return ['This copy has no file list, so it cannot check an update. Download the latest zip from GitHub once; after that, updates are one click.', 'warn'];
     if (code === 'signature' || /^(hash|list|manifest)/.test(code)) return ['The download did not pass the safety check, so nothing was changed. Try again later, or update from the GitHub zip by hand.', 'bad'];
+    if (/^download:files\.json(\.sig)?:404$/.test(code)) return ['GitHub has no files of that edition in this release. Nothing was changed. Pick another edition, or try again later.', 'warn'];
     if (/^download/.test(code) || e instanceof TypeError) return ['GitHub did not answer. Nothing was changed. Try again in a minute.', 'bad'];
     if (code === 'not-newer') return ['That release is not newer than this copy. Nothing was changed.', 'warn'];
     if (code === 'rolled-back') return ['Writing the new files failed, so the old ones were put back. Nothing changed. (' + (cause || 'write error') + ')', 'bad'];
@@ -260,21 +337,27 @@ export function explain(e) {
 
 // back to the release waiting, after a refusal or an error
 export function stopped() {
-    setState('available');
-    leadAvailable();
-    $('#go').hidden = false;
-    $('#go').disabled = false;
+    setState(release ? 'available' : 'latest');
+    if (release) leadAvailable();
+    else leadLatest();
+    const how = $('#how').hidden;
+    paintGo();
+    $('#how').hidden = how;
 }
 
 async function update() {
-    if (busy || !release) return;
+    const rel = current;
+    const plan = goPlan(manifest.version, runningCopy && runningCopy.edition, rel, target);
+    if (busy || plan.kind === 'none') return;
+    const edition = target;
     busy = true;
     $('#go').disabled = true;
     $('#go').hidden = true;
     document.querySelectorAll('#steps li').forEach((li) => step(li.dataset.step, '', ''));
     $('#run').hidden = false;
     setState('updating');
-    lead('Updating to <b>v' + esc(release.version) + '</b>…');
+    lead(plan.kind === 'switch' ? 'Switching to <b>' + esc(editionName(edition)) + '</b>…'
+        : 'Updating to <b>v' + esc(rel.version) + '</b>' + (edition !== runningCopy.edition ? ' ' + esc(editionName(edition)) : '') + '…');
     say('');
     try {
         if (!runningCopy.edition) throw new Error('no-list');
@@ -310,18 +393,21 @@ async function update() {
         // 2. everything downloaded and checked before anything is written
         step('download', 'on');
         bar(progress('download', 0, 0));
+        // the edition picked (your own unless you picked another), from that edition's own folder of the release
         const { list, files } = await fetchRelease({
             fetchFn: (u) => fetch(u, { cache: 'no-cache' }),
             subtle: crypto.subtle,
             publicKey: RELEASE_PUBLIC_KEY,
-            tag: release.tag,
-            expect: { edition: runningCopy.edition, version: release.version },
+            tag: rel.tag,
+            expect: { edition, version: rel.version },
             onProgress: (i, n) => { step('download', 'on', i + ' / ' + n); bar(progress('download', i, n)); }
         });
-        if (compareVersions(list.version, runningCopy.version) <= 0) throw new Error('not-newer');
+        // a newer version, or this version as another edition; never older, never the same files again
+        const cmp = compareVersions(list.version, runningCopy.version);
+        if (cmp < 0 || (cmp === 0 && list.edition === runningCopy.edition)) throw new Error('not-newer');
         step('download', 'done');
 
-        // 3. write (the old bytes go back on any error)
+        // 3. write (the old bytes go back on any error); the files the new edition does not list go (Lite has no voice clips)
         step('write', 'on');
         bar(progress('write', 0, 0));
         const remove = planRemove(runningCopy.list ? parseList(runningCopy.list) : null, list);
@@ -333,9 +419,10 @@ async function update() {
         bar(progress('restart'), 'ok');
         // reloadAt: until then the service worker knows the restart hasn't happened yet
         const at = Date.now();
-        await chrome.storage.local.set({ bvUpdated: { from: runningCopy.version, to: list.version, at, reloadAt: at + 700, reloadTabs: true } });
+        // fromName / toName: an edition switch keeps the version, so the worker also checks the name it runs under
+        await chrome.storage.local.set({ bvUpdated: { from: runningCopy.version, to: list.version, fromName: runningCopy.name, toName: list.name, at, reloadAt: at + 700, reloadTabs: true } });
         setState('restarting');
-        lead('Updated to <b>v' + esc(list.version) + '</b>.');
+        lead((plan.kind === 'switch' ? 'Switched to <b>' + esc(editionName(list.edition)) + '</b>' : 'Updated to <b>v' + esc(list.version) + '</b>') + '.');
         say('Restarting Better Vest and reloading your Vest tabs…', 'good');
         setTimeout(() => chrome.runtime.reload(), 700);
     } catch (e) {
@@ -360,7 +447,8 @@ async function load(fresh) {
     }
     if (done) {
         setState('done');
-        lead('Better Vest is now <b>v' + esc(manifest.version) + '</b>.');
+        const ed = runningCopy && runningCopy.edition !== 'standard' ? editionName(runningCopy.edition) : '';
+        lead('Better Vest is now <b>v' + esc(manifest.version) + (ed ? ' ' + esc(ed) : '') + '</b>.');
         say('Your Vest tabs were reloaded, so they run the new version. Settings and Calendar are as you left them.', 'good');
     }
     const state = await chrome.runtime.sendMessage({ type: fresh ? 'update-check' : 'update-state' }).catch(() => null);
@@ -403,10 +491,11 @@ function boot() {
         folder = null;
         await kvSet('dir', null).catch(() => {});
         say('Folder forgotten. The next update asks for it again.');
-        $('#how').hidden = !release;
+        $('#how').hidden = goPlan(manifest.version, runningCopy && runningCopy.edition, current, target).kind === 'none';
     };
     (async () => {
         runningCopy = await running();
+        target = defaultEdition(runningCopy.edition);
         folder = await kvGet('dir').catch(() => null);
         await load(false);
     })();

@@ -6,8 +6,9 @@
 //      bytes, made on the author's machine; only the public key ships, in key.js),
 //   2. every file is downloaded from the release tag and must match its sha256 before anything is written,
 //   3. the picked folder must be the copy Chrome runs (same name, same version, same files.json), and the release
-//      must be the same edition (a Standard copy only ever takes a Standard release),
-//   4. files are written with the manifest last; on any error the old bytes go back.
+//      must be the edition asked for: the copy's own, or (9.0.1) the public edition picked on the update page,
+//   4. files are written with the manifest last, the files the new list does not have are removed; on any error the old
+//      bytes go back.
 // Requests: one GET to api.github.com for the latest release, and GETs to raw.githubusercontent.com for the files
 // of that release. Both send CORS headers, so no host permission is needed.
 
@@ -15,9 +16,18 @@ export const REPO = 'ax4p/better-vest';
 export const LATEST_URL = `https://api.github.com/repos/${REPO}/releases/latest`;
 export const LIST = 'files.json';
 export const SIG = 'files.json.sig';
+// 9.0.1: each public edition is published in its own folder of the repo. Standard stays in extension/, where every copy before 9.0.1
+// reads its updates. No other edition (WICKED, DEV) ever updates from GitHub.
+export const EDITION_DIRS = Object.freeze({ standard: 'extension', lite: 'extension-lite', nostats: 'extension-nostats' });
+export const PUBLIC_EDITIONS = Object.freeze(Object.keys(EDITION_DIRS));
 
-export function rawUrl(tag, path) {
-    return `https://raw.githubusercontent.com/${REPO}/${encodeURIComponent(tag)}/extension/` + path.split('/').map(encodeURIComponent).join('/');
+export function editionDir(edition) {
+    if (typeof edition !== 'string' || !Object.prototype.hasOwnProperty.call(EDITION_DIRS, edition)) throw new Error('list-edition');
+    return EDITION_DIRS[edition];
+}
+
+export function rawUrl(tag, path, edition = 'standard') {
+    return `https://raw.githubusercontent.com/${REPO}/${encodeURIComponent(tag)}/${editionDir(edition)}/` + path.split('/').map(encodeURIComponent).join('/');
 }
 
 // What an update may write: these top-level files, and anything inside these folders.
@@ -103,12 +113,13 @@ export async function verifyList(subtle, publicKeyB64, listBytes, sigText) {
     }
 }
 
-// Everything the release needs, checked before a single byte is written: the signed list (same edition, the
-// expected version), every file against its hash, and the new manifest's version against the list.
-// fetchFn(url) must resolve to a Response-like { ok, status, arrayBuffer() }.
+// Everything the release needs, checked before a single byte is written: the signed list (the edition asked for, from
+// that edition's own folder, and the expected version), every file against its hash, and the new manifest's version
+// against the list. fetchFn(url) must resolve to a Response-like { ok, status, arrayBuffer() }.
 export async function fetchRelease({ fetchFn, subtle, publicKey, tag, expect, onProgress }) {
+    editionDir(expect && expect.edition); // a public edition, or nothing is fetched
     const get = async (path) => {
-        const r = await fetchFn(rawUrl(tag, path));
+        const r = await fetchFn(rawUrl(tag, path, expect.edition));
         if (!r || !r.ok) throw new Error('download:' + path + ':' + (r ? r.status : 'none'));
         return new Uint8Array(await r.arrayBuffer());
     };
@@ -244,6 +255,26 @@ export async function findFolder(root, running, opts = {}) {
     return { why: 'none', partial };
 }
 
+// Folders the removed files leave empty go too (a switch to Lite empties the clips' folders), deepest first. Best effort, after everything else
+// worked: a folder that is not empty or cannot be removed stays, which changes nothing Chrome reads.
+async function pruneDirs(root, removed) {
+    const dirs = new Set();
+    for (const p of removed) {
+        const parts = p.split('/');
+        for (let i = parts.length - 1; i > 0; i--) dirs.add(parts.slice(0, i).join('/'));
+    }
+    for (const d of [...dirs].sort((a, b) => b.split('/').length - a.split('/').length || (a < b ? -1 : 1))) {
+        if (!TOP_DIRS.has(d.split('/')[0])) continue;
+        try {
+            const [parent, name] = await parentOf(root, d, false);
+            const h = await parent.getDirectoryHandle(name);
+            let empty = true;
+            for await (const x of h.values()) { if (x) { empty = false; break; } }
+            if (empty) await parent.removeEntry(name);
+        } catch (e) { /* stays */ }
+    }
+}
+
 // Writes `files` (path -> bytes) with manifest.json last, then removes `remove`. The old bytes are kept in
 // memory first; if anything fails, every touched file goes back to what it was (or is removed again if it is new)
 // and the error says whether that worked ('rolled-back') or not ('rollback-failed', with the paths).
@@ -268,6 +299,7 @@ export async function applyUpdate(root, files, remove, onProgress) {
             await removeAt(root, p);
             if (onProgress) onProgress(++n, total);
         }
+        await pruneDirs(root, remove);
         return { written: order.length, removed: remove.length };
     } catch (e) {
         const failed = [];
@@ -309,4 +341,24 @@ export function notesHtml(md) {
     }
     if (list) out.push('</ul>');
     return out.join('');
+}
+
+// 9.0.1: the release's "What's new" as short plain lines, for the pop-up on Vest's page: the bold lead words of each bullet under the
+// "What's new" heading (a bold-only line or a Markdown heading), up to the next heading, at most `max`. Markdown is taken out and a
+// trailing comma or colon goes; the page shows them as text.
+export function whatsNew(md, max = 6) {
+    const out = [];
+    let inside = false;
+    const plain = (t) => t.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/<[^>]*>/g, '').replace(/[`*_<>]/g, '').replace(/\s+/g, ' ').trim().replace(/[,;:]+$/, '').trim();
+    for (const raw of String(md || '').replace(/\r/g, '').split('\n')) {
+        const line = raw.trim();
+        const head = /^#{1,6}\s+(.+)$/.exec(line) || /^\*\*([^*]+)\*\*:?$/.exec(line);
+        if (head) { inside = /^what'?s new:?$/i.test(plain(head[1]).replace(/\u2019/g, "'") + ''); continue; }
+        if (!inside) continue;
+        const li = /^[-*]\s+\*\*([^*]+)\*\*/.exec(line);
+        const t = li ? plain(li[1]).slice(0, 80) : '';
+        if (t) out.push(t);
+        if (out.length >= max) break;
+    }
+    return out;
 }
