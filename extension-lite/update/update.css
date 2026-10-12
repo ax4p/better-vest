@@ -70,7 +70,7 @@ kbd { display: inline-block; font: 600 11px/1 var(--font); padding: 3px 6px; bor
 }
 @supports not (backdrop-filter: blur(1px)) { .top { background: var(--ax-raised); } }
 .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.logo { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--ax-accent); box-shadow: 0 0 12px var(--ax-glow); display: block; background: var(--ax-base); }
+.logo { width: 28px; height: 28px; border-radius: 22%; display: block; background: var(--ax-base); }
 .brand-t { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
 .brand-t b { font-size: 15px; font-weight: 600; letter-spacing: -.01em; white-space: nowrap; }
 .brand-t small { font-size: 11.5px; color: var(--u-t2); white-space: nowrap; }
