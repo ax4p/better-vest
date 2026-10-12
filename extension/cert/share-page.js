@@ -5,57 +5,49 @@
 // 8.2: the Summary's rows (accounts, markets, copy groups, trades, sessions), period (from the Calendar for other days), markets, $, %,
 // points and after fees on the card; the Replay's copy group, other markets, chart options (colors, chart type, timeframe, what is drawn),
 // labels, prices, running P&L, sessions, best trade, and a video you watch here before you save it. Every option's default is 8.1.5's card.
+// 9.0: the Payout card (today's payout and every payout so far, from the Calendar's own records), and the background down to your own
+// picture or GIF (cert/share-look.js, cert/share-bg.js) with an accent colour; a moving background makes a video of any card. Save as GIF
+// (cert/share-gif-make.js): a moving GIF of the Replay or of any card over your GIF, else the PNG's own pixels in one frame.
 
 import { cleanSnap, copyGroup, maskName, money, dayLong } from './share-model.js';
-import { cardHtml, replayHtml, CARD_SIZES, chartOpts, CHART_DEFAULTS, CHART_PRESETS } from './share-card.js';
+import { cardHtml, replayHtml, payoutHtml, CARD_SIZES, chartOpts, CHART_DEFAULTS, CHART_PRESETS } from './share-card.js';
 import { replayTrades, replayModel, replayFit, replayPick, videoPlan, hhmm, tzShort, replayTf, replayTfs, tfLabel } from './share-replay.js';
 import { summaryModel, todayTrades, sampleHistory, snapGroups, periodRange, ROWS } from './share-summary.js';
-import { recordReplay, videoMime, videoExt } from './share-video.js';
-import { cardToPngBlob } from './raster.js';
+import { recordReplay, recordCard, videoMime, videoExt } from './share-video.js';
+import { loadPrefs, savePrefs as storePrefs, snapPicks } from './share-prefs.js';
+import { payoutModel, samplePayouts, samplePayNames } from './share-payout.js';
+import { bgOpts, accentOpt, bgFramePlan, bgFileWhy, BG_DIM_MAX, BG_BLUR_MAX } from './share-look.js';
+import { bgSave, bgLoad, bgClear, bgPrepare, bgRelease, bgStill, bgFrames, cardGeom } from './share-bg.js';
+import { CARD_CSS, fitCard, cardPng } from './share-render.js';
+import { makeGif, gifFrames, gifSpeedPlan, gifTradeWindows, GIF_SIZES, GIF_SPEEDS, GIF_MAX_S } from './share-gif-make.js';
+import { GIF_FPS } from './share-gif.js';
+import { tapeBars, tapeFormAt, tapeSampleBars } from './tape.js';
+import { tapeRead } from './tape-db.js';
+import { accountName } from '../journal/model.js';
+import { dayKey } from '../journal/time.js';
 import * as DB from '../journal/db.js';
 
-const CARD_CSS = new URL('./share-card.css', import.meta.url).href;
-const PREFS_KEY = 'bvSharePrefs';
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const HAS_CHROME = typeof chrome !== 'undefined' && !!(chrome.runtime && chrome.runtime.id);
 
-// the look you chose is remembered on this computer (this page's own storage); which accounts are on the card comes from each snapshot
-const DEFAULT_PREFS = { kind: 'summary', style: 'vest', theme: 'dark', format: 'feed', hero: 'usd', handle: '',
-    list: { on: true, green: false, mask: true }, show: { date: true, accounts: true, pct: false, market: true, handle: true, credit: true,
-        trades: false, winrate: false, best: false, worst: false, fees: false },
-    // 8.2
-    rows: 'accounts', period: 'today', afterFees: true,
-    rp: { labels: 'usd', prices: false, pnl: false, sessions: false, best: false },
-    // 8.2 round 2: the Replay's chart (share-card.js chartOpts); the defaults are 8.1.5's chart
-    chart: Object.assign({}, CHART_DEFAULTS) };
-function loadPrefs() {
-    let p = null;
-    try { p = JSON.parse(localStorage.getItem(PREFS_KEY) || 'null'); } catch (e) {}
-    const o = p && typeof p === 'object' ? p : {};
-    const merged = Object.assign({}, DEFAULT_PREFS, o);
-    for (const k of ['list', 'show', 'rp']) merged[k] = Object.assign({}, DEFAULT_PREFS[k], o[k]);
-    if (!ROWS.includes(merged.rows)) merged.rows = 'accounts';
-    if (!['today', 'yesterday', 'week', 'month'].includes(merged.period)) merged.period = 'today';
-    // a card kind 8.2 no longer has (Payouts, in the round before the owner's test) comes back as the Summary
-    if (!['summary', 'replay'].includes(merged.kind)) merged.kind = 'summary';
-    if (!['usd', 'pct', 'both', 'pts'].includes(merged.hero)) merged.hero = 'usd';
-    merged.chart = chartOpts(o.chart);
-    return merged;
-}
-function savePrefs() {
-    const { kind, style, theme, format, hero, handle, list, show, rows, afterFees, rp, chart } = P;
-    // a picked day belongs to one session: Period comes back as Today next time
-    const period = P.period === 'day' ? 'today' : P.period;
-    try { localStorage.setItem(PREFS_KEY, JSON.stringify({ kind, style, theme, format, hero, handle, list, show, rows, period, afterFees, rp, chart })); } catch (e) {}
-}
+// the look you chose is remembered on this computer (this page's own storage, cert/share-prefs.js, shared with the pop-up on Vest's page);
+// which accounts are on the card comes from each snapshot
+const savePrefs = () => storePrefs(localStorage, P);
 
 // not kept: which accounts, markets, day, group and market are on the card (they belong to one snapshot)
-const P = Object.assign(loadPrefs(), { mode: 'accounts', picked: [], markets: null, pick: '', rpAcc: '', rpMarket: '' });
+const P = Object.assign(loadPrefs(localStorage), { mode: 'accounts', picked: [], markets: null, pick: '', rpAcc: '', rpMarket: '' });
 let snap = null;
 let TT = [];          // today's trades of the snapshot (share-summary.js todayTrades)
-// the Calendar's synced history, for other days (the same database and user the Calendar opens); the demo's is made up
-const CAL = { gen: 0, loadingGen: -1, loaded: false, loading: null, trades: [], lastSync: null, err: '', sample: false };
+// the Calendar's synced history, for other days (the same database and user the Calendar opens); the demo's is made up. 9.0: its payouts
+// (the Payout card) and its account names.
+const CAL = { gen: 0, loadingGen: -1, loaded: false, loading: null, trades: [], payouts: [], names: new Map(), lastSync: null, err: '', sample: false };
+// 9.0: your background picture, ready for the card (cert/share-bg.js bgPrepare), or null
+let BGI = null;
+// the page's choices plus the picture: what the card builders get
+const cardP = (extra) => Object.assign({}, P, { bgImg: BGI }, extra || {});
+// the card shows your picture (the PNG and the video then draw it under the card)
+const pictureOn = () => P.bg.kind === 'image' && !!BGI;
 // the Replay's selection: which trades (null: all) and which time (null: the whole session). It belongs to one snapshot, so it is not kept.
 let RS = { ids: null, from: null, to: null };
 let lastOut = null;   // what the stage shows now: { kind, el, scene }
@@ -70,16 +62,7 @@ function useSnap(s) {
     P.rpAcc = '';
     P.rpMarket = '';
     if (P.period === 'day') P.period = 'today';
-    const group = copyGroup(snap);
-    if (snap.copying && group.length > 1) {
-        P.mode = 'copy';
-        P.picked = group;
-    } else {
-        P.mode = 'accounts';
-        const known = snap.accounts.filter((a) => a.pnl != null);
-        const first = snap.accounts.find((a) => a.id === snap.activeId && a.pnl != null) || known[0];
-        P.picked = first ? [first.id] : [];
-    }
+    Object.assign(P, snapPicks(snap));
     CAL.loaded = false;
     CAL.gen = (CAL.gen || 0) + 1;
     loadCal().then(() => { if (CAL.loaded) { paintControls(); render(); } });
@@ -108,21 +91,24 @@ const calThenRender = () => loadCal().then(() => { if (CAL.loaded) render(); });
 async function readCal() {
     try {
         if (snap && snap.demo) {
-            // the demo never mixes in a real account's history: made-up days, marked Sample on the card
-            return { trades: sampleHistory(snap, 45), lastSync: Date.now(), err: '', sample: true };
+            // the demo never mixes in a real account's history: made-up days and payouts, marked Sample on the card
+            return { trades: sampleHistory(snap, 45), payouts: samplePayouts(snap.day), names: samplePayNames(), lastSync: Date.now(), err: '', sample: true };
         }
-        if (!HAS_CHROME) return { trades: [], err: 'none', sample: false };
+        const none = { trades: [], payouts: [], names: new Map(), err: 'none', sample: false };
+        if (!HAS_CHROME) return none;
         const got = await chrome.storage.local.get(['journalLastUser']).catch(() => ({}));
         let id = got.journalLastUser;
         if (!id) { const ids = await DB.listUserIds().catch(() => []); id = ids[0]; }
-        if (!id) return { trades: [], err: 'none', sample: false };
+        if (!id) return none;
         const db = await DB.openDb(String(id));
         try {
-            const [trades, lastSync] = await Promise.all([DB.getAll(db, 'trades'), DB.getMeta(db, 'lastSync').catch(() => null)]);
-            return { trades: trades || [], lastSync: lastSync || null, err: '', sample: false };
+            const [trades, lastSync, payouts, accounts] = await Promise.all([DB.getAll(db, 'trades'), DB.getMeta(db, 'lastSync').catch(() => null),
+                DB.getAll(db, 'payouts').catch(() => []), DB.getAll(db, 'accounts').catch(() => [])]);
+            const names = new Map((accounts || []).filter((a) => a && a.id != null).map((a) => [String(a.id), accountName(a)]));
+            return { trades: trades || [], payouts: payouts || [], names, lastSync: lastSync || null, err: '', sample: false };
         } finally { db.close(); }
     } catch (e) {
-        return { trades: [], err: 'read-failed', sample: false };
+        return { trades: [], payouts: [], names: new Map(), err: 'read-failed', sample: false };
     }
 }
 
@@ -131,7 +117,9 @@ const LIST_TIP = { on: 'One row per account under the total', green: 'Only the a
 const SHOW = {
     summary: [['date', 'Date'], ['accounts', '"Across N accounts" line'], ['pct', '% return (or $ when the big number is %)'], ['market', 'Market'],
         ['trades', 'Trades column'], ['winrate', 'Win rate'], ['best', 'Best trade'], ['worst', 'Biggest loss'], ['fees', 'Fees paid'], ['handle', 'Your name'], ['credit', 'Better Vest credit']],
-    replay: [['date', 'Date'], ['accounts', 'Account name'], ['pct', '% return (or $ when the big number is not)'], ['market', 'Market'], ['handle', 'Your name'], ['credit', 'Better Vest credit']]
+    replay: [['date', 'Date'], ['accounts', 'Account name'], ['pct', '% return (or $ when the big number is not)'], ['market', 'Market'], ['handle', 'Your name'], ['credit', 'Better Vest credit']],
+    // 9.0
+    payout: [['date', 'Date'], ['accounts', 'Account names'], ['paytotal', 'Today: your payout count and lifetime total'], ['paybest', 'Lifetime: the biggest and the first'], ['handle', 'Your name'], ['credit', 'Better Vest credit']]
 };
 const ROW_NAMES = { accounts: 'Accounts', markets: 'Markets', groups: 'Copy groups', trades: 'Trades', sessions: 'Sessions' };
 const ROW_TIP = { accounts: 'One row per account: today it is Vest\'s own day P&L', markets: 'One row per market you traded', groups: 'One row per copy group: its leader and followers together',
@@ -241,22 +229,24 @@ function paintShow() {
 }
 
 function paintSettings() {
-    const replay = P.kind === 'replay', sum = P.kind === 'summary';
+    const replay = P.kind === 'replay', sum = P.kind === 'summary', pay = P.kind === 'payout';
     // each card's own controls stand in the same place
     $('mode').hidden = $('pick-pop').hidden = !sum;
     $('rows-pop').hidden = $('per-pop').hidden = $('mkts-pop').hidden = !sum;
     $('rpt-pop').hidden = $('rpr-pop').hidden = $('rpa-pop').hidden = $('cx-pop').hidden = !replay;
     if (!replay) $('rpm-pop').hidden = true;
+    $('payk').hidden = !pay;
     $('sumopts').hidden = !sum;
     $('rplab-g').hidden = $('rpopts').hidden = !replay;
-    $('video').hidden = !replay;
+    // the Replay's day plays out; any card over a moving picture moves (9.0)
+    $('video').hidden = !replay && !(pictureOn() && BGI.animated);
     $('mode').querySelectorAll('button').forEach((b) => { b.disabled = b.dataset.v === 'copy' && !(snap && copyGroup(snap).length > 1); });
     $('pick-btn').disabled = !snap;
-    $('listopts').querySelectorAll('.chip').forEach((c) => { c.disabled = replay && c.dataset.k !== 'mask'; });
-    $('hero').querySelector('[data-v="pct"]').disabled = replay;
-    $('hero').querySelector('[data-v="both"]').disabled = replay;
-    ['kind', 'mode', 'hero', 'theme', 'format', 'style'].forEach((k) => $(k).querySelectorAll('button').forEach((b) => {
-        const on = b.dataset.v === P[k];
+    $('listopts').querySelectorAll('.chip').forEach((c) => { c.disabled = (replay && c.dataset.k !== 'mask') || (pay && c.dataset.k === 'green'); });
+    $('hero').querySelectorAll('button').forEach((b) => { b.disabled = (replay && (b.dataset.v === 'pct' || b.dataset.v === 'both')) || (pay && b.dataset.v !== 'usd'); });
+    ['kind', 'mode', 'hero', 'theme', 'format', 'style', 'payk'].forEach((k) => $(k).querySelectorAll('button').forEach((b) => {
+        // the Payout card is always in $
+        const on = b.dataset.v === (k === 'hero' && pay ? 'usd' : k === 'payk' ? P.pay : P[k]);
         b.classList.toggle('on', on);
         b.setAttribute('aria-pressed', on ? 'true' : 'false');
     }));
@@ -272,10 +262,18 @@ function paintSettings() {
     if (document.activeElement !== $('handle')) $('handle').value = P.handle;
 }
 
+// the card, then the GIF button, which follows Download PNG
 function render() {
+    renderCard();
+    paintGifBtn();
+}
+function renderCard() {
     paintSettings();
+    paintLook();
     const fit = $('fit');
     const empty = $('empty');
+    // the Payout card needs no snapshot: it is the Calendar's
+    if (P.kind === 'payout') { renderPayout(); return; }
     if (!snap) {
         fit.innerHTML = '';
         empty.hidden = false;
@@ -293,22 +291,52 @@ function render() {
     paintSummaryControls(M);
     // the most account rows that fit the panel without spilling, from all of them down
     fit.style.transform = 'none';
-    let out = null;
-    for (let m = 60; m >= 1; m--) {
-        out = cardHtml(snap, P, m, M);
-        fit.innerHTML = out.html;
-        const panel = fit.querySelector('.panel');
-        if (!panel || panel.scrollHeight <= panel.clientHeight + 1) break;
-    }
-    lastOut = { kind: 'summary', el: fit.firstElementChild };
+    const pp = cardP();
+    const out = fitCard(fit, (m) => cardHtml(snap, pp, m, M));
+    lastOut = { kind: 'summary', el: fit.firstElementChild, html: out.html, format: P.format };
     scaleCard();
     const [w, h] = CARD_SIZES[P.format] || CARD_SIZES.feed;
     const what = { accounts: P.mode === 'copy' ? 'Copy group' : 'Accounts', markets: 'Markets', groups: 'Rows', trades: 'Period', sessions: 'Period' }[P.rows];
     const why = P.period !== 'today' && !CAL.sample && CAL.loaded && CAL.err ? 'Other days come from your Calendar: open it and sync your history first.'
         : P.rows !== 'accounts' && P.period === 'today' && !snap.demo && !TT.length ? 'No closed trades read for today' + (snap.tradesErr ? ': press P&L in the dock again.' : ' yet.')
         : 'Nothing on the card: pick one in ' + what + (P.list.green ? ', or turn off Only green' : '') + '.';
-    $('cap').textContent = out && out.n ? 'Saves at ' + w * 2 + ' × ' + h * 2 + ' px' + (snap.demo ? ' · sample numbers, marked on the card' : '') + (M.live ? '' : ' · from your Calendar') : why;
+    $('cap').textContent = out && out.n ? 'Saves at ' + w * 2 + ' × ' + h * 2 + ' px' + (snap.demo ? ' · sample numbers, marked on the card' : '') + (M.live ? '' : ' · from your Calendar') + bgCap() : why;
     $('save').disabled = $('copy').disabled = !out || !out.n;
+    paintVideoBtn(!!(out && out.n));
+}
+
+// ---------- the Payout card (9.0): today's payout, or every payout so far, from your Calendar ----------
+const PAY_WHY = {
+    none: 'No payouts in your Calendar yet: open the Calendar and sync it once. Until then the card shows sample numbers, marked on it.',
+    'read-failed': 'Your Calendar could not be read: open it once, then come back. Until then the card shows sample numbers, marked on it.'
+};
+function renderPayout() {
+    const fit = $('fit');
+    const empty = $('empty');
+    if (!CAL.loaded) { calThenRender(); }
+    const today = (snap && snap.day) || dayKey(Date.now(), 'vest');
+    // the demo's and the showcases' payouts are made up; a computer whose Calendar has none gets sample ones, marked (nothing to save)
+    const real = !CAL.sample && CAL.loaded && !CAL.err && CAL.payouts.some((x) => x && x.status === 'EXECUTED');
+    const sample = !real;
+    const list = real ? CAL.payouts : samplePayouts(today);
+    const PM = payoutModel(list, { kind: P.pay, today, names: real ? CAL.names : samplePayNames() });
+    $('sub').textContent = P.pay === 'lifetime' ? 'Every payout Vest has paid you' : 'Today\'s payout' + (sample ? ' · sample numbers' : ', from your Calendar');
+    fit.style.transform = 'none';
+    empty.hidden = true;
+    const pp = cardP();
+    const out = fitCard(fit, (m) => payoutHtml(PM, pp, m, { sample }));
+    lastOut = out.html ? { kind: 'payout', el: fit.firstElementChild, html: out.html, format: P.format } : null;
+    if (!out.html) { $('cap').textContent = ''; $('save').disabled = $('copy').disabled = true; paintVideoBtn(false); return; }
+    scaleCard();
+    const [w, h] = CARD_SIZES[P.format] || CARD_SIZES.feed;
+    const synced = CAL.lastSync ? ', synced ' + new Date(CAL.lastSync).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
+    const why = snap && snap.demo ? 'Sample payouts (the demo), marked on the card.' : !CAL.loaded ? 'Reading your Calendar…' : sample ? PAY_WHY[CAL.err] || PAY_WHY.none : '';
+    const latest = !sample && PM.latest ? 'No payout yet on Vest\'s day today (it ends at 8 pm New York): this is your latest, ' + dayLong(PM.day) + '. ' : '';
+    $('cap').textContent = why || (latest + 'Saves at ' + w * 2 + ' × ' + h * 2 + ' px · from your Calendar' + synced + ' · EXECUTED payouts only, the amount you received' + bgCap());
+    // sample payouts on a real computer are only a preview: nothing to save until the Calendar has yours (the demo's save, marked Sample)
+    const can = !!out.n && (real || !!(snap && snap.demo));
+    $('save').disabled = $('copy').disabled = !can;
+    paintVideoBtn(can);
 }
 
 // why there is no Replay chart, in plain words (the codes come from src/copy/35-share.js and cert/share-replay.js)
@@ -329,7 +357,7 @@ function renderReplay() {
     paintReplayAccounts();
     paintReplayControls();
     paintChart();
-    const out = replayHtml(snap, Object.assign({}, P, { rsel: RS }));
+    const out = replayHtml(snap, cardP({ rsel: RS }));
     if (!out.html) {
         fit.innerHTML = '';
         $('empty').hidden = false;
@@ -340,7 +368,9 @@ function renderReplay() {
         return;
     }
     fit.innerHTML = out.html;
-    lastOut = { kind: 'replay', el: fit.firstElementChild, scene: out.scene, html: out.html, format: P.format };
+    // 9.0: the model (its bars and trades), the market's key and whether it is a sample: the GIF plays the seconds inside the bars
+    lastOut = { kind: 'replay', el: fit.firstElementChild, scene: out.scene, html: out.html, format: P.format, M: out.M, sym: (rpReplay() || {}).sym || '',
+        sample: !!(snap.demo || (out.M && out.M.sample)) };
     scaleCard();
     const [w, h] = CARD_SIZES[P.format] || CARD_SIZES.feed;
     const r = rpReplay() || {};
@@ -354,7 +384,23 @@ function renderReplay() {
     $('cap').textContent = (past ? 'No trades today on ' + (r.market || 'this market') + ': your latest session, ' + dayLong(r.day) + ' · ' : '') + 'Saves at ' + w * 2 + ' × ' + h * 2 + ' px · Vest\'s own candles' + (snap.demo ? ' · sample trades, marked on the card' : '') + noR;
     $('save').disabled = $('copy').disabled = !out.n;
     $('video').disabled = !out.n || !videoMime();
-    $('video').title = videoMime() ? 'The day plays out: a ' + Math.round(videoPlan(out.scene.n).total) + '-second video of this card (' + videoExt(videoMime()).toUpperCase() + '). It plays here first; nothing is saved until you press Save' : 'This browser cannot record video';
+    $('video').title = videoMime() ? 'The day plays out' + (pictureOn() && BGI.animated ? ' over your moving picture' : '') + ': a ' + Math.round(videoPlan(out.scene.n).total) + '-second video of this card (' + videoExt(videoMime()).toUpperCase() + '). It plays here first; nothing is saved until you press Save' : 'This browser cannot record video';
+    if (pictureOn()) $('cap').textContent += bgCap();
+}
+
+// the Video button on a card that is not the Replay: there when your picture moves (9.0)
+function paintVideoBtn(can) {
+    if (P.kind === 'replay') return;
+    const v = $('video');
+    v.hidden = !(pictureOn() && BGI.animated);
+    if (v.hidden) return;
+    v.disabled = !can || !videoMime();
+    v.title = videoMime() ? 'Your picture moves: a ' + Math.round(bgFramePlan(BGI.durations).seconds) + '-second video of this card (' + videoExt(videoMime()).toUpperCase() + '). It plays here first; nothing is saved until you press Save' : 'This browser cannot record video';
+}
+// what the caption adds about your picture
+function bgCap() {
+    if (!pictureOn()) return '';
+    return BGI.animated ? ' · your GIF moves in the video and the GIF; the PNG takes its first frame' : ' · your picture stays on this computer';
 }
 
 // as big as the stage allows, with room around it and for the caption (the card is HTML, so it stays sharp when scaled up)
@@ -368,13 +414,15 @@ function scaleCard() {
 }
 
 function fileBase() {
+    if (P.kind === 'payout') return 'better-vest-payout-' + (P.pay === 'lifetime' ? 'lifetime' : (snap && snap.day) || dayKey(Date.now(), 'vest'));
     return 'better-vest-pnl-' + (snap && snap.day ? snap.day : 'today') + (P.kind === 'replay' ? '-replay' : P.mode === 'copy' ? '-copy' : '');
 }
 function pngName() { return fileBase() + '.png'; }
 async function pngBlob() {
     const card = $('fit').firstElementChild;
     const [w, h] = CARD_SIZES[P.format] || CARD_SIZES.feed;
-    return cardToPngBlob(card, { cssUrl: CARD_CSS, width: w, height: h, scale: 2 });
+    // 9.0: your picture is drawn under the card (the first frame of a GIF)
+    return cardPng(card, { width: w, height: h, scale: 2, img: pictureOn() ? BGI : null, bg: P.bg });
 }
 
 // a short note at the bottom of the page after an action
@@ -421,19 +469,36 @@ async function onCopy() {
 // the page in front while it records), then played here. Nothing is saved until Save; Close keeps it for the next press, and when the card
 // has changed since, the preview says so and offers Record again.
 let VID = null;   // { url, blob, mime, seconds, w, h, html, format }
+// a video can be made of this card: the Replay's day, or (9.0) any card over a moving picture
+const canVideo = () => !!lastOut && (lastOut.kind === 'replay' ? !!lastOut.scene : pictureOn() && BGI.animated);
 async function recordVideo() {
     const [w, h] = CARD_SIZES[P.format] || CARD_SIZES.feed;
     // the card as it is when the recording starts: an option changed while it records makes the preview say the card changed
-    const { html, format } = lastOut;
-    const res = await recordReplay(lastOut.el, lastOut.scene, { cssUrl: CARD_CSS, width: w, height: h, scale: 2,
-        onProgress: (f) => say('Recording ' + Math.round(f * 100) + '% · keep this page in front', false, true) });
+    const { html, format, kind, el, scene } = lastOut;
+    const onProgress = (f) => say('Recording ' + Math.round(f * 100) + '% · keep this page in front', false, true);
+    // 9.0: your picture under the card: drawn once when it is still, each of its frames once when it moves (one loop, up to 10 s; on the
+    // Replay it loops while the day plays)
+    let bg = null, frames = null, plan = null;
+    if (pictureOn()) {
+        const g = cardGeom(el);
+        if (BGI.animated) {
+            plan = kind === 'replay' ? bgFramePlan(BGI.durations, { frames: videoPlan(scene.n).frames }) : bgFramePlan(BGI.durations);
+            frames = await bgFrames(BGI, plan, w * 2, h * 2, 2, P.bg, g.base, (f) => say('Preparing your picture ' + Math.round(f * 100) + '%', false, true));
+            bg = { at: frames.at };
+        } else bg = { still: bgStill(BGI, w * 2, h * 2, 2, P.bg, g.base) };
+    }
+    let res;
+    try {
+        res = kind === 'replay' ? await recordReplay(el, scene, { cssUrl: CARD_CSS, width: w, height: h, scale: 2, onProgress, bg })
+            : await recordCard(el, { cssUrl: CARD_CSS, width: w, height: h, scale: 2, onProgress, plan, bg });
+    } finally { if (frames) frames.close(); }
     if (VID) URL.revokeObjectURL(VID.url);
     VID = { url: URL.createObjectURL(res.blob), blob: res.blob, mime: res.mime, seconds: res.seconds, w: w * 2, h: h * 2, html, format };
     window.__shareLastVideo = res;
     say('');
 }
 async function onVideo() {
-    if (busy || $('video').disabled || !lastOut || lastOut.kind !== 'replay' || !lastOut.scene) return;
+    if (busy || $('video').disabled || !canVideo()) return;
     if (VID) { openPreview(); return; }
     busy = true;
     const btn = $('video');
@@ -468,7 +533,7 @@ function openPreview() {
     v.loop = $('vm-loop').classList.contains('on');
     const kb = VID.blob.size / 1024;
     $('vm-info').textContent = mmss(VID.seconds) + ' · ' + videoExt(VID.mime).toUpperCase() + ' · ' + VID.w + ' × ' + VID.h + ' · ' + (kb >= 1024 ? (kb / 1024).toFixed(1) + ' MB' : Math.round(kb) + ' KB');
-    const changed = !lastOut || lastOut.kind !== 'replay' || lastOut.html !== VID.html;
+    const changed = !lastOut || lastOut.html !== VID.html;
     $('vm-again').hidden = !changed;
     $('vm-note').textContent = changed ? 'The card changed since this video was made.' : 'Not saved yet.';
     $('vm-note').classList.toggle('warn', changed);
@@ -509,7 +574,7 @@ $('vm-close').addEventListener('click', closePreview);
 $('vm-x').addEventListener('click', closePreview);
 $('vm').addEventListener('click', (e) => { if (e.target === $('vm')) closePreview(); });
 $('vm-again').addEventListener('click', async () => {
-    if (busy || !lastOut || lastOut.kind !== 'replay' || !lastOut.scene) return;
+    if (busy || !canVideo()) return;
     busy = true;
     closePreview();
     $('video').classList.add('rec');
@@ -517,6 +582,253 @@ $('vm-again').addEventListener('click', async () => {
     $('video').classList.remove('rec');
     busy = false;
 });
+
+// ---------- 9.0: Save as GIF (the owner: "let me download image as gif") ----------
+// Made here, in a worker (cert/share-gif-make.js), shown, then saved with Save GIF. It moves when the card does (the Replay's day, your GIF
+// under any card); a card that does not move is one frame of the PNG's own pixels. Full is the PNG's size, Half the card's own (about a
+// quarter of the file). Each size is made once per card; Cancel stops it at once.
+// Round 2 (the owner): the Replay's GIF either plays the bars (mode 'replay') or shows the whole chart (mode 'still'); each mode and size is
+// made once per card (res: 'mode|size'). 9.0: the bars play at a speed (Fit, or 10, 30, 60 seconds of the market a second) with the seconds
+// recorded inside them (res: 'replay:speed|size').
+const GIF = { key: '', size: '', mode: 'replay', speed: '', picked: false, res: {}, job: null };
+const gifReplayOn = () => !!lastOut && lastOut.kind === 'replay' && !!lastOut.scene;
+const gifMode = () => (gifReplayOn() ? GIF.mode : 'still');
+const gifSpeedOn = () => gifReplayOn() && GIF.mode === 'replay';
+const gifSlot = (size) => gifMode() + (gifSpeedOn() ? ':' + (GIF.speed || 'fit') : '') + '|' + (size || GIF.size);
+const gifRes = (size) => GIF.res[gifSlot(size)] || null;
+const gifMoving = () => !!lastOut && ((gifReplayOn() && GIF.mode === 'replay') || (pictureOn() && BGI.animated));
+const gifKey = () => (lastOut ? lastOut.html : '') + '|' + (pictureOn() ? BGI.src + (BGI.animated ? ':a' : '') : '') + '|' + P.format;
+// Full, unless your moving picture changes every frame of a long GIF. Measured on a sample picture (16 frames, 540 x 675): the card over
+// it is 1.9 MB at Full; the Replay over it (79 frames) 8.7 MB at Full and 3.1 MB at Half. Without a moving picture a Full GIF is a few
+// hundred KB (a still card 160 KB, the Replay 225 KB).
+const gifDefault = () => (pictureOn() && BGI.animated && lastOut && gifFrames(lastOut.kind, lastOut.scene, BGI, gifMode(), gifSpeedOn() ? gifPlans()[GIF.speed] : null).length > 48 ? 'half' : 'full');
+
+// 9.0: the seconds inside the Replay's bars (cert/tape.js): those recorded on Vest's page while you traded (cert/tape-db.js, the last 30
+// days), or made up for the sample. Read once per card. got = { how: 'real' | 'sample' | 'none', n: bars with seconds, of: bars, resS,
+// tape (share-video.js replayStage's), win (the trades' own window) }
+const TP = { key: '', got: null, job: null };
+// the names a market's seconds may be kept under, when the snapshot did not say (NQ is NDX-USD-PERP at Vest)
+const tapeSyms = (o) => (o.sym ? [o.sym] : { NQ: ['NDX-USD-PERP'], MNQ: ['NDX-USD-PERP'], ES: ['SPX-USD-PERP'] }[o.M.market]
+    || (o.M.market ? [o.M.market + '-PERP', o.M.market + '-USD-PERP'] : []));
+function gifTape() {
+    const key = gifKey();
+    if (TP.key === key && TP.got) return Promise.resolve(TP.got);
+    if (TP.key === key && TP.job) return TP.job;
+    TP.key = key;
+    TP.got = null;
+    const out = lastOut;
+    const job = (async () => {
+        const M = out && out.M;
+        if (!M || !M.bars.length) return { how: 'none', n: 0, of: 0, resS: 60, tape: null, win: null };
+        const resS = Number(M.res) * 60;
+        let paths, how = 'real';
+        if (out.sample) { paths = tapeSampleBars(M.bars, resS); how = 'sample'; }
+        else {
+            const from = M.bars[0][0], to = M.bars[M.bars.length - 1][0] + resS - 1;
+            let rows = [];
+            for (const sym of tapeSyms(out)) { rows = HAS_CHROME ? await tapeRead(sym, from, to).catch(() => []) : []; if (rows.length) break; }
+            paths = tapeBars(M.bars, resS, rows);
+        }
+        const n = paths.filter(Boolean).length;
+        if (!n) how = 'none';
+        const tape = n ? { form: (i, f) => (paths[i] ? tapeFormAt(M.bars[i], paths[i], f, resS) : null), at: (i, f) => (M.bars[i][0] + f * resS) * 1000 } : null;
+        return { how, n, of: M.bars.length, resS, tape, win: gifTradeWindows(M.bars, resS, M.trades), bars: M.bars, tz: M.tz };
+    })();
+    TP.job = job;
+    job.then((got) => { if (TP.job === job) { TP.job = null; TP.got = got; } }, () => { if (TP.job === job) TP.job = null; });
+    return job;
+}
+const SPEED_NAME = { fit: 'Fit', 10: '10×', 30: '30×', 60: '60×' };
+// each speed's plan for this card (share-gif-make.js gifSpeedPlan); a real-time speed needs seconds inside the bars
+function gifPlans() {
+    const out = {};
+    const t = TP.got;
+    if (!gifReplayOn() || !t || TP.key !== gifKey()) return out;
+    for (const sp of GIF_SPEEDS) {
+        const pl = gifSpeedPlan(lastOut.scene.n, t.resS, sp, GIF_FPS, t.win);
+        if (sp !== 'fit' && !t.n) { pl.ok = false; pl.need = 0; }
+        out[sp] = pl;
+    }
+    return out;
+}
+// the slowest real time that fits a GIF (the owner: "the replay is tooo fast"), else Fit; a speed you picked stays while a card can play it
+const gifSpeedDefault = (plans) => ['10', '30', '60'].find((sp) => plans[sp] && plans[sp].ok) || 'fit';
+async function gifPrepare() {
+    await gifTape();
+    const plans = gifPlans();
+    if (!GIF.picked || !plans[GIF.speed] || !plans[GIF.speed].ok) GIF.speed = gifSpeedDefault(plans);
+}
+// the dialog's one line about the seconds (and the window a speed plays)
+function gifTapeLine(plan) {
+    const t = TP.got;
+    if (!t) return 'Reading the seconds…';
+    if (t.how === 'none') return 'Second data starts once you trade with this version.';
+    let win = '';
+    if (plan && plan.ok && plan.window && t.bars.length) {
+        // a moment of the plan (bars come, a fraction part way into one) on the chart's clock
+        const at = (p) => { const i = Math.min(t.bars.length - 1, Math.floor(p)); return (t.bars[i][0] + (p - i) * t.resS) * 1000; };
+        win = ' Plays ' + (plan.window === 'last' ? 'your last trade, ' : 'your trades, ') + hhmm(at(plan.a), t.tz) + ' to ' + hhmm(at(plan.b), t.tz) + '.';
+    }
+    if (t.how === 'sample') return 'Sample: made-up seconds inside Vest\'s candles.' + win;
+    return (t.n < t.of ? 'Recorded seconds in ' + t.n + ' of ' + t.of + ' bars; the rest grow evenly.' : 'Real prices inside every bar, from your recorded seconds.') + win;
+}
+const fmtBytes = (n) => (n >= 1048576 ? (n / 1048576).toFixed(n >= 10485760 ? 0 : 1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB');
+function paintGifBtn() {
+    const g = $('gif');
+    g.disabled = $('save').disabled || !lastOut;
+    // a new snapshot came in while the GIF dialog is open
+    if (!$('gm').hidden && GIF.key && gifKey() !== GIF.key && !GIF.job) { $('gm-note').textContent = 'The card changed since this GIF was made: close and press GIF again.'; $('gm-note').classList.add('warn'); }
+    if (!lastOut) return;
+    g.title = gifReplayOn() ? 'Save the card as a GIF: the bars play out, or the whole chart. It is made here first; nothing is saved until you press Save GIF'
+        : gifMoving() ? 'Save the card as a moving GIF: your picture moves under it. It is made here first; nothing is saved until you press Save GIF'
+            : 'Save the card as a GIF: one frame, the same pixels as the PNG (a GIF has 256 colors). Nothing is saved until you press Save GIF';
+}
+function gifResetIfChanged() {
+    const key = gifKey();
+    if (key === GIF.key) return;
+    gifCancel();
+    for (const k of Object.keys(GIF.res)) { if (GIF.res[k]) URL.revokeObjectURL(GIF.res[k].url); }
+    GIF.res = {};
+    GIF.key = key;
+    GIF.size = '';
+}
+function paintGif() {
+    const size = GIF.size;
+    const r = gifRes(size);
+    const [w, h] = CARD_SIZES[P.format] || CARD_SIZES.feed;
+    $('gm-mode').hidden = $('gm-mode-k').hidden = !gifReplayOn();
+    $('gm-mode').querySelectorAll('button').forEach((b) => {
+        const on = b.dataset.v === GIF.mode;
+        b.classList.toggle('on', on);
+        b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+    // 9.0: the speed, with each one's length (or why it cannot be made)
+    const spOn = gifSpeedOn();
+    $('gm-spd-bar').hidden = !spOn;
+    if (spOn) {
+        const plans = gifPlans();
+        $('gm-speed').querySelectorAll('button').forEach((b) => {
+            const k = b.dataset.v, pl = plans[k], ok = !!(pl && pl.ok), on = k === GIF.speed;
+            b.disabled = !ok;
+            b.innerHTML = SPEED_NAME[k] + (pl ? '<span>' + (ok ? Math.round(pl.total) + ' s' : pl.need ? 'over ' + GIF_MAX_S + ' s' : 'no data') + '</span>' : '');
+            b.title = !pl ? '' : k === 'fit' ? 'The whole time on the card in about 10 seconds' + (TP.got && TP.got.n ? ', the seconds inside each bar as they happened' : '')
+                : ok ? SPEED_NAME[k] + ' real time: ' + k + ' seconds of the market each second of the GIF' + (pl.window === 'last' ? ', your last trade' : pl.window ? ', your trades\' window' : '')
+                    : pl.need ? 'At ' + SPEED_NAME[k] + ' even your ' + (pl.window === 'last' ? 'last trade' : 'trades\' window') + ' takes ' + Math.round(pl.need) + ' s; a GIF stops at ' + GIF_MAX_S + ' s' : 'Needs the seconds recorded inside these bars';
+            b.classList.toggle('on', on);
+            b.setAttribute('aria-pressed', on ? 'true' : 'false');
+        });
+        $('gm-tape').textContent = gifTapeLine(plans[GIF.speed]);
+    }
+    $('gm-size').querySelectorAll('button').forEach((b) => {
+        const k = b.dataset.v, s = GIF_SIZES[k], got = gifRes(k);
+        b.innerHTML = (k === 'full' ? 'Full' : 'Half') + '<span>' + w * s + ' × ' + h * s + (got ? ' · ' + fmtBytes(got.blob.size) : '') + '</span>';
+        b.classList.toggle('on', k === size);
+        b.setAttribute('aria-pressed', k === size ? 'true' : 'false');
+    });
+    const working = !!GIF.job;
+    $('gm-work').hidden = !working;
+    $('gm-img').hidden = working || !r;
+    if (r && $('gm-img').src !== r.url) $('gm-img').src = r.url;
+    $('gm-save').disabled = working || !r;
+    $('gm-info').textContent = r ? (r.frames > 1 ? (r.ms / 1000).toFixed(1) + ' s · 50 fps · loops · ' : '1 frame · ') + r.w + ' × ' + r.h + ' · ' + fmtBytes(r.blob.size) : '';
+    $('gm-hint').textContent = r && r.blob.size > 15 * 1048576 ? 'Over 15 MB: some sites refuse a GIF that big. ' + (size === 'full' ? 'Half is about a quarter of the size.' : 'A shorter or calmer picture makes a smaller one.')
+        : !gifMoving() ? 'This card does not move: one frame.' : '';
+}
+function gifProgress(f, what) {
+    $('gm-bar').style.width = Math.round(f * 100) + '%';
+    $('gm-pct').textContent = Math.round(f * 100) + '%';
+    $('gm-what').textContent = what === 'picture' ? 'Reading your picture\'s frames' : what === 'colors' || what === 'colours' ? 'Picking the colors' : 'Making the GIF';
+}
+function gifCancel() {
+    if (!GIF.job) return;
+    GIF.job.cancelled = true;
+    GIF.job = null;
+}
+let gifSeq = 0;
+async function gifRun(size) {
+    gifCancel();
+    GIF.size = size;
+    const seq = ++gifSeq;
+    const job = { cancelled: false };
+    // 9.0: the Replay's seconds and speed first (read once per card; Cancel and Close stop this too)
+    if (gifReplayOn()) {
+        const reading = !TP.got || TP.key !== gifKey();
+        if (reading) { GIF.job = job; gifProgress(0, ''); paintGif(); }
+        await gifPrepare().catch(() => {});
+        if (seq !== gifSeq || job.cancelled) return;
+        if (reading) GIF.job = null;
+    }
+    const mode = gifMode(), slot = gifSlot(size);
+    if (gifRes(size)) { $('gm-note').textContent = 'Not saved yet.'; paintGif(); return; }
+    const card = lastOut && lastOut.el;
+    if (!card) return;
+    GIF.job = job;
+    gifProgress(0, '');
+    $('gm-note').textContent = gifMoving() ? 'Keep this page open while it is made.' : '';
+    paintGif();
+    const [w, h] = CARD_SIZES[P.format] || CARD_SIZES.feed;
+    try {
+        const plan = gifSpeedOn() ? gifPlans()[GIF.speed] || null : null;
+        const res = await makeGif({ kind: lastOut.kind, mode, card, scene: lastOut.scene, width: w, height: h, size, img: pictureOn() ? BGI : null, bg: P.bg,
+            plan: plan && plan.ok ? plan : null, tape: gifSpeedOn() && TP.got ? TP.got.tape : null,
+            dither: true, onProgress: (f, what) => { if (GIF.job === job) gifProgress(f, what); }, cancelled: () => job.cancelled });
+        if (job.cancelled) return;
+        res.url = URL.createObjectURL(res.blob);
+        GIF.res[slot] = res;
+        GIF.job = null;
+        window.__shareLastGif = res;
+        $('gm-note').textContent = 'Made in ' + (res.took / 1000).toFixed(1) + ' s. Not saved yet.';
+    } catch (e) {
+        if (GIF.job === job) GIF.job = null;
+        if (e && e.cancelled) { if (GIF.size === size && !GIF.job) $('gm-note').textContent = 'Stopped. Pick a size to make it again.'; }
+        else $('gm-note').textContent = 'Could not make the GIF: ' + ((e && e.message) || e);
+    }
+    if (!$('gm').hidden) paintGif();
+}
+function openGif() {
+    if ($('gif').disabled || !lastOut || busy) return;
+    closePops();
+    gifResetIfChanged();
+    $('gm-note').classList.remove('warn');
+    $('gm').hidden = false;
+    if (!GIF.size) gifRun(gifDefault());
+    else paintGif();
+    $('gm-save').focus();
+}
+function closeGif() {
+    if (GIF.job) { gifCancel(); $('gm-note').textContent = 'Stopped.'; }
+    $('gm').hidden = true;
+}
+$('gm-size').addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (!b || (b.dataset.v === GIF.size && (GIF.job || gifRes()))) return;
+    gifRun(b.dataset.v);
+});
+$('gm-mode').addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (!b || b.dataset.v === GIF.mode) return;
+    GIF.mode = b.dataset.v === 'still' ? 'still' : 'replay';
+    gifRun(GIF.size || gifDefault());
+});
+$('gm-speed').addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (!b || b.disabled || b.dataset.v === GIF.speed) return;
+    GIF.speed = b.dataset.v;
+    GIF.picked = true;
+    gifRun(GIF.size || gifDefault());
+});
+$('gm-cancel').addEventListener('click', () => { gifCancel(); $('gm-note').textContent = 'Stopped. Pick a size to make it again.'; GIF.size = ''; paintGif(); });
+$('gm-save').addEventListener('click', () => {
+    const r = gifRes();
+    if (!r || GIF.job) return;
+    const name = fileBase() + (gifReplayOn() && GIF.mode === 'still' ? '-chart' : '') + (gifSpeedOn() && GIF.speed && GIF.speed !== 'fit' ? '-' + GIF.speed + 'x' : '') + (GIF.size === 'half' ? '-half' : '') + '.gif';
+    saveBlob(r.blob, name);
+    say('Saved ' + name + ' (' + fmtBytes(r.blob.size) + ')');
+    $('gm-note').textContent = 'Saved as ' + name + ', ' + fmtBytes(r.blob.size) + '.';
+});
+$('gm-close').addEventListener('click', closeGif);
+$('gm-x').addEventListener('click', closeGif);
+$('gm').addEventListener('click', (e) => { if (e.target === $('gm')) closeGif(); });
 
 // ---------- Replay: the chart (8.2 round 2): colours, type, timeframe, what is drawn ----------
 const CX_COLORS = [['vest', 'Vest'], ['classic', 'Classic'], ['mono', 'Mono'], ['neon', 'Neon'], ['bo', 'Blue / orange'], ['mine', 'My chart'], ['custom', 'Custom']];
@@ -685,7 +997,7 @@ $('rpr-b').addEventListener('input', () => onHandle('b'));
 
 // ---------- the drop-downs: one open at a time; a click outside or Esc closes it ----------
 const POPS = [['pick-btn', 'pick-panel'], ['show-btn', 'show-panel'], ['rpt-btn', 'rpt-panel'], ['rpr-btn', 'rpr-panel'],
-    ['rows-btn', 'rows-panel'], ['per-btn', 'per-panel'], ['mkts-btn', 'mkts-panel'], ['rpa-btn', 'rpa-panel'], ['rpm-btn', 'rpm-panel'], ['cx-btn', 'cx-panel']];
+    ['rows-btn', 'rows-panel'], ['per-btn', 'per-panel'], ['mkts-btn', 'mkts-panel'], ['rpa-btn', 'rpa-panel'], ['rpm-btn', 'rpm-panel'], ['cx-btn', 'cx-panel'], ['bg-btn', 'bg-panel']];
 function closePops(except) {
     POPS.forEach(([b, p]) => { if (p !== except) { $(p).hidden = true; $(b).setAttribute('aria-expanded', 'false'); } });
 }
@@ -728,6 +1040,8 @@ seg('mode', (v) => {
     paintControls();
 });
 ['kind', 'hero', 'theme', 'format', 'style'].forEach((k) => seg(k, (v) => { P[k] = v; savePrefs(); }));
+// 9.0: the Payout card's day: today's payout, or every payout so far
+seg('payk', (v) => { P.pay = v === 'lifetime' ? 'lifetime' : 'today'; savePrefs(); });
 seg('rplab', (v) => { P.rp.labels = v; savePrefs(); });
 $('listopts').innerHTML = LIST.map(([k, l]) => `<button type="button" class="chip" data-k="${k}" title="${esc(LIST_TIP[k])}"><i></i>${l}</button>`).join('');
 $('rpopts').innerHTML = RP_CHIPS.map(([k, l, tip]) => `<button type="button" class="chip" data-k="${k}" title="${esc(tip)}"><i></i>${l}</button>`).join('');
@@ -802,8 +1116,14 @@ $('handle').addEventListener('input', (e) => { P.handle = e.target.value.slice(0
 $('save').addEventListener('click', onSave);
 $('copy').addEventListener('click', onCopy);
 $('video').addEventListener('click', onVideo);
+$('gif').addEventListener('click', openGif);
 // Cmd/Ctrl+S saves, Cmd/Ctrl+C copies the image (not while typing your name or with text selected), Esc closes a drop-down
 document.addEventListener('keydown', (e) => {
+    // the GIF dialog takes the keys while it is open: Esc closes it (and stops a GIF being made)
+    if (!$('gm').hidden) {
+        if (e.key === 'Escape') { e.preventDefault(); closeGif(); }
+        return;
+    }
     // the video preview takes the keys while it is open: Esc closes it, space plays and pauses
     if (!$('vm').hidden) {
         if (e.key === 'Escape') { e.preventDefault(); closePreview(); }
@@ -820,6 +1140,116 @@ document.addEventListener('keydown', (e) => {
 let resizeRaf = 0;
 window.addEventListener('resize', () => { cancelAnimationFrame(resizeRaf); resizeRaf = requestAnimationFrame(() => { render(); keepPopsInside(); }); });
 
+// ---------- 9.0: the background (the style's own, a color, a gradient, your picture or GIF) and the accent ----------
+let lookRaf = 0;
+// sliders and color pickers redraw the card once a frame
+const lookSet = (patch) => { P.bg = bgOpts(Object.assign({}, P.bg, patch)); savePrefs(); cancelAnimationFrame(lookRaf); lookRaf = requestAnimationFrame(render); };
+function paintLook() {
+    const bg = P.bg;
+    $('bg-kind').querySelectorAll('button').forEach((b) => { const on = b.dataset.v === bg.kind; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
+    $('bg-fit').querySelectorAll('button').forEach((b) => { const on = b.dataset.v === bg.fit; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
+    $('bg-solid').hidden = bg.kind !== 'solid';
+    $('bg-grad').hidden = bg.kind !== 'gradient';
+    $('bg-img').hidden = bg.kind !== 'image';
+    const val = (id, v) => { if (document.activeElement !== $(id)) $(id).value = v; };
+    val('bg-color', bg.color); val('bg-c1', bg.c1); val('bg-c2', bg.c2);
+    val('bg-angle', bg.angle); val('bg-dim', bg.dim); val('bg-blur', bg.blur);
+    $('bg-dim').max = BG_DIM_MAX; $('bg-blur').max = BG_BLUR_MAX;
+    $('bg-angle-t').textContent = bg.angle + '°';
+    $('bg-dim-t').textContent = bg.dim + '%';
+    $('bg-blur-t').textContent = bg.blur + ' px';
+    $('bg-kind-note').textContent = bg.kind === 'image' && !BGI ? 'Choose a picture: until then the card keeps the style\'s own background.'
+        : bg.kind === 'style' ? 'The style\'s own background (Vest, Silver, OLED or Neon).' : '';
+    $('bg-meta').textContent = BGI ? (BGI.name || 'Your picture') + ' · ' + BGI.w + ' × ' + BGI.h + ' · ' + (BGI.size / 1048576).toFixed(BGI.size < 1048576 ? 2 : 1) + ' MB'
+        + (BGI.animated ? ' · moves (' + BGI.durations.length + ' frames)' : '') : 'No picture yet.';
+    $('bg-remove').disabled = !BGI;
+    $('bg-file-btn').textContent = BGI ? 'Choose another' : 'Choose a picture or GIF';
+    val('bg-accent', P.accent || '#00f15b');
+    $('bg-accent-t').textContent = P.accent ? P.accent.toUpperCase() : 'The style\'s own';
+    $('bg-accent-off').disabled = !P.accent;
+    // the button's swatch: what the card's background is now (page-only, never on the card)
+    const sw = $('bg-sw');
+    const none = bg.kind === 'style' || (bg.kind === 'image' && !BGI);
+    sw.style.background = none ? '' : bg.kind === 'solid' ? bg.color : bg.kind === 'gradient' ? `linear-gradient(${bg.angle}deg, ${bg.c1}, ${bg.c2})` : `center / cover no-repeat url("${BGI.src}")`;
+    sw.classList.toggle('lk-none', none);
+    $('bg-dot').hidden = bg.kind === 'style' && !P.accent;
+}
+async function useBg(rec) {
+    const img = rec ? await bgPrepare(rec) : null;
+    const old = BGI;
+    BGI = img;
+    bgRelease(old);
+}
+$('bg-kind').addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (!b || b.disabled) return;
+    const v = b.dataset.v;
+    P.bg = bgOpts(Object.assign({}, P.bg, { kind: v }));
+    savePrefs();
+    render();
+    // Image with no picture yet: the file picker
+    if (v === 'image' && !BGI) $('bg-file').click();
+});
+seg('bg-fit', (v) => { P.bg = bgOpts(Object.assign({}, P.bg, { fit: v })); savePrefs(); });
+$('bg-color').addEventListener('input', (e) => lookSet({ color: e.target.value }));
+$('bg-c1').addEventListener('input', (e) => lookSet({ c1: e.target.value }));
+$('bg-c2').addEventListener('input', (e) => lookSet({ c2: e.target.value }));
+$('bg-swap').addEventListener('click', () => lookSet({ c1: P.bg.c2, c2: P.bg.c1 }));
+$('bg-angle').addEventListener('input', (e) => lookSet({ angle: e.target.value }));
+$('bg-dim').addEventListener('input', (e) => lookSet({ dim: e.target.value }));
+$('bg-blur').addEventListener('input', (e) => lookSet({ blur: e.target.value }));
+$('bg-file-btn').addEventListener('click', () => $('bg-file').click());
+$('bg-file').addEventListener('change', async (e) => {
+    const f = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if (!f) return;
+    const why = bgFileWhy(f);
+    if (why) { say(why, true); return; }
+    try {
+        say('Reading your picture…', false, true);
+        const rec = await bgSave(f);
+        // a file the browser cannot draw is not kept
+        try { await useBg(rec); } catch (err) { await bgClear().catch(() => {}); throw err; }
+        P.bg = bgOpts(Object.assign({}, P.bg, { kind: 'image' }));
+        savePrefs();
+        render();
+        say((BGI.animated ? 'Your GIF is on the card.' : 'Your picture is on the card.') + ' It stays on this computer.');
+    } catch (err) { say('Could not use that picture: ' + (err && err.message || err), true); }
+});
+$('bg-remove').addEventListener('click', async () => {
+    await bgClear().catch(() => {});
+    await useBg(null);
+    if (P.bg.kind === 'image') P.bg = bgOpts(Object.assign({}, P.bg, { kind: 'style' }));
+    savePrefs();
+    render();
+    say('Your picture is removed from this computer.');
+});
+$('bg-accent').addEventListener('input', (e) => { P.accent = accentOpt(e.target.value); savePrefs(); cancelAnimationFrame(lookRaf); lookRaf = requestAnimationFrame(render); });
+$('bg-accent-off').addEventListener('click', () => { P.accent = ''; savePrefs(); render(); });
+$('bg-reset').addEventListener('click', () => { P.bg = bgOpts({}); P.accent = ''; savePrefs(); render(); });
+// the picture you chose last time (kept in this extension's own IndexedDB); a failure leaves the style's own background
+async function bgBoot() {
+    let rec = null;
+    try { rec = await bgLoad(); if (rec) await useBg(rec); } catch (e) { BGI = null; if (rec) await bgClear().catch(() => {}); }
+}
+
+// ---------- 9.0: the Payout card follows your Calendar ----------
+// The Calendar syncs from your Vest tab (a payout Vest pays while it is open starts a quick sync). While the Payout card is shown, the page
+// reads the Calendar again when you come back to it and once a minute, and redraws when a payout came in.
+const calKey = () => CAL.payouts.length + ':' + CAL.payouts.reduce((m, x) => Math.max(m, (x && (x.updatedAt || x.executedAt)) || 0), 0) + ':' + (CAL.lastSync || 0);
+async function calRefresh() {
+    if (P.kind !== 'payout' || document.visibilityState !== 'visible' || !CAL.loaded || CAL.sample) return;
+    const gen = CAL.gen || 0;
+    const data = await readCal();
+    if ((CAL.gen || 0) !== gen || data.err) return;
+    const before = calKey();
+    Object.assign(CAL, data, { loaded: true });
+    if (calKey() !== before) render();
+}
+document.addEventListener('visibilitychange', calRefresh);
+window.addEventListener('focus', calRefresh);
+setInterval(calRefresh, 60000);
+
 // the snapshot: now, and again whenever P&L is pressed in the dock while this page is open
 async function load() {
     let s = null;
@@ -828,8 +1258,14 @@ async function load() {
     else render();
 }
 try { chrome.storage.onChanged.addListener((ch, area) => { if (area === 'session' && ch.shareSnap && ch.shareSnap.newValue) useSnap(ch.shareSnap.newValue); }); } catch (e) {}
-(document.fonts ? document.fonts.ready : Promise.resolve()).then(load);
+Promise.all([document.fonts ? document.fonts.ready : null, bgBoot()]).then(load);
 
 // for the tests and the screenshots: the page's state, read only
-window.__share = () => ({ snap, P: JSON.parse(JSON.stringify(P)), RS: JSON.parse(JSON.stringify(RS)), mask: maskName, cal: { loaded: CAL.loaded, sample: CAL.sample, trades: CAL.trades.length, err: CAL.err }, video: videoMime(),
-    preview: VID ? { open: !$('vm').hidden, seconds: VID.seconds, bytes: VID.blob.size, mime: VID.mime, changed: !$('vm-again').hidden } : null });
+window.__share = () => ({ snap, P: JSON.parse(JSON.stringify(P)), RS: JSON.parse(JSON.stringify(RS)), mask: maskName,
+    cal: { loaded: CAL.loaded, sample: CAL.sample, trades: CAL.trades.length, payouts: CAL.payouts.length, err: CAL.err }, video: videoMime(),
+    picture: BGI ? { animated: BGI.animated, w: BGI.w, h: BGI.h, frames: BGI.durations.length, type: BGI.type, size: BGI.size } : null,
+    preview: VID ? { open: !$('vm').hidden, seconds: VID.seconds, bytes: VID.blob.size, mime: VID.mime, changed: !$('vm-again').hidden } : null,
+    gif: { open: !$('gm').hidden, size: GIF.size, mode: lastOut ? gifMode() : null, slot: lastOut ? gifSlot() : null, busy: !!GIF.job, note: $('gm-note').textContent, moving: lastOut ? gifMoving() : null,
+        speed: GIF.speed, tape: TP.got ? { how: TP.got.how, n: TP.got.n, of: TP.got.of, line: $('gm-tape').textContent } : null,
+        plans: Object.fromEntries(Object.entries(gifPlans()).map(([k, p]) => [k, { ok: !!p.ok, total: p.total, need: p.need, window: p.window, a: p.a, b: p.b }])),
+        res: Object.fromEntries(Object.entries(GIF.res).filter(([, r]) => r).map(([k, r]) => [k, { bytes: r.blob.size, w: r.w, h: r.h, frames: r.frames, ms: r.ms, colors: r.colors, took: r.took }])) } });
