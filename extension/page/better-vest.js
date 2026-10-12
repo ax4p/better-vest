@@ -20,7 +20,7 @@
 (function () {
     'use strict';
 
-    const VERSION = '9.0.0';
+    const VERSION = '9.0.1';
     // true only in the Chrome extension build (tools/build.py defines BV_EXT there)
     const IS_EXT = typeof BV_EXT !== 'undefined' && !!BV_EXT;
     // 'standard' = the shareable build; anything else = WICKED, the author's own full build.
@@ -9849,6 +9849,46 @@
         return xcWait(find, 1500);
     }
 
+    // ---------- Vest's close window in the market's own unit (9.0.1) ----------
+    // Vest keeps ONE size unit for the whole page (USD, the market's own, Minis, Micros), and its close window takes it too, with the same
+    // drop-down. In Minis or Micros the window's percentage buttons round DOWN to whole contracts: 100% of a position under one Mini is 0
+    // (Vest greys its Close out, so FLAT sent nothing) and a bigger one keeps the rest open; 50% closed less than half. A trader reported it
+    // after Vest's update of 2026-10-12 ("the flatten or reduce 50% is not working"). So before FLAT, 50% or REV press a percentage, the
+    // window goes to the market's own unit ('token') through Vest's own setter, and the trader's unit comes back once the window is gone.
+    // A window without the drop-down (the old USD / NQ toggle, markets without Minis) never rounds and is left alone.
+    function xcCloseUnitSel(dlg) {
+        const sel = dlg && dlg.querySelector('[data-testid="size-unit-select"]');
+        return sel && !isOurs(sel) ? sel : null;
+    }
+    // Vest's own value for the unit now ('USD', 'token', 'mini', 'micro'), from the drop-down's props
+    function xcUnitValue(sel) {
+        const k = sel ? Object.keys(sel).find((x) => x.startsWith('__reactFiber$') || x.startsWith('__reactInternalInstance$')) : null;
+        for (let f = k ? sel[k] : null, i = 0; f && i < 40; f = f.return, i++) {
+            const p = f.memoizedProps;
+            if (p && typeof p === 'object' && typeof p.onValueChange === 'function' && typeof p.value === 'string') return p.value;
+        }
+        return '';
+    }
+    // { ok, back }: ok once the window reads the market's own unit (or has no drop-down); back puts the trader's unit back (null: nothing to)
+    async function xcCloseToToken(dlg) {
+        const sel = xcCloseUnitSel(dlg);
+        if (!sel || sel.getAttribute('data-unit') === 'token') return { ok: true, back: null };
+        const prev = xcUnitValue(sel);
+        const set = xcUnitHooks(sel).set;
+        if (!set) return { ok: false, back: null };
+        try { set('token'); } catch (e) { return { ok: false, back: null }; }
+        const ok = !!(await xcWait(() => { const s = xcCloseUnitSel(dlg); return !!s && s.getAttribute('data-unit') === 'token'; }, 1000, 25));
+        // Vest's setter writes the page's unit store, so it still works after the window has gone
+        const back = prev && prev !== 'token' ? () => { try { set(prev); } catch (e) {} } : null;
+        return { ok, back };
+    }
+    // the trader's unit back once Vest's close window is gone
+    async function xcUnitBack(u) {
+        if (!u || !u.back) return;
+        await xcWait(() => !document.querySelector('[data-testid="close-dialog"]'), 4000, 100);
+        u.back();
+    }
+
     // ---------- FLAT (7.7.1): the panic button ----------
     // The closing itself is the protected close code (triggerCloseAll and confirmCloseDialog: Vest's own close window at 100%
     // and its own Close button). Around it, FLAT now: brings up Vest's Active Positions tab when the Close button isn't on
@@ -9899,9 +9939,18 @@
             } else {
                 // not known here: the first row Vest shows, as FLAT always did, with the tab brought up first if need be
                 await xcRowShown(positionCloseTrigger);
+                // 9.0.1: its window opened here (the click the protected code would make), so its unit is set before 100% is pressed
+                const first = positionCloseTrigger();
+                if (first) { invokeReactClick(first); await xcWait(() => document.querySelector('[data-testid="close-dialog"]'), 1500); }
             }
         }
+        // 9.0.1: the window in the market's own unit before the protected code presses 100% (Minis and Micros round it down). FLAT is the
+        // panic button, so it closes even when the unit would not change, and says so.
+        const dlgNow = document.querySelector('[data-testid="close-dialog"]');
+        const unit = dlgNow ? await xcCloseToToken(dlgNow) : null;
+        if (unit && !unit.ok) xcSay("FLAT: Vest's close window would not switch to this market's own units, so it may close less than all of it in Minis or Micros. Check Positions.", 'warn');
         await triggerCloseAll();
+        xcUnitBack(unit).catch(() => {});
         // Vest's own questions after the close, one after the other (at most three)
         for (let i = 0; i < 3; i++) {
             const c = await xcWait(() => xcVestConfirms().find((x) => !before.has(x.d)), i ? 1000 : 1500);
@@ -9927,6 +9976,7 @@
         xcPaint();
         // FLAT pressed meanwhile: from then on Vest's close window is FLAT's, so 50% steps aside and touches nothing
         const flatPressed = () => { if (XC.abort) xcSay('50% stopped: you pressed FLAT.', 'warn'); return XC.abort; };
+        let unit = null; // 9.0.1: the trader's size unit, put back at the end
         try {
             const fresh = await mcFreshPositions();
             if (flatPressed()) return;
@@ -9940,6 +9990,10 @@
             const dlg = await xcWait(() => XC.abort || document.querySelector('[data-testid="close-dialog"]'), 2500);
             if (flatPressed()) return;
             if (!dlg) { xcSay("Vest's close window did not open. Nothing sent.", 'bad'); return; }
+            // 9.0.1: the window in the market's own unit before 50% is pressed (Minis and Micros round it down)
+            unit = await xcCloseToToken(dlg);
+            if (flatPressed()) return;
+            if (!unit.ok) { xcDismiss(dlg); xcSay("Vest's close window would not switch to this market's own units. Nothing sent.", 'bad'); return; }
             const p50 = await xcWait(() => XC.abort || dlg.querySelector('[data-testid="size-pct-50"]'), 1500);
             if (flatPressed()) return;
             if (!p50) { xcDismiss(dlg); xcSay('The close window has no 50% button. Nothing sent.', 'bad'); return; }
@@ -9975,6 +10029,7 @@
             if (done) { xcSay(`50% done: closed ${fmtSize(got.n)}, ${fmtSize(left)} left.`, 'good'); typeof bvEmit === 'function' && bvEmit('half-closed'); }
             else xcSay(`50% sent: ${fmtSize(got.n)} of ${fmtSize(qty)}. Vest is not showing the smaller position yet, so check Positions.`, 'warn');
         } finally {
+            xcUnitBack(unit).catch(() => {});
             XC.busy = false;
             XC.what = '';
             XC.abort = false;
@@ -10011,6 +10066,7 @@
         XC.abort = false;
         xcPaint();
         typeof bvEmit === 'function' && bvEmit('rev-start'); // voice: the close and the new fill are REV's, not lines of their own
+        let unit = null; // 9.0.1: the trader's size unit, put back at the end
         try {
             // every check for the new side runs BEFORE anything is closed
             const why = mcGate(want);
@@ -10030,6 +10086,13 @@
             if (XC.abort) { xcSay('REV stopped: you pressed FLAT.', 'warn'); return; }
             // 1. close all of it through Vest's own window, the same steps FLAT takes
             invokeReactClick(row);
+            // 9.0.1: the window in the market's own unit before the protected code presses 100% (Minis and Micros round it down: REV
+            // would then open the new side on top of what was left of the old one)
+            const rdlg = await xcWait(() => document.querySelector('[data-testid="close-dialog"]'), 1500);
+            if (rdlg) {
+                unit = await xcCloseToToken(rdlg);
+                if (!unit.ok) { xcDismiss(rdlg); xcSay("REV stopped: Vest's close window would not switch to this market's own units. Nothing sent.", 'bad'); return; }
+            }
             if (!(await confirmCloseDialog())) { xcSay("REV stopped: Vest's close window did not confirm. Nothing opened.", 'bad'); return; }
             // 2. wait until it is really gone: two fresh reads in a row with no position here, and Vest's row gone
             let ok = 0, asks = false;
@@ -10076,6 +10139,7 @@
             }
             else xcSay(`REV sent the ${names[1]} ${fmtSize(qty)}, but Vest is not showing it yet. Check Positions before you press anything.`, 'warn');
         } finally {
+            xcUnitBack(unit).catch(() => {});
             typeof bvEmit === 'function' && bvEmit('rev-end');
             XC.busy = false;
             XC.what = '';
@@ -19038,7 +19102,7 @@ function cpWarm(c) {
     if (!v || typeof v.warm !== 'function' || CP.warming) return;
     if (CP.engineId === 'tabs') return; // the Tabs engine's writers run in the follower tabs, which open their own windows: this tab is left alone
     CP.warming = true;
-    Promise.resolve(v.warm(['close', 'tpAdd', 'tpUpdate', 'tpDelete'])).then((r) => {
+    Promise.resolve(v.warm(['close', 'reduce', 'tpAdd', 'tpUpdate', 'tpDelete'])).then((r) => {
         if (r && r.opened && r.opened.length) cpLog('info', { note: 'opened Vest window to find its order function: ' + r.opened.join(', ') + (r.still && r.still.length ? ' (still missing: ' + r.still.join(', ') + ')' : '') });
     }, () => {}).then(() => { CP.warming = false; });
 }
@@ -21201,10 +21265,14 @@ function vxWriters(force, need) {
 
 // ---------- writers that only live while their window is open ----------
 // Vest mounts the close writer in its Close window and the TP/SL delete writer in the Edit TP/SL window and the expanded TP/SL rows.
+// 9.0.1: the Close window also mounts the reduce writer (Vest's own partial close, Jpe in its 2026-10-12 bundle). Up to Vest's update of
+// 2026-10-12 the order ticket mounted it too, so it was always on the page; since then the ticket's copy sits in a submit hook the scan does
+// not reach, and a follower tab that never opened its Close window could not copy a reduce (the owner's DEV test: "Vest has no reduce
+// writer here: not mounted on this page" on all 5 followers, which kept twice the leader's size until his FLAT).
 // A mounted observer is found by the scan and kept after it unmounts, so when one is missing and a position row is on the page, its window
 // is opened for a moment (a click on Vest's own button, nothing is submitted) and closed again. At most WARM_TRIES times per window.
 const VX_WARM = [
-    { id: 'close', kinds: ['close'], open: '[data-testid^="position-close-"]', shown: '[data-testid="close-submit"]' },
+    { id: 'close', kinds: ['close', 'reduce'], open: '[data-testid^="position-close-"]', shown: '[data-testid="close-submit"]' },
     { id: 'edit', kinds: ['tpAdd', 'tpUpdate', 'tpDelete'], open: '[data-testid^="tpsl-edit-open-"]', shown: '[data-testid="tpsl-edit-submit"]' }
 ];
 const VX_WARM_TRIES = 6;
@@ -21292,7 +21360,7 @@ function vxUserBusy() {
 // cancel): when that kind is not known yet, the mutation itself is adopted, classified exactly as a scanned observer is (its function's
 // own text, or the function it calls in Vest's script). A conflict, a kind the text does not prove, or a different kind adopts nothing.
 // The owner's first TP then gives the copier the TP/SL add before the copy is planned (the copy goes at Vest's OK, after this).
-const VX_LEARN = ['close', 'tpAdd', 'tpUpdate', 'tpDelete', 'cancel'];
+const VX_LEARN = ['close', 'reduce', 'tpAdd', 'tpUpdate', 'tpDelete', 'cancel'];
 function vxLearn(m, kind) {
     try {
         // the cache's entry (a Mutation: no mutate of its own) holds the same options as the observer that started it; only its function is used
@@ -24884,7 +24952,7 @@ async function ceFollowerWarmCancel(F, force) {
 // Writers that Vest mounts only in a window: the leader's copy of this (vx.warm) opens the window from Vest's own button for a moment and
 // keeps the writer. Once this tab holds a position the close and TP/SL windows can be reached; a cancel needs a resting order of its own.
 async function ceFollowerWarm(F, kinds) {
-    const want = (kinds || ['close', 'tpAdd', 'tpUpdate', 'tpDelete']).filter((k) => k !== 'cancel');
+    const want = (kinds || ['close', 'reduce', 'tpAdd', 'tpUpdate', 'tpDelete']).filter((k) => k !== 'cancel');
     if (want.length && typeof vx.warm === 'function' && !want.every(ceHave)) { try { await vx.warm(want); } catch (e) {} }
     const needCancel = (kinds || []).includes('cancel');
     if (needCancel || F.wantCancel) {
@@ -25048,7 +25116,7 @@ async function ceFollowerBoot() {
     if (typeof vx.warm === 'function') {
         F.warmTimer = setInterval(() => {
             if (F.busy) return;
-            if (ceHave('close') && ceHave('tpDelete') && !F.wantCancel) return;
+            if (ceHave('close') && ceHave('reduce') && ceHave('tpDelete') && !F.wantCancel) return;
             ceFollowerWarm(F).catch(() => {});
         }, CE_WARM_GAP_MS);
     }
@@ -29067,8 +29135,9 @@ async function crPreflight(deps, symbol, size) {
     const px = deps.price(sym);
     if (!(px > 0)) return no('No live ' + sym + ' price yet');
     let w;
-    // the close writer lives in Vest's Close window: it is caught during the run, once the test position is on the page
-    try { w = v.writers(false, ['open', 'reduce', 'tpAdd', 'tpUpdate']); } catch (e) { w = { why: (e && e.message) || 'error' }; }
+    // the close and reduce writers live in Vest's Close window (9.0.1: reduce only there since Vest's update of 2026-10-12): both are caught
+    // during the run, once the test position is on the page
+    try { w = v.writers(false, ['open', 'tpAdd', 'tpUpdate']); } catch (e) { w = { why: (e && e.message) || 'error' }; }
     if (!w || w.why) return no('Vest\'s order writers are not available' + (w && w.why ? ': ' + w.why : ''));
     const ids = [String(cfg.leaderId)].concat(fols.map((f) => String(f.accountId)));
     for (const id of ids) {
@@ -29191,8 +29260,8 @@ async function crBattery(deps, pre, rep) {
     const targets = [{ id: pre.leader, ratio: 1 }].concat(pre.followers);
     const send = async (a) => {
         let writers = deps.vx.writers(false, []);
-        if (a.kind === 'close' && !(writers && writers.close) && typeof deps.vx.warm === 'function') {
-            await deps.vx.warm(['close']);
+        if ((a.kind === 'close' || a.kind === 'reduce') && !(writers && writers[a.kind]) && typeof deps.vx.warm === 'function') {
+            await deps.vx.warm([a.kind]);
             writers = deps.vx.writers(false, []);
         }
         return crSend(deps, pre, writers, a);
