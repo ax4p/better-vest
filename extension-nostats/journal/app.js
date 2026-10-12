@@ -426,7 +426,7 @@ function buildTopbar() {
     const pill = h('button', { class: 'pill ' + st.cls, type: 'button', title: 'Sync now (S)', onclick: () => syncNow('manual') }, h('i', { class: 'dot' }), h('span', null, st.text));
     return [
         h('div', { class: 'brand' },
-            h('img', { class: 'logo', src: 'icons/icon48.png', alt: '', width: 26, height: 26 }),
+            h('span', { class: 'logo bv-tile', style: '--t:26px', role: 'img', 'aria-label': 'Better Vest' }, h('span', { class: 'bv-b' }, h('i'))),
             h('b', null, 'Calendar'),
             h('small', null, 'Better Vest · Astral')),
         single ? null : h('nav', { class: 'tabs' }, TABS.map((t, i) => h('button', {
