@@ -93,7 +93,7 @@ kbd { font: 600 10px/1 var(--font); padding: 3px 5px; border-radius: 5px; backgr
 }
 @supports not (backdrop-filter: blur(1px)) { .topbar, .drawer, .pop { background: var(--ax-raised); } }
 .brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.logo { width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--ax-accent); box-shadow: 0 0 12px var(--ax-glow); display: block; background: var(--ax-base); }
+.logo { width: 26px; height: 26px; border-radius: 22%; display: block; background: var(--ax-base); }
 .brand b { font-size: 15px; font-weight: 600; letter-spacing: -.01em; }
 .brand small { font-size: 11px; color: var(--j-t2); white-space: nowrap; }
 .tabs { display: flex; gap: 2px; margin-left: 8px; }
