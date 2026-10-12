@@ -18,7 +18,7 @@ body {
   color: var(--text); font: 12px/1.35 system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-.logo { width: 36px; height: 36px; border-radius: 50%; border: 2px solid var(--accent); box-shadow: 0 0 10px rgba(56, 189, 248, 0.4); }
+.logo { width: 36px; height: 36px; border-radius: 22%; }
 .name { font-weight: 800; font-size: 14px; letter-spacing: .02em; }
 .by { color: var(--muted); font-size: 11px; }
 .muted { color: var(--muted); }
