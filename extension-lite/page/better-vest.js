@@ -20,7 +20,7 @@
 (function () {
     'use strict';
 
-    const VERSION = '9.0.2';
+    const VERSION = '9.0.3';
     // true only in the Chrome extension build (tools/build.py defines BV_EXT there)
     const IS_EXT = typeof BV_EXT !== 'undefined' && !!BV_EXT;
     // 'standard' = the shareable feature set, which every public edition has (Standard, Lite, No stats: 9.0.1); 'wicked' = the author's
@@ -71,7 +71,8 @@
         : 'wss://ws.hz.vestmarkets.com/ws?version=1.0&xwebsocketserver=restserver0';
     // the only markets whose API symbol differs from the name in Vest's UI and URL
     const API_SYMBOLS = { 'NQ-PERP': 'NDX-USD-PERP', 'ES-PERP': 'SPX-USD-PERP' };
-    const ASTRAL_LOGO = 'data:image/jpeg;base64,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';
+    // the Better Vest mark: a B whose every diagonal is Vest's own angle (no profile picture)
+    const ASTRAL_LOGO = 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="22" fill="#050506"/><rect x=".5" y=".5" width="99" height="99" rx="21.5" fill="none" stroke="#fff" stroke-opacity=".1"/><polygon points="34.78,21 51.09,21 69.22,35.5 51.09,50 69.22,64.5 51.09,79 34.78,79" fill="#f5f5f7" stroke="#f5f5f7" stroke-width="1.2" stroke-linejoin="round"/></svg>');
 
     // --- Themes ---
     // page/chrome/surface/field paint Vest itself, raised..shadow paint the Astral widgets,
@@ -833,9 +834,9 @@
             }
             .ax4p-shell * { box-sizing: border-box; }
             .ax4p-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; }
-            /* the Astral logo: in the Settings header (Vest's own logo stays in Vest's top bar) */
+            /* the Better Vest mark: in the Settings header (Vest's own logo stays in Vest's top bar) */
             .ax4p-set-brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
-            .ax4p-set-logo { width: 38px; height: 38px; flex: none; border-radius: 50%; object-fit: cover; border: 2px solid #38BDF8; box-shadow: 0 0 12px rgba(56, 189, 248, .45); user-select: none; -webkit-user-drag: none; }
+            .ax4p-set-logo { width: 38px; height: 38px; flex: none; border-radius: 22%; user-select: none; -webkit-user-drag: none; }
             .ax4p-title { color: var(--ax-accent); font-weight: 800; font-size: 12px; }
             .ax4p-sub { color: var(--ax-dim); font-size: 9px; font-weight: 600; margin-top: 1px; }
             .ax4p-x { cursor: pointer; color: var(--ax-muted); font-size: 16px; line-height: 1; padding: 0 4px; }
@@ -12159,7 +12160,7 @@
             #ax4p-wick [hidden] { display: none !important; }
             #ax4p-wick .ax4p-wick-from { display: flex; align-items: center; gap: 9px; margin: 0 0 12px; color: var(--ax-muted, #a1a1aa); font-size: 12px; font-weight: 600; letter-spacing: .02em; }
             #ax4p-wick .ax4p-wick-mark, #ax4p-wick-toast .ax4p-wick-mark {
-                width: 24px; height: 24px; flex: none; border-radius: 50%; object-fit: cover; user-select: none; -webkit-user-drag: none;
+                width: 24px; height: 24px; flex: none; border-radius: 22%; user-select: none; -webkit-user-drag: none;
             }
             #ax4p-wick .ax4p-wick-text { margin: 0; color: var(--ax-text, #e4e4e7); font-size: 14.5px; line-height: 1.55; }
             #ax4p-wick .ax4p-wick-code { font-weight: 700; letter-spacing: .06em; color: var(--ax-accent-text, var(--ax-accent, #93c5fd)); }
