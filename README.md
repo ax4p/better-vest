@@ -23,7 +23,7 @@ Drag your stop and target right on the chart. Trade from a one-click card with y
 | | |
 |---|---|
 | **Price** | Free. No sign-up, no subscription, no account with me. |
-| **Antivirus** | 0 of 65 engines flag the current zip on VirusTotal. [See the report](https://www.virustotal.com/gui/file/91a8ebcb17e69a0fede2a7a5ddd0a0b5fc582933e6cb341a94940327426a67e3). |
+| **Antivirus** | 0 of 64 engines flag the current zip on VirusTotal. [See the report](https://www.virustotal.com/gui/file/afafec0a0084384e48cc4b9918f41402b65afce6f36e7dc4a0c6383665bd439e). |
 | **Code** | Every file is in this repo, readable, not minified, and the same as the zip. |
 | **Updates** | Signed. A changed file is refused. |
 | **Permissions** | `storage`, `alarms` and `tabGroups`. Nothing else. |
@@ -46,11 +46,11 @@ Drag your stop and target right on the chart. Trade from a one-click card with y
 
 Anything that sits next to your trading account deserves the question, so here is how to check it without taking my word for it.
 
-**Scan the zip.** The current release, `better-vest-9.0.0.zip`, was scanned on VirusTotal by 65 antivirus engines and none of them flagged it: [VirusTotal report](https://www.virustotal.com/gui/file/91a8ebcb17e69a0fede2a7a5ddd0a0b5fc582933e6cb341a94940327426a67e3). Its SHA-256 is:
+**Scan the zip.** The current release, `better-vest-9.0.1.zip`, was scanned on VirusTotal by 64 antivirus engines and none of them flagged it: [VirusTotal report](https://www.virustotal.com/gui/file/afafec0a0084384e48cc4b9918f41402b65afce6f36e7dc4a0c6383665bd439e). Its SHA-256 is:
 
-`91a8ebcb17e69a0fede2a7a5ddd0a0b5fc582933e6cb341a94940327426a67e3`
+`afafec0a0084384e48cc4b9918f41402b65afce6f36e7dc4a0c6383665bd439e`
 
-Check yours with `shasum -a 256 better-vest-9.0.0.zip` on a Mac or `certutil -hashfile better-vest-9.0.0.zip SHA256` on Windows. Same number, same file.
+Check yours with `shasum -a 256 better-vest-9.0.1.zip` on a Mac or `certutil -hashfile better-vest-9.0.1.zip SHA256` on Windows. Same number, same file.
 
 **What it can and can't do:**
 - It only runs on next.vestmarkets.com.
@@ -328,7 +328,7 @@ Vest's terms don't mention browser extensions or trading tools. What they rule o
 No.
 
 **Is it safe?**
-It's scanned (0 of 65 on VirusTotal), signed, readable and asks for three permissions. Everything is in [Is it safe?](#is-it-safe) and on the [Security](SECURITY.md) page.
+It's scanned (0 of 64 on VirusTotal), signed, readable and asks for three permissions. Everything is in [Is it safe?](#is-it-safe) and on the [Security](SECURITY.md) page.
 
 **Does Vest see my stop orders?**
 No. Better Vest holds them in your tab and sends a market order when the price gets there, so keep the tab open on the trade page. LIMIT orders are real orders on Vest.
