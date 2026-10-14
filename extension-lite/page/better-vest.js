@@ -20,7 +20,7 @@
 (function () {
     'use strict';
 
-    const VERSION = '9.0.6';
+    const VERSION = '9.0.7';
     // true only in the Chrome extension build (tools/build.py defines BV_EXT there)
     const IS_EXT = typeof BV_EXT !== 'undefined' && !!BV_EXT;
     // 'standard' = the shareable feature set, which every public edition has (Standard, Lite, No stats: 9.0.1); 'wicked' = the author's
@@ -19916,6 +19916,23 @@ function cpWritersWhy() {
     return '';
 }
 
+// cpWritersWhy() after Vest's order functions were looked for (vx.find): none found can mean only that Vest's order form is not mounted
+// (a phone mounts it in its drawer only; 2026-10-14, every phone said "Vest changed" after Vest's reload), so that verdict waits for this.
+async function cpFindWriters() {
+    if (!cpWritersWhy()) return '';
+    const v = cpVx();
+    if (v && typeof v.find === 'function') {
+        try { await v.find(); } catch (e) {}
+        typeof cpDev === 'function' && cpDev('state', () => ({ msg: 'switching on: looked for Vest\'s order functions (its order form opened for a moment where it was not on the page): ' + (cpWritersWhy() || 'found') }));
+    }
+    return cpWritersWhy();
+}
+
+// Not on a trade page: no order form to find there, which is not "Vest changed"
+function cpOffTradePage() {
+    try { return typeof location !== 'undefined' && !!location && typeof location.pathname === 'string' && !/^\/trade\//.test(location.pathname); } catch (e) { return false; }
+}
+
 async function cpStart(opts) {
     const c = cpCfg();
     const quiet = !!(opts && opts.quiet); // a start asked over the bus: another tab may have taken the lock first, which is no news
@@ -19966,7 +19983,15 @@ async function cpStart(opts) {
     // Vest's script text is what tells its writers apart: have it before the first intent, not after
     try { const v = cpVx(); if (v && typeof v.prepare === 'function') await v.prepare(); } catch (e) { cpLog('error', { note: 'prepare: ' + cpScrub(e && e.message || e) }); }
     if (!CP.running) return false; // switched off while Vest's script text was loading: nothing was started
-    const vwhy = cpWritersWhy();
+    const vwhy = await cpFindWriters();
+    if (!CP.running) return false; // switched off while Vest's order form was looked for
+    if (vwhy && cpOffTradePage()) {
+        cpLog('error', { note: 'not started: no trade page (' + vwhy + ')' });
+        typeof cpDev === 'function' && cpDev('error', () => ({ msg: 'copying cannot start: this is not a trade page, so Vest\'s order form is not here (' + vwhy + ')', why: vwhy }));
+        cpToast('Copy: open a trade page, then switch copying on.', 'bad');
+        cpStop('no trade page');
+        return false;
+    }
     if (vwhy) {
         cpLog('error', { note: 'Vest changed: ' + vwhy });
         typeof cpDev === 'function' && cpDev('error', () => ({ msg: 'copying cannot start: Vest\'s order functions cannot be relied on (' + vwhy + ')', why: vwhy }));
@@ -20185,6 +20210,13 @@ function cpSymbol() {
 
 // The leader's positions after an action of ours, from what we last read: the followers can move before the leader's
 // own order has filled. The reconciler checks the guess against the real position and corrects a wrong one.
+// 9.0.7: the stop and target of the leader's new position, from its own order, for the followers' open in Turbo (the owner's call, 2026-10-14;
+// the phone has done it since 8.5.3). A follower tab has no TP/SL add function of Vest's (see ceTabsFromLeader); inside the open they land with
+// the entry, in one request. Light adds them a moment later with this tab's own function (cpWarm), as before: [] there.
+function cpOpenLegs(legs, qty, step) {
+    return CP.engineId === 'tabs' ? cpNormLegs(legs, qty, step) : [];
+}
+
 function cpPredict(positions, intent, step) {
     const list = (positions || []).map((p) => Object.assign({}, p));
     const i = list.findIndex((p) => p.symbol === intent.symbol && Number(p.qty) > 0);
@@ -20196,7 +20228,9 @@ function cpPredict(positions, intent, step) {
         // A reduce-only order (a leader's close or reduce, as Vest's acceptance reports it) on a book that holds nothing opens nothing: the book is
         // already flat because Vest's own store showed the order's effect before its answer did (the frame can beat the REST answer), so the order
         // is not a new position. Predicted as an open it opened every follower on the other side of a leader that had just gone flat (Turbo lab).
-        if (intent.kind === 'order' && intent.qty > 0 && !intent.reduceOnly) return set({ symbol: intent.symbol, side: intent.side, qty: intent.qty, leverage: intent.leverage > 0 ? intent.leverage : CP.lev[intent.symbol] || null, tp: [], sl: [] });
+        // 9.0.7: with the order's own stop and target in Turbo (cpOpenLegs), so the followers' open carries them
+        if (intent.kind === 'order' && intent.qty > 0 && !intent.reduceOnly) return set({ symbol: intent.symbol, side: intent.side, qty: intent.qty, leverage: intent.leverage > 0 ? intent.leverage : CP.lev[intent.symbol] || null,
+            tp: cpOpenLegs(intent.tp, intent.qty, step), sl: cpOpenLegs(intent.sl, intent.qty, step) });
         return list;
     }
     if (intent.kind === 'half') return set(Object.assign({}, cur, { qty: cpFloor(cur.qty / 2, step) }));
@@ -20443,6 +20477,9 @@ function cpBoot() {
     if (typeof ceIsFollowerTab === 'function' && ceIsFollowerTab()) return;
     CP.booted = true;
     cpWatchErrors();
+    cpVestReloadWatch();
+    CP.vestReload = cpVestReloadTake(); // taken at once: only the load right after Vest's reload may use it
+    if (CP.vestReload) cpKeepAwake(true); // a hidden tab that has just loaded is frozen within seconds: kept awake while copying comes back
     document.addEventListener('click', cpOnClick, true);
     document.addEventListener('keydown', cpOnKey, true);
     cpAttachFrames();
@@ -20479,7 +20516,7 @@ function cpBoot() {
     const settle = (n) => {
         const c0 = cpSuite() ? cpCfg() : null;
         if (!c0) { if (n < 60) CP.set(() => settle(n + 1), 1000); return; }
-        if (!c0.on || CP.running || CP.killed || CP.leadStart) return; // a leader tab asked to start does so itself (cpLeadBoot)
+        if (!c0.on || CP.running || CP.killed || CP.leadStart) return cpVestReloadDone(); // a leader tab asked to start does so itself (cpLeadBoot)
         if (c0.resume) {
             if (String(c0.resume.leaderId) === String(c0.leaderId) && c0.leaderId && !cpAckNeeded()) {
                 typeof cpDev === 'function' && cpDev('state', () => ({ msg: 'after the page load: copying was on and followers hold copied positions (' + c0.resume.accounts.map(cpName).join(', ') + ' on ' + c0.resume.markets.join(' ') + '), so it waits for Vest and for this tab to be on the leader account, then switches on again', reload: true, resume: c0.resume }));
@@ -20487,6 +20524,13 @@ function cpBoot() {
             }
             c0.resume = null; // another leader, or the risk note no longer agreed to: the copied positions are not ours to follow
         }
+        // 9.0.7: Vest itself reloaded this hidden tab while it copied this group (cpVestReloadNote): copying comes back, as with copied positions
+        const vr = CP.vestReload;
+        if (vr && String(vr.g) === String(c0.id) && String(vr.leaderId) === String(c0.leaderId) && c0.leaderId && !cpAckNeeded()) {
+            typeof cpDev === 'function' && cpDev('state', () => ({ msg: 'after the page load: Vest reloaded this hidden tab for its new version while it copied, so it waits for Vest and for this tab to be on the leader account, then switches on again', reload: true, vest: true }));
+            return cpResumeBoot(0);
+        }
+        cpVestReloadDone();
         cpLockHeldElsewhere(c0.id).then((other) => {
             const c = cpCfg();
             if (!c.on || CP.running) return;
@@ -20551,7 +20595,7 @@ function cpResumeTrack(c) {
 // stays off and says so. Another tab holds the copy lock: stays off, quietly (that tab is the one copying).
 function cpResumeBoot(n) {
     const c = cpCfg();
-    if (!c.on || CP.running || CP.killed || !c.resume) return;
+    if (!c.on || CP.running || CP.killed || !(c.resume || CP.vestReload)) return;
     const v = cpVx();
     let ready = false;
     try { ready = !!(v && v.ready() && cpActive()); } catch (e) {}
@@ -20561,6 +20605,7 @@ function cpResumeBoot(n) {
         // another tab copies this group (it holds the group's lock): its on and its resume record are that tab's. This tab only forgets them
         // in its own memory, or a later reload of that tab would find them cleared and leave the copied positions with nobody following.
         cpLockHeldElsewhere(c.id).then((other) => {
+            cpVestReloadDone();
             if (other) return;
             c.on = false;
             c.resume = null;
@@ -20578,16 +20623,69 @@ function cpResumeBoot(n) {
     }
     cpLockHeldElsewhere(c.id).then((other) => {
         const c1 = cpCfg();
-        if (!c1.on || CP.running || CP.killed) return;
-        if (other) { c1.on = false; return; } // in this tab's memory only: the tab that copies keeps its own saved state
+        const vest = !!CP.vestReload;
+        if (!c1.on || CP.running || CP.killed) return cpVestReloadDone();
+        if (other) { c1.on = false; return cpVestReloadDone(); } // in this tab's memory only: the tab that copies keeps its own saved state
         const r = c1.resume;
         typeof cpDev === 'function' && cpDev('state', () => ({ msg: 'after the page load: Vest is ready and this tab is on the leader account, switching copying on again', reload: true }));
         return cpStart().then((ok) => {
-            if (!ok || !CP.running) return;
-            cpLog('info', { note: 'copying resumed after the page reloaded', followers: r ? r.accounts.length : 0, markets: r ? r.markets : [] });
-            cpToast('Copying is back on after the reload: your copied positions are still open.', 'good');
+            if (!ok || !CP.running) return cpVestReloadDone();
+            CP.vestReload = null;
+            cpLog('info', { note: 'copying resumed after the page reloaded', followers: r ? r.accounts.length : 0, markets: r ? r.markets : [], vest: vest || undefined });
+            cpToast(r ? 'Copying is back on after the reload: your copied positions are still open.' : 'Copying is back on: Vest reloaded this tab for its new version.', 'good');
         });
     });
+}
+
+// ---------- Vest's own reload of a hidden tab (9.0.7) ----------
+// A new Vest version takes over every open Vest page at once (its service worker; w6e in its index bundle of 2026-10-14): a visible tab shows
+// "A new version is available · Reload", a hidden one with no window open reloads by itself, then or the moment it is hidden later. A Turbo
+// leader tab, or a copying tab behind another, is hidden: every Vest deploy switched copying off there (a reload never resumes copying). The
+// owner's call (2026-10-14): copying comes back after that reload. The tab notes it in its own sessionStorage as it unloads, hidden, after Vest's
+// switch; the next load takes the note (cpBoot) and resumes as after a reload with copied positions (cpResumeBoot). A reload the owner makes,
+// in a tab they are looking at, still switches copying off.
+const CP_VEST_RELOAD_KEY = 'ax4p-copy-vest-reload';
+const CP_VEST_RELOAD_MS = 120000; // the note is good for the load right after it only
+
+function cpVestReloadWatch() {
+    let sw = null;
+    try { sw = window.navigator && window.navigator.serviceWorker; } catch (e) {}
+    try { if (sw && typeof sw.addEventListener === 'function') sw.addEventListener('controllerchange', () => { CP.vestNew = CP.now(); }); } catch (e) {}
+    try { window.addEventListener('pagehide', cpVestReloadNote); } catch (e) {}
+}
+
+function cpVestReloadNote() {
+    if (!CP.vestNew || !CP.running || CP.killed) return;
+    let hidden = false;
+    try { hidden = document.visibilityState === 'hidden'; } catch (e) {}
+    if (!hidden) return;
+    const c = cpCfg();
+    if (!c.on || !c.leaderId) return;
+    try { window.sessionStorage.setItem(CP_VEST_RELOAD_KEY, JSON.stringify({ at: CP.now(), g: c.id, leaderId: String(c.leaderId) })); } catch (e) {}
+}
+
+// the note of the unload before this load, once (it is removed as it is read): null unless it is fresh and this load is a reload
+function cpVestReloadTake() {
+    let r = null;
+    try {
+        const ss = window.sessionStorage;
+        if (!ss) return null;
+        r = JSON.parse(ss.getItem(CP_VEST_RELOAD_KEY) || 'null');
+        ss.removeItem(CP_VEST_RELOAD_KEY);
+    } catch (e) { return null; }
+    if (!r || typeof r !== 'object' || !r.g || !r.leaderId) return null;
+    const age = CP.now() - Number(r.at);
+    if (!(age >= 0 && age < CP_VEST_RELOAD_MS)) return null;
+    let nav = '';
+    try { const e = window.performance.getEntriesByType('navigation')[0]; nav = e ? String(e.type) : ''; } catch (e) {}
+    return nav === 'reload' ? r : null;
+}
+
+// the note was used or is no good: the tab is let sleep again unless it is a leader tab (cpLeadBoot keeps those awake) or copies
+function cpVestReloadDone() {
+    if (!CP.vestReload) return;
+    CP.vestReload = null;
+    if (!CP.running && !cpLeadTabGid()) cpKeepAwake(false);
 }
 
 function cpStatus() {
@@ -20798,7 +20896,7 @@ async function cpPreview(accountIds) {
     if (!c.leaderId) return fail('pick the leader account first');
     const demo = cpDemoWhy();
     if (demo) return fail(demo);
-    if (cpWritersWhy()) return fail(CP_VEST_CHANGED);
+    if (await cpFindWriters()) return fail(cpOffTradePage() ? CP_OPEN_TRADE : CP_VEST_CHANGED);
     if (!v || !v.ready()) return fail('Vest is not ready yet');
     if (String(cpActive()) !== String(c.leaderId)) return fail('this tab is not on the leader account');
     const want = Array.isArray(accountIds) ? accountIds.map(String) : null;
@@ -21707,6 +21805,7 @@ const VX_WARM = [
 ];
 const VX_WARM_TRIES = 6;
 const VX_WARM_GAP = 2500;
+const VX_FIND_MOUNT_MS = 3000; // switching on: how long vx.find keeps looking for an order ticket that is still mounting
 const vxSleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const vxShown = (el) => !!el && (el.offsetParent !== null || (el.getClientRects && el.getClientRects().length > 0));
 
@@ -22027,7 +22126,8 @@ function vxMutationKind(m, vars) {
     return kind;
 }
 
-// primitives only (a bigint as text), one level of `payload`; legs are counted, not copied
+// primitives only (a bigint as text), one level of `payload`; legs are counted, and passed on as primitives too (9.0.7, the phone's since
+// 8.5.3: a new position's stop and target go to Turbo's followers inside their open, cpOpenLegs)
 function vxPick(o, depth) {
     const out = {};
     if (!o || typeof o !== 'object') return out;
@@ -22038,6 +22138,7 @@ function vxPick(o, depth) {
         else if (t === 'number' || t === 'boolean') out[k] = v;
         else if (t === 'bigint') out[k] = String(v);
         else if (Array.isArray(v) && (k === 'takeProfits' || k === 'stopLosses')) out[k + 'Count'] = v.length;
+        if (Array.isArray(v) && (k === 'takeProfits' || k === 'stopLosses') && !depth) out[k] = v.slice(0, 8).map((l) => vxPick(l, 1));
         else if (t === 'object' && v && k === 'payload' && !depth) out[k] = vxPick(v, 1);
     }
     return out;
@@ -22290,6 +22391,23 @@ const vx = {
         return win ? 'its Vest window has not been opened yet (it is opened by itself once a position is on the page)' : 'not mounted on this page';
     },
     warm(kinds) { return vxWarm(kinds); },
+    // Switching copying on (2026-10-14): when none of the writers is found yet, they are looked for before any verdict. A phone's Vest mounts
+    // its order form only in its drawer, so a page where no order was placed yet has none (Vest's "A new version is available" reload put every
+    // phone there, and switching copying on said "Vest changed"). Waits up to waitMs for the owner's own tap to be over (a Vest window never
+    // opens under it), then opens the windows that hold them for a moment (vxWarm: on a phone the order drawer, out of sight). Resolves the report.
+    async find(kinds, waitMs) {
+        const want = Array.isArray(kinds) ? kinds : VX_NEED;
+        await vxLoadBundle();
+        vxWriters(true, []);
+        if (want.some((k) => vxHave(k))) return vxWriterReport();
+        for (const end = Date.now() + (waitMs == null ? 2500 : waitMs); vxUserBusy() && Date.now() < end;) await vxSleep(100);
+        await vxWarm(want);
+        // A page that has just loaded mounts its order ticket a moment later: a Turbo leader tab switched on from another tab 0.4 s before its
+        // ticket was there and said "Vest changed" (the owner's live test, 2026-10-14; its own start 0.6 s later found them). Looked at again
+        // for a while before the verdict; a hidden tab's sleeps take a second each, which still gives it a few looks.
+        for (const end = Date.now() + VX_FIND_MOUNT_MS; !want.some((k) => vxHave(k)) && Date.now() < end;) { await vxSleep(150); vxWriters(true, []); }
+        return vxWriterReport();
+    },
     writerReport() { return vxWriterReport(); },
     // true while one of Vest's own order mutations (the ones found by the writer scan) is still running: the tab's account must not be
     // switched under an order that has not left yet
@@ -23694,6 +23812,17 @@ function cpAcceptPending(e, c) {
     else if (c.sendAtPending === true) typeof cpDev === 'function' && cpDev('plan', () => ({ msg: 'Early send is on, but ' + (e.kind === 'open' || e.kind === 'append' ? 'the market of your ' + e.kind + ' is not known' : 'a ' + e.kind + ' never goes early (only an open or an add)') + ': it waits for Vest\'s OK', symbol: symbol || undefined, kind: e.kind }));
 }
 
+// 9.0.7 (the phone's since 8.5.3): the stop and target of a leader open, from its own variables (vxPick passes the legs on as primitives), in
+// the copier's leg shape; [] when the order had none
+function cpAcceptLegs(arr) {
+    return (Array.isArray(arr) ? arr : []).map((l) => {
+        const trigger = Number(l && (l.triggerPrice != null ? l.triggerPrice : l.trigger));
+        const q = l && (l.quantity != null ? l.quantity : l.qty);
+        const lp = l && l.limitPrice != null ? Number(l.limitPrice) : null;
+        return { trigger, qty: q == null || q === '' ? null : Number(q), execType: String((l && (l.executionType || l.execType)) || 'market'), limitPrice: Number.isFinite(lp) ? lp : null };
+    }).filter((l) => l.trigger > 0);
+}
+
 // the follower intent of a leader open or add at pending (cpAcceptSuccess builds the same one inline at Vest's OK): null when the order has no usable side or size
 function cpAcceptOrderIntent(e) {
     const v = e.vars || {};
@@ -23704,6 +23833,8 @@ function cpAcceptOrderIntent(e) {
     const lev = Number(v.leverage) > 0 ? Number(v.leverage) : 0;
     const it = { kind: 'order', side, qty };
     if (lev > 0) it.leverage = lev;
+    // a new position's stop and target ride along (cpPredict puts them on the predicted position, for Turbo's followers' open)
+    if (e.kind === 'open') { it.tp = cpAcceptLegs(v.takeProfits); it.sl = cpAcceptLegs(v.stopLosses); }
     return it;
 }
 
@@ -23903,6 +24034,8 @@ function cpAcceptSuccess(e, c) {
         if (lev > 0) CP.lev[symbol] = lev;
         it = { kind: 'order', side, qty };
         if (lev > 0) it.leverage = lev;
+        // a new position's stop and target ride along (cpPredict puts them on the predicted position, for Turbo's followers' open)
+        if (kind === 'open') { it.tp = cpAcceptLegs(v.takeProfits); it.sl = cpAcceptLegs(v.stopLosses); }
     } else if (kind === 'close' && !(qty > 0)) {
         it = { kind: 'flat' };
     } else if (pos && qty > 0) {
@@ -25062,8 +25195,26 @@ async function ceTabsFromLeader(st, list, results, idxs, t0, opts) {
             let writers = null, plan = null;
             try { writers = vx.ready() ? ceWriters() : null; } catch (e) { writers = null; }
             try { plan = ceCloseFallback(cePlan(a, st.cfg), a, writers, st.cfg); } catch (e) { dead = true; continue; }
-            const fns = plan.calls.map((c) => c.fn);
-            // this tab lacks it too: the tab's own reason stays (the reconciler tries again on a later pass)
+            let fns = plan.calls.map((c) => c.fn);
+            // This tab lacks it too. In Turbo nothing opened this tab's own Vest windows (cpWarm leaves the Tabs engine alone), and an entry placed
+            // with its TP/SL never shows Vest's TP/SL add being used, so every first stop and target failed until the owner added one by hand (his
+            // live test, 2026-10-14: the TP/SL came 11 s late, on his own new TP). Its window is opened for a moment now, as Light does and as the
+            // follower tab tried (vx.warm: Vest's own button, nothing submitted, never under the owner's click), and the writers looked at again.
+            const lack = writers && !writers.why ? fns.filter((fn) => typeof writers[fn] !== 'function') : [];
+            if (lack.length && typeof vx.warm === 'function') {
+                typeof cpDev === 'function' && cpDev('send', () => ({ msg: 'Turbo: this tab has no ' + lack.join('+') + ' function of Vest\'s either: opening its Vest window for a moment to catch it', symbol: a.symbol, acc: id, engine: 'tabs', kind: a.kind, lack }));
+                try { await vx.warm(lack); } catch (e) {}
+                // the catch took a moment: a Kill, a halt or another account in this tab since then stops it as before
+                const no2 = cePermit(opts, a);
+                if (no2) { results[i] = { action: a, ok: false, ms: ceRound(ceNow() - t0), error: 'stopped: ' + no2 }; dead = true; continue; }
+                try { active = vx.active(); } catch (e) { active = null; }
+                if (st.halted || !st.leader || active !== st.leader) { dead = true; continue; }
+                try { writers = vx.ready() ? ceWriters() : null; } catch (e) { writers = null; }
+                try { plan = ceCloseFallback(cePlan(a, st.cfg), a, writers, st.cfg); } catch (e) { dead = true; continue; }
+                fns = plan.calls.map((c) => c.fn);
+                typeof cpDev === 'function' && cpDev('send', () => ({ msg: 'Turbo: the catch in this tab: ' + lack.map((fn) => fn + (writers && typeof writers[fn] === 'function' ? ' found' : ' STILL MISSING')).join(', '), symbol: a.symbol, acc: id, engine: 'tabs', kind: a.kind, lack }));
+            }
+            // still missing: the tab's own reason stays (the reconciler tries again on a later pass)
             if (!writers || writers.why || fns.some((fn) => typeof writers[fn] !== 'function')) { dead = true; continue; }
             const t = ceNow();
             let ps;
@@ -25762,7 +25913,7 @@ const CU_TEST_MARKETS = ['SOL-PERP', 'NQ-PERP']; // what the owner's test run ca
 const CU_ADDR = '0x9F308B10780f9b8FD65C6B94071529b75a3A9dA4';
 const CU_SUPPORT_TITLE = 'Support Better Vest';
 const CU_SUPPORT_TEXT = 'Better Vest is free and I keep building it. If the copier saves you time, a tip helps me keep going.';
-const CU_MODES = { direct: { word: 'Light', hint: 'No extra tabs. Everything runs from the leader\'s tab.' }, tabs: { word: 'Turbo', hint: 'One background tab per account. Fastest.' }, mint: { word: 'Mint', hint: '' } };
+const CU_MODES = { direct: { word: 'Light', hint: 'No extra tabs. Everything runs from the leader\'s tab.' }, tabs: { word: 'Turbo', hint: 'One background tab per account. Stable, and faster than Light.' }, mint: { word: 'Mint', hint: '' } };
 // 8.2: copy groups. Each group has a letter and a colour of its own (identity colours, the same in every theme)
 const CU_GROUP_HUES = 6;
 const CU_OPP_RULE = 'Vest\'s FAQ: "The only restrictions are on abusing or coordinating across Funded Accounts to manipulate or exploit the system, for example taking opposite sides of the same market on different accounts."';
@@ -26157,6 +26308,26 @@ function cuOnCount(except) {
     return cfg && Array.isArray(cfg.followers) ? cfg.followers.filter((f) => f && f.on && String(f.accountId) !== String(except)).length : 0;
 }
 
+// ---------- 9.0.7: what is new in the copier (the owner's call, 2026-10-14) ----------
+// The dock button glows, its chip saying NEW, until the copier is opened once in this browser. Inside, a line under the mode tells a Light
+// user that Turbo is now stable and faster than Light, with a button that picks it, until Turbo is picked or the line is closed. One record for
+// every Vest tab, in Vest's own localStorage (ax4p-copy-hl = { v, open, tip }): a later release with its own news writes another v. Never
+// where Turbo is off (CP.turboOff: the phone).
+const CU_HL_V = '9.0.7';
+const CU_HL_KEY = 'ax4p-copy-hl';
+function cuHl() {
+    let r = null;
+    try { r = JSON.parse(localStorage.getItem(CU_HL_KEY) || 'null'); } catch (e) {}
+    return r && typeof r === 'object' && r.v === CU_HL_V ? r : { v: CU_HL_V, open: 0, tip: 0 };
+}
+function cuHlDone(k) {
+    const r = cuHl();
+    if (r[k]) return;
+    r[k] = 1;
+    try { localStorage.setItem(CU_HL_KEY, JSON.stringify(r)); } catch (e) {}
+}
+const cuHlOn = () => !(typeof CP !== 'undefined' && CP.turboOff);
+
 // ---------- dock button ----------
 // The dock is built by the suite a moment after load (and rebuilt on route changes), so this just keeps checking.
 function cuEnsureButton() {
@@ -26181,10 +26352,13 @@ function cuPaintButton(m) {
     const b = cuById('ax4p-copy-tog');
     if (!b) return;
     const word = cuButtonWord((m || cuCurrent()).overall);
+    const hl = word === 'OFF' && cuHlOn() && !cuHl().open;
     const s = cuById('ax4p-copy-tog-state');
-    if (s) { s.textContent = word; s.className = 'ax4p-copy-state ' + word.toLowerCase(); }
+    if (s) { s.textContent = hl ? 'NEW' : word; s.className = 'ax4p-copy-state ' + (hl ? 'new' : word.toLowerCase()); }
     b.setAttribute('data-copy', word.toLowerCase());
-    if (b.classList) b.classList.toggle('on', word === 'ON' || word === 'ISSUES');
+    if (b.classList) { b.classList.toggle('on', word === 'ON' || word === 'ISSUES'); b.classList.toggle('hl', hl); }
+    const tip = hl ? 'Copy trader: new in 9.0.7, Turbo is now stable and faster than Light. Open it to see.' : 'Copy trader: mirror the leader account to your followers';
+    if (b.title !== tip) b.title = tip;
 }
 
 function cuInjectCss() {
@@ -26577,6 +26751,19 @@ function cuInjectCss() {
         #ax4p-master-dock #ax4p-copy-tog[data-copy="on"] { border-color: color-mix(in srgb, var(--ax-up) 70%, var(--ax-line)); background: color-mix(in srgb, var(--ax-up) 12%, var(--ax-btn)); box-shadow: 0 0 0 1px color-mix(in srgb, var(--ax-up) 35%, transparent) inset, 0 0 14px -6px var(--ax-up); }
         #ax4p-master-dock #ax4p-copy-tog[data-copy="issues"] { border-color: color-mix(in srgb, var(--ax-warn) 65%, var(--ax-line)); background: color-mix(in srgb, var(--ax-warn) 10%, var(--ax-btn)); box-shadow: 0 0 0 1px color-mix(in srgb, var(--ax-warn) 30%, transparent) inset; }
         #ax4p-master-dock #ax4p-copy-tog[data-copy="killed"] { border-color: color-mix(in srgb, var(--ax-down) 70%, var(--ax-line)); background: color-mix(in srgb, var(--ax-down) 12%, var(--ax-btn)); }
+        /* 9.0.7: news, until the copier is opened once (cuHl) */
+        #ax4p-master-dock .ax4p-copy-state.new { background: var(--ax-accent); color: #fff; }
+        #ax4p-master-dock #ax4p-copy-tog.hl { border-color: color-mix(in srgb, var(--ax-accent) 70%, var(--ax-line)); background: color-mix(in srgb, var(--ax-accent) 10%, var(--ax-btn)); animation: cuHlRing 2s ease-out infinite; }
+        @keyframes cuHlRing { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--ax-accent) 60%, transparent); } 70%, 100% { box-shadow: 0 0 0 7px color-mix(in srgb, var(--ax-accent) 0%, transparent); } }
+        #ax4p-copy .cu-new { display: flex; align-items: center; gap: 6px; flex: none; padding: 5px 4px 5px 9px; border-radius: 8px; border: 1px solid color-mix(in srgb, var(--ax-accent) 45%, var(--ax-line)); background: color-mix(in srgb, var(--ax-accent) 10%, transparent); font-size: 10.5px; line-height: 14px; color: var(--ax-text); }
+        #ax4p-copy .cu-new > span { flex: 1 1 auto; min-width: 0; }
+        #ax4p-copy .cu-new > span b { color: var(--ax-accent-text); font-weight: 800; letter-spacing: .04em; margin-right: 4px; }
+        #ax4p-copy .cu-new .go { flex: none; height: 20px; padding: 0 8px; border-radius: 6px; border: 1px solid color-mix(in srgb, var(--ax-accent) 55%, var(--ax-line)); background: color-mix(in srgb, var(--ax-accent) 18%, var(--ax-btn)); color: var(--ax-text); font-size: 10px; font-weight: 700; letter-spacing: .02em; cursor: pointer; }
+        #ax4p-copy .cu-new .go:hover { border-color: var(--ax-accent); }
+        #ax4p-copy .cu-new .x { flex: none; display: grid; place-items: center; width: 18px; height: 18px; padding: 0; border: 0; border-radius: 5px; background: none; color: var(--ax-dim); font-size: 14px; line-height: 1; cursor: pointer; }
+        #ax4p-copy .cu-new .x:hover { color: var(--ax-text); }
+        #ax4p-copy .cu-seg button.hl:not(.on) { color: var(--ax-text); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ax-accent) 60%, transparent); }
+        @media (prefers-reduced-motion: reduce) { #ax4p-master-dock #ax4p-copy-tog.hl { animation: none; box-shadow: 0 0 0 2px color-mix(in srgb, var(--ax-accent) 45%, transparent); } }
 
         /* sub dock: a slim bar under the main dock */
         #ax4p-copy-subdock { position: fixed; top: 52px; left: 0; z-index: 1000000000; display: none; align-items: center; gap: 9px; height: 30px; width: max-content; max-width: calc(100vw - 16px); padding: 0 7px 0 4px; overflow: hidden; border-radius: 999px; color: var(--ax-text); font: 11px/1 var(--ax-font, system-ui, -apple-system, "Segoe UI", sans-serif); background: color-mix(in srgb, var(--ax-raised) 82%, transparent); backdrop-filter: blur(16px) saturate(1.5); -webkit-backdrop-filter: blur(16px) saturate(1.5); border: 1px solid color-mix(in srgb, var(--cu-tone) 38%, var(--ax-line)); box-shadow: 0 0 0 1px color-mix(in srgb, #fff 4%, transparent) inset, 0 10px 30px -10px var(--ax-shadow), 0 0 20px -8px var(--cu-tone); cursor: pointer; transition: border-color .2s, box-shadow .2s; }
@@ -26712,6 +26899,12 @@ function cuBuildPanel() {
     ]);
     // the mode's hint, Ultra-fast and the order mirror
     const opts = cuEl('div', { class: 'cu-opts' }, [
+        // 9.0.7: the news for a Light user (cuHl)
+        cuEl('div', { id: 'ax4p-copy-new', class: 'cu-new', hidden: true }, [
+            cuEl('span', {}, [cuEl('b', { text: 'NEW' }), 'Turbo is now stable, and faster than Light.']),
+            cuEl('button', { type: 'button', class: 'go', text: 'Use Turbo', onclick: () => cuOnEngine('tabs') }),
+            cuEl('button', { type: 'button', class: 'x', text: '\u00d7', title: 'Close', 'aria-label': 'Close', onclick: () => { cuLog('you', 'closed the Turbo news', { control: 'news' }); cuHlDone('tip'); cuRender(); } })
+        ]),
         cuEl('div', { id: 'ax4p-copy-eng-hint', class: 'cu-mkhint' }),
         cuEl('div', { class: 'cu-grow' }),
         // Ultra-fast (c.sendAtPending): opens and adds go out with the leader's order instead of at Vest's OK
@@ -26903,6 +27096,7 @@ function cuDrag(panel, handle) {
 function cuToggle() { if (CU.open) cuClose(); else cuOpen(); }
 function cuOpen() {
     cuLog('ui', 'widget opened', { control: 'open' });
+    cuHlDone('open'); // 9.0.7: the dock button's NEW and glow are done (cuHl)
     cuBuildPanel();
     CU.open = true;
     CU.panel.classList.add('open');
@@ -27171,6 +27365,14 @@ function cuPaintEngine(m) {
         b.setAttribute('aria-disabled', ov.running || off ? 'true' : 'false');
     });
     cuById('ax4p-copy-eng-seg').className = 'cu-seg' + (ov.running ? ' locked' : '') + (mint ? ' three' : '');
+    // 9.0.7: Turbo's news while this group is on Light (cuHl)
+    const news = cuHlOn() && !turboOff && ov.engine === 'direct' && !cuHl().tip;
+    const nb = cuById('ax4p-copy-new');
+    if (nb && nb.hidden !== !news) nb.hidden = !news;
+    const eh = cuById('ax4p-copy-eng-hint');
+    if (eh && eh.hidden !== news) eh.hidden = news; // the line takes the mode hint's place (the row has no room for both)
+    const tb = cuById('ax4p-copy-eng-tabs');
+    if (tb && tb.classList) tb.classList.toggle('hl', news);
     const hint = ov.engine === 'mint' && mint ? mint.hint + (mint.credit ? ' ' + mint.credit : '') : CU_MODES[ov.engine].hint;
     cuText(cuById('ax4p-copy-eng-hint'), hint + (turboOff && ov.engine === 'direct' ? ' Turbo is off for now.' : ''));
     const uw = cuById('ax4p-copy-ultra');
@@ -27189,7 +27391,7 @@ async function cuOnEngine(id) {
     let r = null;
     try { r = m.gid ? cpSetEngine(id, m.gid) : cpSetEngine(id); } catch (e) { r = { ok: false, why: cuMsg(e) }; }
     if (r === false || (r && r.ok === false)) cuNote((r && r.why) || 'Could not change the mode.');
-    else cuNote('');
+    else { cuNote(''); if (id === 'tabs') cuHlDone('tip'); }
     cuRender();
 }
 
