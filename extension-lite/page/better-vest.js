@@ -20,7 +20,7 @@
 (function () {
     'use strict';
 
-    const VERSION = '9.0.4';
+    const VERSION = '9.0.6';
     // true only in the Chrome extension build (tools/build.py defines BV_EXT there)
     const IS_EXT = typeof BV_EXT !== 'undefined' && !!BV_EXT;
     // 'standard' = the shareable feature set, which every public edition has (Standard, Lite, No stats: 9.0.1); 'wicked' = the author's
@@ -561,7 +561,8 @@
     let xcPinned = 0;
     // 9.0: what happened, for whoever listens (voice feedback: src/copy/45-voice.js, through the suite API's onEvent). type: 'half-closed',
     // 'rev-start', 'reversed', 'rev-end', 'breakeven', 'loss-limit-near', 'locked', 'unlocked', 'cooldown-start', 'cooldown-end', and the
-    // session / news moments ('ny-open-5', 'ny-open', 'news-5', 'news-1'). A listener that throws never stops the suite.
+    // session / news moments ('ny-open-5', 'ny-open', 'news-5', 'news-1'); 9.0.6: 'stop-fire' and 'stop-failed' (a client stop's press, for
+    // the copier's mirrored stops). A listener that throws never stops the suite.
     const BV_EV = [];
     function bvEmit(type, data) {
         for (const cb of BV_EV.slice()) { try { cb(String(type), data || {}); } catch (e) {} }
@@ -8261,11 +8262,14 @@
         const side = x.side;
         const t0 = now();
         let tPress = 0;
+        let mirrored = false; // 9.0.6: the copier was told this stop fired (stop-fire)
         const done = (state, why, level) => {
             x.state = state;
             x.why = why || '';
             x.doneAt = now();
             persist();
+            // 9.0.6: the copier sent the followers' orders at the press; this one did not go through, so it puts them back at once
+            if (mirrored && state !== 'fired') typeof bvEmit === 'function' && bvEmit('stop-failed', { symbol: x.sym, side: side === 'buy' ? 'long' : 'short' });
             const ms = x.doneAt - (x.hitAt || t0);
             tpToast(csName(x) + (state === 'fired' ? ' hit: ' + why : ': not sent, ' + why + '.'), level || (state === 'fired' ? 'good' : 'bad'), state === 'fired' ? 4000 : 8000);
             csDevLine({ msg: (side === 'buy' ? 'Buy' : 'Sell') + ' stop ' + (state === 'fired' ? 'sent' : 'not sent') + ': ' + (why || ''), side, price: x.price, size: x.size,
@@ -8287,6 +8291,11 @@
             if (why) return done('failed', why);
             const tw = xcTicketWhy(side);
             if (tw) return done('failed', tw);
+            // 9.0.6: the copy trader mirrors the stop (the owner, 2026-10-13: "for the copier make it mirror the stop orders"): told here, past
+            // every check, right before the press, it sends the followers' orders in this same moment instead of after Vest's OK of this order
+            // (src/copy/00-core.js cpOnSuiteEvent). The ticket's leverage goes with it: a follower's open from flat needs it.
+            mirrored = true;
+            typeof bvEmit === 'function' && bvEmit('stop-fire', { side: side === 'buy' ? 'long' : 'short', qty: x.size, symbol: x.sym, price: x.price, leverage: xcTicketLev() });
             const flash = document.getElementById('ax4p-exec-flash');
             if (flash) flash.textContent = ''; // the result is read from this line: never an earlier order's
             const keep = activeSelectedSize;
@@ -8304,6 +8313,16 @@
         } catch (e) {
             done('failed', 'error: ' + String(e && e.message || e).slice(0, 120));
         }
+    }
+
+    // 9.0.6: the leverage Vest's ticket shows on its leverage button ("50x"), for the copier's mirrored stop; null when it cannot be read
+    function xcTicketLev() {
+        try {
+            const b = qTicket('[data-testid="leverage-button"]');
+            const m = b ? /(\d+(?:\.\d+)?)\s*x/i.exec(b.textContent || '') : null;
+            const n = m ? Number(m[1]) : NaN;
+            return n >= 1 && n <= 1000 ? n : null;
+        } catch (e) { return null; }
     }
 
     // the timing lines the DEV build's log picks up (its suite API drains them every second); release builds keep none
@@ -17403,6 +17422,7 @@ const CP = {
     authAt: 0, lockRelease: null, bus: null, tabId: Math.random().toString(36).slice(2),
     fastUntil: 0, lastIntent: null,
     lev: {},                              // symbol -> the leader's last seen leverage there (a fast open from flat has no position to read it from)
+    evOn: false,                          // 9.0.6: listening to the suite's events (a mirrored stop's press, cpOnSuiteEvent)
     paused: {},                           // accountId -> {why, at}
     holds: {},                            // 'account|symbol' -> why the planner or diff left it alone
     alerts: [], awake: null, booted: false, frames: new WeakSet(),
@@ -20211,7 +20231,7 @@ function cpIntent(intent) {
     CP.lastIntent = it;
     // an intent that the click-time path acts on names its market: the followers are copied there from this click, whatever the market is.
     // A wake, or an open the click path does not send (see cpFast), only wakes the reconciler: the market is added once the leader holds it.
-    if (it.kind !== 'wake' && !(it.kind === 'order' && c.fastOpens !== true && !accepted)) cpManage(c, [symbol], 'an order of the leader named it');
+    if (it.kind !== 'wake' && !(it.kind === 'order' && c.fastOpens !== true && !accepted && it.src !== 'stop')) cpManage(c, [symbol], 'an order of the leader named it');
     // Vest's acceptance is woken like a leader frame (see cpAcceptWake): a reduce or close of the leader waits out the frame gate, so a REV is one batch
     if (accepted) CP.wakeF.set(symbol, t + CP_INTENT_MS); else CP.wake.set(symbol, t + CP_INTENT_MS);
     CP.fastUntil = t + CP_INTENT_MS;
@@ -20233,8 +20253,9 @@ function cpFast(it, c) {
     // An open or an add is not sent on the click: a refused one (margin, daily loss limit, market closed) would otherwise have opened every
     // follower and the reconciler would close them again at a spread. It goes at Vest's acceptance of the leader's order instead (src
     // 'accept': the REST answer, 2xx, which a refusal never gets). Flat, 50% and REV only reduce risk, so they keep the click-time path;
-    // c.fastOpens opts the click path in too.
-    if (it.kind === 'order' && c.fastOpens !== true && !accepted) {
+    // c.fastOpens opts the click path in too. 9.0.6: so does a mirrored stop (src 'stop', cpOnSuiteEvent): it is told past all of the stop's
+    // own checks, right before its press, and a stop that then fails says so at once (the followers are put back).
+    if (it.kind === 'order' && c.fastOpens !== true && !accepted && it.src !== 'stop') {
         typeof cpDev === 'function' && cpDev('plan', () => ({ msg: 'no early send on the click for ' + it.symbol + ': an open or an add goes out at Vest\'s OK of your order, so a refused order never opens the followers', symbol: it.symbol, kind: it.kind }));
         return;
     }
@@ -20317,6 +20338,50 @@ function cpFastSend(it, c, predicted, info, from, again) {
     }, () => {});
 }
 
+// ---------- the leader's stop orders, mirrored (9.0.6) ----------
+// The owner (2026-10-13, the night before CPI): "for the copier make it mirror the stop orders": traders set a buy stop above and a sell
+// stop below before the news. A stop is held by the suite (client-side, 8.1: Vest has no stop entry order) and, when the price crosses
+// it, the suite presses the leader's order. Until now the followers got it after Vest's OK of that order, half a second to a second later,
+// a long way in a news spike. Now the suite says so right before its press ('stop-fire', past every one of the stop's own checks) and the
+// followers' orders go in that same moment through the click-time path, as FLAT, 50% and REV do. What keeps it to one copy: the settle
+// lock (a follower is not sent again until its send shows), the echo rule (Vest's later OK of the leader's same order is not copied again,
+// 16-accept.js cpAcceptStopEcho) and the floor (the reconciler does not undo it while the leader's order is on its way). A stop that then
+// does not go through ('stop-failed') lifts the floor: the reconciler puts the followers back at once.
+function cpOnSuiteEvent(type, d) {
+    if (type === 'stop-fire') {
+        const qty = Number(d && d.qty);
+        const side = d && (d.side === 'long' || d.side === 'short') ? d.side : '';
+        if (!(qty > 0) || !side) return;
+        const lev = d && Number(d.leverage) > 0 ? cpOrderLev(d.leverage) : null;
+        // the market is the page's (a stop only fires on the chart's market, which the suite checks is the page's): the suite names it the
+        // chart's way ("NQ"), the copier the page's ("NQ-PERP"), so the stop's own name is never used (the sandbox test, 2026-10-13: "NQ"
+        // made the copier manage a market with no size step and send nothing)
+        const it = { kind: 'order', side, qty, src: 'stop' };
+        // the ticket's leverage: a follower's open from flat needs it (the leader has no position on the market to read it from)
+        if (lev > 0) { it.leverage = lev; const sym = cpCanonSym(cpSymbol()); if (sym) CP.lev[sym] = lev; }
+        cpLog('info', { note: 'stop: the leader\'s ' + side + ' stop of ' + cpFmt(qty) + ' fired, the followers go now' });
+        cpIntent(it);
+    } else if (type === 'stop-failed') {
+        cpStopUndo(cpCanonSym(cpSymbol()), 'the stop did not go through');
+    }
+}
+// The followers were sent for a stop of the leader's that then did not go through (the suite says so, or Vest refused its order,
+// 16-accept.js cpAcceptError): the floor on that market is lifted and the reconciler puts them back now, not after CP_FAST_FLOOR_MS.
+function cpStopUndo(symbol, why) {
+    if (!symbol || !CP.running) return;
+    const t = CP.now();
+    for (const [k, fl] of CP.floor) if (k.endsWith('|' + symbol)) fl.until = Math.min(fl.until, t);
+    CP.wake.set(symbol, t + CP_INTENT_MS);
+    cpLog('info', { note: 'stop: the leader\'s stop on ' + symbol + ' did not go through (' + why + '), the followers are put back' });
+    typeof cpDev === 'function' && cpDev('plan', () => ({ msg: 'your stop on ' + symbol + ' did not go through after the followers were sent (' + why + '): the reconciler puts them back now', symbol }));
+    cpSchedule(0);
+}
+function cpSuiteEvents() {
+    if (CP.evOn) return;
+    const su = cpSuite();
+    try { if (su && typeof su.onEvent === 'function') { su.onEvent(cpOnSuiteEvent); CP.evOn = true; } } catch (e) {}
+}
+
 // The Switch engine has this tab on a follower account for a moment: an order the owner clicks then would go to that follower. The
 // owner's real clicks (isTrusted) on the order buttons and Vest's order windows are stopped; the engine's own clicks are not trusted events.
 const CP_ORDER_BTN = '#ax4p-buy-btn, #ax4p-sell-btn, #ax4p-flatten-btn, #ax4p-half-btn, #ax4p-part-row button, #ax4p-rev-btn, [data-testid="submit-long"], [data-testid="submit-short"], ' +
@@ -20381,7 +20446,8 @@ function cpBoot() {
     document.addEventListener('click', cpOnClick, true);
     document.addEventListener('keydown', cpOnKey, true);
     cpAttachFrames();
-    const again = () => { cpAttachFrames(); CP.set(again, 2000); };
+    cpSuiteEvents(); // 9.0.6: the suite's stop presses (the suite may come up a moment later: tried again below)
+    const again = () => { cpAttachFrames(); cpSuiteEvents(); CP.set(again, 2000); };
     CP.set(again, 2000);
     try {
         window.addEventListener('message', (e) => {
@@ -23545,7 +23611,7 @@ function cpAcceptRead(accountId) {
 // if Vest refuses that order); otherwise it was a click-time send, which the leader's own accepted order must not repeat.
 function cpAcceptSent(acts, it) {
     if (it.src !== 'accept') {
-        CPA.click = { symbol: it.symbol, kind: it.kind, t: CP.now() };
+        CPA.click = { symbol: it.symbol, kind: it.kind, src: it.src, side: it.side, qty: it.qty, t: CP.now() };
         typeof cpDev === 'function' && cpDev('send', () => ({ msg: 'Sent to the followers from your click (' + it.kind + ' on ' + it.symbol + '): ' + cpaDevActs(acts) + '. When Vest accepts that order it will not be sent again', symbol: it.symbol, kind: it.kind, src: it.src, n: acts.length, echoMs: CP_ACCEPT_ECHO_MS }));
         return;
     }
@@ -23641,6 +23707,25 @@ function cpAcceptOrderIntent(e) {
     return it;
 }
 
+// 9.0.6: the leader's order that a mirrored stop already copied (00-core.js cpOnSuiteEvent sent the followers at the stop's own press):
+// the same market, side and size within the echo time. Its pending and its OK are not copied again.
+function cpAcceptStopEcho(symbol, side, qty) {
+    const ck = CPA.click;
+    if (!ck || ck.src !== 'stop' || ck.symbol !== symbol || ck.side !== side || CP.now() - ck.t >= CP_ACCEPT_ECHO_MS) return false;
+    const a = Number(ck.qty), b = Number(qty);
+    return a > 0 && b > 0 && Math.abs(a - b) <= Math.max(1e-9, b * 1e-6);
+}
+
+// 9.0.6: Vest refused the leader's order that a mirrored stop already copied: an open or an add of the same side and size, or a reduce of the
+// same size, within the echo time
+function cpAcceptStopRefused(e, symbol) {
+    const ck = CPA.click;
+    if (!ck || ck.src !== 'stop' || ck.symbol !== symbol || CP.now() - ck.t >= CP_ACCEPT_ECHO_MS) return false;
+    if (e.kind === 'open' || e.kind === 'append') { const it = cpAcceptOrderIntent(e); return !!it && cpAcceptStopEcho(symbol, it.side, it.qty); }
+    if (e.kind === 'reduce') { const q = Number((e.vars || {}).quantity), w = Number(ck.qty); return q > 0 && w > 0 && Math.abs(q - w) <= Math.max(1e-9, q * 1e-6); }
+    return false;
+}
+
 function cpAcceptEarly(e, c, symbol) {
     const v = e.vars || {};
     if (String(v.orderType || '').toLowerCase() === 'limit' || e.id == null) {
@@ -23653,6 +23738,11 @@ function cpAcceptEarly(e, c, symbol) {
         return;
     }
     if (it.leverage > 0) CP.lev[symbol] = it.leverage;
+    if (cpAcceptStopEcho(symbol, it.side, it.qty)) {
+        cpLog('info', { note: 'accept: not copied again, a mirrored stop already sent it (' + it.side + ' on ' + symbol + ')' });
+        typeof cpDev === 'function' && cpDev('plan', () => ({ msg: 'Early send skipped: your stop on ' + symbol + ' already sent this ' + it.side + ' to the followers ' + cpaDevN(CP.now() - CPA.click.t) + ' ms ago', symbol, kind: e.kind }));
+        return;
+    }
     const rec = { kind: e.kind, symbol, tClick: 0, tPending: e.at, tSuccess: 0, early: true, orderId: undefined, commandId: undefined, positionId: v.positionId, tif: v.timeInForce,
         sent: false, undone: false, tSend: 0, tAck: 0, tCmd: 0, tFill: 0, tPos: 0, n: 0, confirmed: false };
     rec.prevPred = CPA.pred;
@@ -23705,6 +23795,11 @@ function cpAcceptError(e, c) {
         // A timeout or a 5xx is not a no (Vest retries those and the order may exist): the fill frame or the reconciler decides, as for any order.
         if (early.sent && !er.uncertain) { cpAcceptRejected([], early, 'Vest answered ' + (er.status != null ? 'HTTP ' + er.status : 'with an error') + (er.code != null ? ' ' + er.code : '')); return; }
         if (er.uncertain) typeof cpDev === 'function' && cpDev('plan', () => ({ msg: 'Vest\'s answer to your early ' + e.kind + ' was a timeout or server error: the order may exist, so nothing is undone; the fill frame or the reconciler decides', symbol, kind: e.kind, sent: early.sent }));
+    }
+    // 9.0.6: a mirrored stop sent the followers at its press: they hold what the leader never got, so they are put back at once
+    if (symbol && !er.uncertain && cpAcceptStopRefused(e, symbol)) {
+        cpStopUndo(symbol, 'Vest refused the leader\'s ' + e.kind + (er.status != null ? ', HTTP ' + er.status : ''));
+        return;
     }
     // nothing was sent for it, so nothing is undone; the wake is dropped, unless the answer was a timeout or a 5xx: Vest retries those and the
     // order may exist, so the fill frame or the reconciler decides
@@ -23821,6 +23916,11 @@ function cpAcceptSuccess(e, c) {
         cpLog('info', { note: 'accept: the leader position of the ' + kind + ' is not known, the reconciler will copy it' });
         typeof cpDev === 'function' && cpDev('plan', () => ({ msg: 'Your ' + kind + ' on ' + symbol + ' names a position the copier does not know (id ' + cpAcceptShort(v.positionId) + '): the reconciler copies it from the books', symbol, kind }));
         cpAcceptWake(symbol, false);
+        return;
+    }
+    if (it.kind === 'order' && cpAcceptStopEcho(symbol, it.side, it.qty)) {
+        cpLog('info', { note: 'accept: not copied again, a mirrored stop already sent it (' + it.side + ' on ' + symbol + ')' });
+        typeof cpDev === 'function' && cpDev('plan', () => ({ msg: 'Not sent again: your stop on ' + symbol + ' already sent this ' + it.side + ' to the followers ' + cpaDevN(CP.now() - CPA.click.t) + ' ms ago; this is Vest\'s OK of the same order', symbol, kind }));
         return;
     }
     typeof cpDev === 'function' && cpDev('plan', () => ({ msg: 'At Vest\'s OK of your ' + kind + ' on ' + symbol + ' the copier asks the fast path to copy it: ' + (it.kind === 'flat' ? 'flatten the followers' : it.side + ' ' + cpaDevN(it.qty) + (it.reduceOnly ? ' (reduce-only)' : '') + (it.leverage ? ' at ' + it.leverage + 'x' : '')), symbol, kind, intent: it.kind, side: it.side, qty: it.qty, reduceOnly: it.reduceOnly, leverage: it.leverage, order: cpAcceptShort(rec.orderId) }));
