@@ -1,7 +1,7 @@
 Better Vest by Astral Lite - how to install (2 minutes, Chrome / Brave / Edge / Arc)
 
-1. Download better-vest-lite-9.0.6.zip and double-click it.
-   You now have a folder called "better-vest-lite-9.0.6". Keep it somewhere safe
+1. Download better-vest-lite-9.0.7.zip and double-click it.
+   You now have a folder called "better-vest-lite-9.0.7". Keep it somewhere safe
    (Documents is fine). Chrome loads the extension from this folder, so don't delete it.
 
 2. Open Chrome and type in the address bar:  chrome://extensions
@@ -9,7 +9,7 @@ Better Vest by Astral Lite - how to install (2 minutes, Chrome / Brave / Edge / 
 
 3. Top-right corner: turn ON "Developer mode".
 
-4. Click "Load unpacked" (top-left) and pick the "better-vest-lite-9.0.6" folder.
+4. Click "Load unpacked" (top-left) and pick the "better-vest-lite-9.0.7" folder.
    "Better Vest by Astral Lite" appears in the list. Done.
 
 5. Pin it: click the puzzle icon in Chrome's toolbar and pin Better Vest.

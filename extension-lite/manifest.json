@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Better Vest by Astral Lite",
   "short_name": "Better Vest",
-  "version": "9.0.6",
+  "version": "9.0.7",
   "description": "Trading tools for Vest Markets, Lite (no voice): one-click orders with stop and target, a copy trader, limits and a P&L journal.",
   "minimum_chrome_version": "116",
   "icons": {
