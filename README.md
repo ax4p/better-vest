@@ -26,9 +26,9 @@ Each [release](https://github.com/ax4p/better-vest/releases/latest) has three zi
 
 | Zip | What's in it |
 |---|---|
-| `better-vest-9.0.4.zip` | **Standard.** Everything. Take this one if you're not sure. |
-| `better-vest-lite-9.0.4.zip` | **Lite.** Everything but the voice, under 1 MB. |
-| `better-vest-nostats-9.0.4.zip` | **No stats.** Standard without the usage stats. See [Security](SECURITY.md#the-usage-count). |
+| `better-vest-9.0.6.zip` | **Standard.** Everything. Take this one if you're not sure. |
+| `better-vest-lite-9.0.6.zip` | **Lite.** Everything but the voice, under 1 MB. |
+| `better-vest-nostats-9.0.6.zip` | **No stats.** Standard without the usage stats. See [Security](SECURITY.md#the-usage-count). |
 
 Then load it in Chrome: the [video and steps](https://bv.astrals.dev/#install) on the site, or the [install guide](CONTRIBUTING.md) here. After that it updates itself.
 
@@ -45,7 +45,7 @@ Then load it in Chrome: the [video and steps](https://bv.astrals.dev/#install) o
 
 ## Is it safe?
 
-- **Scanned.** `better-vest-9.0.4.zip` comes back clean from all 66 antivirus engines on VirusTotal ([report](https://www.virustotal.com/gui/file/a92733033806dadae721b94a531595d3565d6353d742976cb9e069d289aec5c1)).
+- **Scanned.** `better-vest-9.0.6.zip` comes back clean from all 66 antivirus engines on VirusTotal ([report](https://www.virustotal.com/gui/file/c644f33fb0e1f3da46d1e82da384c275317258dd55b2f9fe8c7d98ddb171fabf)).
 - **Readable.** The [`extension`](extension) folder is the Standard zip, file for file, not minified.
 - **Signed updates.** Your copy checks my signature and every file before it writes anything.
 - **Small reach.** It runs only on next.vestmarkets.com and asks Chrome for `storage`, `alarms` and `tabGroups`. It never sees your password or keys, never withdraws, and trades only through Vest's own buttons and order code.
