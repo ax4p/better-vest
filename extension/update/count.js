@@ -4,7 +4,7 @@
 //
 // What goes out, and nothing more (the site's src/lib/count.ts takes exactly two shapes and drops anything else):
 //   install    {"k":"i","v":"9.0.1","e":"standard"}   once after an install, and once after each update or edition switch (every edition)
-//   heartbeat  the version, the edition and a random id, every 10 minutes while a Vest tab is open (Standard, Lite and WICKED; below)
+//   heartbeat  the version, the edition and a random id, every 3 minutes while a Vest tab is open (Standard, Lite and WICKED; below)
 // One POST of plain text to https://bv.astrals.dev/api/count: a simple request (no preflight), no cookies, never retried, its answer
 // never read, every error swallowed. No new permission: the site answers with Access-Control-Allow-Origin.
 // The No stats edition has no heartbeat and no id (the build cuts them out: the STATS markers); switched to No stats on the update page, it deletes
@@ -60,7 +60,8 @@ export function countInstall(env) {
 // ---- the heartbeat (Standard, Lite and WICKED): {"k":"h","v":"9.0.1","e":"standard","id":"<32 hex>"} ----
 // The id is a random number made here the first time a heartbeat goes out (crypto.getRandomValues) and kept in chrome.storage.local. It is
 // built from nothing (no account, no address, no device), and removing the extension removes it.
-const HB_MIN = 10;
+// 3 minutes (the owner, 2026-10-14: was 10; a short visit was often never seen as online)
+const HB_MIN = 3;
 const ID_RE = /^[0-9a-f]{32}$/;
 const VEST_TABS = ['https://next.vestmarkets.com/*'];
 
