@@ -61,8 +61,8 @@
   "journal/views/shared.js": "30b1c9b67dd07d7f61ca6e86ed06805b3800b31c8aeeb03de1ce952c199a68aa",
   "journal/views/stats.js": "1bddadc7bd33f9d42854320fe3c9fc68e68cc9102787db5b7d5e215bbcbdcd3f",
   "journal/views/trades.js": "c266b799a68e14b68d912efdcbc81ba541671cc8b99e394eec719c7443404e83",
-  "manifest.json": "d998e7766a5dac8ec1cc19b2d4ff549f88884acf232c80dbd42522f135abd187",
-  "page/better-vest.js": "8a30309a5cfb959e5e8c6f7a84f899304a3d7b90d208e5a145b0e4209e260f3b",
+  "manifest.json": "60cf4e75ad7ae52e64eb195470d2ba1137c37aa779a7eead960dd27088b98314",
+  "page/better-vest.js": "e15652ba385631e72c7f66afc588ae3564d9dc2fd0fff110d9aba70c260aef9a",
   "page/voice/arthur/buy_filled.ogg": "13e3dcab4befc6e2a5b397f0121ab89245ac83b895c039dc1ad9d69d7f61aa78",
   "page/voice/arthur/buy_limit_filled.ogg": "f239f5545a3f057a7bc45b952ea75769873b6ac3fb22c6ac2ed26cd738d95cd1",
   "page/voice/arthur/buy_limit_placed.ogg": "3b7dc1d7d6b57e796186f1b8050c97c173ec046c8a0237b9e950930a15d548bd",
@@ -375,11 +375,11 @@
   "sw.js": "b1e9c27fc0c1e78ce333865a22c3f1443ff78569a5f1d7834fbda1ff73c49237",
   "update.html": "51b16eff97eba612b906c6d762fd82d7bde237d168a436018a1ce60b8913734a",
   "update/core.js": "b1fbfe5d4c2fb10fcdfc2bc828bac86c146b1709659b0777c3db62a61d8b1497",
-  "update/count.js": "612ddcd1a61a45f9309088bdea19354917648bc5eb62ed2609262cac55ad8542",
+  "update/count.js": "e0b230c4a4e9c68d9d83e43f6167959263c61abaab4191280aa7a7774fc27b66",
   "update/key.js": "8669c2e8d9b8937ad5ecde2060a44b0758fc69e88dd3d491f794431893e83f7c",
   "update/page.js": "53d075defbff3f8d8a832babe6ea704a8a29bb45e4bc67f65de6e800b69dd62e",
   "update/update.css": "74eff0ad6e6a5d004112f5fd4934b57827e215dd03df5eab9c7fe973a582ac7f"
  },
  "name": "Better Vest by Astral",
- "version": "9.0.6"
+ "version": "9.0.7"
 }
