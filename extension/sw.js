@@ -7,6 +7,9 @@
 // 4. Usage counts (9.0.1: update/count.js, in the public editions and the WICKED zip; DEV and this working folder do not carry it). The
 //    only address it talks to is https://bv.astrals.dev/api/count: an install count (every edition that counts) and, in Standard, Lite and
 //    WICKED, a heartbeat every 10 minutes while a Vest tab is open (a random id, the version and the edition).
+// 5. Remote switches (9.0.9: update/remote.js, every extension build): every 3 minutes while a Vest tab is open, one GET of
+//    https://bv.astrals.dev/api/flags (which features Astral switched off, and the version the Chrome Web Store serves; nothing goes out
+//    about the trader). The Store edition installs a held Store update when every Vest tab is idle.
 
 import { openDb, getAll, get, putMany, putMeta, getMeta, listUserIds } from './journal/db.js';
 import {
@@ -14,6 +17,7 @@ import {
 } from './journal/model.js';
 import { filterTrades, reconcile, summary } from './journal/stats.js';
 import { LATEST_URL, compareVersions, parseLatest, whatsNew } from './update/core.js';
+import { remoteStart, remotePageState } from './update/remote.js';
 import { cleanSnap } from './cert/share-model.js';
 import { tapeWrite } from './cert/tape-db.js';
 import { countStart } from './update/count.js';
@@ -23,7 +27,9 @@ const stateKey = (tabId) => 'tab:' + tabId;
 chrome.runtime.onMessage.addListener((msg, sender) => {
     if (!msg || msg.type !== 'state' || !sender.tab) return;
     const st = msg.state || {};
-    chrome.storage.session.set({ [stateKey(sender.tab.id)]: st }).catch(() => {});
+    // seenAt: when the page said it (9.0.9: a held Store update waits for every Vest tab's fresh "idle")
+    chrome.storage.session.set({ [stateKey(sender.tab.id)]: Object.assign({}, st, { seenAt: Date.now() }) }).catch(() => {});
+    remotePageState(st);
     chrome.action.setBadgeText({ tabId: sender.tab.id, text: st.feed ? updateBadge : '!' }).catch(() => {});
     chrome.action.setBadgeBackgroundColor({ tabId: sender.tab.id, color: st.feed ? '#2563eb' : '#b91c1c' }).catch(() => {});
     chrome.action.setTitle({
@@ -714,6 +720,10 @@ afterSelfUpdate().catch(() => {});
 // ---------- usage counts (9.0.1: the public editions and the WICKED zip) ----------
 // update/count.js: the install count, and in Standard, Lite and WICKED the heartbeat. Only the builds that count carry that file and the line below.
 countStart();
+
+// ---------- remote switches and quick Store updates (9.0.9: every extension build) ----------
+// update/remote.js: what Astral switched off, passed to the pages through bvRemoteOff; the Store edition's held updates.
+remoteStart();
 
 // Whenever the worker starts, bring the last user's stored trades up to the current derivation rules.
 lastUserId().then((uid) => { if (uid) dbFor(uid).catch(() => {}); }).catch(() => {});
