@@ -26,9 +26,9 @@ Each [release](https://github.com/ax4p/better-vest/releases/latest) has three zi
 
 | Zip | What's in it |
 |---|---|
-| `better-vest-9.0.7.zip` | **Standard.** Everything. Take this one if you're not sure. |
-| `better-vest-lite-9.0.7.zip` | **Lite.** Everything but the voice, under 1 MB. |
-| `better-vest-nostats-9.0.7.zip` | **No stats.** Standard without the usage stats. See [Security](SECURITY.md#the-usage-count). |
+| `better-vest-9.0.9.zip` | **Standard.** Everything. Take this one if you're not sure. |
+| `better-vest-lite-9.0.9.zip` | **Lite.** Everything but the voice, under 1 MB. |
+| `better-vest-nostats-9.0.9.zip` | **No stats.** Standard without the usage stats. See [Security](SECURITY.md#the-usage-count). |
 
 Then load it in Chrome: the [video and steps](https://bv.astrals.dev/#install) on the site, or the [install guide](CONTRIBUTING.md) here. After that it updates itself.
 
@@ -45,9 +45,10 @@ Then load it in Chrome: the [video and steps](https://bv.astrals.dev/#install) o
 
 ## Is it safe?
 
-- **Scanned.** `better-vest-9.0.7.zip` comes back clean from all 65 antivirus engines on VirusTotal ([report](https://www.virustotal.com/gui/file/c628ba5b4f0253b9f884ebec6acae1976aa83a81b02204dbdef526bd0adf52c9)).
+- **Scanned.** `better-vest-9.0.9.zip` comes back clean from all 65 antivirus engines on VirusTotal ([report](https://www.virustotal.com/gui/file/e2591207358e9e20dbb494778361c1e8a69a6d4c9540f22a6bf55ca70270a347)).
 - **Readable.** The [`extension`](extension) folder is the Standard zip, file for file, not minified.
 - **Signed updates.** Your copy checks my signature and every file before it writes anything.
+- **Safety switches.** If Vest changes something, I can pause one feature for everyone until it's fixed ([how](SECURITY.md#safety-switches)).
 - **Small reach.** It runs only on next.vestmarkets.com and asks Chrome for `storage`, `alarms` and `tabGroups`. It never sees your password or keys, never withdraws, and trades only through Vest's own buttons and order code.
 
 Everything it can do and every address it talks to: [Security](SECURITY.md).
