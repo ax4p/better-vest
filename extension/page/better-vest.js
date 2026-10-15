@@ -20,7 +20,7 @@
 (function () {
     'use strict';
 
-    const VERSION = '9.0.7';
+    const VERSION = '9.0.9';
     // true only in the Chrome extension build (tools/build.py defines BV_EXT there)
     const IS_EXT = typeof BV_EXT !== 'undefined' && !!BV_EXT;
     // 'standard' = the shareable feature set, which every public edition has (Standard, Lite, No stats: 9.0.1); 'wicked' = the author's
@@ -47,7 +47,8 @@
         bvSuiteApi = Object.freeze({
             lock() {}, version: VERSION, edition: EDITION, settings: { get: none, set() {} }, persist() {}, toast() {}, flash() {},
             demo: () => false, demoOn: () => false, symbol: () => '', cardSize: none, ticketSize: none, fiberUp: none, detectPrices: () => ({}),
-            execute: () => Promise.reject(new Error('this is a copy follower tab')), flat: () => false, positions: () => [], bridge: none
+            execute: () => Promise.reject(new Error('this is a copy follower tab')), flat: () => false, positions: () => [], bridge: none,
+            remoteOff: none
         });
         return;
     }
@@ -580,6 +581,43 @@
     const BV_EV = [];
     function bvEmit(type, data) {
         for (const cb of BV_EV.slice()) { try { cb(String(type), data || {}); } catch (e) {} }
+    }
+
+    // ---------- remote switches (9.0.9) ----------
+    // Astral can switch a feature off for everyone (a bug, a change on Vest's side) on the site's switches page. The extension's worker reads
+    // the list every 3 minutes (update/remote.js) and bridge.js hands this version's to the page as { name: reason }. Off means: the feature
+    // refuses new use with a toast saying why, and what of it runs or is armed stops (rmStopRunning), with a toast saying what that leaves.
+    // 'all' stands for every switch. The userscript never hears of any, so for it everything stays on.
+    const RM_NAMES = ['copier', 'turbo', 'orders', 'close', 'stops', 'limits', 'tpsl', 'trail', 'autobe', 'accounts', 'lossclose'];
+    const RM_LABEL = {
+        copier: 'The copy trader', turbo: 'Turbo copying', orders: 'One-click LONG / SHORT', close: 'FLAT, 50% and REV', stops: 'Stop orders',
+        limits: 'Limit orders', tpsl: 'TP / SL on the chart', trail: 'The trailing stop', autobe: 'Auto breakeven',
+        accounts: 'Account switching and payouts', lossclose: 'The loss limit\'s Close my positions'
+    };
+    const RM = { off: {}, storeReady: '', storeTold: '', updatedTold: '', idleTimer: 0 };
+    // the reason a feature is switched off (by its own switch or by 'all'), else null
+    function rmOff(name) {
+        if (Object.prototype.hasOwnProperty.call(RM.off, name)) return RM.off[name];
+        if (Object.prototype.hasOwnProperty.call(RM.off, 'all')) return RM.off.all;
+        return null;
+    }
+    // the features named in the plural ("Stop orders are switched off")
+    const RM_PLURAL = new Set(['close', 'stops', 'limits', 'accounts']);
+    function rmText(name, why) {
+        const w = String(why || '').trim();
+        return (RM_LABEL[name] || 'This feature') + (RM_PLURAL.has(name) ? ' are' : ' is') + ' switched off by Astral for now'
+            + (w ? ': ' + w + (/[.!?]$/.test(w) ? '' : '.') : '.');
+    }
+    // postState's "idle" (a held Store update goes in only when every Vest tab says so): the extension's own check, never idle elsewhere
+    function rmIdle() {
+        try { return typeof rmIdleExt === 'function' ? rmIdleExt() === true : false; } catch (e) { return false; }
+    }
+    // A use of a switched-off feature: true, with a toast saying why. The callers return at once (nothing sent, nothing changed).
+    function rmRefuse(name) {
+        const why = rmOff(name);
+        if (why === null) return false;
+        tpToast(rmText(name, why), 'warn', 8000);
+        return true;
     }
     let lastKnownMid = null;
     let lastKnownMidAt = 0; // when it was last seen: the limit macros only trust a recent one
@@ -4111,6 +4149,7 @@
     }
     // NOW: trailing starts at once (no wait for profit); with TRAIL off it turns it on, "start trailing now" means now
     function xcTrailNow() {
+        if (!S.tpsl.trail.now && rmRefuse('trail')) return; // 9.0.9: switched off by Astral
         const c = S.tpsl.trail;
         c.now = !c.now;
         persist();
@@ -7791,6 +7830,11 @@
                 return;
             }
             if (now() < TP.blockUntil) return fail('The executor was just used. ' + label + ' not sent, try again.', 'warn');
+            // 9.0.9: switched off by Astral. A drag, breakeven, Undo or the H key asks the TP / SL switch; the trailing stop (j.auto) and auto BE
+            // ask their own (their ticks pause themselves, so this only catches a move already on its way)
+            const rmName = j.auto ? 'trail' : j.rm || 'tpsl';
+            const rmWhy = rmOff(rmName);
+            if (rmWhy !== null) return fail(rmText(rmName, rmWhy) + ' ' + label + ' not sent.', 'warn');
             if (bvCopyLock) return fail('The copy trader is switching accounts. ' + label + ' not sent, try again in a moment.', 'warn'); // drags, breakeven and the Edit window alike
             if (tpActiveAccount() !== j.accountId) return fail('The account changed. ' + label + ' not sent.', 'warn');
             // A create waits until our previous create on this position and side is visible (never two legs). A move of a leg we know does not.
@@ -7910,7 +7954,8 @@
             const shown = r.atEntry ? 'at entry' : '+' + r.offsetPts.toFixed(Math.min(r.info.dec, 2)) + ' pt';
             tpCommit({
                 posId: pos.id, kind: 'sl', legId: sl && sl.leg ? sl.leg.id : null, price: r.n, s: r.s,
-                accountId: TP.demo ? 'demo' : tpActiveAccount(), isBE: true, okMsg: (o.source === 'auto' ? 'Auto BE: stop to breakeven ' : 'Stop to breakeven ') + r.s + ' (' + shown + ')'
+                accountId: TP.demo ? 'demo' : tpActiveAccount(), isBE: true, okMsg: (o.source === 'auto' ? 'Auto BE: stop to breakeven ' : 'Stop to breakeven ') + r.s + ' (' + shown + ')',
+                rm: o.source === 'auto' ? 'autobe' : 'tpsl' // 9.0.9: the remote switch this move answers to (tpCommitOne)
             });
             return { ok: true, price: r.n };
         } catch (e) {
@@ -8001,7 +8046,8 @@
     }
 
     function tpTrailTick() {
-        if (!IS_EXT || !TP.on || S.tpsl.enabled === false) return;
+        // 9.0.9: switched off by Astral pauses it (the setting and the armed positions stay; it follows again when it is back on)
+        if (!IS_EXT || !TP.on || S.tpsl.enabled === false || rmOff('trail') !== null) return;
         const cfg = S.tpsl.trail;
         const t = now();
         tpTrailPrune(t);
@@ -8118,7 +8164,7 @@
     // stop already is at or past breakeven. "Not in profit yet" / "too close" just wait (no toast); a price only from a fresh book.
     function tpAutoBeTick() {
         const be = S.tpsl.autoBe;
-        if (!IS_EXT || !TP.on || S.tpsl.enabled === false || !be.on) return;
+        if (!IS_EXT || !TP.on || S.tpsl.enabled === false || !be.on || rmOff('autobe') !== null) return; // 9.0.9: or paused by Astral
         const mid = tpTrailMid();
         if (!mid) return;
         const t = now();
@@ -8150,6 +8196,7 @@
     xcHooks.exits = true;
     // TRAIL on: the open position(s) on this chart now and every new one; off: none
     xcHooks.trailSet = (on) => {
+        if (on && rmRefuse('trail')) return; // 9.0.9: switched off by Astral (switching it off always works)
         const c = S.tpsl.trail;
         c.auto = !!on;
         const ps = tpPositions();
@@ -8160,6 +8207,7 @@
         tpToast(on ? 'Trailing SL on for ' + (ps.length ? 'this position and ' : '') + 'every new one: ' + tpTrailDesc() + '.' : 'Trailing SL off.', on ? 'good' : '');
     };
     xcHooks.autoBeSet = (on) => {
+        if (on && rmRefuse('autobe')) return; // 9.0.9: switched off by Astral (switching it off always works)
         const b = S.tpsl.autoBe;
         b.on = !!on;
         persist();
@@ -8223,7 +8271,8 @@
         const sym = tpSymbol();
         const agree = tpSymbolsAgree();
         const acc = csAcc();
-        const off = S.tpsl.enabled === false;
+        // 9.0.9: switched off by Astral (rmOff) pauses them the same way; when it is back on, one the price went past is "passed", not sent
+        const off = S.tpsl.enabled === false || rmOff('stops') !== null;
         let changed = false;
         const hits = [];
         for (let i = list.length - 1; i >= 0; i--) {
@@ -8323,7 +8372,8 @@
         try {
             if (x.acc === 'demo') { done('fired', '[DEMO] would send ' + (side === 'buy' ? 'Long ' : 'Short ') + csSizeText(x.size, x.sym) + ' @ market' + xcCarryText() + '. Nothing sent.'); return; }
             if (xcDemoOn()) return done('failed', 'Demo is on');
-            const gate = () => mcGate(side === 'buy' ? 'long' : 'short')
+            const gate = () => (rmOff('stops') !== null ? 'stop orders are switched off by Astral' : '') // 9.0.9, before the copier is told
+                || mcGate(side === 'buy' ? 'long' : 'short')
                 || (tpActiveAccount() !== x.acc ? 'the account changed' : '')
                 || (!tpSameSym(x.sym, tpSymbol()) ? 'the chart is on another market' : '')
                 || (!(x.size > 0) ? 'no size' : '');
@@ -8378,6 +8428,7 @@
     }
 
     function csAdd(side, price) {
+        if (rmRefuse('stops')) return false; // 9.0.9: switched off by Astral
         const sym = tpSymbol();
         const acc = csAcc();
         if (!acc) { tpToast('Log in to Vest first (or use the demo). No stop set.', 'warn'); return false; }
@@ -8415,6 +8466,7 @@
     function csRearm(id) {
         const x = csList().find((y) => y.id === id);
         if (!x || x.state === 'armed' || x.state === 'firing' || x.state === 'fired') return;
+        if (rmRefuse('stops')) return; // 9.0.9: switched off by Astral
         const mid = csMid();
         if (!mid) { tpToast('No live price yet. Not armed.', 'warn'); return; }
         if (x.acc !== csAcc() || !tpSameSym(x.sym, tpSymbol())) { tpToast('That stop is for another account or market. Not armed.', 'warn'); return; }
@@ -8468,6 +8520,7 @@
         if (CS.place || CS.drag) { csEnd(false); return; }
         const lim = kind === 'limit';
         const what = lim ? 'limit' : 'stop';
+        if (rmRefuse(lim ? 'limits' : 'stops')) return; // 9.0.9: switched off by Astral
         if (lim ? S.tpsl.limit.show === false : S.tpsl.stops.show === false) return;
         if (S.tpsl.enabled === false) { tpToast('Chart TP/SL is off in Settings: ' + what + (lim ? ' orders' : 's') + ' need it. No ' + what + ' set.', 'warn'); return; }
         if (!TP.chart || TP.scaleWhy) { tpToast("The chart is not ready (or its price scale is not on the right). No " + what + " set.", 'warn'); return; }
@@ -8549,7 +8602,7 @@
             return;
         }
         x.price = d.price;
-        if (x.state !== 'armed' && x.state !== 'firing' && x.state !== 'fired' && x.acc === csAcc() && tpSameSym(x.sym, tpSymbol())) { x.state = 'armed'; x.why = ''; }
+        if (x.state !== 'armed' && x.state !== 'firing' && x.state !== 'fired' && x.acc === csAcc() && tpSameSym(x.sym, tpSymbol()) && rmOff('stops') === null) { x.state = 'armed'; x.why = ''; }
         csRt(x.id).prev = mid;
         persist();
         mcDepthSync();
@@ -8650,7 +8703,7 @@
             const px = d ? d.price : x.price;
             const rt = CS.rt.get(x.id);
             const why = x.state === 'armed' && rt ? rt.why : '';
-            const state = ghost ? 'CLICK TO SET' : x.state === 'armed' ? (why === 'stale' ? 'NO PRICE' : why === 'account' ? 'OTHER ACCOUNT' : why === 'market' ? 'WAIT' : 'ARMED')
+            const state = ghost ? 'CLICK TO SET' : x.state === 'armed' ? (why === 'stale' ? 'NO PRICE' : why === 'account' ? 'OTHER ACCOUNT' : why === 'market' ? 'WAIT' : why === 'off' ? 'PAUSED' : 'ARMED')
                 : x.state === 'firing' ? 'SENDING' : x.state === 'fired' ? 'SENT' : x.state === 'passed' ? 'PASSED' : 'NOT SENT';
             const wait = !ghost && (x.state === 'armed' ? !!why && why !== 'jump' && why !== 'drag' : x.state !== 'firing' && x.state !== 'fired');
             tpText(nd.k, (x.side === 'buy' ? 'BUY' : 'SELL') + (x.kind === 'limit' ? ' LIMIT' : ' STOP'));
@@ -9486,6 +9539,7 @@
     // W / S: the Exec strip's own button, pressed exactly like a click. Returns how long the macros stay locked afterwards.
     async function mcMarket(side, k, acc0) {
         if (mcDemo()) return 0;
+        if (rmRefuse('orders')) return 0; // 9.0.9: switched off by Astral (the button's guard would stop the click, but this toast would say Long)
         const why = mcGate(side === 'buy' ? 'long' : 'short');
         if (why) { mcToast(k, '· ' + why + '. Nothing sent.', 'bad', true); return 0; }
         if (!mcMidRef()) { mcToast(k, '· no live mid price yet. Nothing sent.', 'bad', true); return 0; }
@@ -9510,6 +9564,7 @@
 
     async function mcFlat(k, acc0) {
         if (mcDemo()) return 0;
+        if (rmRefuse('close')) return 0; // 9.0.9: switched off by Astral
         const why = mcGate('flat');
         if (why) { mcToast(k, '· ' + why + '. Nothing sent.', 'bad', true); return 0; }
         if (tpActiveAccount() !== acc0) { mcToast(k, '· the account changed. Nothing sent.', 'bad', true); return 0; }
@@ -9533,6 +9588,7 @@
     // E / Q: Limit tab, size, price, Buy/Sell. Always puts the ticket back on Market afterwards.
     async function mcLimit(id, k, acc0, at) {
         if (mcDemo()) return 0;
+        if (rmRefuse('limits')) return 0; // 9.0.9: switched off by Astral
         const side = id === 'limitBuy' ? 'buy' : 'sell';
         const name = side === 'buy' ? 'Limit buy' : 'Limit sell';
         const refuse = (msg) => { mcToast(k, '· ' + msg + '. Nothing sent.', 'bad', true); return 0; };
@@ -10730,7 +10786,8 @@
             if (o && xcPartialsOn()) xcEntryPartials(o.side, new Set([o.oldId])).catch(() => {});
         });
     };
-    xcHooks.partials = () => (xcDemoOn() ? '' : !TP.on || S.tpsl.enabled === false ? 'Partials need chart TP/SL on (Settings > Chart).' : '');
+    // 9.0.9: Partials set the targets through Vest's Edit TP/SL window: TP / SL switched off by Astral switches them off too
+    xcHooks.partials = () => (rmOff('tpsl') !== null ? 'Partials are switched off by Astral for now.' : xcDemoOn() ? '' : !TP.on || S.tpsl.enabled === false ? 'Partials need chart TP/SL on (Settings > Chart).' : '');
     xcHooks.assetOf = (sym) => { const i = tpInfoGet(sym); return i && i.asset ? { asset: i.asset, cats: i.cats || [] } : null; };
     xcHooks.applyPartials = () => { xcPartialsNow().catch(() => { XC.busy = false; xcPaint(); }); };
     xcHooks.busy = () => XC.busy;
@@ -11302,6 +11359,11 @@
         const rec = dllFlatLock(acc, t);
         if (!rec) { DLLF.seen = ''; DLLF.ids = ''; DLLF.tries = 0; DLLF.gaveUp = false; return; }
         const lock = acc + '|' + rec.key;
+        // 9.0.9: switched off by Astral: the lock stays, nothing is closed; said once per lock
+        if (rmOff('lossclose') !== null) {
+            if (DLLF.rmTold !== lock) { DLLF.rmTold = lock; tpToast(rmText('lossclose', rmOff('lossclose')) + ' The lock stays on: close your positions in Vest\'s Positions tab.', 'warn', 12000); }
+            return;
+        }
         const ids = dllFlatIds();
         if (ids !== DLLF.ids) { DLLF.ids = ids; DLLF.tries = 0; DLLF.gaveUp = false; } // something closed or opened: a fresh start
         if (DLLF.seen === lock && !ids) return;
@@ -11330,7 +11392,7 @@
     // the others. Three passes at most for the same positions.
     async function dllFlatPass(acc, key) {
         // read fresh, never from tpActiveAccount's 400 ms memo: a switch made just before a click would otherwise close the NEW account's first row
-        const still = () => { const rec = dllFlatLock(acc, now()); return !!rec && rec.key === key && dllAccount(true) === acc && !xcDemoOn(); };
+        const still = () => { const rec = dllFlatLock(acc, now()); return !!rec && rec.key === key && dllAccount(true) === acc && !xcDemoOn() && rmOff('lossclose') === null; };
         const dialog = () => document.querySelector('[data-testid="close-dialog"]');
         const skip = new Set();
         const next = () => {
@@ -11535,6 +11597,22 @@
     // registered before the Demo guard below, so a locked account hears about the lock first
     document.addEventListener('click', dllGuard, true);
 
+    // 9.0.9: a card button whose feature Astral switched off (rmOff) does nothing at all. Registered right after dllGuard, so before the Demo
+    // guard below, the Partials arm and the copier's click-time intents (which copy FLAT, 50% and REV at the click): none of them hears it.
+    // The pill and the W / S / flat hotkeys press these same buttons. REV opens a position too: it needs 'orders' as well as 'close'.
+    function rmGuard(e) {
+        const t = e.target && e.target.closest ? e.target : null;
+        if (!t) return;
+        const b = t.closest('#ax4p-buy-btn, #ax4p-sell-btn, #ax4p-flatten-btn, #ax4p-half-btn, #ax4p-rev-btn, #ax4p-part-row button, #ax4p-cxl-btn');
+        if (!b) return;
+        const name = b.id === 'ax4p-buy-btn' || b.id === 'ax4p-sell-btn' || (b.id === 'ax4p-rev-btn' && rmOff('close') === null) ? 'orders' : 'close';
+        if (rmOff(name) === null) return;
+        e.stopImmediatePropagation();
+        e.preventDefault();
+        rmRefuse(name);
+    }
+    document.addEventListener('click', rmGuard, true);
+
     // While 50% or REV runs: FLAT goes through and stops them before they do anything more; LONG and SHORT wait.
     // In Demo: LONG, SHORT and FLAT on the card (and the pill, which presses them) only say what they would do.
     document.addEventListener('click', (e) => {
@@ -11560,6 +11638,105 @@
         else xcSay(`[DEMO] ${b.id === 'ax4p-buy-btn' ? 'LONG' : 'SHORT'} ${fmtSize(activeSelectedSize)} at market, ${stop}, ${plan}. Nothing sent.`);
     }, true);
 
+    // ---------- remote switches (9.0.9): a change, what it stops, and the Store edition's held update ----------
+    // What a switch leaves behind (said once, with the reason, when it goes off or when a page loads with it off)
+    const RM_LEAVES = {
+        copier: 'If copying was on, it stopped: your followers keep their positions and any copied limit orders. Manage them on Vest.',
+        turbo: 'A group copying on Turbo stopped: switch it on again and it copies on Light.',
+        orders: '', close: 'Close positions with Vest\'s own Close in its Positions tab.',
+        stops: 'Armed stop orders are paused and will not fire: put a stop on Vest if you need one.',
+        limits: 'Limit orders already on Vest stay there.', tpsl: 'Change your stop and target in Vest\'s own Edit TP/SL window.',
+        trail: 'A trailing stop stays where it last moved and no longer follows the price.', autobe: 'Your stop will not move to breakeven by itself.',
+        accounts: 'Use Vest\'s own account menu.', lossclose: 'The loss limit\'s lock stays on, but it will not close positions for you.'
+    };
+    // the bridge's { name: reason } (only known names, plain text): apply what changed
+    function rmSet(off) {
+        const next = {};
+        if (off && typeof off === 'object' && !Array.isArray(off)) {
+            for (const k of ['all'].concat(RM_NAMES)) if (typeof off[k] === 'string') next[k] = off[k].slice(0, 200);
+        }
+        const was = {};
+        for (const n of RM_NAMES) was[n] = rmOff(n) !== null;
+        RM.off = next;
+        const goneOff = RM_NAMES.filter((n) => !was[n] && rmOff(n) !== null);
+        const backOn = RM_NAMES.filter((n) => was[n] && rmOff(n) === null);
+        if (!goneOff.length && !backOn.length) return;
+        for (const n of goneOff) { try { rmStopRunning(n); } catch (e) {} }
+        if (goneOff.length > 2) {
+            // 'all' (or several at once): one toast, not eleven
+            const why = rmOff(goneOff[0]);
+            tpToast('Astral switched off ' + goneOff.length + ' Better Vest features for now' + (why ? ': ' + why : '') + '. Trade on Vest itself until they are back on.', 'warn', 15000);
+        } else {
+            for (const n of goneOff) tpToast(rmText(n, rmOff(n)) + (RM_LEAVES[n] ? ' ' + RM_LEAVES[n] : ''), 'warn', 15000);
+        }
+        if (backOn.length) {
+            // "The copy trader and stop orders are back on." (a later name in lower case, unless it starts with a word in capitals: FLAT, TP)
+            const names = backOn.map((n, i) => { const l = RM_LABEL[n]; return i && /^[A-Z][a-z]/.test(l) ? l[0].toLowerCase() + l.slice(1) : l; });
+            const verb = backOn.length > 1 || RM_PLURAL.has(backOn[0]) ? ' are' : ' is';
+            tpToast((backOn.length > 2 ? 'Better Vest\'s features are' : names.join(' and ') + verb) + ' back on.', 'good', 6000);
+        }
+        // the copier (its own closure) hears it here: it stops a copier or a Turbo engine that is now switched off (cpOnSuiteEvent)
+        bvEmit('remote', { off: Object.assign({}, RM.off) });
+        try { xcPaintExits(); } catch (e) {}
+    }
+    // stop what of a feature is under way right now (the copier stops itself on the 'remote' event)
+    function rmStopRunning(name) {
+        if (name === 'stops' || name === 'limits') {
+            if (CS.place && (CS.place.kind === 'limit') === (name === 'limits')) csEnd(false); // a placement being aimed
+        } else if (name === 'tpsl') {
+            if (TP.drag) tpCancelDrag();
+            TP.undo = null;
+            XP.arm++; // a Partials arm still waiting for its fill does nothing
+        } else if (name === 'accounts') {
+            if (VU.pay && VU.pay.running && VU.pay.ctl) VU.pay.ctl.stop = true; // payouts stop after the current account and switch back
+        } else if (name === 'close') {
+            XC.revArm = null;
+        }
+    }
+    // Nothing under way in this tab that a reload would cut short: flat on the active account, nothing armed, no copying, nothing being sent.
+    function rmIdleExt() {
+        const t = now();
+        if (TP.demo || tpPositions().length || TP.prov || TP.drag || TP.inflight.size || XC.busy || t < mc.lockUntil || t < TP.blockUntil) return false;
+        if (CS.place || CS.drag || CS.firing || (CS.queue && CS.queue.length) || csList().some((x) => x && (x.state === 'armed' || x.state === 'firing'))) return false;
+        if (S.tpsl.trail && S.tpsl.trail.armed && Object.keys(S.tpsl.trail.armed).length) return false;
+        if (CXL.busy || DLLF.busy || (VU.pay && VU.pay.running) || bvCopyLock) return false;
+        try {
+            const rows = VU.hooks && typeof VU.hooks.groups === 'function' ? VU.hooks.groups() : null;
+            if (Array.isArray(rows) && rows.some((r) => r && (r.here === true || r.running === true))) return false;
+        } catch (e) { return false; }
+        // every market of the active account flat, read from Vest's own positions store (as the update pop-up's upFlat does)
+        let uid = null;
+        try { const b = tpBridge(); uid = b && b.userId ? b.userId() : null; } catch (e) {}
+        if (!uid) return true; // logged out: nothing to cut short
+        const acc = tpActiveAccount();
+        if (!acc) return false;
+        if (!TPS.api) tpFindStores();
+        let reg = null;
+        try { reg = TPS.api && tpIsPosStore(TPS.api) ? TPS.api.getState().accounts[acc] : null; } catch (e) { reg = null; }
+        if (!reg || reg.hasHydrated !== true || !reg.positions || typeof reg.positions !== 'object') return false;
+        for (const p of Object.values(reg.positions)) {
+            if (!p || p.closedAt) continue;
+            if (typeof p.quantity !== 'bigint' || p.quantity > 0n) return false;
+        }
+        return true;
+    }
+    // The Store edition: Chrome holds a newer version; while it waits this tab reports its state every 5 s (the worker installs it when every
+    // Vest tab is idle, update/remote.js storeApply), and says so once
+    function rmStoreReady(v) {
+        if (!/^\d{1,4}(\.\d{1,4}){1,3}$/.test(String(v || '')) || v === VERSION) return;
+        RM.storeReady = String(v);
+        if (!RM.idleTimer) RM.idleTimer = setInterval(postState, 5000);
+        postState();
+        if (RM.storeTold === RM.storeReady) return;
+        RM.storeTold = RM.storeReady;
+        tpToast('Better Vest ' + RM.storeReady + ' is ready. It installs itself the next time you are flat with nothing armed and no copying (this page reloads then).', '', 9000);
+    }
+    function rmStoreUpdated(v) {
+        if (String(v) !== VERSION || RM.updatedTold === VERSION) return;
+        RM.updatedTold = VERSION;
+        tpToast('Better Vest updated itself to ' + VERSION + ' while you were flat.', 'good', 7000);
+    }
+
     // --- Better Vest extension bridge: popup/background talk to the page via window messages.
     // Under Tampermonkey nothing sends these, so it stays idle. ---
     function postState() {
@@ -11569,6 +11746,8 @@
                 state: {
                     version: VERSION, theme: S.theme, widgets: S.widgets, hide: S.hide, account: S.account,
                     symbol: detectedSymbol, feed: !!(ownWs && ownWs.readyState === 1),
+                    // 9.0.9: a Store update Chrome holds goes in only when every Vest tab says this (update/remote.js storeApply)
+                    idle: rmIdle(),
                     themes: Object.keys(THEMES).map((k) => ({ k, label: THEMES[k].label, page: THEMES[k].page, accent: THEMES[k].accent, up: THEMES[k].chart.up, down: THEMES[k].chart.borderDown || THEMES[k].chart.down, text: THEMES[k].text, line: THEMES[k].line }))
                 }
             }, location.origin);
@@ -11589,6 +11768,9 @@
             showUpdateButton(d.version);
             upHear(d.version, d.heads);
         }
+        else if (d.cmd === 'remote') rmSet(d.off);
+        else if (d.cmd === 'store-ready') rmStoreReady(d.version);
+        else if (d.cmd === 'store-updated') rmStoreUpdated(d.version);
         else if (d.cmd === 'widget' && ['exec', 'settings'].includes(d.key)) {
             S.widgets[d.key] = d.key === 'settings' ? !S.widgets.settings : S.widgets[d.key] === false;
             persist();
@@ -14051,6 +14233,7 @@
         id = String(id || '');
         if (!id) return { ok: false, why: 'no account' };
         if (vuDemo()) return { ok: false, why: 'This is the demo: nothing is switched on Vest.' };
+        if (rmOff('accounts') !== null) return { ok: false, why: rmText('accounts', rmOff('accounts')) }; // 9.0.9: the copier's switch too
         if (String(vuActiveId() || '') === id) return { ok: true, why: '' };
         const busy = vuBusyWhy();
         if (busy && !/^(Copying|A STOP)/.test(busy)) return { ok: false, why: busy };
@@ -14063,6 +14246,7 @@
         const m = vuList().find((x) => x.id === id);
         if (!m || m.active) return;
         if (vuDemo()) { VU.demoActive = id; vuChanged(); tpToast('Demo: on ' + (m.nick || m.name) + '. Nothing sent, nothing switched on Vest.', 'good'); return; }
+        if (rmRefuse('accounts')) return; // 9.0.9: switched off by Astral
         const busy = vuBusyWhy();
         if (busy && !/^(Copying|A STOP)/.test(busy)) { tpToast(busy, 'warn'); return; }
         const r = await vuSwitchVia(vuEnv(), id);
@@ -14402,6 +14586,7 @@
     // ---------- 5. Request payouts ----------
     function vuOpenPay() {
         if (VU.pay) return;
+        if (rmRefuse('accounts')) return; // 9.0.9: switched off by Astral
         const plan = vuPayPlan(vuList(), [...VU.sel]);
         if (!plan.length) return;
         const sc = document.createElement('div');
@@ -14473,6 +14658,7 @@
     async function vuPayStart() {
         const P = VU.pay;
         if (!P || P.running) return;
+        if (rmRefuse('accounts')) return; // 9.0.9: switched off by Astral
         const list = P.plan.filter((r) => r.state === 'ready').map((r) => ({ id: r.id }));
         if (!list.length || vuBusyWhy()) return;
         P.running = true;
@@ -16188,6 +16374,7 @@
         detectPrices,
         // The card size is what the order code reads, so it is set for this one call only (the same swap Partials uses).
         async execute(side, size) {
+            if (rmRefuse('orders')) return false; // 9.0.9: switched off by Astral (the card's own refusal: nothing sent)
             if (side !== 'buy' && side !== 'sell') throw new Error('execute: side must be buy or sell');
             if (!(Number(size) > 0)) throw new Error('execute: size must be above 0');
             const keep = activeSelectedSize;
@@ -16204,6 +16391,9 @@
             return true;
         },
         positions: () => tpPositions().slice(),
+        // 9.0.9: the remote switches (rmOff): the reason a feature ('copier', 'turbo', ...) is switched off by Astral, else null. The copier asks
+        // before it starts and before each follower action, and hears every change as the suite event 'remote' (onEvent).
+        remoteOff: (name) => rmOff(String(name)),
         // read only, for the P&L card's Replay (src/copy/35-share.js): Vest's own candles, and whether a row's market is the chart's
         chartBars: () => rpChartBars(),
         feedBars: (res, first, sym) => rpFeedBars(res, first, sym),
@@ -17500,6 +17690,17 @@ function cpSuite() {
     try { return typeof bvSuite === 'function' ? bvSuite() || null : null; } catch (e) { return null; }
 }
 
+// 9.0.9: the remote switches (the suite's rmOff, through su.remoteOff): the reason Astral switched the copier ('copier') or the Turbo engine
+// ('turbo') off for everyone, else null. A suite without it (a test stub) switches nothing off.
+function cpRemoteOff(name) {
+    const su = cpSuite();
+    try { return su && typeof su.remoteOff === 'function' ? su.remoteOff(name) : null; } catch (e) { return null; }
+}
+function cpRemoteWhy(name) {
+    const w = cpRemoteOff(name);
+    return w === null ? '' : (name === 'turbo' ? 'Turbo copying' : 'The copy trader') + ' is switched off by Astral for now' + (w ? ': ' + w : '.');
+}
+
 function cpNewFollower(accountId) {
     return { accountId: String(accountId), on: true, ratio: 1 };
 }
@@ -17910,7 +18111,8 @@ function cpEngineKnown(id) {
 // the chosen one uses Direct rather than none). The engine of a running copier is CP.engineId: that one is stopped and used until copying is off.
 function cpEngineId(c) {
     const e = (c || cpCfg()).engine;
-    const want = e === 'tabs' ? (CP.turboOff ? 'direct' : 'tabs') : e && e !== 'direct' && cpEngineKnown(e) ? e : 'direct';
+    // 9.0.9: Turbo switched off by Astral runs Light the same way, and the trader's choice stays saved (CP.turboOff's cpNormGroup rewrites it)
+    const want = e === 'tabs' ? (CP.turboOff || cpRemoteOff('turbo') !== null ? 'direct' : 'tabs') : e && e !== 'direct' && cpEngineKnown(e) ? e : 'direct';
     return cpEngines[want] ? want : cpEngines.direct ? 'direct' : want;
 }
 
@@ -17926,6 +18128,7 @@ function cpSetEngine(id, gid) {
     if (!cpEngineKnown(want)) return dvNo('unknown engine');
     if (!cpEngines[want]) return dvNo('that engine is not available in this build');
     if (want === 'tabs' && CP.turboOff) return dvNo(CP_TURBO_OFF_WHY);
+    if (want === 'tabs' && cpRemoteOff('turbo') !== null) return dvNo(cpRemoteWhy('turbo'));
     const c = cpCfgFor(gid);
     if ((cpIsLocal(c) && (CP.running || CP.engineUp || CP.flattening)) || cpPeerRunning(c.id)) return dvNo('Switch copying off before you change the engine.');
     if (c.engine === want) return { ok: true, why: '' };
@@ -18447,6 +18650,9 @@ function cpRefusal(a) {
     const c = cpCfg();
     const flat = !!(a.flatten && CP.flattening); // the kill switch's flatten is the one thing allowed past a stopped state
     if (CP.killed && !flat) return 'kill switch';
+    // 9.0.9: switched off by Astral (the kill switch's flatten, a way out, still goes)
+    if (!flat && cpRemoteOff('copier') !== null) return 'switched off by Astral';
+    if (!flat && CP.engineUp && CP.engineId === 'tabs' && cpRemoteOff('turbo') !== null) return 'Turbo switched off by Astral';
     if (!c.on && !flat) return 'master switch off';
     if (!flat && CP.authAt && CP.now() - CP.authAt < CP_AUTH_COOL) return 'a sign-in error just happened: waiting so Vest does not log every tab out';
     const demo = cpDemoWhy();
@@ -19737,6 +19943,8 @@ function cpLeadMarket(g) {
 async function cpStartGroup(gid) {
     const g = cpGroup(gid);
     if (!g) return { ok: false, why: 'No such group.' };
+    const rwhy = cpRemoteWhy('copier'); // 9.0.9
+    if (rwhy) return { ok: false, why: rwhy };
     if (cpAckNeeded()) return { ok: false, why: 'The risk note has not been accepted yet.' };
     if (!g.leaderId) return { ok: false, why: 'Pick the leader of group ' + g.id + ' first.' };
     if (!g.followers.some((f) => f && f.on)) return { ok: false, why: 'Switch at least one account on in group ' + g.id + ' first.' };
@@ -19984,6 +20192,14 @@ async function cpStart(opts) {
     const c = cpCfg();
     const quiet = !!(opts && opts.quiet); // a start asked over the bus: another tab may have taken the lock first, which is no news
     if (CP.running) return true;
+    // 9.0.9: switched off by Astral. A saved "on" or a resume would bring it back by itself later: off, as a stop leaves it.
+    const rwhy = cpRemoteWhy('copier');
+    if (rwhy) {
+        if (c.on || c.resume) { c.on = false; c.resume = null; cpSave(c); }
+        cpLog('info', { note: 'not started: ' + rwhy });
+        cpToast(rwhy, 'bad');
+        return false;
+    }
     typeof cpDev === 'function' && cpDev('state', () => ({ msg: 'copying is being switched on: ' + cpDvCfg(c), cfg: { leader: c.leaderId, followers: c.followers.map((x) => ({ acc: x.accountId, on: x.on, ratio: x.ratio })), markets: c.markets.slice(), engine: cpEngineId(c), ultraFast: c.sendAtPending === true, mirrorLimits: c.mirrorLimits !== false } }));
     if (cpAckNeeded()) { cpLog('info', { note: 'not started: needs acknowledgement' }); typeof cpDev === 'function' && cpDev('state', () => ({ msg: 'copying did not start: the risk note has not been accepted yet' })); return false; }
     if (!c.leaderId) { cpToast('Copy: pick the leader account first.', 'bad'); typeof cpDev === 'function' && cpDev('state', () => ({ msg: 'copying did not start: no leader account is picked' })); return false; }
@@ -20026,12 +20242,14 @@ async function cpStart(opts) {
     cpLoadWatch(true);
     const engId = cpEngineId(c);
     const eng = cpEngines[engId];
+    if (c.engine === 'tabs' && engId !== 'tabs' && cpRemoteOff('turbo') !== null) cpToast(cpRemoteWhy('turbo') + ' Copying runs on Light.', 'warn'); // 9.0.9
     if (!eng) { cpToast('Copy: the copy engine is not available.', 'bad'); typeof cpDev === 'function' && cpDev('error', () => ({ msg: 'copying cannot start: the ' + engId + ' engine is not in this build', engine: engId })); cpStop('no engine'); return false; }
     // Vest's script text is what tells its writers apart: have it before the first intent, not after
     try { const v = cpVx(); if (v && typeof v.prepare === 'function') await v.prepare(); } catch (e) { cpLog('error', { note: 'prepare: ' + cpScrub(e && e.message || e) }); }
     if (!CP.running) return false; // switched off while Vest's script text was loading: nothing was started
     const vwhy = await cpFindWriters();
     if (!CP.running) return false; // switched off while Vest's order form was looked for
+    if (cpRemoteOff('copier') !== null) { cpStop('switched off by Astral'); return false; } // 9.0.9: switched off meanwhile
     if (vwhy && cpOffTradePage()) {
         cpLog('error', { note: 'not started: no trade page (' + vwhy + ')' });
         typeof cpDev === 'function' && cpDev('error', () => ({ msg: 'copying cannot start: this is not a trade page, so Vest\'s order form is not here (' + vwhy + ')', why: vwhy }));
@@ -20444,6 +20662,11 @@ function cpOnSuiteEvent(type, d) {
         cpIntent(it);
     } else if (type === 'stop-failed') {
         cpStopUndo(cpCanonSym(cpSymbol()), 'the stop did not go through');
+    } else if (type === 'remote') {
+        // 9.0.9: Astral switched the copier (or the Turbo engine this tab copies with) off: stop here (the suite's toast says what that leaves)
+        if (!CP.running) return;
+        if (cpRemoteOff('copier') !== null) { cpLog('info', { note: 'copying stopped: switched off by Astral' }); cpStop('switched off by Astral'); }
+        else if (CP.engineUp && CP.engineId === 'tabs' && cpRemoteOff('turbo') !== null) { cpLog('info', { note: 'copying stopped: Turbo switched off by Astral' }); cpStop('Turbo switched off by Astral'); }
     }
 }
 // The followers were sent for a stop of the leader's that then did not go through (the suite says so, or Vest refused its order,
@@ -28263,6 +28486,9 @@ async function cuOnMaster(e) {
         cuRender();
         return;
     }
+    // 9.0.9: switched off by Astral comes first: nothing else to set up while it is off
+    const rwhy = typeof cpRemoteWhy === 'function' ? cpRemoteWhy('copier') : '';
+    if (rwhy) { cuNote(rwhy); box.checked = false; return; }
     const fols = (cfg.followers || []).filter((f) => f && f.on && String(f.accountId) !== String(cfg.leaderId));
     if (!cfg.leaderId || !fols.length) {
         cuNote('Pick a leader and switch at least one account on first.');
