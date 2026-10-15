@@ -16,6 +16,7 @@
     let lastAck = 0;
     let lastOpen = 0;
     let tellTimer = 0;
+    let remoteTimer = 0;
 
     // ---- copy trader relay: page <-> service worker (WICKED and Standard) ----
     // The page asks the service worker to open and drive the follower tabs; the service worker drives this tab's page when it is a
@@ -92,6 +93,7 @@
         try { if (chrome.runtime && chrome.runtime.id) return true; } catch (e) {}
         window.removeEventListener('message', onWindowMessage);
         clearInterval(tellTimer);
+        clearInterval(remoteTimer);
         return false;
     }
 
@@ -267,4 +269,42 @@
     }
     setTimeout(tellUpdate, 3000);
     tellTimer = setInterval(tellUpdate, 5 * 60 * 1000);
+
+    // 9.0.9: the features Astral switched off (update/remote.js keeps this version's in bvRemoteOff), passed on whenever they change and
+    // again now and then for a page that came up late. Only the known names, each with a plain-text reason of at most 200 characters.
+    const REMOTE_NAMES = new Set(['all', 'copier', 'turbo', 'orders', 'close', 'stops', 'limits', 'tpsl', 'trail', 'autobe', 'accounts', 'lossclose']);
+    function tellRemote(off) {
+        if (!alive()) return;
+        const out = {};
+        if (off && typeof off === 'object' && !Array.isArray(off)) {
+            for (const k of Object.keys(off)) if (REMOTE_NAMES.has(k) && typeof off[k] === 'string') out[k] = off[k].slice(0, 200);
+        }
+        window.postMessage({ bv: 1, dir: 'toPage', cmd: 'remote', off: out }, location.origin);
+    }
+    function readRemote() {
+        if (!alive()) return;
+        try {
+            chrome.storage.local.get(['bvRemoteOff', 'bvStorePending', 'bvStoreUpdated']).then((o) => {
+                tellRemote(o.bvRemoteOff);
+                tellStore(o.bvStorePending, o.bvStoreUpdated);
+            }).catch(() => {});
+        } catch (e) {}
+    }
+    // the Store edition: an update Chrome holds until this tab is idle, and the one that just went in (the tab was reloaded for it)
+    function tellStore(pending, updated) {
+        const ok = (x) => x && typeof x === 'object' && /^\d{1,4}(\.\d{1,4}){1,3}$/.test(String(x.v));
+        if (ok(pending)) window.postMessage({ bv: 1, dir: 'toPage', cmd: 'store-ready', version: String(pending.v) }, location.origin);
+        if (ok(updated) && Date.now() - (updated.at || 0) < 2 * 60 * 1000) window.postMessage({ bv: 1, dir: 'toPage', cmd: 'store-updated', version: String(updated.v) }, location.origin);
+    }
+    setTimeout(readRemote, 500);
+    setTimeout(readRemote, 2500);
+    setTimeout(readRemote, 8000);
+    remoteTimer = setInterval(readRemote, 60 * 1000);
+    try {
+        chrome.storage.onChanged.addListener((ch, area) => {
+            if (area !== 'local' || !alive()) return;
+            if (ch.bvRemoteOff) tellRemote(ch.bvRemoteOff.newValue);
+            if (ch.bvStorePending && ch.bvStorePending.newValue) tellStore(ch.bvStorePending.newValue, null);
+        });
+    } catch (e) {}
 })();
