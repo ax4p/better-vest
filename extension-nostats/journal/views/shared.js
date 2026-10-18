@@ -1,15 +1,4 @@
-// Better Vest Calendar - helpers shared by the Stats, Trades, Payouts and Accounts views.
-//
-//   shortName(a, accountName)     'Funded 21 · cca3' style label for tables (full name goes in a title)
-//   capitalBase(list, byId)       {total, avg, n}: capital of the distinct accounts behind a list of trades
-//   median / pctOf                small maths
-//   popBase / dl / foot           hover-card building blocks (same look as the Calendar's cards)
-//   vgrid({...})                  virtualized grid: sticky header, pooled rows, optional expandable detail
-//   chartBox({height, draw})      responsive chart host: draw(host, width, height) re-runs when the width changes
-//   barChart / hbars              vertical SVG bars and horizontal HTML bars with hover-card hooks
-//   goTab(ctx, id)                switch tab through the shell's own tab button so the top bar stays in sync
-//
-// Every API string reaches the DOM through h() (textContent), never innerHTML.
+/* Better Vest by Astral. Copyright (c) 2026 Astral (@ax4p). All rights reserved. Not open source: see LICENSE. */
 
 import { h, clear } from '../ui.js';
 import { svg, scale } from '../charts.js';
@@ -30,7 +19,6 @@ export function shortName(a, accountName) {
     let head = parts[0] || '';
     const bar = head.indexOf('|');
     if (bar > -1) {
-        // '500 Vest Capital Instant Funded | 500': the tier after the bar repeats the size, so drop it
         const size = head.split(/\s+/)[0], tier = head.slice(bar + 1).trim();
         const same = tier.replace(/[$,\s]/g, '').toUpperCase() === size.replace(/[$,\s]/g, '').toUpperCase();
         head = tier && !same ? size + ' ' + tier : size;
@@ -39,7 +27,7 @@ export function shortName(a, accountName) {
 }
 
 export function capitalBase(list, accountsById) {
-    const seen = new Set();
+    const seen = new Set(); /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-0fd81285 */
     let total = 0;
     for (const t of list) {
         if (seen.has(t.accountId)) continue;
@@ -57,9 +45,8 @@ export function goTab(ctx, id) {
 }
 
 export function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
-export function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* ignore */ } }
+export function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {  } }
 
-// ---------- hover-card blocks ----------
 
 export function popBase(el, title, sub, { low = false } = {}) {
     el.appendChild(h('h4', null, title, low ? h('span', { class: 'tag' }, 'low sample') : null));
@@ -75,7 +62,6 @@ export function foot(el, ...lines) {
     if (l.length) el.appendChild(h('div', { class: 'foot' }, l.map((x) => h('span', null, x))));
 }
 
-// Registry of hover-card builders keyed by a short id; views stamp data-vtip="id" on elements.
 export function tipRegistry() {
     const map = new Map();
     let seq = 0;
@@ -86,12 +72,6 @@ export function tipRegistry() {
     };
 }
 
-// ---------- virtualized grid ----------
-//
-// head: [{key, label, cls, sortable, title}]   template: CSS grid-template-columns shared by header and rows
-// renderRow(item, i) -> array of cell contents (Node | string), one per head entry
-// detail(item, i) -> Node shown under an expanded row (fixed detailH); rowKey(item, i) keeps expansion across sorts
-// virtual:false renders every row (small lists keep find-in-page and natural height)
 
 export function vgrid({ template, head, rowH = 28, headH = 30, renderRow, rowKey, detail, detailH = 0, rowCls, onRow, onSort, virtual = true, label, empty, minWidth }) {
     const scroller = h('div', { class: 'vg', role: 'table', 'aria-label': label });
@@ -99,7 +79,7 @@ export function vgrid({ template, head, rowH = 28, headH = 30, renderRow, rowKey
     const body = h('div', { class: 'vg-body', role: 'rowgroup' });
     const inner = h('div', { class: 'vg-in', style: minWidth ? { minWidth: minWidth + 'px' } : null }, headEl, body);
     scroller.appendChild(inner);
-    const heads = new Map();
+    const heads = new Map(); /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-acc0b793 */
     for (const c of head) {
         const cell = h('div', { class: 'vh ' + (c.cls || ''), role: 'columnheader', title: c.title });
         if (c.sortable && onSort) {
@@ -150,7 +130,7 @@ export function vgrid({ template, head, rowH = 28, headH = 30, renderRow, rowKey
     }
     function render() {
         raf = 0;
-        const n = rows.length;
+        const n = rows.length; /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-2867b45d */
         const st = scroller.scrollTop, vh = scroller.clientHeight || 640;
         let i0 = 0, i1 = n;
         if (virtual) { i0 = Math.max(0, find(st) - 6); i1 = Math.min(n, find(st + vh) + 8); }
@@ -166,13 +146,13 @@ export function vgrid({ template, head, rowH = 28, headH = 30, renderRow, rowKey
         const el = live.get(i);
         if (el) el.focus({ preventScroll: true });
     }
-    let lastTop = 0;   // tracked from scroll events so resetting never forces a layout
+    let lastTop = 0;
     scroller.addEventListener('scroll', () => { lastTop = scroller.scrollTop; if (!raf) raf = requestAnimationFrame(render); }, { passive: true });
     const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(() => { if (!raf) raf = requestAnimationFrame(render); }) : null;
     if (ro) ro.observe(scroller);
     const emptyEl = h('div', { class: 'vg-empty' }, empty || 'Nothing to show');
     return {
-        el: scroller,
+        /*! Copyright (c) 2026 Astral. Better Vest 9.2.5 is licensed to its users only to run it, never to copy it. bv-f04c54fe */ el: scroller,
         setRows(next) {
             rows = next;
             layout();
@@ -196,7 +176,6 @@ export function vgrid({ template, head, rowH = 28, headH = 30, renderRow, rowKey
     };
 }
 
-// ---------- charts ----------
 
 export function chartBox({ height = 180, draw }) {
     const el = h('div', { class: 'cbox', style: { height: height + 'px' } });
@@ -217,9 +196,6 @@ export function chartBox({ height = 180, draw }) {
 
 const f1 = (n) => (Math.round(n * 10) / 10).toString();
 
-// Vertical signed bars. data: [{label, v, tip?(el), x?}] ; ctx-free: callers pass formatters.
-//   yLabel(v) -> text or null (omit the axis labels, e.g. with Hide $)     tipId(d, i) -> data-vtip id or null
-//   every: label stride (auto when omitted)    zeroLine always drawn when negatives exist
 export function barChart({ data, height = 170, yLabel, tipId, every, pad = { l: 6, r: 6, t: 12, b: 22 }, cls = '', gapRatio = 0.28, vlines = [] }) {
     return chartBox({
         height,
@@ -235,7 +211,6 @@ export function barChart({ data, height = 170, yLabel, tipId, every, pad = { l: 
             const bw = Math.max(2, Math.min(46, slot * (1 - gapRatio)));
             const root = svg('svg', { class: 'bchart ' + cls, width: W, height: H, viewBox: `0 0 ${W} ${H}`, role: 'img' });
             const y0 = y(0);
-            // light gridlines at the extremes
             if (hasY) {
                 const ticks = hi > 0 && lo < 0 ? [0, hi, lo] : hi > 0 ? [0, hi, hi / 2] : [0, lo, lo / 2];
                 const placed = [];
@@ -243,12 +218,11 @@ export function barChart({ data, height = 170, yLabel, tipId, every, pad = { l: 
                     const ty = y(t);
                     root.appendChild(svg('line', { class: t === 0 ? 'ch-zero' : 'ch-grid', x1: M.l, x2: W - M.r, y1: f1(ty), y2: f1(ty) }));
                     const txt = yLabel(t);
-                    // a label too close to one already drawn is skipped (a tiny loss next to $0 would overprint it)
                     if (txt != null && !placed.some((p) => Math.abs(p - ty) < 13)) { placed.push(ty); root.appendChild(svg('text', { class: 'ch-axis', x: M.l - 6, y: f1(ty + 3.5), 'text-anchor': 'end' }, txt)); }
                 }
             } else root.appendChild(svg('line', { class: 'ch-zero', x1: M.l, x2: W - M.r, y1: f1(y0), y2: f1(y0) }));
             const stride = every || Math.max(1, Math.ceil(n / Math.max(2, Math.floor((W - M.l - M.r) / 46))));
-            data.forEach((d, i) => {
+            /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-bea7aca9 */ data.forEach((d, i) => {
                 const cx = M.l + slot * i + slot / 2;
                 const yy = y(d.v || 0);
                 const hgt = Math.max(d.v ? 1.5 : 0, Math.abs(yy - y0));
@@ -261,7 +235,6 @@ export function barChart({ data, height = 170, yLabel, tipId, every, pad = { l: 
                 root.appendChild(svg('rect', attrs));
                 if (i % stride === 0) root.appendChild(svg('text', { class: 'ch-axis', x: f1(cx), y: H - 6, 'text-anchor': 'middle' }, d.label));
             });
-            // vertical guides at fractional slot positions, e.g. zero and the median on a histogram
             for (const v of vlines) {
                 const vx = M.l + slot * v.pos;
                 root.appendChild(svg('line', { class: 'ch-guide' + (v.cls ? ' ' + v.cls : ''), x1: f1(vx), x2: f1(vx), y1: M.t - 4, y2: H - M.b }));
@@ -272,7 +245,6 @@ export function barChart({ data, height = 170, yLabel, tipId, every, pad = { l: 
     });
 }
 
-// Horizontal bars as HTML rows. rows: [{label, title?, sub?, bars:[{v, cls}], right, tip}]
 export function hbars({ rows, max, tipId }) {
     let mp = 0, mn = 0;
     for (const r of rows) for (const b of r.bars) { if (b.v > mp) mp = b.v; if (b.v < mn) mn = b.v; }
@@ -290,10 +262,9 @@ export function hbars({ rows, max, tipId }) {
         root.appendChild(h('div', { class: 'hb-row', 'data-vtip': id, tabindex: id ? 0 : null },
             h('div', { class: 'hb-l', title: r.title || r.label }, r.label), track, h('div', { class: 'hb-r' }, r.right)));
     }
-    return root;
+    return root; /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-7475c020 */
 }
 
-// Ticks for a numeric axis: ~n values spanning [lo, hi] on round numbers.
 export function niceTicks(lo, hi, n = 4) {
     if (!(hi > lo)) return [lo];
     const raw = (hi - lo) / n;

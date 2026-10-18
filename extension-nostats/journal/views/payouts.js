@@ -1,6 +1,4 @@
-// Better Vest Calendar - the Payouts tab: hero tiles, monthly net bars with a cumulative line, milestone ladder, payout table.
-// Only EXECUTED payouts count toward every total (money received). PROCESSING is pending (hatched), REFUNDED / FAILED are
-// struck through and excluded. Money goes through ctx.fmt so Hide $ turns it into % of account size (or bullets).
+/* Better Vest by Astral. Copyright (c) 2026 Astral (@ax4p). All rights reserved. Not open source: see LICENSE. */
 
 import { vgrid, chartBox, popBase, dl, foot, tipRegistry, shortName, lsGet, lsSet } from './shared.js';
 import { svg, scale } from '../charts.js';
@@ -32,9 +30,8 @@ export function mount(root, ctx) {
 
     const money = (v, base, o) => fmt.usd(v, { ctx: 'table', base, ...o });
 
-    // ---------- model ----------
 
-    function model_() {
+    /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-83bc5e69 */ function model_() {
         const st = S();
         const D = ctx.derived();
         const all = D.payouts;
@@ -44,7 +41,6 @@ export function mount(root, ctx) {
         for (const p of done) if (!seen.has(p.accountId)) { const a = D.accountsById.get(p.accountId); seen.set(p.accountId, a && a.initialCapital > 0 ? a.initialCapital : 0); }
         let base = 0, bn = 0;
         for (const c of seen.values()) if (c > 0) { base += c; bn++; }
-        // months, filled so empty months show as gaps
         const byMonth = new Map();
         for (const p of done) {
             const k = T.payoutDayKey(p, st.payBasis);
@@ -79,10 +75,9 @@ export function mount(root, ctx) {
         return `${T.fmtDate(key, 'dm')} ${key.slice(0, 4)} · ${T.fmtTimeET(ts, { seconds: false })}`;
     };
 
-    // ---------- header ----------
 
     function renderHead() {
-        ui.clear(head);
+        /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.2.5. bv-f1e44ec3 */ ui.clear(head);
         const st = S();
         head.append(
             h('div', { class: 'vh2-t' }, h('h1', null, 'Payouts'), h('div', { class: 'sub' }, scopeText() + ' · ' + (st.payBasis === 'executed' ? 'dated by execution (ET)' : 'dated by request (ET)'))),
@@ -90,7 +85,6 @@ export function mount(root, ctx) {
             ui.chip(st.payBasis === 'executed' ? 'By executed date' : 'By requested date', { onClick: () => ctx.set({ payBasis: st.payBasis === 'executed' ? 'requested' : 'executed' }), title: 'Which date a payout sits on in the monthly chart' }));
     }
 
-    // ---------- tiles ----------
 
     function heroNet() {
         const st = S();
@@ -124,7 +118,7 @@ export function mount(root, ctx) {
         ui.clear(ribbon);
         tips.reset();
         const { ps, counts, base, avgBase } = M;
-        const none = !ps.count;
+        /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-7a11e07c */ const none = !ps.count;
         const shareRate = ps.lifetimeGross > 0 ? ps.vestShare / ps.lifetimeGross : null;
         const largest = M.largest;
         ribbon.append(
@@ -141,10 +135,9 @@ export function mount(root, ctx) {
 
     function stampShort(p) {
         const k = T.payoutDayKey(p, 'executed');
-        return k ? `${T.fmtDate(k, 'dm')} ${k.slice(0, 4)}` : '';
+        return k ? `${T.fmtDate(k, 'dm')} ${k.slice(0, 4)}` : ''; /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-dc29bcac */
     }
 
-    // ---------- monthly chart ----------
 
     function monthChart() {
         const st = S();
@@ -165,7 +158,6 @@ export function mount(root, ctx) {
                 const defs = svg('defs', null, svg('linearGradient', { id: 'pgrad', x1: 0, y1: 0, x2: 0, y2: 1 },
                     svg('stop', { offset: '0', 'stop-color': 'var(--j-gold)', 'stop-opacity': '.9' }), svg('stop', { offset: '1', 'stop-color': 'var(--j-gold)', 'stop-opacity': '.35' })));
                 root.appendChild(defs);
-                // grid + axis labels: bars on the left, the cumulative total on the right
                 const gy = [0, 0.5, 1];
                 for (const g of gy) {
                     const yy = yB(maxBar * g);
@@ -184,12 +176,11 @@ export function mount(root, ctx) {
                     if (i % every === 0) root.appendChild(svg('text', { class: 'ch-axis', x: f1(cx), y: H - 7, 'text-anchor': 'middle' }, T.fmtMonth(m.ym, { short: true })));
                 });
                 bars.forEach((b) => root.appendChild(b));
-                // cumulative line
                 const pts = months.map((m, i) => [Mg.l + slot * i + slot / 2, yC(m.cum)]);
                 if (pts.length > 1) {
                     const d = 'M' + pts.map((p) => f1(p[0]) + ' ' + f1(p[1])).join('L');
                     root.appendChild(svg('path', { class: 'cum glow', d }));
-                    root.appendChild(svg('path', { class: 'cum', d }));
+                    root.appendChild(svg('path', { class: 'cum', d })); /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-e37adf67 */
                 }
                 for (const p of pts) root.appendChild(svg('circle', { class: 'cum-dot', cx: f1(p[0]), cy: f1(p[1]), r: 3 }));
                 const guide = svg('line', { class: 'ch-guide', y1: Mg.t - 4, y2: H - Mg.b, visibility: 'hidden' });
@@ -216,7 +207,6 @@ export function mount(root, ctx) {
         });
     }
 
-    // ---------- milestones ----------
 
     function ladder() {
         const st = S();
@@ -244,7 +234,7 @@ export function mount(root, ctx) {
         if (chart) { chart.destroy(); chart = null; }
         const st = S();
         const { months } = M;
-        const chartPanel = h('section', { class: 'pn' },
+        /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-feacfcb4 */ const chartPanel = h('section', { class: 'pn' },
             h('div', { class: 'pn-h' }, h('b', null, 'Paid out per month'), h('span', { class: 'sub' }, 'net · bars, with the running total as a line'),
                 h('div', { class: 'grow' }),
                 h('span', { class: 'lg' }, h('i', { class: 'lg-b' }), 'Monthly net'), h('span', { class: 'lg' }, h('i', { class: 'lg-l' }), 'Total')));
@@ -254,7 +244,6 @@ export function mount(root, ctx) {
         mid.append(chartPanel, ladderPanel);
     }
 
-    // ---------- table ----------
 
     function rowsFor() {
         let list = M.all;
@@ -284,7 +273,7 @@ export function mount(root, ctx) {
             template: '172px 172px minmax(190px, 1.4fr) 112px 112px 60px 78px 112px 92px', minWidth: 1090, rowH: 38, headH: 32, virtual, label: 'Payouts',
             head: tableCols(),
             rowCls: (p) => 'st-' + p.status.toLowerCase(),
-            renderRow(p) {
+            /* Better Vest (c) 2026 Astral. All rights reserved. bv-3884ba0c */ renderRow(p) {
                 const a = D.accountsById.get(p.accountId);
                 const base = a && a.initialCapital > 0 ? a.initialCapital : 0;
                 const full = a ? model.accountName(a) : (p.accountId || '');
@@ -307,7 +296,7 @@ export function mount(root, ctx) {
         });
         grid.setRows(rows);
         grid.setHeight(virtual ? Math.min(560, grid.totalHeight() + 2) : null);
-        tablePanel.appendChild(grid.el);
+        tablePanel.appendChild(grid.el); /* Copyright Astral 2026. From Better Vest 9.2.5 (nostats), ref bv-094fdac9. Not licensed for reuse. */
         const c = M.counts;
         tablePanel.appendChild(h('div', { class: 'pr-foot' },
             h('span', null, `Totals count the ${c.EXECUTED} executed payout${c.EXECUTED === 1 ? '' : 's'} only.`),
@@ -316,7 +305,6 @@ export function mount(root, ctx) {
             st.hide ? h('span', null, 'Hide $: amounts show as % of the account size.') : null));
     }
 
-    // ---------- update ----------
 
     function update() {
         const st = S();

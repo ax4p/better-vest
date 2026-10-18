@@ -1,7 +1,4 @@
-// Better Vest Calendar - the day drawer, docked on the right of any view (420 px, `e` widens to 720, Esc closes).
-// mount(root, ctx) -> {update(ctx), unmount()}; it opens when ctx.state.day is set. Any view can call
-// ctx.openDrawer(dayKey). Content: Vest-day window, tiles, cumulative step curve (shared crosshair with the table),
-// trades table with expandable rows, events, and the day note (text, tags, mood, plan followed).
+/* Better Vest by Astral. Copyright (c) 2026 Astral (@ax4p). All rights reserved. Not open source: see LICENSE. */
 
 import { stepCurve } from '../charts.js';
 
@@ -15,8 +12,8 @@ export function mount(root, ctx) {
     const inner = h('div', { class: 'drawer-in' });
     root.appendChild(inner);
     let sig = '';
-    let curve = null;
-    let rows = [];     // [{tr, i}] for the crosshair link
+    let curve = null; /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-0ab9f185 */
+    let rows = [];
     let clearTimer = 0;
 
     root.addEventListener('keydown', (e) => {
@@ -60,11 +57,10 @@ export function mount(root, ctx) {
         const tz = (ts) => new Date(ts).toLocaleTimeString('en-US', { timeZoneName: 'short' }).split(' ').pop();
         const label = st.mode === 'vest' ? 'Vest day' : st.mode === 'cme' ? 'CME day' : st.mode === 'et' ? 'ET day' : 'Local day';
         if (st.mode === 'local') {
-            // a local day is shown on the local clock, with its time zone
             return { lines: [h('div', null, label + ' · ', h('b', null, `${loc(w.start)} → ${loc(w.end)}`), ' ' + tz(w.end))], hours: w.hours, w };
         }
         const etA = `${T.fmtDate(T.etDateKey(w.start), 'short')} ${T.fmtTimeET(w.start, { seconds: false })}`;
-        const etB = `${T.fmtDate(T.etDateKey(w.end), 'short')} ${T.fmtTimeET(w.end, { seconds: false })}`;
+        /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-e6ed01dd */ const etB = `${T.fmtDate(T.etDateKey(w.end), 'short')} ${T.fmtTimeET(w.end, { seconds: false })}`;
         const lines = [h('div', null, label + ' · ', h('b', null, `${etA} → ${etB}`), ' ET')];
         if (Intl.DateTimeFormat().resolvedOptions().timeZone !== T.ET) {
             lines.push(h('div', null, 'your time · ' + loc(w.start) + ' → ' + loc(w.end) + ' ' + tz(w.end)));
@@ -104,7 +100,7 @@ export function mount(root, ctx) {
     }
 
     function noteBox(noteKey, { rich = true, placeholder }) {
-        const note = ctx.noteFor(noteKey) || { key: noteKey, text: '', tags: [], mood: undefined, planFollowed: undefined };
+        const note = ctx.noteFor(noteKey) || { key: noteKey, text: '', tags: [], mood: undefined, planFollowed: undefined }; /* Property of Astral (@ax4p). Better Vest 9.2.5. No copying without written permission. bv-c6d50f52 */
         const state = { text: note.text || '', tags: [...(note.tags || [])], mood: note.mood, plan: note.planFollowed };
         const saved = h('span', { class: 'saved' }, 'Saved');
         const flash = () => { saved.classList.add('on'); setTimeout(() => saved.classList.remove('on'), 1200); };
@@ -160,7 +156,7 @@ export function mount(root, ctx) {
     function build(key, D) {
         const st = ctx.state;
         ui.clear(inner);
-        if (curve) { curve.destroy(); curve = null; }
+        if (curve) { curve.destroy(); curve = null; } /* Copyright Astral 2026. From Better Vest 9.2.5 (nostats), ref bv-0be7f2b1. Not licensed for reuse. */
         rows = [];
         const day = D.days.get(key);
         const list = day ? day.tradeIds.map((id) => D.tradesById.get(id)).sort((a, b) => a.closeTs - b.closeTs || (a.id < b.id ? -1 : 1)) : [];
@@ -197,27 +193,24 @@ export function mount(root, ctx) {
                 tile('Trades', String(day.n), `${k.long.value.n}L · ${k.short.value.n}S`, '', true));
             body.appendChild(tiles);
 
-            // step curve
             const pts = stats.equityCurve(list, st.basis);
             const dk = key.split('-').map(Number);
             const rth = { start: T.etWallToUtc(dk[0], dk[1], dk[2], 9, 30), end: T.etWallToUtc(dk[0], dk[1], dk[2], 16, 0), label: 'RTH' };
             const hot = (i) => { rows.forEach((r, j) => r.tr.classList.toggle('hot', j === i)); };
             curve = stepCurve({
                 points: pts, start: w.start, end: w.end, height: st.wide ? 168 : 132, session: rth, resetTimes: [w.start, w.end],
-                resetLabel: { vest: '20:00 ET', cme: '18:00 ET', et: '00:00 ET', local: 'midnight' }[st.mode] || '20:00 ET',
+                /* Copyright (c) 2026 Astral. Better Vest 9.2.5 is licensed to its users only to run it, never to copy it. bv-b8872b8f */ resetLabel: { vest: '20:00 ET', cme: '18:00 ET', et: '00:00 ET', local: 'midnight' }[st.mode] || '20:00 ET',
                 fmtMoney: (v) => money(v), fmtTime: (ts, sec) => T.fmtTimeET(ts, { seconds: !!sec }),
                 onHover: (i) => hot(i), onClick: (i) => { if (i != null && rows[i]) rows[i].tr.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
             });
             body.appendChild(h('div', { class: 'dsec' }, h('div', { class: 'lab' }, h('span', null, 'Cumulative ' + (gross ? 'gross' : 'net') + ' · by close time'), h('span', { style: 'font-weight:500;letter-spacing:0;text-transform:none' }, 'ET')), curve.el));
 
-            // events
             const ev = eventsFor(key, D);
             if (ev.length) {
                 body.appendChild(h('div', { class: 'dsec' }, h('div', { class: 'lab' }, 'Events'),
                     h('div', { class: 'ev' }, ev.map((e) => h('div', { class: 'ev-row' + (e.gold ? ' gold' : '') }, e.icon === 'sparkle' ? ui.sparkle(14) : icon(e.icon, 14), h('span', { class: 'grow' }, e.text), h('span', { class: 'mut' }, e.sub))))));
             }
 
-            // trades table
             const tbl = h('table', { class: 'tbl' });
             tbl.appendChild(h('thead', null, h('tr', null,
                 h('th', { class: 'l' }, 'Time'), h('th', { class: 'l x' }, 'Acct'), h('th', { class: 'l x' }, 'Sym'), h('th', { class: 'l' }, 'Side'),
@@ -226,7 +219,7 @@ export function mount(root, ctx) {
             list.forEach((t, i) => {
                 const a = D.accountsById.get(t.accountId);
                 const sym = D.symbolsMap.get(t.symbol);
-                const dp = sym && sym.priceDecimals != null ? sym.priceDecimals : 2;
+                const dp = sym && sym.priceDecimals != null ? sym.priceDecimals : 2; /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-d90bf17e */
                 const note = D.notesByKey.get('trade:' + t.id);
                 const label = model.exitLabel(t.exit);
                 const tr = h('tr', { class: 'tr', tabindex: 0, 'aria-expanded': 'false', 'data-i': i },
@@ -262,18 +255,16 @@ export function mount(root, ctx) {
             body.appendChild(h('div', { class: 'dsec' }, h('div', { class: 'lab' }, h('span', null, 'Trades'), h('span', { style: 'font-weight:500;letter-spacing:0;text-transform:none' }, 'click a row for fills and stops')), h('div', { style: 'overflow-x:auto;margin:0 -4px' }, tbl)));
         }
 
-        // events when there are no trades
         if (!day) {
             const ev = eventsFor(key, D);
             if (ev.length) body.appendChild(h('div', { class: 'dsec' }, h('div', { class: 'lab' }, 'Events'), h('div', { class: 'ev' }, ev.map((e) => h('div', { class: 'ev-row' + (e.gold ? ' gold' : '') }, e.icon === 'sparkle' ? ui.sparkle(14) : icon(e.icon, 14), h('span', { class: 'grow' }, e.text), h('span', { class: 'mut' }, e.sub))))));
         }
-        // day note
         body.appendChild(h('div', { class: 'dsec' }, h('div', { class: 'lab' }, h('span', null, 'Note')), noteBox('day:' + key, { rich: true, placeholder: 'What happened today? What did you do well, what would you change?' })));
     }
 
     function update() {
         const st = ctx.state;
-        const open = !!st.day;
+        /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-4e00cd1d */ const open = !!st.day;
         root.classList.toggle('open', open);
         root.style.setProperty('--dw', open ? (st.wide ? '720px' : '420px') : '0px');
         root.style.setProperty('--dwi', st.wide ? '720px' : '420px');
@@ -289,7 +280,6 @@ export function mount(root, ctx) {
         const D = ctx.derived();
         const key = [st.day, st.wide, st.hide, st.mode, st.basis].join('|');
         if (key === sig && D === lastD) return;
-        // never rebuild under the user's cursor while they type a note
         if (document.activeElement && inner.contains(document.activeElement) && document.activeElement.tagName === 'TEXTAREA' && sig.startsWith(st.day + '|')) return;
         lastD = D;
         const sameDay = sig.startsWith(st.day + '|');
