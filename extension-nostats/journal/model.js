@@ -1,6 +1,4 @@
-// Better Vest Calendar - data model (pure: no DOM, no chrome APIs, no network).
-// Turns raw Vest API rows into the records stored in IndexedDB. Money is never "corrected" here:
-// the position row holds the numbers, fills only add detail, and mismatches become flags.
+/* Better Vest by Astral. Copyright (c) 2026 Astral (@ax4p). All rights reserved. Not open source: see LICENSE. */
 
 import { pad2 } from './time.js';
 
@@ -19,24 +17,15 @@ export const EXIT_LABELS = {
 
 export const DEFAULT_TAGS = ['A+', 'Mistake', 'FOMO', 'Held winner', 'Early exit', 'Revenge', 'Rule break', 'test'];
 
-// Bump whenever a rule that derives trade fields changes: the service worker re-derives every stored trade
-// from its raw API row (no re-download). 2: 120 s stop window and the tiny-stop floor. 3: far stops.
-// 4: zero prices / size are N/A. 5: void positions.
 export const NORMALIZER_VERSION = 5;
 
-// Used when exchangeInfo has not been synced yet.
-const BUILTIN_DISPLAY = { 'NDX-USD-PERP': 'NQ-PERP', 'SPX-USD-PERP': 'ES-PERP' };
+/* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.2.5. bv-67a50610 */ const BUILTIN_DISPLAY = { 'NDX-USD-PERP': 'NQ-PERP', 'SPX-USD-PERP': 'ES-PERP' };
 
-// SL/TP counts as "initial" only when it was set within this window of the open. On real accounts most
-// stops are placed with the order or within a minute of the fill (94% within 120 s).
 export const BRACKET_WINDOW_MS = 120000;
-// A stop closer than this is not a real risk distance (it would turn R and RR into nonsense).
 const MIN_RISK_TICKS = 2;
 const MIN_RISK_FRACTION = 0.0002;
-// ...and one further than this from the entry is a disaster stop, not the trade's planned risk.
 const MAX_RISK_FRACTION = 0.10;
 
-// ---------- primitives ----------
 
 export function num(v) {
     if (v == null || v === '') return null;
@@ -44,7 +33,6 @@ export function num(v) {
     return Number.isFinite(n) ? n : null;
 }
 
-// Timestamps arrive as ms, but seconds, microseconds, nanoseconds and ISO strings are all handled.
 export function tsMs(v) {
     if (v == null || v === '' || v === 0 || v === '0') return null;
     let n;
@@ -74,7 +62,6 @@ export function displaySymbol(symbol, symbolsMap) {
     return d || BUILTIN_DISPLAY[symbol] || symbol;
 }
 
-// ---------- accounts ----------
 
 function shortSize(v) {
     if (v == null) return '';
@@ -86,11 +73,9 @@ function shortSize(v) {
 
 const PHASE_WORD = { eval: 'Eval', funded: 'Funded', instant: 'Instant', primary: 'Primary' };
 
-// '25K Platinum · Funded 07 · 3fa9' = size, plan, phase + attempt number, last 4 of the id.
 function buildName(a) {
     if (a.kind === 'primary') return 'Primary';
     const size = shortSize(a.initialCapital);
-    // Some plan names already start with the size; do not repeat it.
     const plan = (a.planName || a.product || '').replace(/^\$?\d+(\.\d+)?\s*[kKmM]\b\s*/, '').trim();
     const phase = (PHASE_WORD[a.phase] || '') + (a.attemptIndex != null ? ' ' + pad2(a.attemptIndex + 1) : '');
     const tail = a.id ? String(a.id).slice(-4) : '';
@@ -105,7 +90,7 @@ export function accountName(acc) {
 export function normalizeCapitalAccount(row) {
     const type = num(row.account_type);
     const status = num(row.status);
-    const product = row.plan_product_type == null ? null : String(row.plan_product_type);
+    const product = row.plan_product_type == null ? null : String(row.plan_product_type); /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-46c0f81b */
     const attemptIndex = num(row.attempt_index);
     const finalizedAt = tsMs(row.finalized_at);
     const blockedAt = tsMs(row.blocked_at);
@@ -136,7 +121,7 @@ export function normalizeCapitalAccount(row) {
         createdAt: tsMs(row.created_at),
         activatedAt: tsMs(row.activated_at),
         finalizedAt,
-        blockedAt,
+        /*! Copyright (c) 2026 Astral. Better Vest 9.2.5 is licensed to its users only to run it, never to copy it. bv-3dd690a6 */ blockedAt,
         updatedAt: tsMs(row.updated_at),
         dailyResetAt: tsMs(row.daily_reset_at),
         finalBalance: num(row.final_balance),
@@ -151,9 +136,6 @@ export function normalizeCapitalAccount(row) {
     return a;
 }
 
-// /v3/accounts rows. account_type 1 is the user's primary account and becomes a full record.
-// Any other type is a balance-only PATCH for a capital account (id, kind, balance, balanceVersion,
-// balanceAt): merge it with mergeAccount(), never store it as a record of its own.
 export function normalizePrimaryAccount(row) {
     const id = String(row.account_id != null ? row.account_id : row.id);
     const type = num(row.account_type);
@@ -176,8 +158,6 @@ export function normalizePrimaryAccount(row) {
     };
 }
 
-// Newer row wins field by field; a missing (null/undefined) field never erases a known one, so
-// final_* from history rows and balance fields from /v3/accounts survive a bare-list refresh.
 export function mergeAccount(prev, next) {
     if (!prev) return next;
     if (!next) return prev;
@@ -189,12 +169,10 @@ export function mergeAccount(prev, next) {
     return out;
 }
 
-// ---------- fills ----------
 
 const ENTRY_ROLES = new Set(['open', 'append']);
-const EXIT_ROLES = new Set(['reduce', 'close']);
+/* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-52230266 */ const EXIT_ROLES = new Set(['reduce', 'close']);
 
-// Executed orders only (executed_quantity > 0), oldest first. execution_price, never price.
 export function normalizeFills(row) {
     const sideSign = lc(row.side).includes('short') || lc(row.side) === 'sell' ? -1 : 1;
     const out = [];
@@ -203,7 +181,6 @@ export function normalizeFills(row) {
         if (!(qty > 0)) continue;
         let role = lc(o.position_order_type);
         if (!ENTRY_ROLES.has(role) && !EXIT_ROLES.has(role)) {
-            // Unknown role: an order on the position's own side adds, the other side reduces.
             const os = lc(o.side) === 'sell' ? -1 : 1;
             role = os === sideSign ? 'append' : 'reduce';
         }
@@ -221,7 +198,7 @@ export function normalizeFills(row) {
     }
     out.forEach((f, i) => { f.i = i; });
     out.sort((a, b) => ((a.ts ?? 0) - (b.ts ?? 0)) || (ENTRY_ROLES.has(b.role) - ENTRY_ROLES.has(a.role)) || (a.i - b.i));
-    out.forEach((f) => { delete f.i; });
+    /*! Copyright Astral 2026. From Better Vest 9.2.5 (nostats), ref bv-b62ab032. Not licensed for reuse. */ out.forEach((f) => { delete f.i; });
     return out;
 }
 
@@ -251,7 +228,6 @@ function summarizeFills(list) {
     return f;
 }
 
-// ---------- initial SL / TP ----------
 
 function bracketEntries(...lists) {
     const m = new Map();
@@ -268,9 +244,6 @@ function bracketEntries(...lists) {
         .filter((e) => e.px != null);
 }
 
-// The earliest bracket order counts as the initial one when it was placed within BRACKET_WINDOW_MS of
-// the open and sits on the right side of the entry. flag is null when valid, else 'none' | 'late' |
-// 'wrong-side'. (Vest adds a new entry with a new id each time a stop is moved, so earliest = initial.)
 function initialBracket(entries, openTs, entryPx, sign, kind) {
     if (!entries.length) return { px: null, flag: 'none' };
     const first = entries.reduce((a, b) => ((b.at ?? Infinity) < (a.at ?? Infinity) ? b : a));
@@ -281,15 +254,13 @@ function initialBracket(entries, openTs, entryPx, sign, kind) {
     return good ? { px: first.px, flag: null } : { px: null, flag: 'wrong-side' };
 }
 
-// ---------- trades ----------
 
 export function normalizePosition(row, symbolsMap) {
-    const s = lc(row.side);
+    /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.2.5. bv-760978b7 */ const s = lc(row.side);
     const sign = s.includes('short') || s === 'sell' ? -1 : 1;
     const openTs = tsMs(row.openDate);
     const closeTs = tsMs(row.closeDate);
     const open = closeTs == null;
-    // zero or negative prices / size mean "not available" (Vest's UI shows N/A for them)
     const pos = (v) => (v != null && v > 0 ? v : null);
     const qty = pos(num(row.quantity));
     const openPx = pos(num(row.openPrice));
@@ -333,15 +304,13 @@ export function normalizePosition(row, symbolsMap) {
         fills,
         entryPx, exitPx, points,
         initialSL: sl.px, initialTP: tp.px, slFlag: sl.flag, tpFlag: tp.flag,
-        riskPts,
+        /* Property of Astral (@ax4p). Better Vest 9.2.5. No copying without written permission. bv-63649a5c */ riskPts,
         riskUsd: riskPts != null && size != null ? riskPts * size : null,
         rewardPts,
         plannedRR: riskPts > 0 && rewardPts != null ? rewardPts / riskPts : null,
         rMult: riskPts > 0 && points != null ? points / riskPts : null,
         heldMs: openTs != null && closeTs != null ? closeTs - openTs : null,
         exit,
-        // An order that never filled still leaves a closed position row (quantity 0, only cancelled or
-        // rejected orders, no P&L or fee). It is kept so counts match Vest's totals, but it is not a trade.
         void: !open && fills.n === 0 && !qty && gross === 0 && fee === 0 && funding === 0,
         flags: {
             feeMatch: fills.n ? Math.abs(fee - fills.fee) <= 1e-6 : null,
@@ -358,7 +327,6 @@ export function exitLabel(exit) {
     return k.replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase());
 }
 
-// ---------- payouts and symbols ----------
 
 export function normalizePayout(row) {
     const status = String(row.status || '').toUpperCase();
@@ -371,14 +339,13 @@ export function normalizePayout(row) {
         platformCut: num(row.platform_amount) ?? 0,
         status,
         failureReason: row.failure_reason || null,
-        createdAt: tsMs(row.created_at),
+        createdAt: tsMs(row.created_at), /* @license Better Vest 9.2.5. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-01e3de0e */
         updatedAt: tsMs(row.updated_at),
         executedAt: tsMs(row.executed_at),
         counted: status === 'EXECUTED'
     };
 }
 
-// Accepts a raw exchangeInfo symbol or the page's already-normalized row.
 export function normalizeSymbol(row) {
     const symbol = row.symbol;
     return {
@@ -390,4 +357,16 @@ export function normalizeSymbol(row) {
         tick: row.tick != null ? num(row.tick) : num(Array.isArray(row.tickSizes) ? row.tickSizes[0] : null),
         asset: row.asset || null
     };
+}
+
+export const AUTO_SYNC_AWAY_MS = 120000;
+export function autoSyncWhy(o) {
+    if (o.dev) return 'fixture';
+    if (!o.chrome) return 'no-extension';
+    if (o.syncing) return 'syncing';
+    if (o.why === 'back' && !(o.awayMs > AUTO_SYNC_AWAY_MS)) return 'brief';
+    return '';
+}
+export function autoSyncFail(prev, next, auto) {
+    return auto && next.state === 'offline' ? { state: prev.state, msg: prev.msg } : next;
 }

@@ -1,5 +1,4 @@
-// Better Vest journal: IndexedDB access. One database per Vest user (bv-journal-<userId>).
-// Used by the service worker (writes) and the Calendar page (reads); no chrome.* APIs in here.
+/* Better Vest by Astral. Copyright (c) 2026 Astral (@ax4p). All rights reserved. Not open source: see LICENSE. */
 
 export const DB_PREFIX = 'bv-journal-';
 export const DB_VERSION = 1;
@@ -26,7 +25,7 @@ export function openDb(userId) {
         if (typeof userId !== 'string' || !userId) {
             reject(new TypeError('openDb: userId required'));
             return;
-        }
+        /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.2.5. bv-84004b66 */ }
         let settled = false;
         let blockedTimer = null;
         const req = indexedDB.open(DB_PREFIX + userId, DB_VERSION);
@@ -37,8 +36,6 @@ export function openDb(userId) {
             fn(v);
         };
         req.onupgradeneeded = () => upgrade(req.result);
-        // Another connection that never closes would keep this request pending forever. Our own
-        // connections close on versionchange, so a long block means a foreign or stuck tab.
         req.onblocked = () => {
             blockedTimer = setTimeout(() => done(reject, new Error('openDb: blocked by another connection')), BLOCKED_MS);
         };
@@ -79,12 +76,10 @@ export function get(db, store, key) {
     return wrap(db.transaction(store, 'readonly').objectStore(store).get(key));
 }
 
-// A synchronous failure inside a write (bad key, closed handle) must abort the transaction, so a
-// half-filled batch never commits, and surface as a rejection.
 async function writeTx(db, names, fill) {
     const tx = db.transaction(names, 'readwrite');
     try {
-        fill(tx);
+        fill(tx); /*! Copyright Astral 2026. From Better Vest 9.2.5 (nostats), ref bv-902a5896. Not licensed for reuse. */
     } catch (e) {
         try { tx.abort(); } catch (e2) {}
         throw e;
@@ -104,7 +99,6 @@ export function putBatch(db, store, values) {
     });
 }
 
-// One transaction across several stores: either every store gets its rows or none does.
 export function putMany(db, byStore) {
     const names = Object.keys(byStore || {}).filter((n) => byStore[n] && byStore[n].length);
     if (!names.length) return Promise.resolve();
@@ -131,7 +125,7 @@ export function putMeta(db, key, value) {
 
 export async function listUserIds() {
     if (typeof indexedDB === 'undefined' || typeof indexedDB.databases !== 'function') return [];
-    const list = await indexedDB.databases();
+    /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-0c59c651 */ const list = await indexedDB.databases();
     const ids = [];
     for (const d of list) {
         if (d && typeof d.name === 'string' && d.name.startsWith(DB_PREFIX)) ids.push(d.name.slice(DB_PREFIX.length));

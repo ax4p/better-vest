@@ -1,9 +1,4 @@
-/* Better Vest Calendar - styles for the Stats, Trades, Payouts and Accounts tabs.
- * Everything is built from the tokens in journal.css (--ax-*, --j-*): no colour is hard-coded, so all 8 themes work.
- * Sections: shared (view header, panels, tiles) / virtual grid / charts / payouts / stats / trades / accounts.
- */
 
-/* ---------- shared ---------- */
 
 .vh2 { display: flex; align-items: center; gap: 10px; margin: 2px 0 14px; flex-wrap: wrap; }
 .vh2-t h1 { margin: 0; font-size: 20px; font-weight: 500; letter-spacing: -.02em; text-shadow: 0 0 10px var(--ax-base), 0 0 3px var(--ax-base); }
@@ -25,7 +20,6 @@
 .lg-up { background: color-mix(in srgb, var(--ax-up) 85%, transparent); }
 .lg-dn { background: color-mix(in srgb, var(--ax-down) 85%, transparent); }
 
-/* ---------- virtual grid ---------- */
 
 .vg { position: relative; overflow: auto; border-radius: 12px; border: 1px solid var(--j-hair); background: color-mix(in srgb, var(--ax-inset) 38%, transparent); }
 .vg-in { min-width: 100%; }
@@ -52,7 +46,6 @@
 .vg-empty { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; color: var(--j-t2); font-size: 12.5px; text-align: center; }
 .amt { font-variant-numeric: tabular-nums; }
 
-/* ---------- charts ---------- */
 
 .cbox { position: relative; width: 100%; }
 .cbox svg { display: block; overflow: visible; }
@@ -88,7 +81,6 @@
 .hb-bar.dn { background: color-mix(in srgb, var(--ax-down) 82%, transparent); }
 .hb-bar.short { opacity: .62; }
 
-/* ---------- payouts ---------- */
 
 .pr-ribbon { display: grid; grid-template-columns: minmax(0, 1.7fr) repeat(6, minmax(0, 1fr)); gap: 10px; margin-bottom: 10px; }
 .pr-ribbon .tile .v { font-size: 20px; }
@@ -106,7 +98,7 @@
 .pst.refunded, .pst.failed { text-decoration: line-through; text-decoration-thickness: 1.5px; }
 .vr.st-processing .vr-line { background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--j-gold) 7%, transparent) 0 6px, transparent 6px 12px); }
 .vr.st-refunded .vc:not(:nth-last-child(-n+2)), .vr.st-failed .vc:not(:nth-last-child(-n+2)) { opacity: .5; }
-.vr.st-refunded .amt, .vr.st-failed .amt { text-decoration: line-through; text-decoration-thickness: 1px; }
+.vr.st-refunded .amt, .vr.st-failed .amt { text-decoration: line-through; text-decoration-thickness: 1px; } /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.2.5. bv-84c59a7f */
 .vc .gold, .amt.gold { color: var(--j-gold); font-weight: 600; }
 .ladder { display: grid; gap: 0; }
 .rung { position: relative; display: flex; gap: 12px; padding: 0 0 14px; min-height: 44px; }
@@ -133,7 +125,6 @@
 }
 @media (max-width: 1100px) { .pr-mid { grid-template-columns: minmax(0, 1fr); } }
 
-/* ---------- stats ---------- */
 
 .st-wrap { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 12px; align-items: start; }
 .st-metrics { position: sticky; top: 0; max-height: calc(100vh - 168px); overflow: auto; padding: 8px 10px 10px; }
@@ -169,7 +160,6 @@
 .st-panel .pn-b { min-height: 150px; }
 .st-panel.span2 .hb-row { grid-template-columns: minmax(70px, 150px) 1fr minmax(120px, auto); }
 
-/* ---------- trades ---------- */
 
 .tr-quick { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 10px; }
 .tr-sep { width: 1px; height: 16px; background: var(--j-hair-2); }
@@ -186,12 +176,11 @@
 .vr.rw-dn .vr-line { box-shadow: inset 2px 0 0 color-mix(in srgb, var(--ax-down) 55%, transparent); }
 .tcell { display: inline-flex; align-items: center; gap: 4px; }
 .tag-chip { display: inline-block; padding: 0 6px; border-radius: 5px; font-size: 9.5px; font-weight: 700; line-height: 15px; background: color-mix(in srgb, var(--ax-accent) 14%, transparent); color: var(--ax-accent-text); }
-.tr-det { padding: 10px 14px; height: 100%; overflow: auto; align-content: start; gap: 6px; }
+.tr-det { padding: 10px 14px; height: 100%; overflow: auto; align-content: start; gap: 6px; } /* @license Better Vest 9.2.5. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-de5ed57d */
 .tr-det .det-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
 .cf-p { margin: 0 0 16px; font-size: 13px; line-height: 1.55; color: var(--j-meta); }
 .cf-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
-/* ---------- accounts ---------- */
 
 .ac-ribbon { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; margin-bottom: 10px; }
 .ac-ribbon .tile .v { font-size: 22px; }
@@ -256,7 +245,6 @@
 @media (max-width: 1400px) { .jr { grid-template-columns: 190px minmax(0, 1fr) 270px; gap: 14px; } }
 @media (max-width: 1180px) { .ac-ribbon { grid-template-columns: repeat(3, minmax(0, 1fr)); } .jr { grid-template-columns: 190px minmax(0, 1fr); } .jr-f { grid-column: 1 / -1; } }
 
-/* ---------- view wrapper: owns the hover cards of one view so they die with it ---------- */
 .vw { display: flex; flex-direction: column; flex: 1 0 auto; min-width: 0; }
 .tr-grid { flex: 1 1 0; min-height: 360px; position: relative; }
 .tr-grid > .vg { position: absolute; inset: 0; }

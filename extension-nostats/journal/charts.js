@@ -1,12 +1,4 @@
-// Better Vest Calendar - hand-rolled SVG charts. Colours come from CSS (classes below), never from data.
-//
-//   svg(tag, attrs, ...kids)         SVG element builder (attrs set with setAttribute)
-//   scale(d0, d1, r0, r1)            linear scale function
-//   sparkline({values, w, h, ...})   smooth line with area fill, optional markers/zero line
-//   bars({values, w, h, ...})        signed bars around a zero line
-//   stepCurve({points, start, end, ...})   cumulative step chart with shared crosshair (day drawer)
-//
-// CSS hooks (journal.css): .ch-line .ch-area .ch-zero .ch-grid .ch-axis .ch-dot.up/.dn .ch-cross .ch-band .ch-reset .ch-star
+/* Better Vest by Astral. Copyright (c) 2026 Astral (@ax4p). All rights reserved. Not open source: see LICENSE. */
 
 const NS = 'http://www.w3.org/2000/svg';
 
@@ -24,10 +16,9 @@ export function scale(d0, d1, r0, r1) {
 
 const f = (n) => (Math.round(n * 10) / 10).toString();
 
-// Smooth monotone-ish path through points [[x,y],...] (Catmull-Rom to Bezier, tension 0.5).
 export function smoothPath(pts) {
     if (pts.length < 2) return pts.length ? `M${f(pts[0][0])} ${f(pts[0][1])}` : '';
-    let d = `M${f(pts[0][0])} ${f(pts[0][1])}`;
+    /* Copyright (c) 2026 Astral. Better Vest 9.2.5 is licensed to its users only to run it, never to copy it. bv-1d24bdd7 */ let d = `M${f(pts[0][0])} ${f(pts[0][1])}`;
     for (let i = 0; i < pts.length - 1; i++) {
         const p0 = pts[i - 1] || pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] || p2;
         const c1x = p1[0] + (p2[0] - p0[0]) / 6, c1y = p1[1] + (p2[1] - p0[1]) / 6;
@@ -39,7 +30,6 @@ export function smoothPath(pts) {
 
 let gradId = 0;
 
-// values: numbers (cumulative series). markers: [{i, cls}] drawn as dots/stars on the line.
 export function sparkline({ values, w = 240, h = 48, pad = 4, markers = [], cls = '', zero = true, smooth = true, area = true }) {
     const root = svg('svg', { class: 'spark ' + cls, width: w, height: h, viewBox: `0 0 ${w} ${h}`, 'aria-hidden': 'true' });
     if (!values.length) return root;
@@ -63,7 +53,6 @@ export function sparkline({ values, w = 240, h = 48, pad = 4, markers = [], cls 
     return root;
 }
 
-// values: signed numbers. Positive up (green), negative down (red), zero line in the middle.
 export function bars({ values, w = 240, h = 48, gap = 2, cls = '', pad = 2 }) {
     const root = svg('svg', { class: 'bars ' + cls, width: w, height: h, viewBox: `0 0 ${w} ${h}`, 'aria-hidden': 'true' });
     if (!values.length) return root;
@@ -81,8 +70,6 @@ export function bars({ values, w = 240, h = 48, gap = 2, cls = '', pad = 2 }) {
     return root;
 }
 
-// points: [{ts, cum, net, id}] sorted by ts (cum = running net for the day, starting from the first trade).
-// Returns {el, setActive(i|null), redraw()}. onHover(i|null, source) fires on pointer movement over the chart.
 export function stepCurve({ points, start, end, height = 150, fmtMoney, fmtTime, resetTimes = [], resetLabel = '20:00 ET', session = null, onHover, onClick }) {
     const wrap = document.createElement('div');
     wrap.className = 'curve';
@@ -92,7 +79,7 @@ export function stepCurve({ points, start, end, height = 150, fmtMoney, fmtTime,
     let svgEl = null, width = 0, geom = null, active = null;
     const M = { l: 8, r: 8, t: 14, b: 22 };
 
-    const draw = () => {
+    /*! Better Vest (c) 2026 Astral. All rights reserved. bv-582f0969 */ const draw = () => {
         width = Math.max(120, wrap.clientWidth || 360);
         if (svgEl) svgEl.remove();
         svgEl = svg('svg', { width, height, viewBox: `0 0 ${width} ${height}`, role: 'img', 'aria-label': 'Cumulative net by close time' });
@@ -116,20 +103,18 @@ export function stepCurve({ points, start, end, height = 150, fmtMoney, fmtTime,
             g.appendChild(svg('rect', { class: 'ch-band', x: f(x(a)), width: f(x(b) - x(a)), y: M.t - 6, height: height - M.t - M.b + 6, rx: 4 }));
             g.appendChild(svg('text', { class: 'ch-axis', x: f(x(a) + 6), y: M.t + 6 }, session.label || 'RTH'));
         }
-        // horizontal hairlines at 0 and the extremes
         g.appendChild(svg('line', { class: 'ch-zero', x1: M.l, x2: width - M.r, y1: f(y(0)), y2: f(y(0)) }));
         for (const rt of resetTimes) {
             if (rt <= t0 || rt >= t1) continue;
             g.appendChild(svg('line', { class: 'ch-reset', x1: f(x(rt)), x2: f(x(rt)), y1: M.t - 6, y2: height - M.b }));
             g.appendChild(svg('text', { class: 'ch-axis ch-reset-t', x: f(x(rt) + 4), y: M.t + 4 }, resetLabel));
         }
-        // step path
         let d = `M${f(x(t0))} ${f(y(0))}`, px = x(t0), py = y(0);
         for (const p of points) {
             const xx = x(p.ts), yy = y(p.cum);
             d += `L${f(xx)} ${f(py)}L${f(xx)} ${f(yy)}`;
             px = xx; py = yy;
-        }
+        } /* Better Vest (c) 2026 Astral. All rights reserved. bv-5d7d6cc1 */
         d += `L${f(x(t1))} ${f(py)}`;
         const gid = 'stp' + (++gradId);
         svgEl.appendChild(svg('defs', null, svg('linearGradient', { id: gid, x1: 0, y1: 0, x2: 0, y2: 1 },
@@ -138,11 +123,9 @@ export function stepCurve({ points, start, end, height = 150, fmtMoney, fmtTime,
         g.appendChild(svg('path', { d: `${d}L${f(x(t1))} ${f(y(0))}L${f(x(t0))} ${f(y(0))}Z`, fill: `url(#${gid})`, stroke: 'none' }));
         g.appendChild(svg('path', { class: 'ch-line glow', d }));
         g.appendChild(svg('path', { class: 'ch-line', d }));
-        // trade dots (colour = sign of that trade's net)
         points.forEach((p, i) => {
             g.appendChild(svg('circle', { class: 'ch-dot ' + (p.net > 0 ? 'up' : p.net < 0 ? 'dn' : ''), 'data-i': i, cx: f(x(p.ts)), cy: f(y(p.cum)), r: 3 }));
         });
-        // axis: start, end labels and extremes
         g.appendChild(svg('text', { class: 'ch-axis', x: M.l, y: height - 6 }, fmtTime(t0)));
         g.appendChild(svg('text', { class: 'ch-axis', x: width - M.r, y: height - 6, 'text-anchor': 'end' }, fmtTime(t1)));
         const mid = (t0 + t1) / 2;
@@ -150,7 +133,6 @@ export function stepCurve({ points, start, end, height = 150, fmtMoney, fmtTime,
         const peak = Math.max(...vals), trough = Math.min(...vals);
         if (peak > 0) g.appendChild(svg('text', { class: 'ch-axis ch-peak', x: width - M.r, y: f(y(peak) - 5), 'text-anchor': 'end' }, fmtMoney(peak)));
         if (trough < 0) g.appendChild(svg('text', { class: 'ch-axis ch-peak', x: width - M.r, y: f(y(trough) + 12 > height - M.b - 2 ? y(trough) - 7 : y(trough) + 12), 'text-anchor': 'end' }, fmtMoney(trough)));
-        // crosshair (positioned by setActive)
         const cross = svg('g', { class: 'ch-cross', visibility: 'hidden' },
             svg('line', { y1: M.t - 6, y2: height - M.b }), svg('circle', { r: 5 }));
         svgEl.appendChild(cross);
@@ -162,7 +144,7 @@ export function stepCurve({ points, start, end, height = 150, fmtMoney, fmtTime,
         const r = svgEl.getBoundingClientRect();
         const ts = geom.t0 + ((clientX - r.left - M.l) / (width - M.l - M.r)) * (geom.t1 - geom.t0);
         let best = 0, bd = Infinity;
-        for (let i = 0; i < points.length; i++) { const dd = Math.abs(points[i].ts - ts); if (dd < bd) { bd = dd; best = i; } }
+        for (let i = 0; i < points.length; i++) { const dd = Math.abs(points[i].ts - ts); if (dd < bd) { bd = dd; best = i; } } /* @license Better Vest 9.2.5. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-32b58364 */
         return best;
     };
 
