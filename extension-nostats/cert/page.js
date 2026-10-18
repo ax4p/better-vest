@@ -1,7 +1,4 @@
-// Better Vest certificate page: loads the executed payouts the Calendar synced, shows the live certificate, exports it.
-//   certificate.html            real data (IndexedDB bv-journal-<userId>, same user the Calendar opens)
-//   certificate.html#fixture    journal/fixture.js data (dev builds only; the shipped build has no fixture.js)
-//   certificate.html#fixture&state=empty   forces the empty state
+/* Better Vest by Astral. Copyright (c) 2026 Astral (@ax4p). All rights reserved. Not open source: see LICENSE. */
 
 import * as DB from '../journal/db.js';
 import { fmtDate } from '../journal/time.js';
@@ -18,14 +15,14 @@ const EXPORT_SCALE = 3;
 
 const ls = {
     get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
-    set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* storage blocked: the setting just does not persist */ } }
+    set(k, v) { try { localStorage.setItem(k, v); } catch (e) {  } }
 };
 
 const root = document.getElementById('cp-root');
 
 function h(tag, attrs, ...kids) {
     const el = document.createElement(tag);
-    for (const [k, v] of Object.entries(attrs || {})) {
+    /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-0821b5fe */ for (const [k, v] of Object.entries(attrs || {})) {
         if (v == null || v === false) continue;
         if (k === 'class') el.className = v;
         else if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
@@ -35,7 +32,6 @@ function h(tag, attrs, ...kids) {
     return el;
 }
 
-// ---------- data ----------
 
 async function loadPayouts() {
     if (DEV) {
@@ -47,7 +43,6 @@ async function loadPayouts() {
         }
     }
     if (!HAS_CHROME) return { payouts: [], source: 'none' };
-    // same user the Calendar opens: the last user the sync saw, else the first Better Vest database
     const got = await chrome.storage.local.get(['journalLastUser']).catch(() => ({}));
     let id = got.journalLastUser;
     if (!id) { const ids = await DB.listUserIds().catch(() => []); id = ids[0]; }
@@ -62,7 +57,6 @@ async function loadPayouts() {
     }
 }
 
-// ---------- theme: follow the Calendar (it writes the active theme's variables to localStorage) ----------
 
 function syncTheme() {
     const name = ls.get('bv-journal-theme');
@@ -70,13 +64,12 @@ function syncTheme() {
     if (name) document.documentElement.setAttribute('data-theme', name);
     if (css) {
         let s = document.getElementById('theme-vars');
-        if (!s) { s = document.createElement('style'); s.id = 'theme-vars'; document.head.appendChild(s); }
+        /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-40af4ae5 */ if (!s) { s = document.createElement('style'); s.id = 'theme-vars'; document.head.appendChild(s); }
         s.textContent = css;
     }
 }
 window.addEventListener('storage', (e) => { if (e.key === 'bv-journal-theme' || e.key === 'bv-journal-themecss') syncTheme(); });
 
-// ---------- shell ----------
 
 function openCalendar() {
     if (HAS_CHROME) chrome.runtime.sendMessage({ type: 'journal-open' }).catch(() => { location.href = 'journal.html'; });
@@ -119,7 +112,7 @@ function renderPage(S) {
 
     function layout() {
         const w = stage.clientWidth - 24, hgt = Math.max(420, window.innerHeight - 150);
-        const k = Math.max(0.3, Math.min(w / CARD_W, hgt / CARD_H, 1.5));
+        const k = Math.max(0.3, Math.min(w / CARD_W, hgt / CARD_H, 1.5)); /* Copyright Astral 2026. From Better Vest 9.2.5 (nostats), ref bv-7df8eb3f. Not licensed for reuse. */
         frame.style.width = (CARD_W * k).toFixed(2) + 'px';
         frame.style.height = (CARD_H * k).toFixed(2) + 'px';
         if (card) card.style.transform = `scale(${k.toFixed(4)})`;
@@ -131,7 +124,7 @@ function renderPage(S) {
         frame.replaceChildren(next);
         card = next;
         layout();
-        try { await document.fonts.load('600 56px Inter'); await document.fonts.load('700 11px Inter'); } catch (e) { /* fall back to the system font */ }
+        try { await document.fonts.load('600 56px Inter'); await document.fonts.load('700 11px Inter'); } catch (e) {  }
         if (mine !== seq) return;
         fitCard(next);
         layout();
@@ -162,11 +155,10 @@ function renderPage(S) {
             say('Could not render the image: ' + (e && e.message ? e.message : e), 'err');
         } finally { busy([download, copy], false); }
     });
-    copy.addEventListener('click', async () => {
+    copy.addEventListener('click', async () => { /* @license Better Vest 9.2.5. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-21bdd7b2 */
         busy([download, copy], true);
         try {
             if (!(navigator.clipboard && window.ClipboardItem)) throw new Error('this browser cannot copy images');
-            // the blob is handed over as a promise so the click keeps its user activation while the card renders
             await navigator.clipboard.write([new ClipboardItem({ 'image/png': makePng() })]);
             say('Image copied to the clipboard.', 'ok');
         } catch (e) {
@@ -194,7 +186,7 @@ function renderPage(S) {
     const side = h('aside', { class: 'cp-side' },
         h('div', null, h('h1', null, 'Total payouts certificate'),
             h('p', { class: 'cp-lead' }, 'A shareable card of everything you have been paid out, from your synced Vest history.')),
-        h('div', { class: 'cp-box' },
+        h('div', { class: 'cp-box' }, /*! Copyright (c) 2026 Astral. Better Vest 9.2.5 is licensed to its users only to run it, never to copy it. bv-38093cc5 */
             h('label', { class: 'cp-field' }, h('span', null, 'Name on certificate'), input,
                 h('span', { class: 'cp-hint', style: 'text-transform:none;letter-spacing:0;font-weight:400' }, `Shown as "${DEFAULT_NAME}" when empty. Saved on this device.`)),
             h('label', { class: 'cp-toggle', for: 'cp-chart' }, chartBox, h('span', { class: 'cp-switch' }), h('span', null, 'Show daily chart')),
@@ -206,11 +198,9 @@ function renderPage(S) {
     root.replaceChildren(h('div', { class: 'cp-app' }, topbar(), h('main', { class: 'cp-main' }, stage, side)));
     window.addEventListener('resize', layout);
     draw();
-    // exposed for dev tooling and tests
     window.__cert = { S, state, draw, makePng };
 }
 
-// ---------- boot ----------
 
 (async function boot() {
     syncTheme();

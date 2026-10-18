@@ -1,13 +1,4 @@
-// Better Vest share poster: the page (cert/share.html; in cert/ so the 8.0.5 self-updater, whose file list allows only known folders, can install it). The dock's P&L button on Vest's trade page sends a snapshot of today's P&L per account
-// (src/copy/35-share.js -> bridge.js -> sw.js, cleaned by cert/share-model.js and kept in chrome.storage.session); this page builds the card
-// from it (cert/share-card.js) and saves or copies it as a PNG through the certificate's pipeline (cert/raster.js). No request of ours.
-// The controls sit in two bars on top (the owner, 2026-10-06): what the card is about and the two actions, then how it looks.
-// 8.2: the Summary's rows (accounts, markets, copy groups, trades, sessions), period (from the Calendar for other days), markets, $, %,
-// points and after fees on the card; the Replay's copy group, other markets, chart options (colors, chart type, timeframe, what is drawn),
-// labels, prices, running P&L, sessions, best trade, and a video you watch here before you save it. Every option's default is 8.1.5's card.
-// 9.0: the Payout card (today's payout and every payout so far, from the Calendar's own records), and the background down to your own
-// picture or GIF (cert/share-look.js, cert/share-bg.js) with an accent colour; a moving background makes a video of any card. Save as GIF
-// (cert/share-gif-make.js): a moving GIF of the Replay or of any card over your GIF, else the PNG's own pixels in one frame.
+/* Better Vest by Astral. Copyright (c) 2026 Astral (@ax4p). All rights reserved. Not open source: see LICENSE. */
 
 import { cleanSnap, copyGroup, maskName, money, dayLong } from './share-model.js';
 import { cardHtml, replayHtml, payoutHtml, CARD_SIZES, chartOpts, CHART_DEFAULTS, CHART_PRESETS } from './share-card.js';
@@ -31,28 +22,18 @@ const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const HAS_CHROME = typeof chrome !== 'undefined' && !!(chrome.runtime && chrome.runtime.id);
 
-// the look you chose is remembered on this computer (this page's own storage, cert/share-prefs.js, shared with the pop-up on Vest's page);
-// which accounts are on the card comes from each snapshot
-const savePrefs = () => storePrefs(localStorage, P);
+/* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.2.5. bv-253abd68 */ const savePrefs = () => storePrefs(localStorage, P);
 
-// not kept: which accounts, markets, day, group and market are on the card (they belong to one snapshot)
 const P = Object.assign(loadPrefs(localStorage), { mode: 'accounts', picked: [], markets: null, pick: '', rpAcc: '', rpMarket: '' });
 let snap = null;
-let TT = [];          // today's trades of the snapshot (share-summary.js todayTrades)
-// the Calendar's synced history, for other days (the same database and user the Calendar opens); the demo's is made up. 9.0: its payouts
-// (the Payout card) and its account names.
+let TT = [];
 const CAL = { gen: 0, loadingGen: -1, loaded: false, loading: null, trades: [], payouts: [], names: new Map(), lastSync: null, err: '', sample: false };
-// 9.0: your background picture, ready for the card (cert/share-bg.js bgPrepare), or null
 let BGI = null;
-// the page's choices plus the picture: what the card builders get
 const cardP = (extra) => Object.assign({}, P, { bgImg: BGI }, extra || {});
-// the card shows your picture (the PNG and the video then draw it under the card)
 const pictureOn = () => P.bg.kind === 'image' && !!BGI;
-// the Replay's selection: which trades (null: all) and which time (null: the whole session). It belongs to one snapshot, so it is not kept.
 let RS = { ids: null, from: null, to: null };
-let lastOut = null;   // what the stage shows now: { kind, el, scene }
+let lastOut = null;
 
-// a new snapshot: copy trading when the copier is copying, else the account you trade on
 function useSnap(s) {
     snap = cleanSnap(s);
     if (!snap) return;
@@ -70,14 +51,11 @@ function useSnap(s) {
     render();
 }
 
-// ---------- the Calendar's data (8.2) ----------
-// One read per snapshot (gen): a read for an older snapshot never fills CAL. The read always starts after CAL.loading is set (a read that
-// finished at once, the demo's, once left a resolved promise behind and a card re-rendered forever).
 function loadCal() {
     const gen = CAL.gen || 0;
     if (CAL.loading && CAL.loadingGen === gen) return CAL.loading;
     CAL.loadingGen = gen;
-    const pr = (async () => {
+    /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-86b50e01 */ const pr = (async () => {
         await null;
         const data = await readCal();
         if ((CAL.gen || 0) !== gen) return;
@@ -86,12 +64,10 @@ function loadCal() {
     CAL.loading = pr;
     return pr;
 }
-// render once the Calendar is read, only when it is (a newer snapshot's read renders by itself)
 const calThenRender = () => loadCal().then(() => { if (CAL.loaded) render(); });
 async function readCal() {
     try {
         if (snap && snap.demo) {
-            // the demo never mixes in a real account's history: made-up days and payouts, marked Sample on the card
             return { trades: sampleHistory(snap, 45), payouts: samplePayouts(snap.day), names: samplePayNames(), lastSync: Date.now(), err: '', sample: true };
         }
         const none = { trades: [], payouts: [], names: new Map(), err: 'none', sample: false };
@@ -118,7 +94,6 @@ const SHOW = {
     summary: [['date', 'Date'], ['accounts', '"Across N accounts" line'], ['pct', '% return (or $ when the big number is %)'], ['market', 'Market'],
         ['trades', 'Trades column'], ['winrate', 'Win rate'], ['best', 'Best trade'], ['worst', 'Biggest loss'], ['fees', 'Fees paid'], ['handle', 'Your name'], ['credit', 'Better Vest credit']],
     replay: [['date', 'Date'], ['accounts', 'Account name'], ['pct', '% return (or $ when the big number is not)'], ['market', 'Market'], ['handle', 'Your name'], ['credit', 'Better Vest credit']],
-    // 9.0
     payout: [['date', 'Date'], ['accounts', 'Account names'], ['paytotal', 'Today: your payout count and lifetime total'], ['paybest', 'Lifetime: the biggest and the first'], ['handle', 'Your name'], ['credit', 'Better Vest credit']]
 };
 const ROW_NAMES = { accounts: 'Accounts', markets: 'Markets', groups: 'Copy groups', trades: 'Trades', sessions: 'Sessions' };
@@ -128,7 +103,6 @@ const PERIOD_NAMES = { today: 'Today', yesterday: 'Yesterday', week: 'This week'
 const RP_CHIPS = [['prices', 'Prices', 'The entry and exit price beside each trade'], ['pnl', 'Running P&L', 'A line under the candles: the day\'s P&L as each trade closed'],
     ['sessions', 'Sessions', 'Asia, London and New York in New York time, shaded behind the candles'], ['best', 'Best trade', 'The day\'s best trade, marked']];
 
-// the accounts the picker lists: the copy group (leader first), or every account Vest showed
 function pickList() {
     if (!snap) return [];
     return P.mode === 'copy' ? copyGroup(snap).map((id) => snap.accounts.find((a) => a.id === id)).filter(Boolean) : snap.accounts;
@@ -143,7 +117,7 @@ function paintControls() {
     const list = pickList();
     $('pick-head').textContent = P.mode === 'copy' ? 'Copy group' : 'Your accounts';
     $('pick').innerHTML = list.map((a) => {
-        const known = a.pnl != null;
+        /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-f2afb1e6 */ const known = a.pnl != null;
         const lead = P.mode === 'copy' && a.id === snap.leaderId ? '<span class="tag">LEAD</span>' : '';
         return `<label class="row${known ? '' : ' off'}"><input type="checkbox" data-id="${esc(a.id)}"${P.picked.includes(a.id) ? ' checked' : ''}${known ? '' : ' disabled'}>`
             + `<span class="nm">${esc(a.name)}</span>${lead}<span class="pv ${known ? (a.pnl > 0 ? 'up' : a.pnl < 0 ? 'dn' : '') : ''}">${known ? money(a.pnl) : '–'}</span></label>`;
@@ -153,7 +127,6 @@ function paintControls() {
     paintPick();
 }
 
-// the picker's button: the one account's name, or how many of the list are on the card
 function paintPick() {
     if (!snap) return;
     const list = pickList();
@@ -163,11 +136,10 @@ function paintPick() {
     $('pick-count').hidden = !$('pick-count').textContent;
 }
 
-// ---------- the Summary's own drop-downs (8.2) ----------
 function summaryOpts() {
     return { rows: P.rows, mode: P.mode, picked: P.picked, greenOnly: !!P.list.green, period: { kind: P.period, pick: P.pick }, markets: P.markets, afterFees: P.afterFees };
 }
-function paintSummaryControls(M) {
+/* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-e8a2c17e */ function paintSummaryControls(M) {
     if (!snap) return;
     const groups = snapGroups(snap);
     $('rows').innerHTML = ROWS.map((k) => {
@@ -199,7 +171,6 @@ function paintSummaryControls(M) {
     $('fees-chip').setAttribute('aria-pressed', P.afterFees !== false ? 'true' : 'false');
 }
 
-// ---------- the Replay's own drop-downs (8.2) ----------
 function paintReplayAccounts() {
     if (!snap) return;
     const r = snap.replay;
@@ -230,22 +201,19 @@ function paintShow() {
 
 function paintSettings() {
     const replay = P.kind === 'replay', sum = P.kind === 'summary', pay = P.kind === 'payout';
-    // each card's own controls stand in the same place
     $('mode').hidden = $('pick-pop').hidden = !sum;
     $('rows-pop').hidden = $('per-pop').hidden = $('mkts-pop').hidden = !sum;
     $('rpt-pop').hidden = $('rpr-pop').hidden = $('rpa-pop').hidden = $('cx-pop').hidden = !replay;
     if (!replay) $('rpm-pop').hidden = true;
-    $('payk').hidden = !pay;
+    $('payk').hidden = !pay; /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.2.5. bv-acf20fbc */
     $('sumopts').hidden = !sum;
     $('rplab-g').hidden = $('rpopts').hidden = !replay;
-    // the Replay's day plays out; any card over a moving picture moves (9.0)
     $('video').hidden = !replay && !(pictureOn() && BGI.animated);
     $('mode').querySelectorAll('button').forEach((b) => { b.disabled = b.dataset.v === 'copy' && !(snap && copyGroup(snap).length > 1); });
     $('pick-btn').disabled = !snap;
     $('listopts').querySelectorAll('.chip').forEach((c) => { c.disabled = (replay && c.dataset.k !== 'mask') || (pay && c.dataset.k === 'green'); });
     $('hero').querySelectorAll('button').forEach((b) => { b.disabled = (replay && (b.dataset.v === 'pct' || b.dataset.v === 'both')) || (pay && b.dataset.v !== 'usd'); });
     ['kind', 'mode', 'hero', 'theme', 'format', 'style', 'payk'].forEach((k) => $(k).querySelectorAll('button').forEach((b) => {
-        // the Payout card is always in $
         const on = b.dataset.v === (k === 'hero' && pay ? 'usd' : k === 'payk' ? P.pay : P[k]);
         b.classList.toggle('on', on);
         b.setAttribute('aria-pressed', on ? 'true' : 'false');
@@ -255,14 +223,13 @@ function paintSettings() {
     $('listopts').querySelectorAll('.chip').forEach((c) => {
         const on = !!P.list[c.dataset.k];
         c.classList.toggle('on', on);
-        c.setAttribute('aria-pressed', on ? 'true' : 'false');
+        /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-fd34af70 */ c.setAttribute('aria-pressed', on ? 'true' : 'false');
     });
     paintShow();
     $('show').querySelectorAll('input').forEach((x) => { x.checked = !!P.show[x.dataset.k]; });
     if (document.activeElement !== $('handle')) $('handle').value = P.handle;
 }
 
-// the card, then the GIF button, which follows Download PNG
 function render() {
     renderCard();
     paintGifBtn();
@@ -272,7 +239,6 @@ function renderCard() {
     paintLook();
     const fit = $('fit');
     const empty = $('empty');
-    // the Payout card needs no snapshot: it is the Calendar's
     if (P.kind === 'payout') { renderPayout(); return; }
     if (!snap) {
         fit.innerHTML = '';
@@ -289,7 +255,6 @@ function renderCard() {
     if (P.kind === 'replay') { renderReplay(); return; }
     const M = summaryModel(snap, summaryOpts(), { today: TT, calendar: CAL.trades });
     paintSummaryControls(M);
-    // the most account rows that fit the panel without spilling, from all of them down
     fit.style.transform = 'none';
     const pp = cardP();
     const out = fitCard(fit, (m) => cardHtml(snap, pp, m, M));
@@ -305,17 +270,15 @@ function renderCard() {
     paintVideoBtn(!!(out && out.n));
 }
 
-// ---------- the Payout card (9.0): today's payout, or every payout so far, from your Calendar ----------
 const PAY_WHY = {
     none: 'No payouts in your Calendar yet: open the Calendar and sync it once. Until then the card shows sample numbers, marked on it.',
     'read-failed': 'Your Calendar could not be read: open it once, then come back. Until then the card shows sample numbers, marked on it.'
-};
+}; /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.2.5. bv-ccfcf936 */
 function renderPayout() {
     const fit = $('fit');
     const empty = $('empty');
     if (!CAL.loaded) { calThenRender(); }
     const today = (snap && snap.day) || dayKey(Date.now(), 'vest');
-    // the demo's and the showcases' payouts are made up; a computer whose Calendar has none gets sample ones, marked (nothing to save)
     const real = !CAL.sample && CAL.loaded && !CAL.err && CAL.payouts.some((x) => x && x.status === 'EXECUTED');
     const sample = !real;
     const list = real ? CAL.payouts : samplePayouts(today);
@@ -333,13 +296,11 @@ function renderPayout() {
     const why = snap && snap.demo ? 'Sample payouts (the demo), marked on the card.' : !CAL.loaded ? 'Reading your Calendar…' : sample ? PAY_WHY[CAL.err] || PAY_WHY.none : '';
     const latest = !sample && PM.latest ? 'No payout yet on Vest\'s day today (it ends at 8 pm New York): this is your latest, ' + dayLong(PM.day) + '. ' : '';
     $('cap').textContent = why || (latest + 'Saves at ' + w * 2 + ' × ' + h * 2 + ' px · from your Calendar' + synced + ' · EXECUTED payouts only, the amount you received' + bgCap());
-    // sample payouts on a real computer are only a preview: nothing to save until the Calendar has yours (the demo's save, marked Sample)
     const can = !!out.n && (real || !!(snap && snap.demo));
     $('save').disabled = $('copy').disabled = !can;
     paintVideoBtn(can);
 }
 
-// why there is no Replay chart, in plain words (the codes come from src/copy/35-share.js and cert/share-replay.js)
 const REPLAY_WHY = {
     'no-trades': 'No trades on this market for the account on your chart in its latest positions. Trade, then press P&L in the dock again.',
     'no-bars': 'Vest\'s chart did not have candles for today\'s trades. Open the chart on that market and press P&L again.',
@@ -368,13 +329,12 @@ function renderReplay() {
         return;
     }
     fit.innerHTML = out.html;
-    // 9.0: the model (its bars and trades), the market's key and whether it is a sample: the GIF plays the seconds inside the bars
     lastOut = { kind: 'replay', el: fit.firstElementChild, scene: out.scene, html: out.html, format: P.format, M: out.M, sym: (rpReplay() || {}).sym || '',
         sample: !!(snap.demo || (out.M && out.M.sample)) };
     scaleCard();
     const [w, h] = CARD_SIZES[P.format] || CARD_SIZES.feed;
     const r = rpReplay() || {};
-    const past = r.day && snap.day && r.day !== snap.day;
+    /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-50cc195a */ const past = r.day && snap.day && r.day !== snap.day;
     if (!out.n) {
         $('cap').textContent = 'No trade on the card: tick one in Trades' + (RS.from != null ? ', or widen the time' : '') + '.';
         $('save').disabled = $('copy').disabled = $('video').disabled = true;
@@ -388,7 +348,6 @@ function renderReplay() {
     if (pictureOn()) $('cap').textContent += bgCap();
 }
 
-// the Video button on a card that is not the Replay: there when your picture moves (9.0)
 function paintVideoBtn(can) {
     if (P.kind === 'replay') return;
     const v = $('video');
@@ -397,20 +356,18 @@ function paintVideoBtn(can) {
     v.disabled = !can || !videoMime();
     v.title = videoMime() ? 'Your picture moves: a ' + Math.round(bgFramePlan(BGI.durations).seconds) + '-second video of this card (' + videoExt(videoMime()).toUpperCase() + '). It plays here first; nothing is saved until you press Save' : 'This browser cannot record video';
 }
-// what the caption adds about your picture
 function bgCap() {
     if (!pictureOn()) return '';
     return BGI.animated ? ' · your GIF moves in the video and the GIF; the PNG takes its first frame' : ' · your picture stays on this computer';
 }
 
-// as big as the stage allows, with room around it and for the caption (the card is HTML, so it stays sharp when scaled up)
 function scaleCard() {
     const fit = $('fit');
     const card = fit.firstElementChild;
     if (!card) return;
     const stage = $('stage').getBoundingClientRect();
     const k = Math.max(0.2, Math.min(1.35, (stage.width - 96) / card.offsetWidth, (stage.height - 100) / card.offsetHeight));
-    fit.style.transform = `scale(${k})`;
+    /*! Owned by Astral (@ax4p): Better Vest nostats 9.2.5. Licence: LICENSE, not open source. bv-adef5ea6 */ fit.style.transform = `scale(${k})`;
 }
 
 function fileBase() {
@@ -421,11 +378,9 @@ function pngName() { return fileBase() + '.png'; }
 async function pngBlob() {
     const card = $('fit').firstElementChild;
     const [w, h] = CARD_SIZES[P.format] || CARD_SIZES.feed;
-    // 9.0: your picture is drawn under the card (the first frame of a GIF)
     return cardPng(card, { width: w, height: h, scale: 2, img: pictureOn() ? BGI : null, bg: P.bg });
 }
 
-// a short note at the bottom of the page after an action
 let toastTimer = 0;
 function say(msg, bad, keep) {
     const t = $('toast');
@@ -436,7 +391,12 @@ function say(msg, bad, keep) {
     if (msg && !keep) toastTimer = setTimeout(() => t.classList.remove('on'), bad ? 6000 : 2600);
 }
 
+function shareUse(name) {
+    try { if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) chrome.runtime.sendMessage({ type: 'usage', op: 'use', n: { [name]: 1 } }).catch(() => {}); } catch (e) {}
+}
+
 function saveBlob(blob, name) {
+    shareUse(/\.gif$/i.test(name) ? 'pnl.gif' : /\.png$/i.test(name) ? 'pnl.png' : 'pnl.video');
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -444,7 +404,7 @@ function saveBlob(blob, name) {
     document.body.appendChild(a);
     a.click();
     a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 30000);
+    /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-e2f4b9d9 */ setTimeout(() => URL.revokeObjectURL(url), 30000);
 }
 let busy = false;
 async function onSave() {
@@ -465,19 +425,12 @@ async function onCopy() {
     } catch (e) { say('Could not copy the image (' + (e && e.message || e) + '). Download it instead.', true); }
     busy = false;
 }
-// Video (8.2; round 2, the owner: "preview a video without downloading it"): the Replay card's day plays out, recorded in this page (keep
-// the page in front while it records), then played here. Nothing is saved until Save; Close keeps it for the next press, and when the card
-// has changed since, the preview says so and offers Record again.
-let VID = null;   // { url, blob, mime, seconds, w, h, html, format }
-// a video can be made of this card: the Replay's day, or (9.0) any card over a moving picture
+let VID = null;
 const canVideo = () => !!lastOut && (lastOut.kind === 'replay' ? !!lastOut.scene : pictureOn() && BGI.animated);
 async function recordVideo() {
     const [w, h] = CARD_SIZES[P.format] || CARD_SIZES.feed;
-    // the card as it is when the recording starts: an option changed while it records makes the preview say the card changed
     const { html, format, kind, el, scene } = lastOut;
     const onProgress = (f) => say('Recording ' + Math.round(f * 100) + '% · keep this page in front', false, true);
-    // 9.0: your picture under the card: drawn once when it is still, each of its frames once when it moves (one loop, up to 10 s; on the
-    // Replay it loops while the day plays)
     let bg = null, frames = null, plan = null;
     if (pictureOn()) {
         const g = cardGeom(el);
@@ -497,7 +450,7 @@ async function recordVideo() {
     window.__shareLastVideo = res;
     say('');
 }
-async function onVideo() {
+async function onVideo() { /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-b6aad5ac */
     if (busy || $('video').disabled || !canVideo()) return;
     if (VID) { openPreview(); return; }
     busy = true;
@@ -522,7 +475,6 @@ function openPreview() {
     const v = $('vm-video');
     if (v.src !== VID.url) {
         v.src = VID.url;
-        // a recorded WebM has no length in it: one seek to the end makes the browser find it, so the bar can scrub
         v.addEventListener('loadedmetadata', function fix() {
             v.removeEventListener('loadedmetadata', fix);
             if (Number.isFinite(v.duration)) return;
@@ -539,7 +491,7 @@ function openPreview() {
     $('vm-note').classList.toggle('warn', changed);
     $('vm').hidden = false;
     v.currentTime = 0;
-    v.play().catch(() => {});
+    /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-4099b2be */ v.play().catch(() => {});
     vmPaint();
     $('vm-save').focus();
 }
@@ -571,7 +523,7 @@ $('vm-save').addEventListener('click', () => {
     $('vm-note').classList.remove('warn');
 });
 $('vm-close').addEventListener('click', closePreview);
-$('vm-x').addEventListener('click', closePreview);
+/* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-24722aca */ $('vm-x').addEventListener('click', closePreview);
 $('vm').addEventListener('click', (e) => { if (e.target === $('vm')) closePreview(); });
 $('vm-again').addEventListener('click', async () => {
     if (busy || !canVideo()) return;
@@ -583,13 +535,6 @@ $('vm-again').addEventListener('click', async () => {
     busy = false;
 });
 
-// ---------- 9.0: Save as GIF (the owner: "let me download image as gif") ----------
-// Made here, in a worker (cert/share-gif-make.js), shown, then saved with Save GIF. It moves when the card does (the Replay's day, your GIF
-// under any card); a card that does not move is one frame of the PNG's own pixels. Full is the PNG's size, Half the card's own (about a
-// quarter of the file). Each size is made once per card; Cancel stops it at once.
-// Round 2 (the owner): the Replay's GIF either plays the bars (mode 'replay') or shows the whole chart (mode 'still'); each mode and size is
-// made once per card (res: 'mode|size'). 9.0: the bars play at a speed (Fit, or 10, 30, 60 seconds of the market a second) with the seconds
-// recorded inside them (res: 'replay:speed|size').
 const GIF = { key: '', size: '', mode: 'replay', speed: '', picked: false, res: {}, job: null };
 const gifReplayOn = () => !!lastOut && lastOut.kind === 'replay' && !!lastOut.scene;
 const gifMode = () => (gifReplayOn() ? GIF.mode : 'still');
@@ -598,16 +543,9 @@ const gifSlot = (size) => gifMode() + (gifSpeedOn() ? ':' + (GIF.speed || 'fit')
 const gifRes = (size) => GIF.res[gifSlot(size)] || null;
 const gifMoving = () => !!lastOut && ((gifReplayOn() && GIF.mode === 'replay') || (pictureOn() && BGI.animated));
 const gifKey = () => (lastOut ? lastOut.html : '') + '|' + (pictureOn() ? BGI.src + (BGI.animated ? ':a' : '') : '') + '|' + P.format;
-// Full, unless your moving picture changes every frame of a long GIF. Measured on a sample picture (16 frames, 540 x 675): the card over
-// it is 1.9 MB at Full; the Replay over it (79 frames) 8.7 MB at Full and 3.1 MB at Half. Without a moving picture a Full GIF is a few
-// hundred KB (a still card 160 KB, the Replay 225 KB).
 const gifDefault = () => (pictureOn() && BGI.animated && lastOut && gifFrames(lastOut.kind, lastOut.scene, BGI, gifMode(), gifSpeedOn() ? gifPlans()[GIF.speed] : null).length > 48 ? 'half' : 'full');
 
-// 9.0: the seconds inside the Replay's bars (cert/tape.js): those recorded on Vest's page while you traded (cert/tape-db.js, the last 30
-// days), or made up for the sample. Read once per card. got = { how: 'real' | 'sample' | 'none', n: bars with seconds, of: bars, resS,
-// tape (share-video.js replayStage's), win (the trades' own window) }
 const TP = { key: '', got: null, job: null };
-// the names a market's seconds may be kept under, when the snapshot did not say (NQ is NDX-USD-PERP at Vest)
 const tapeSyms = (o) => (o.sym ? [o.sym] : { NQ: ['NDX-USD-PERP'], MNQ: ['NDX-USD-PERP'], ES: ['SPX-USD-PERP'] }[o.M.market]
     || (o.M.market ? [o.M.market + '-PERP', o.M.market + '-USD-PERP'] : []));
 function gifTape() {
@@ -627,7 +565,7 @@ function gifTape() {
             const from = M.bars[0][0], to = M.bars[M.bars.length - 1][0] + resS - 1;
             let rows = [];
             for (const sym of tapeSyms(out)) { rows = HAS_CHROME ? await tapeRead(sym, from, to).catch(() => []) : []; if (rows.length) break; }
-            paths = tapeBars(M.bars, resS, rows);
+            /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.2.5. bv-99361872 */ paths = tapeBars(M.bars, resS, rows);
         }
         const n = paths.filter(Boolean).length;
         if (!n) how = 'none';
@@ -639,7 +577,6 @@ function gifTape() {
     return job;
 }
 const SPEED_NAME = { fit: 'Fit', 10: '10×', 30: '30×', 60: '60×' };
-// each speed's plan for this card (share-gif-make.js gifSpeedPlan); a real-time speed needs seconds inside the bars
 function gifPlans() {
     const out = {};
     const t = TP.got;
@@ -651,21 +588,18 @@ function gifPlans() {
     }
     return out;
 }
-// the slowest real time that fits a GIF (the owner: "the replay is tooo fast"), else Fit; a speed you picked stays while a card can play it
 const gifSpeedDefault = (plans) => ['10', '30', '60'].find((sp) => plans[sp] && plans[sp].ok) || 'fit';
 async function gifPrepare() {
     await gifTape();
     const plans = gifPlans();
     if (!GIF.picked || !plans[GIF.speed] || !plans[GIF.speed].ok) GIF.speed = gifSpeedDefault(plans);
 }
-// the dialog's one line about the seconds (and the window a speed plays)
 function gifTapeLine(plan) {
     const t = TP.got;
     if (!t) return 'Reading the seconds…';
     if (t.how === 'none') return 'Second data starts once you trade with this version.';
     let win = '';
     if (plan && plan.ok && plan.window && t.bars.length) {
-        // a moment of the plan (bars come, a fraction part way into one) on the chart's clock
         const at = (p) => { const i = Math.min(t.bars.length - 1, Math.floor(p)); return (t.bars[i][0] + (p - i) * t.resS) * 1000; };
         win = ' Plays ' + (plan.window === 'last' ? 'your last trade, ' : 'your trades, ') + hhmm(at(plan.a), t.tz) + ' to ' + hhmm(at(plan.b), t.tz) + '.';
     }
@@ -676,11 +610,10 @@ const fmtBytes = (n) => (n >= 1048576 ? (n / 1048576).toFixed(n >= 10485760 ? 0 
 function paintGifBtn() {
     const g = $('gif');
     g.disabled = $('save').disabled || !lastOut;
-    // a new snapshot came in while the GIF dialog is open
     if (!$('gm').hidden && GIF.key && gifKey() !== GIF.key && !GIF.job) { $('gm-note').textContent = 'The card changed since this GIF was made: close and press GIF again.'; $('gm-note').classList.add('warn'); }
     if (!lastOut) return;
     g.title = gifReplayOn() ? 'Save the card as a GIF: the bars play out, or the whole chart. It is made here first; nothing is saved until you press Save GIF'
-        : gifMoving() ? 'Save the card as a moving GIF: your picture moves under it. It is made here first; nothing is saved until you press Save GIF'
+        /* Owned by Astral (@ax4p): Better Vest nostats 9.2.5. Licence: LICENSE, not open source. bv-5de92108 */ : gifMoving() ? 'Save the card as a moving GIF: your picture moves under it. It is made here first; nothing is saved until you press Save GIF'
             : 'Save the card as a GIF: one frame, the same pixels as the PNG (a GIF has 256 colors). Nothing is saved until you press Save GIF';
 }
 function gifResetIfChanged() {
@@ -702,7 +635,6 @@ function paintGif() {
         b.classList.toggle('on', on);
         b.setAttribute('aria-pressed', on ? 'true' : 'false');
     });
-    // 9.0: the speed, with each one's length (or why it cannot be made)
     const spOn = gifSpeedOn();
     $('gm-spd-bar').hidden = !spOn;
     if (spOn) {
@@ -718,7 +650,7 @@ function paintGif() {
             b.setAttribute('aria-pressed', on ? 'true' : 'false');
         });
         $('gm-tape').textContent = gifTapeLine(plans[GIF.speed]);
-    }
+    } /* Owned by Astral (@ax4p): Better Vest nostats 9.2.5. Licence: LICENSE, not open source. bv-29429957 */
     $('gm-size').querySelectorAll('button').forEach((b) => {
         const k = b.dataset.v, s = GIF_SIZES[k], got = gifRes(k);
         b.innerHTML = (k === 'full' ? 'Full' : 'Half') + '<span>' + w * s + ' × ' + h * s + (got ? ' · ' + fmtBytes(got.blob.size) : '') + '</span>';
@@ -750,7 +682,6 @@ async function gifRun(size) {
     GIF.size = size;
     const seq = ++gifSeq;
     const job = { cancelled: false };
-    // 9.0: the Replay's seconds and speed first (read once per card; Cancel and Close stop this too)
     if (gifReplayOn()) {
         const reading = !TP.got || TP.key !== gifKey();
         if (reading) { GIF.job = job; gifProgress(0, ''); paintGif(); }
@@ -771,7 +702,7 @@ async function gifRun(size) {
         const plan = gifSpeedOn() ? gifPlans()[GIF.speed] || null : null;
         const res = await makeGif({ kind: lastOut.kind, mode, card, scene: lastOut.scene, width: w, height: h, size, img: pictureOn() ? BGI : null, bg: P.bg,
             plan: plan && plan.ok ? plan : null, tape: gifSpeedOn() && TP.got ? TP.got.tape : null,
-            dither: true, onProgress: (f, what) => { if (GIF.job === job) gifProgress(f, what); }, cancelled: () => job.cancelled });
+            dither: true, onProgress: (f, what) => { if (GIF.job === job) gifProgress(f, what); }, cancelled: () => job.cancelled }); /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-8b2583d1 */
         if (job.cancelled) return;
         res.url = URL.createObjectURL(res.blob);
         GIF.res[slot] = res;
@@ -796,7 +727,7 @@ function openGif() {
     $('gm-save').focus();
 }
 function closeGif() {
-    if (GIF.job) { gifCancel(); $('gm-note').textContent = 'Stopped.'; }
+    /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-ac683dfa */ if (GIF.job) { gifCancel(); $('gm-note').textContent = 'Stopped.'; }
     $('gm').hidden = true;
 }
 $('gm-size').addEventListener('click', (e) => {
@@ -830,11 +761,9 @@ $('gm-close').addEventListener('click', closeGif);
 $('gm-x').addEventListener('click', closeGif);
 $('gm').addEventListener('click', (e) => { if (e.target === $('gm')) closeGif(); });
 
-// ---------- Replay: the chart (8.2 round 2): colours, type, timeframe, what is drawn ----------
 const CX_COLORS = [['vest', 'Vest'], ['classic', 'Classic'], ['mono', 'Mono'], ['neon', 'Neon'], ['bo', 'Blue / orange'], ['mine', 'My chart'], ['custom', 'Custom']];
 const CX_SHOW = [['grid', 'Grid', 'The price and time lines behind the candles'], ['price', 'Price axis', 'The prices on the right, and the last price'], ['time', 'Time axis', 'The times under the chart'],
     ['zones', 'Trade boxes', 'The shaded box from each entry to its exit'], ['lines', 'Lines', 'The dashed line from each entry to its exit'], ['volume', 'Volume', 'Vest\'s volume under the candles']];
-// the chart's own candles carry Vest's volume only while its Volume indicator is on the chart (Better Vest removes it by default)
 const CX_NOVOL = 'No volume came with these candles. To get it, turn off Remove volume indicator in Better Vest\'s chart settings, then press P&L in the dock again.';
 const cxVest = (light) => (light ? ['#16a34a', '#e11d48'] : ['#00d68f', '#ff3b5c']);
 const cxDark = (c) => (/^var\(/.test(c) ? (c.includes('text') ? '#fafafa' : '#737373') : c);
@@ -845,7 +774,7 @@ function cxSwatch(id) {
         : id === 'custom' ? [P.chart.up || '#26a69a', P.chart.down || '#ef5350'] : CHART_PRESETS[id].map(cxDark);
     return `<span class="cx-c"><i style="background:${pair[0]}"></i><i style="background:${pair[1]}"></i><i style="background:${pair[0]}"></i></span>`;
 }
-function paintChart() {
+function paintChart() { /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-bc5e0acf */
     const c = P.chart;
     const mine = !!(snap && snap.chartColors);
     $('cx-colors').innerHTML = CX_COLORS.map(([id, l]) => `<button type="button" data-v="${id}" class="${c.colors === id ? 'on' : ''}"${id === 'mine' && !mine ? ' disabled title="Press P&amp;L in the dock again to read your chart\'s colors"' : ''}>${cxSwatch(id)}${l}</button>`).join('');
@@ -855,7 +784,6 @@ function paintChart() {
     $('cx-colors-note').textContent = c.colors === 'mine' && !mine ? 'Your chart\'s colors came with a newer press of P&L: press it again in the dock.' : c.colors === 'mine' ? 'The colors your Vest chart draws its candles with.' : '';
     $('cx-type').querySelectorAll('button').forEach((b) => { const on = b.dataset.v === c.type; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
     $('cx-marks').querySelectorAll('button').forEach((b) => { const on = b.dataset.v === c.marks; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
-    // the timeframes this session can be drawn on: from the finest candles the dock sent
     const r = rpRaw();
     const tfs = r ? replayTfs(r, c.tf) : [];
     const own = r ? Number(r.res) : 0;
@@ -867,7 +795,6 @@ function paintChart() {
     const vol = !!(r && r.bars.every((b) => b.length > 5));
     $('cx-show').innerHTML = CX_SHOW.map(([k, l, tip]) => `<button type="button" class="chip${c[k] && (k !== 'volume' || vol) ? ' on' : ''}" data-k="${k}"${k === 'volume' && !vol ? ' disabled' : ''} title="${esc(k === 'volume' && !vol ? CX_NOVOL : tip)}" aria-pressed="${c[k] ? 'true' : 'false'}"><i></i>${l}</button>`).join('');
     $('cx-show-note').textContent = r && !vol ? CX_NOVOL : '';
-    // a dot on the button while the chart is not the card's own
     $('cx-dot').hidden = JSON.stringify(chartOpts(c)) === JSON.stringify(CHART_DEFAULTS);
 }
 const cxSet = (patch) => { P.chart = chartOpts(Object.assign({}, P.chart, patch)); savePrefs(); render(); };
@@ -875,7 +802,6 @@ $('cx-colors').addEventListener('click', (e) => {
     const b = e.target.closest('button');
     if (!b || b.disabled) return;
     const v = b.dataset.v;
-    // Custom starts from the colors on the card now
     if (v === 'custom' && !P.chart.up) cxSet({ colors: v, up: $('cx-up').value, down: $('cx-down').value });
     else cxSet({ colors: v });
 });
@@ -891,15 +817,13 @@ function cxCustomTf() {
     const x = replayTfs(r, n).find((t) => t.min === n);
     if (x && !x.ok && !x.own) { $('cx-tf-note').textContent = tfLabel(n) + ': ' + x.why.toLowerCase() + '.'; return; }
     $('cx-n').value = '';
-    cxSet({ tf: n === Number(r.res) ? 0 : n });
+    cxSet({ tf: n === Number(r.res) ? 0 : n }); /*! Copyright (c) 2026 Astral. Better Vest 9.2.5 is licensed to its users only to run it, never to copy it. bv-a70b07df */
 }
 $('cx-n-go').addEventListener('click', cxCustomTf);
 $('cx-n').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); cxCustomTf(); } });
 $('cx-show').addEventListener('click', (e) => { const c = e.target.closest('.chip'); if (!c || c.disabled) return; cxSet({ [c.dataset.k]: !P.chart[c.dataset.k] }); });
 $('cx-reset').addEventListener('click', () => cxSet(Object.assign({}, CHART_DEFAULTS)));
 
-// ---------- Replay: which trades, which time ----------
-// the session as the card draws it: the market picked, on the timeframe picked (8.2 round 2)
 const rpRaw = () => {
     const r = snap && snap.replay && !snap.replay.err ? replayPick(snap.replay, P.rpMarket) : null;
     return r && !r.err && r.bars.length ? r : null;
@@ -919,11 +843,9 @@ function paintReplayControls() {
         + `<span class="pv ${t.open ? '' : t.net > 0 ? 'up' : t.net < 0 ? 'dn' : ''}">${t.open ? 'open' : money(t.net)}</span></label>`).join('');
     $('rpt-count').textContent = M.trades.length + ' / ' + list.length;
     $('rpt-note').textContent = list.length ? 'Times in ' + tzShort(r.tz, r.bars[0][0] * 1000) + ', your chart\'s clock.' : 'No trades in this session.';
-    // the time: two handles over the session's candles
     const n = r.bars.length;
-    // the candle that holds a moment (the card counts that candle in, at either end)
     const idx = (ms, end) => { if (ms == null) return end ? n - 1 : 0; let i = r.bars.findIndex((b) => b[0] * 1000 >= ms); if (i < 0) return n - 1; if (r.bars[i][0] * 1000 > ms && i > 0) i--; return i; };
-    for (const el of [$('rpr-a'), $('rpr-b')]) { el.min = 0; el.max = n - 1; el.step = 1; }
+    /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-046d94ec */ for (const el of [$('rpr-a'), $('rpr-b')]) { el.min = 0; el.max = n - 1; el.step = 1; }
     const a = idx(RS.from, false), b = idx(RS.to, true);
     if (document.activeElement !== $('rpr-a')) $('rpr-a').value = a;
     if (document.activeElement !== $('rpr-b')) $('rpr-b').value = b;
@@ -936,7 +858,6 @@ function paintReplayControls() {
     $('rpr-len').textContent = (mins >= 60 ? Math.floor(mins / 60) + ' h ' + (mins % 60 ? (mins % 60) + ' min' : '') : mins + ' min').trim() + ' · ' + (b - a + 1) + ' candles of ' + tfLabel(r.res);
     $('rpr-spark').innerHTML = sparkSvg(r, list, a, b);
 }
-// the whole session in small: its candles, a dot per fill, the time on the card lit
 function sparkSvg(r, list, a, b) {
     const n = r.bars.length, W = 400, H = 60;
     let lo = Infinity, hi = -Infinity;
@@ -952,7 +873,6 @@ function sparkSvg(r, list, a, b) {
     out += `<rect x="0" y="0" width="${((a / n) * W).toFixed(1)}" height="${H}" fill="#000" opacity=".62"/><rect x="${(((b + 1) / n) * W).toFixed(1)}" y="0" width="${(W - ((b + 1) / n) * W).toFixed(1)}" height="${H}" fill="#000" opacity=".62"/>`;
     return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">${out}</svg>`;
 }
-// ticking trades frames the time around them (all of them: the whole session)
 function rpPick(ids) {
     const r = rpReplay();
     if (!r) return;
@@ -972,13 +892,12 @@ $('rpt').addEventListener('change', (e) => {
 });
 $('rpt-all').addEventListener('click', () => rpPick(null));
 $('rpt-none').addEventListener('click', () => rpPick([]));
-$('rpr-all').addEventListener('click', () => { RS.from = RS.to = null; render(); });
+/* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-e086bdaa */ $('rpr-all').addEventListener('click', () => { RS.from = RS.to = null; render(); });
 $('rpr-fit').addEventListener('click', () => {
     const r = rpReplay();
     const f = r ? replayFit(r, RS.ids) : null;
     if (f) { RS.from = f.from; RS.to = f.to; render(); }
 });
-// the two handles: at least 12 candles apart; the one moved pushes the other
 let tlRaf = 0;
 function onHandle(which) {
     const r = rpReplay();
@@ -995,14 +914,11 @@ function onHandle(which) {
 $('rpr-a').addEventListener('input', () => onHandle('a'));
 $('rpr-b').addEventListener('input', () => onHandle('b'));
 
-// ---------- the drop-downs: one open at a time; a click outside or Esc closes it ----------
 const POPS = [['pick-btn', 'pick-panel'], ['show-btn', 'show-panel'], ['rpt-btn', 'rpt-panel'], ['rpr-btn', 'rpr-panel'],
     ['rows-btn', 'rows-panel'], ['per-btn', 'per-panel'], ['mkts-btn', 'mkts-panel'], ['rpa-btn', 'rpa-panel'], ['rpm-btn', 'rpm-panel'], ['cx-btn', 'cx-panel'], ['bg-btn', 'bg-panel']];
 function closePops(except) {
     POPS.forEach(([b, p]) => { if (p !== except) { $(p).hidden = true; $(b).setAttribute('aria-expanded', 'false'); } });
 }
-// an open drop-down is kept inside the window: below about 1600 px the bars wrap, and one at a line's edge opened partly off the page (on a
-// 1536 px window Show, then first on the second line, opened almost wholly off it, out of reach)
 function keepInside(panel) {
     panel.style.transform = '';
     const r = panel.getBoundingClientRect();
@@ -1012,18 +928,15 @@ function keepInside(panel) {
 }
 const keepPopsInside = () => POPS.forEach(([, p]) => { if (!$(p).hidden) keepInside($(p)); });
 POPS.forEach(([b, p]) => $(b).addEventListener('click', (e) => {
-    e.stopPropagation();
+    e.stopPropagation(); /* Property of Astral (@ax4p). Better Vest 9.2.5. No copying without written permission. bv-d78912e2 */
     const open = $(p).hidden;
     closePops(p);
     $(p).hidden = !open;
     $(b).setAttribute('aria-expanded', open ? 'true' : 'false');
     if (open) keepInside($(p));
 }));
-// the click's path as it was when it happened: a drop-down that redraws its own buttons on a click (the Chart's colors, timeframes and
-// switches) has taken the clicked one out of the page by the time the click gets here
 document.addEventListener('click', (e) => { if (!e.composedPath().some((n) => n.classList && n.classList.contains('pop'))) closePops(); });
 
-// ---------- wiring ----------
 function seg(id, onPick) {
     $(id).addEventListener('click', (e) => {
         const b = e.target.closest('button');
@@ -1040,7 +953,6 @@ seg('mode', (v) => {
     paintControls();
 });
 ['kind', 'hero', 'theme', 'format', 'style'].forEach((k) => seg(k, (v) => { P[k] = v; savePrefs(); }));
-// 9.0: the Payout card's day: today's payout, or every payout so far
 seg('payk', (v) => { P.pay = v === 'lifetime' ? 'lifetime' : 'today'; savePrefs(); });
 seg('rplab', (v) => { P.rp.labels = v; savePrefs(); });
 $('listopts').innerHTML = LIST.map(([k, l]) => `<button type="button" class="chip" data-k="${k}" title="${esc(LIST_TIP[k])}"><i></i>${l}</button>`).join('');
@@ -1054,7 +966,7 @@ $('listopts').addEventListener('click', (e) => {
 });
 $('rpopts').addEventListener('click', (e) => {
     const c = e.target.closest('.chip');
-    if (!c) return;
+    /* @license Better Vest 9.2.5. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-8a2eb592 */ if (!c) return;
     P.rp[c.dataset.k] = !P.rp[c.dataset.k];
     savePrefs();
     render();
@@ -1082,7 +994,6 @@ function pickAll(on) {
 }
 $('pick-all').addEventListener('click', () => pickAll(true));
 $('pick-none').addEventListener('click', () => pickAll(false));
-// the Summary's rows, period and markets (8.2)
 $('rows').addEventListener('change', (e) => { const v = e.target.dataset.v; if (!v) return; P.rows = v; savePrefs(); render(); });
 $('per').addEventListener('change', (e) => {
     const v = e.target.dataset.v;
@@ -1109,7 +1020,6 @@ $('mkts').addEventListener('change', () => {
     render();
 });
 $('mkts-all').addEventListener('click', () => { P.markets = null; render(); });
-// the Replay's group and market (8.2): a new market starts with all its trades and its whole session
 $('rpa').addEventListener('change', (e) => { const v = e.target.dataset.v; if (v == null) return; P.rpAcc = v; render(); });
 $('rpm').addEventListener('change', (e) => { const v = e.target.dataset.v; if (v == null) return; P.rpMarket = v; RS = { ids: null, from: null, to: null }; render(); });
 $('handle').addEventListener('input', (e) => { P.handle = e.target.value.slice(0, 32); savePrefs(); render(); });
@@ -1117,16 +1027,13 @@ $('save').addEventListener('click', onSave);
 $('copy').addEventListener('click', onCopy);
 $('video').addEventListener('click', onVideo);
 $('gif').addEventListener('click', openGif);
-// Cmd/Ctrl+S saves, Cmd/Ctrl+C copies the image (not while typing your name or with text selected), Esc closes a drop-down
 document.addEventListener('keydown', (e) => {
-    // the GIF dialog takes the keys while it is open: Esc closes it (and stops a GIF being made)
     if (!$('gm').hidden) {
         if (e.key === 'Escape') { e.preventDefault(); closeGif(); }
         return;
     }
-    // the video preview takes the keys while it is open: Esc closes it, space plays and pauses
     if (!$('vm').hidden) {
-        if (e.key === 'Escape') { e.preventDefault(); closePreview(); }
+        /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-d34b70dd */ if (e.key === 'Escape') { e.preventDefault(); closePreview(); }
         else if (e.key === ' ' && document.activeElement !== $('vm-seek') && !/^(BUTTON)$/.test((document.activeElement || {}).tagName || '')) { e.preventDefault(); vmToggle(); }
         return;
     }
@@ -1140,14 +1047,12 @@ document.addEventListener('keydown', (e) => {
 let resizeRaf = 0;
 window.addEventListener('resize', () => { cancelAnimationFrame(resizeRaf); resizeRaf = requestAnimationFrame(() => { render(); keepPopsInside(); }); });
 
-// ---------- 9.0: the background (the style's own, a color, a gradient, your picture or GIF) and the accent ----------
 let lookRaf = 0;
-// sliders and color pickers redraw the card once a frame
 const lookSet = (patch) => { P.bg = bgOpts(Object.assign({}, P.bg, patch)); savePrefs(); cancelAnimationFrame(lookRaf); lookRaf = requestAnimationFrame(render); };
 function paintLook() {
     const bg = P.bg;
     $('bg-kind').querySelectorAll('button').forEach((b) => { const on = b.dataset.v === bg.kind; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
-    $('bg-fit').querySelectorAll('button').forEach((b) => { const on = b.dataset.v === bg.fit; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
+    /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-95f95970 */ $('bg-fit').querySelectorAll('button').forEach((b) => { const on = b.dataset.v === bg.fit; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
     $('bg-solid').hidden = bg.kind !== 'solid';
     $('bg-grad').hidden = bg.kind !== 'gradient';
     $('bg-img').hidden = bg.kind !== 'image';
@@ -1167,7 +1072,6 @@ function paintLook() {
     val('bg-accent', P.accent || '#00f15b');
     $('bg-accent-t').textContent = P.accent ? P.accent.toUpperCase() : 'The style\'s own';
     $('bg-accent-off').disabled = !P.accent;
-    // the button's swatch: what the card's background is now (page-only, never on the card)
     const sw = $('bg-sw');
     const none = bg.kind === 'style' || (bg.kind === 'image' && !BGI);
     sw.style.background = none ? '' : bg.kind === 'solid' ? bg.color : bg.kind === 'gradient' ? `linear-gradient(${bg.angle}deg, ${bg.c1}, ${bg.c2})` : `center / cover no-repeat url("${BGI.src}")`;
@@ -1187,7 +1091,6 @@ $('bg-kind').addEventListener('click', (e) => {
     P.bg = bgOpts(Object.assign({}, P.bg, { kind: v }));
     savePrefs();
     render();
-    // Image with no picture yet: the file picker
     if (v === 'image' && !BGI) $('bg-file').click();
 });
 seg('bg-fit', (v) => { P.bg = bgOpts(Object.assign({}, P.bg, { fit: v })); savePrefs(); });
@@ -1201,14 +1104,13 @@ $('bg-blur').addEventListener('input', (e) => lookSet({ blur: e.target.value }))
 $('bg-file-btn').addEventListener('click', () => $('bg-file').click());
 $('bg-file').addEventListener('change', async (e) => {
     const f = e.target.files && e.target.files[0];
-    e.target.value = '';
+    e.target.value = ''; /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-c018d32f */
     if (!f) return;
     const why = bgFileWhy(f);
     if (why) { say(why, true); return; }
     try {
         say('Reading your picture…', false, true);
         const rec = await bgSave(f);
-        // a file the browser cannot draw is not kept
         try { await useBg(rec); } catch (err) { await bgClear().catch(() => {}); throw err; }
         P.bg = bgOpts(Object.assign({}, P.bg, { kind: 'image' }));
         savePrefs();
@@ -1227,15 +1129,11 @@ $('bg-remove').addEventListener('click', async () => {
 $('bg-accent').addEventListener('input', (e) => { P.accent = accentOpt(e.target.value); savePrefs(); cancelAnimationFrame(lookRaf); lookRaf = requestAnimationFrame(render); });
 $('bg-accent-off').addEventListener('click', () => { P.accent = ''; savePrefs(); render(); });
 $('bg-reset').addEventListener('click', () => { P.bg = bgOpts({}); P.accent = ''; savePrefs(); render(); });
-// the picture you chose last time (kept in this extension's own IndexedDB); a failure leaves the style's own background
 async function bgBoot() {
     let rec = null;
     try { rec = await bgLoad(); if (rec) await useBg(rec); } catch (e) { BGI = null; if (rec) await bgClear().catch(() => {}); }
 }
 
-// ---------- 9.0: the Payout card follows your Calendar ----------
-// The Calendar syncs from your Vest tab (a payout Vest pays while it is open starts a quick sync). While the Payout card is shown, the page
-// reads the Calendar again when you come back to it and once a minute, and redraws when a payout came in.
 const calKey = () => CAL.payouts.length + ':' + CAL.payouts.reduce((m, x) => Math.max(m, (x && (x.updatedAt || x.executedAt)) || 0), 0) + ':' + (CAL.lastSync || 0);
 async function calRefresh() {
     if (P.kind !== 'payout' || document.visibilityState !== 'visible' || !CAL.loaded || CAL.sample) return;
@@ -1250,17 +1148,15 @@ document.addEventListener('visibilitychange', calRefresh);
 window.addEventListener('focus', calRefresh);
 setInterval(calRefresh, 60000);
 
-// the snapshot: now, and again whenever P&L is pressed in the dock while this page is open
 async function load() {
     let s = null;
-    try { s = (await chrome.storage.session.get('shareSnap')).shareSnap; } catch (e) {}
+    /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.2.5. bv-741734a9 */ try { s = (await chrome.storage.session.get('shareSnap')).shareSnap; } catch (e) {}
     if (s) useSnap(s);
     else render();
 }
 try { chrome.storage.onChanged.addListener((ch, area) => { if (area === 'session' && ch.shareSnap && ch.shareSnap.newValue) useSnap(ch.shareSnap.newValue); }); } catch (e) {}
 Promise.all([document.fonts ? document.fonts.ready : null, bgBoot()]).then(load);
 
-// for the tests and the screenshots: the page's state, read only
 window.__share = () => ({ snap, P: JSON.parse(JSON.stringify(P)), RS: JSON.parse(JSON.stringify(RS)), mask: maskName,
     cal: { loaded: CAL.loaded, sample: CAL.sample, trades: CAL.trades.length, payouts: CAL.payouts.length, err: CAL.err }, video: videoMime(),
     picture: BGI ? { animated: BGI.animated, w: BGI.w, h: BGI.h, frames: BGI.durations.length, type: BGI.type, size: BGI.size } : null,

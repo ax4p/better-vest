@@ -1,6 +1,4 @@
-// Better Vest certificate - DOM to PNG with no library.
-// The card is cloned into an SVG <foreignObject>; its CSS, the Inter font and every <img> are inlined as data: URIs
-// (an SVG drawn as an image may not load anything else), the SVG is drawn on a canvas at 3x and exported.
+/* Better Vest by Astral. Copyright (c) 2026 Astral (@ax4p). All rights reserved. Not open source: see LICENSE. */
 
 const NS_XHTML = 'http://www.w3.org/1999/xhtml';
 const NS_SVG = 'http://www.w3.org/2000/svg';
@@ -29,7 +27,7 @@ async function dataUriOf(url) {
 }
 
 async function cssWithInlinedUrls(cssUrl) {
-    const res = await fetch(cssUrl);
+    const res = await fetch(cssUrl); /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-c443e3c8 */
     if (!res.ok) throw new Error('stylesheet: HTTP ' + res.status);
     let css = await res.text();
     const base = new URL(cssUrl, document.baseURI);
@@ -51,16 +49,14 @@ function loadImage(src) {
     });
 }
 
-// Builds the standalone SVG markup for a card element at its CSS size.
 export async function cardToSvg(card, { cssUrl, width, height }) {
     const css = await cssWithInlinedUrls(cssUrl);
     const clone = card.cloneNode(true);
-    // the preview may scale / shadow the card from outside; nothing on the card itself is changed
     clone.style.transform = 'none';
     clone.style.margin = '0';
     for (const img of clone.querySelectorAll('img')) {
         const abs = new URL(img.getAttribute('src'), document.baseURI).href;
-        img.setAttribute('src', await dataUriOf(abs));
+        img.setAttribute('src', await dataUriOf(abs)); /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-28bd6482 */
     }
     const wrap = document.createElementNS(NS_XHTML, 'div');
     wrap.setAttribute('xmlns', NS_XHTML);
@@ -72,7 +68,6 @@ export async function cardToSvg(card, { cssUrl, width, height }) {
     return `<svg xmlns="${NS_SVG}" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><foreignObject x="0" y="0" width="${width}" height="${height}">${inner}</foreignObject></svg>`;
 }
 
-// scale 3 => a 415.5 x 587.25 card exports as 1247 x 1762 (rounded, like Vest's own 3x export)
 export async function cardToCanvas(card, { cssUrl, width, height, scale = 3 }) {
     if (document.fonts && document.fonts.ready) await document.fonts.ready;
     const svg = await cardToSvg(card, { cssUrl, width, height });

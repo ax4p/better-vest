@@ -1,7 +1,3 @@
-/* Better Vest total-payouts certificate card (vertical poster, 415.5 x 587.25 CSS px, exported at 3x).
- * Self-contained on purpose: this exact stylesheet is inlined into the SVG foreignObject used for the PNG,
- * so nothing here may depend on the page around it (no page variables, no inherited fonts).
- * The card keeps its own fixed Vest-like palette whatever Calendar theme the page wears. */
 @font-face { font-family: Inter; src: url(assets/inter.woff2) format('woff2'); font-weight: 100 900; font-display: block; }
 
 .bvc, .bvc * { box-sizing: border-box; }
@@ -11,7 +7,7 @@
     font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: 16px; line-height: 1.5; text-align: left;
     -webkit-font-smoothing: antialiased; font-feature-settings: normal; letter-spacing: normal;
     background: linear-gradient(to top, var(--surface) 0%, var(--shadow) 112.26%);
-}
+} /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-a522ad0a */
 .bvc .bvc-bg { position: absolute; inset: 0; z-index: -10; overflow: hidden; border-radius: inherit; pointer-events: none; }
 .bvc .bvc-bg img { position: absolute; max-width: none; }
 .bvc .bvc-a { position: absolute; }
@@ -32,7 +28,7 @@
 }
 .bvc .bvc-div { height: .75px; background: rgb(255 255 255 / .1); }
 .bvc .bvc-prov { font-size: 7.5px; line-height: 9px; letter-spacing: .15px; color: var(--mut); text-align: center; white-space: nowrap; }
-.bvc .bvc-vw { font-size: 11px; line-height: 15px; font-weight: 700; letter-spacing: .2em; color: #F5F5F5; white-space: nowrap; }
+.bvc .bvc-vw { font-size: 11px; line-height: 15px; font-weight: 700; letter-spacing: .2em; color: #F5F5F5; white-space: nowrap; } /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-0d4ba990 */
 .bvc .bvc-pill {
     display: inline-flex; align-items: center; gap: 5px; border-radius: 999px; padding: 3px 8px; font-size: 8.5px; line-height: 11px; font-weight: 600;
     letter-spacing: .16px; color: var(--gold); background: rgb(233 203 120 / .08); box-shadow: inset 0 0 0 .75px rgb(233 203 120 / .38); white-space: nowrap;

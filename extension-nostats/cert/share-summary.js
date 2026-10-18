@@ -1,8 +1,4 @@
-// Better Vest P&L card, Summary (8.2): what the card's rows are about (accounts, markets, copy groups, trades, sessions), over which days
-// (today, yesterday, this week, this month, a day you pick), on which markets, before or after fees. Pure: no DOM, no chrome.
-// Today's trades come from the dock's snapshot (src/copy/35-share.js: today's /v3/positions rows, parsed here with the Calendar's own
-// normalizePosition); other days from the Calendar's synced trades (the same records). With every option at its default the card is
-// 8.1.5's: the accounts with Vest's own live day P&L (cardRows).
+/* Better Vest by Astral. Copyright (c) 2026 Astral (@ax4p). All rights reserved. Not open source: see LICENSE. */
 
 import { normalizePosition } from '../journal/model.js';
 import { dayKey, addDays, parseKey, etParts, dayWindow } from '../journal/time.js';
@@ -10,14 +6,12 @@ import { cardRows, copyGroup, dayLong } from './share-model.js';
 
 export const ROWS = ['accounts', 'markets', 'groups', 'trades', 'sessions'];
 export const PERIODS = ['today', 'yesterday', 'week', 'month', 'day'];
-// New York time, by the trade's open: three sessions that cover the whole Vest day (it starts at 20:00 ET, when Vest resets)
 export const SESSIONS = [{ id: 'asia', name: 'Asia' }, { id: 'london', name: 'London' }, { id: 'ny', name: 'New York' }];
 
 const KEY_RE = /^\d{4}-\d{2}-\d{2}$/;
 const r2 = (v) => Math.round(v * 100) / 100;
 
-// Asia 20:00-03:00, London 03:00-09:30, New York 09:30-20:00 (New York wall clock, so DST never shifts them)
-export function sessionOf(ts) {
+export function sessionOf(ts) { /* @license Better Vest 9.2.5. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-2a4c03eb */
     if (ts == null || !Number.isFinite(ts)) return null;
     const p = etParts(ts);
     const m = p.h * 60 + p.mi;
@@ -26,7 +20,6 @@ export function sessionOf(ts) {
     return 'ny';
 }
 
-// "NDX-USD-PERP" -> "NQ", "BTC-PERP" -> "BTC": the name a trader says
 export function mktName(sym) {
     const s = String(sym || '').toUpperCase();
     const base = s.replace(/-USD-PERP$|-PERP$|-USD$/, '');
@@ -37,7 +30,6 @@ const dow = (key) => { const { y, m, d } = parseKey(key); return new Date(Date.U
 const MON = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const short = (key) => { const { m, d } = parseKey(key); return d + ' ' + MON[m - 1].slice(0, 3); };
 
-// The Vest days a period covers, from `today` (a Vest day key). pick: the day for 'day' (never after today).
 export function periodRange(kind, today, pick) {
     const t = KEY_RE.test(String(today || '')) ? today : null;
     if (!t) return { kind: 'today', from: null, to: null, label: '', heroLbl: 'Day P&L', head: 'DAY P&L', single: true };
@@ -56,12 +48,10 @@ export function periodRange(kind, today, pick) {
     return { kind: 'today', from: t, to: t, label: dayLong(t), heroLbl: 'Day P&L', head: 'DAY P&L', single: true };
 }
 
-// A Calendar-shaped trade from one of today's rows (or a record the Calendar stored): only closed, real trades count on the Summary.
 function usable(t) {
     return t && !t.void && !t.test && !t.open && Number.isFinite(t.closeTs) && Number.isFinite(t.net);
 }
 
-// Today's trades of the snapshot, parsed with the Calendar's parser. The demo gets sample trades that add up to each account's day.
 export function todayTrades(snap) {
     if (!snap) return [];
     if (snap.demo) return sampleDayRows(snap);
@@ -74,8 +64,6 @@ export function todayTrades(snap) {
     return out;
 }
 
-// The trades of a period: today's from the snapshot, other days from the Calendar (one id counted once; the snapshot wins for today).
-// Today's Calendar records count only when the snapshot has no trades read (the dock could not read them).
 export function periodTrades(range, today, todayList, calendar, snapHasTrades) {
     if (!range || !range.from) return [];
     const seen = new Set();
@@ -94,11 +82,7 @@ export function periodTrades(range, today, todayList, calendar, snapHasTrades) {
 
 const pnlOf = (t, afterFees) => r2(afterFees === false ? t.net + (t.fee || 0) : t.net);
 
-// ---------- points (8.2, the owner: "what if user wants it to be in points") ----------
-// A trade's points are its price move times its direction, its size left out: the Calendar's own `points` (the exit against the entry, both
-// averaged over every fill). Points add up only inside one market (MNQ is NQ): NQ points and BTC points are never one number. A list of trades
-// on one market gives { pts }; on several, { pts: null, mixed: true }; with no trades, or a trade whose points are unknown, { pts: null }.
-const ptsMkt = (t) => { const m = mktName(t.symbol); return m === 'MNQ' ? 'NQ' : m; };
+/* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-6c2a9812 */ const ptsMkt = (t) => { const m = mktName(t.symbol); return m === 'MNQ' ? 'NQ' : m; };
 export function pointsOf(list) {
     const ts = Array.isArray(list) ? list : [];
     if (!ts.length) return { pts: null, mixed: false, market: '' };
@@ -108,9 +92,6 @@ export function pointsOf(list) {
     for (const t of ts) { if (!Number.isFinite(t.points)) return { pts: null, mixed: false, market: [...mk][0], unknown: true }; sum += t.points; }
     return { pts: r2(sum), mixed: false, market: [...mk][0] };
 }
-// each row's points from the trades it stands for, and the card's: only when every row shown is one and the same market
-// Each row's points, and the card's: over every trade in the rows, counted once. Several markets give no total but each market's own
-// (ptsByMarket, in the order traded), so the hero can say what each market did.
 function withPoints(M, tradesOf) {
     const seen = new Set(), all = [];
     for (const r of M.rows) {
@@ -130,7 +111,6 @@ function withPoints(M, tradesOf) {
     return M;
 }
 
-// The trades' numbers for the stats line: count, wins, win rate, best, worst, fees
 export function tradeStats(trades, afterFees) {
     const n = trades.length;
     let wins = 0, best = null, worst = null, fees = 0;
@@ -141,10 +121,9 @@ export function tradeStats(trades, afterFees) {
         if (worst == null || v < worst) worst = v;
         fees += t.fee || 0;
     }
-    return { count: n, wins, losses: trades.filter((t) => pnlOf(t, afterFees) < 0).length, winRate: n ? wins / n : null, best, worst, fees: r2(fees) };
+    /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-c554a0f4 */ return { count: n, wins, losses: trades.filter((t) => pnlOf(t, afterFees) < 0).length, winRate: n ? wins / n : null, best, worst, fees: r2(fees) };
 }
 
-// Every copy group the snapshot knows: its own list (8.2 groups), else the copier's one leader and its followers.
 export function snapGroups(snap) {
     if (!snap) return [];
     const ids = new Set((snap.accounts || []).map((a) => a.id));
@@ -153,9 +132,6 @@ export function snapGroups(snap) {
         .filter((g) => g.leaderId || g.followerIds.length);
 }
 
-// What the Summary card shows. o = { rows, mode, picked, greenOnly, period: { kind, pick }, markets: null | [names], afterFees }
-// data = { today: [trades] (todayTrades), calendar: [trades] | null }. Returns the rows ({ id, name, pnl, leader, n, kind }), the total, the
-// account size and the return over exactly those rows, and the trades they come from (for the stats line).
 export function summaryModel(snap, o, data) {
     const opt = o || {};
     const rowsKind = ROWS.includes(opt.rows) ? opt.rows : 'accounts';
@@ -168,11 +144,10 @@ export function summaryModel(snap, o, data) {
     const byAcc = new Map(((snap && snap.accounts) || []).map((a) => [a.id, a]));
     const snapHasTrades = !!(snap && (snap.demo || (Array.isArray(snap.trades) && snap.trades.length)));
     const allTrades = periodTrades(range, today, data && data.today, data && data.calendar, snapHasTrades);
-    const allMarkets = [...new Set(allTrades.filter((t) => picked.has(t.accountId)).map((t) => mktName(t.symbol)))].sort();
+    /*! Owned by Astral (@ax4p): Better Vest nostats 9.2.5. Licence: LICENSE, not open source. bv-d5aa52d3 */ const allMarkets = [...new Set(allTrades.filter((t) => picked.has(t.accountId)).map((t) => mktName(t.symbol)))].sort();
     const trades = allTrades.filter((t) => picked.has(t.accountId) && (!markets || markets.has(mktName(t.symbol))));
     const base = { kind: rowsKind, range, live, trades, markets: allMarkets, stats: tradeStats(trades, afterFees), afterFees };
 
-    // the 8.1.5 card: Vest's live day P&L per account (with After fees off, today's fees of each account added back)
     if (rowsKind === 'accounts' && live && !markets) {
         const R = cardRows(snap, { mode: opt.mode, picked: opt.picked, greenOnly: false });
         if (!afterFees) {
@@ -184,7 +159,6 @@ export function summaryModel(snap, o, data) {
         return withPoints(finish(Object.assign(base, { rows: R.rows, unknown: R.unknown }), opt.greenOnly), (r) => trades.filter((t) => t.accountId === r.id));
     }
     if (rowsKind === 'accounts') {
-        // realized: the trades of each picked account (an account with none shows $0.00 on a past day, like the Calendar)
         const rows = [];
         for (const id of picked) {
             const a = byAcc.get(id);
@@ -224,7 +198,7 @@ export function summaryModel(snap, o, data) {
             } else {
                 for (const t of allTrades) if (ids.includes(t.accountId) && (!markets || markets.has(mktName(t.symbol)))) { pnl += pnlOf(t, afterFees); n++; }
                 for (const id of ids) { const a = byAcc.get(id); if (a && a.size > 0) size += a.size; else sized = false; }
-            }
+            } /* Better Vest (c) 2026 Astral. All rights reserved. bv-19b1ae8c */
             const lead = byAcc.get(g.leaderId);
             rows.push({ id: 'group-' + g.id, name: 'Group ' + g.id, sub: lead ? lead.name : '', pnl: r2(pnl), n, accounts: ids.length, size: sized ? size : null, unknown, ids });
         }
@@ -236,21 +210,18 @@ export function summaryModel(snap, o, data) {
         const rows = trades.map((t) => ({ id: t.id, accountId: t.accountId, name: (t.side === 'long' ? 'Long ' : 'Short ') + mktName(t.symbol), when: t.openTs, acct: many ? (byAcc.get(t.accountId) || {}).name || '' : '', pnl: pnlOf(t, afterFees), n: 1, t }));
         return withPoints(finish(Object.assign(base, { rows, unknown: 0, sizeIds: [...new Set(trades.map((t) => t.accountId))] }), opt.greenOnly, byAcc), (r) => [r.t]);
     }
-    // sessions
     const by = new Map(SESSIONS.map((s) => [s.id, { id: s.id, name: s.name, pnl: 0, n: 0 }]));
     for (const t of trades) { const s = by.get(sessionOf(t.openTs != null ? t.openTs : t.closeTs)); if (s) { s.pnl += pnlOf(t, afterFees); s.n++; } }
     const rows = [...by.values()].filter((s) => s.n).map((s) => Object.assign(s, { pnl: r2(s.pnl) }));
     return withPoints(finish(Object.assign(base, { rows, unknown: 0, sizeIds: [...new Set(trades.map((t) => t.accountId))] }), opt.greenOnly, byAcc), (r) => trades.filter((t) => sessionOf(t.openTs != null ? t.openTs : t.closeTs) === r.id));
 }
 
-// the total, the size and the return over exactly the rows shown (as cardRows: the card's numbers always agree with its list)
 function finish(M, greenOnly, byAcc) {
     if (greenOnly) M.rows = M.rows.filter((r) => r.pnl > 0);
     M.total = r2(M.rows.reduce((t, r) => t + r.pnl, 0));
     M.n = M.rows.length;
     let cap = 0, sized = M.rows.length > 0;
     if (M.sizeIds && byAcc) {
-        // rows that are not accounts: the size of the accounts their trades come from
         for (const id of M.sizeIds) { const a = byAcc.get(id); if (a && a.size > 0) cap += a.size; else sized = false; }
         if (!M.sizeIds.length) sized = false;
     } else {
@@ -261,19 +232,16 @@ function finish(M, greenOnly, byAcc) {
     return M;
 }
 
-// ---------- sample trades (the copier demo and showcases; the card says Sample) ----------
 
 const SAMPLE_MKTS = [['NDX-USD-PERP', 31500, 0.25], ['SPX-USD-PERP', 6720, 0.25], ['BTC-PERP', 112400, 1], ['SOL-PERP', 212, 0.01]];
 function seeded(str) {
     let h = 2166136261;
-    for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+    /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-a24b34f9 */ for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
     return () => { h = Math.imul(h ^ (h >>> 15), 2246822507); h = Math.imul(h ^ (h >>> 13), 3266489909); h ^= h >>> 16; return (h >>> 0) / 4294967296; };
 }
-// One account's sample trades of one Vest day, adding up to `pnl` exactly (the last trade takes the rest). Deterministic.
 export function sampleTradesFor(accountId, key, pnl, size) {
     if (!KEY_RE.test(String(key || '')) || !Number.isFinite(pnl)) return [];
     const rnd = seeded(accountId + '|' + key);
-    // the Vest day: 20:00 ET the evening before to 20:00 ET (the Calendar's own window); trades from 21:00 to about 18:00 ET
     const dayStart = dayWindow(key, 'vest').start;
     const n = 2 + Math.floor(rnd() * 3);
     const out = [];
@@ -298,13 +266,11 @@ export function sampleTradesFor(accountId, key, pnl, size) {
     }
     return out;
 }
-// Today's sample trades: each demo account's day P&L split over a few trades
 export function sampleDayRows(snap) {
     const out = [];
-    for (const a of (snap && snap.accounts) || []) if (a.pnl != null && Math.abs(a.pnl) >= 0.01) out.push(...sampleTradesFor(a.id, snap.day, a.pnl, a.size));
+    /*! Copyright (c) 2026 Astral. Better Vest 9.2.5 is licensed to its users only to run it, never to copy it. bv-e8d7bfda */ for (const a of (snap && snap.accounts) || []) if (a.pnl != null && Math.abs(a.pnl) >= 0.01) out.push(...sampleTradesFor(a.id, snap.day, a.pnl, a.size));
     return out;
 }
-// Sample history for the demo's other periods: `days` Vest days before today, a made-up day P&L per account
 export function sampleHistory(snap, days = 40) {
     const out = [];
     if (!snap || !KEY_RE.test(String(snap.day || ''))) return out;

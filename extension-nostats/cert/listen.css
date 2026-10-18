@@ -1,0 +1,51 @@
+@font-face { font-family: Inter; src: url(assets/inter.woff2) format('woff2'); font-weight: 100 900; font-display: swap; }
+:root {
+    --ax-raised: rgba(15, 23, 42, 0.96); --ax-inset: #0b1220; --ax-line: #334155; --ax-text: #e2e8f0; --ax-muted: #94a3b8; --ax-dim: #64748b;
+    --ax-accent: #38bdf8; --ax-accent-text: #7dd3fc; --ax-up: #34d399; --ax-down: #f87171; --ax-warn: #f59e0b; --ax-base: #070a13;
+    --ax-page: radial-gradient(circle at 50% 0%, #0e172a 0%, #070a13 55%, #05070d 100%);
+    color-scheme: dark;
+}
+:root[data-theme="light"] { color-scheme: light; }
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body { background: var(--ax-page, var(--ax-base)); color: var(--ax-text); font: 14px/1.4 Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased; user-select: none; overflow: hidden; }
+.app { height: 100%; display: flex; flex-direction: column; align-items: center; padding: 14px 16px 12px; gap: 6px; } /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-dd63c53d */
+.top { width: 100%; display: flex; align-items: center; gap: 9px; }
+.top b { font-size: 13.5px; letter-spacing: .01em; }
+.grow { flex: 1; }
+.beta { font-size: 9.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; padding: 2px 7px; border-radius: 999px;
+    color: var(--ax-warn); background: color-mix(in srgb, var(--ax-warn) 14%, transparent); border: 1px solid color-mix(in srgb, var(--ax-warn) 40%, transparent); }
+.chip { font-size: 10.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px;
+    color: var(--ax-muted); background: color-mix(in srgb, var(--ax-dim) 22%, transparent); }
+.talk { position: relative; margin: 22px 0 8px; width: 112px; height: 112px; border-radius: 50%; border: 0; padding: 0; cursor: pointer;
+    background: color-mix(in srgb, var(--ax-inset) 80%, transparent); color: var(--ax-muted);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--ax-line) 80%, transparent) inset, 0 14px 36px -18px rgba(0, 0, 0, .8); transition: color .15s, background .15s; }
+.talk .mic { position: absolute; inset: 0; display: grid; place-items: center; }
+.talk .ring { position: absolute; inset: -6px; border-radius: 50%; border: 2px solid transparent; transition: border-color .15s, transform .15s; }
+body[data-state="idle"] .talk { color: var(--ax-text); }
+body[data-state="idle"][data-mode="wake"] .talk .ring { border-color: color-mix(in srgb, var(--ax-accent) 45%, transparent); animation: vcBreathe 2.6s ease-in-out infinite; }
+body[data-state="talk"] .talk { color: #fff; background: color-mix(in srgb, var(--ax-accent) 30%, var(--ax-inset)); }
+body[data-state="talk"] .talk .ring { border-color: var(--ax-accent); transform: scale(1.04); }
+body[data-heard="1"] .talk .ring { border-color: var(--ax-accent-text); }
+body[data-state="off"] .talk, body[data-state="load"] .talk, body[data-state="boot"] .talk { opacity: .45; cursor: default; }
+@keyframes vcBreathe { 0%, 100% { opacity: .35; } 50% { opacity: 1; } } /* Better Vest (c) 2026 Astral. All rights reserved. bv-e83e610a */
+.state { margin: 6px 0 0; font-weight: 700; font-size: 14px; text-align: center; }
+.heard { margin: 0; min-height: 19px; max-width: 100%; color: var(--ax-muted); font-size: 13px; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.did { margin: 2px 0 0; min-height: 19px; font-size: 13px; font-weight: 700; text-align: center; color: var(--ax-text); }
+.did[data-level="ok"] { color: var(--ax-up); } .did[data-level="bad"] { color: var(--ax-down); } .did[data-level="warn"] { color: var(--ax-warn); }
+.foot { margin-top: auto; font-size: 11px; color: var(--ax-dim); text-align: center; }
+.bv-tile { display: inline-grid; place-items: center; flex: none; width: var(--t); height: var(--t); border-radius: 22%;
+    background: #050506; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .1); }
+.bv-b { position: relative; display: inline-block; flex: none; height: calc(var(--t) * .58); width: calc(var(--t) * .58 * 38 / 64);
+    margin-left: calc(var(--t) * .04); --b-fill: #f5f5f7; --b-shine: var(--ax-accent-text); --b-glow: color-mix(in srgb, var(--ax-accent) 75%, transparent);
+    animation: bv-b-breathe 3.6s ease-in-out infinite; }
+.bv-b > i { position: absolute; inset: 0; overflow: hidden; background: var(--b-fill);
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 38 64'%3E%3Cpolygon points='0,0 18,0 38,16 18,32 38,48 18,64 0,64'/%3E%3C/svg%3E") center / 100% 100% no-repeat; mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 38 64'%3E%3Cpolygon points='0,0 18,0 38,16 18,32 38,48 18,64 0,64'/%3E%3C/svg%3E") center / 100% 100% no-repeat; }
+.bv-b > i::after { content: ''; position: absolute; left: -150%; top: -100%; width: 400%; height: 300%;
+    background: linear-gradient(38.66deg, transparent 45%, var(--b-shine) 50%, transparent 55%); animation: bv-b-sheen 3.6s ease-in-out infinite; }
+@keyframes bv-b-sheen { 0% { transform: translate(-32%, 24%); } 60%, 100% { transform: translate(32%, -24%); } }
+@keyframes bv-b-breathe { 0%, 100% { filter: drop-shadow(0 0 0 transparent); } 45% { filter: drop-shadow(0 0 2px var(--b-glow)) drop-shadow(0 0 7px var(--b-glow)); } }
+@media (prefers-reduced-motion: reduce) { .bv-b, .bv-b > i::after, .talk .ring { animation: none !important; } }
+:root[data-theme="light"] .bv-tile { background: #f5f5f7; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .1); }
+:root[data-theme="light"] .bv-b { --b-fill: #050506; --b-shine: var(--ax-accent); }

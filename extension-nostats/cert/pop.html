@@ -1,4 +1,5 @@
 <!doctype html>
+<!-- This file is part of Better Vest by Astral and is protected by copyright. ref bv-de174247 -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -7,8 +8,6 @@
 <link rel="stylesheet" href="pop.css">
 </head>
 <body>
-<!-- 9.0: the card that pops up on Vest's page after a close worth 1% of the account or more (src/copy/35-share.js puts this page in a small
-     frame there). Nothing here takes the keyboard from Vest: every button is out of the tab order, and after a click the focus goes back. -->
 <div class="pp" id="pp" hidden>
     <div class="pp-hd"><span class="pp-dot"></span><span class="pp-t" id="pp-t">Green exit</span>
         <button type="button" class="pp-x" id="pp-close" tabindex="-1" title="Close" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
@@ -21,5 +20,6 @@
     <div class="pp-ft"><button type="button" class="pp-sw" id="pp-never" role="switch" aria-checked="false" tabindex="-1"><i></i><span>Don't show again</span></button><span class="pp-note" id="pp-note"></span></div>
 </div>
 <script type="module" src="pop.js"></script>
+<!-- @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.2.5. bv-6a7e38c5 -->
 </body>
 </html>
