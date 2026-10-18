@@ -1,9 +1,4 @@
-// Better Vest Calendar - the Accounts tab: journeys as constellation rows, totals, health of active accounts, and a row per account.
-// Constellation: node = one account (solid ring funded / instant, dashed ring + EVAL for evaluation, × failed, ✓ passed or
-// claimed), edge = promotion to the next stage, gold star = executed payouts. Clicking an account scopes the shell to it and
-// opens the Calendar. Health bars use the realized balance (closed trades), never live equity; reconciliation is only shown
-// as a quiet 'reconciled' check on active evaluations where it holds, because the final-balance identity of closed funded
-// accounts is not understood yet and a mismatch there must not look like an error.
+/* Better Vest by Astral. Copyright (c) 2026 Astral (@ax4p). All rights reserved. Not open source: see LICENSE. */
 
 import { vgrid, popBase, dl, foot, tipRegistry, goTab, lsGet, lsSet, sideCls, pctOf } from './shared.js';
 
@@ -12,7 +7,7 @@ const FILTERS = [{ k: 'all', label: 'All' }, { k: 'active', label: 'Active' }, {
 const PHASE_WORD = { eval: 'Evaluation', funded: 'Funded', instant: 'Instant', primary: 'Primary' };
 const PHASE_CAPS = { eval: 'EVAL', funded: 'FUNDED', instant: 'INSTANT' };
 const SCOPE_PHASES = { funded: ['funded', 'instant'], eval: ['eval'], primary: ['primary'] };
-const frac = (v) => (v == null ? null : v >= 1 ? v / 100 : v);   // plan rules may arrive as 0.03 or 3
+const frac = (v) => (v == null ? null : v >= 1 ? v / 100 : v);
 const clamp01 = (v) => Math.max(0, Math.min(1, v));
 
 export function mount(root, ctx) {
@@ -39,13 +34,12 @@ export function mount(root, ctx) {
 
     const money = (v, base, o) => fmt.usd(v, { ctx: 'table', base, ...o });
     const ts2key = (ts) => (ts ? T.etDateKey(ts) : null);
-    const dayText = (ts) => (ts ? `${T.fmtDate(ts2key(ts), 'dm')} ${ts2key(ts).slice(2, 4)}` : '—');
+    /* Better Vest (c) 2026 Astral. All rights reserved. bv-1443f187 */ const dayText = (ts) => (ts ? `${T.fmtDate(ts2key(ts), 'dm')} ${ts2key(ts).slice(2, 4)}` : '—');
     const daysAlive = (a) => {
         const s = a.activatedAt || a.createdAt, e = a.finalizedAt || a.blockedAt || ctx.now();
         return s ? Math.max(1, T.daysBetween(ts2key(s), ts2key(e)) + (a.isFinal ? 1 : 0)) : null;
     };
 
-    // ---------- model ----------
 
     function compute() {
         const st = S();
@@ -72,7 +66,6 @@ export function mount(root, ctx) {
     }
     const reconcileMark = (a) => (reconciled(a) ? h('span', { class: 'rec', title: 'Initial capital plus closed results equals the account balance Vest reports' }, ui.icon('check', 11), 'reconciled') : null);
 
-    // balance for health: Vest's reported balance when we have it, else initial + closed results - payouts
     function health(a) {
         const as = A.aStats.get(a.id) || { net: 0 };
         const out = ctx.data.payouts.filter((p) => p.accountId === a.id && (p.status === 'EXECUTED' || p.status === 'PROCESSING')).reduce((s, p) => s + p.gross, 0);
@@ -84,12 +77,11 @@ export function mount(root, ctx) {
         return { bal, floor, ddUsed, goal, source: a.balance != null ? 'reported by Vest' : 'computed from closed trades' };
     }
 
-    // ---------- header and totals ----------
 
     function renderHead() {
         ui.clear(head);
         const seg = ui.seg({ options: FILTERS.map((f) => ({ k: f.k, label: f.label })), value: filter, label: 'Journey filter', onChange: (k) => { filter = k; lsSet(LS_FILTER, k); renderJourneys(); } });
-        const nAcc = A.accounts.length, nCap = A.accounts.filter((a) => a.kind === 'capital').length;
+        const nAcc = A.accounts.length, nCap = A.accounts.filter((a) => a.kind === 'capital').length; /*! Copyright Astral 2026. From Better Vest 9.2.5 (standard), ref bv-81bfa4b4. Not licensed for reuse. */
         head.append(h('div', { class: 'vh2-t' }, h('h1', null, 'Accounts'), h('div', { class: 'sub' }, `${nCap} capital account${nCap === 1 ? '' : 's'}${nAcc > nCap ? ' + primary' : ''} · ${A.J.chains.length} journey${A.J.chains.length === 1 ? '' : 's'}`)), h('div', { class: 'grow' }), seg);
     }
 
@@ -119,10 +111,9 @@ export function mount(root, ctx) {
             tile('Paid out', pay > 0 ? money(pay, base, { sign: false }) : '—', pay > 0 ? 'net, executed payouts' : 'no executed payouts', { cls: 'gold', tip: simple('Paid out', 'Σ net of EXECUTED payouts from the accounts in scope.', [['Net', money(pay, base, { sign: false })]], A.J.chains.filter((c) => c.payoutsNet > 0).length) }));
     }
 
-    // ---------- health of active accounts ----------
 
     function barOf(label, frac01, text, tone) {
-        return h('div', { class: 'hl' },
+        return h('div', { class: 'hl' }, /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-6009bbe7 */
             h('div', { class: 'hl-t' }, h('span', null, label), h('b', null, text)),
             h('div', { class: 'hl-bar ' + tone, role: 'progressbar', 'aria-label': label, 'aria-valuenow': frac01 == null ? null : Math.round(frac01 * 100) }, h('i', { style: { width: frac01 == null ? '0%' : (frac01 * 100).toFixed(1) + '%' } })));
     }
@@ -163,7 +154,6 @@ export function mount(root, ctx) {
         healthEl.style.marginBottom = '10px';
     }
 
-    // ---------- journeys ----------
 
     function chainKind(c) {
         if (c.outcome === 'active') return 'active';
@@ -175,7 +165,7 @@ export function mount(root, ctx) {
     };
 
     function nodeEl(a, c, idx, sizeN) {
-        const as = A.aStats.get(a.id) || { net: 0, n: 0 };
+        /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-832317a3 */ const as = A.aStats.get(a.id) || { net: 0, n: 0 };
         const paid = A.paidBy.get(a.id);
         const failed = a.status === 4 || a.status === 5 || a.status === 7;
         const done = a.status === 3 || a.status === 6;
@@ -211,7 +201,6 @@ export function mount(root, ctx) {
         });
         const size = base ? (base >= 1e3 ? +(base / 1e3).toFixed(1) + 'K' : String(base)) : '';
         const tier = ((last.planName || '').includes('|') ? last.planName.split('|').pop() : (last.planName || '').replace(/^\$?\d+(\.\d+)?\s*[kKmM]\b\s*/, '')).trim();
-        // a tier that only repeats the size ('500 | 500') reads better as the account type ('500 Instant')
         const tierOk = tier && tier.replace(/[$,\s]/g, '').toUpperCase() !== String(size).toUpperCase() && tier.replace(/[$,\s]/g, '') !== String(base);
         const title = [size, tierOk ? tier : PHASE_WORD[last.phase]].filter(Boolean).join(' ') || model.accountName(last);
         const endTs = last.finalizedAt || last.blockedAt;
@@ -220,7 +209,7 @@ export function mount(root, ctx) {
             h('div', { class: 'jr-l' }, h('div', { class: 'jr-t', title: (last.planName || '') + ' · ' + stages }, h('span', { class: 'ellip' }, title)),
                 h('div', { class: 'jr-s' }, h('span', { class: 'chip mini ' + (oTone === 'live' ? 'live' : oTone === 'ok' ? 'gold' : '') + (oTone === 'bad' ? ' bad' : '') }, oLabel), h('span', { class: 'mut' }, `${dayText(first.activatedAt || first.createdAt)} → ${last.isFinal && endTs ? dayText(endTs) : 'now'}`)),
                 c.daysToPass != null ? h('div', { class: 'jr-s mut' }, `passed in ${c.daysToPass} day${c.daysToPass === 1 ? '' : 's'}`) : null),
-            h('div', { class: 'jr-n' }, nodes),
+            /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-f33a331e */ h('div', { class: 'jr-n' }, nodes),
             h('dl', { class: 'jr-f' },
                 h('div', null, h('dt', null, 'Net'), h('dd', { class: sideCls(c.net) }, c.n ? money(c.net, base) : '—')),
                 h('div', null, h('dt', null, 'Trades'), h('dd', null, String(c.n))),
@@ -243,7 +232,6 @@ export function mount(root, ctx) {
         journeysEl.appendChild(h('div', { class: 'jr-list' }, chains.map(journeyRow)));
     }
 
-    // ---------- accounts table ----------
 
     const cmp = {
         name: (a) => model.accountName(a).toLowerCase(), phase: (a) => a.phase, status: (a) => a.statusName, trades: (a) => (A.aStats.get(a.id) || {}).n,
@@ -263,7 +251,7 @@ export function mount(root, ctx) {
         });
         tableEl.appendChild(h('div', { class: 'pn-h' }, h('b', null, 'All accounts'), h('span', { class: 'sub' }, `${list.length} · click a row to open it in the Calendar`)));
         grid = vgrid({
-            template: 'minmax(260px, 2.2fr) 104px 168px 64px 104px 56px 100px 150px', minWidth: 1020, rowH: 36, headH: 32, virtual: list.length > 200, label: 'Accounts', rowKey: (a) => a.id,
+            /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-87086028 */ template: 'minmax(260px, 2.2fr) 104px 168px 64px 104px 56px 100px 150px', minWidth: 1020, rowH: 36, headH: 32, virtual: list.length > 200, label: 'Accounts', rowKey: (a) => a.id,
             head: [
                 { key: 'name', label: 'Account', cls: 'l', sortable: true }, { key: 'phase', label: 'Phase', cls: 'l', sortable: true }, { key: 'status', label: 'Status', cls: 'l', sortable: true },
                 { key: 'trades', label: 'Trades', sortable: true }, { key: 'net', label: 'Net', sortable: true }, { key: 'wr', label: 'WR', sortable: true }, { key: 'paid', label: 'Paid', sortable: true }, { key: 'start', label: 'Start → end', cls: 'l', sortable: true }
@@ -296,7 +284,6 @@ export function mount(root, ctx) {
         tableEl.appendChild(grid.el);
     }
 
-    // ---------- navigation ----------
 
     function openInCalendar(a) {
         const st = S();
@@ -309,7 +296,6 @@ export function mount(root, ctx) {
         goTab(ctx, 'calendar');
     }
 
-    // ---------- lifecycle ----------
 
     function update() {
         const st = S();
@@ -325,7 +311,7 @@ export function mount(root, ctx) {
         if (!A.accounts.length) note.appendChild(h('div', { class: 'empty-note' }, h('b', null, 'No accounts in this scope.'), ' Switch the scope above, or sync from Vest.'));
         renderRibbon();
         renderHealth();
-        renderJourneys();
+        /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-6edcc3a8 */ renderJourneys();
         renderTable();
     }
 

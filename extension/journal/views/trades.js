@@ -1,11 +1,7 @@
-// Better Vest Calendar - the Trades tab: one virtualized table of every closed trade the shell filters let through.
-// Row height 28 with a sticky header and pooled rows, so thousands of rows scroll smoothly. Sort by any column,
-// quick filters (W / L / scratch, Long / Short), click a row for fills, initial stop / target and flags, CSV export.
-// The CSV carries full-precision values; with Hide $ on you are asked first, because the file would hold dollar amounts.
+/* Better Vest by Astral. Copyright (c) 2026 Astral (@ax4p). All rights reserved. Not open source: see LICENSE. */
 
 import { vgrid, shortName, sideCls } from './shared.js';
 
-// Intl.NumberFormat construction is slow, so prices and distances share cached formatters (rows are built while scrolling).
 const nfCache = new Map();
 function fmtFixed(v, dp) {
     if (v == null || !Number.isFinite(v)) return '—';
@@ -20,7 +16,7 @@ const TEMPLATE = '128px minmax(128px, 1.1fr) 70px 40px 54px 160px 62px 90px 64px
 
 export function mount(root, ctx) {
     const { h, ui, time: T, stats, fmt, model } = ctx;
-    const S = () => ctx.state;
+    const S = () => ctx.state; /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-2691e4b3 */
     let sort = { key: 'close', dir: -1 };
     const quick = { cls: new Set(), side: new Set() };
     let grid = null;
@@ -37,7 +33,6 @@ export function mount(root, ctx) {
     const gridHost = h('div', { class: 'tr-grid' });
     root.appendChild(h('div', { class: 'vw' }, head, statEl, gridHost));
 
-    // ---------- columns ----------
 
     const exitShort = { 'Take Profit': 'Take profit', 'Stop Loss': 'Stop loss', 'Self-requested': 'Manual', 'Corporate Action': 'Corp. action', 'Auto Deleverage': 'Auto-deleverage' };
 
@@ -84,7 +79,7 @@ export function mount(root, ctx) {
         const tg = tagsOf(t);
         return [
             h('span', null, T.fmtDate(T.etDateKey(t.closeTs), 'dm'), ' ', h('span', { class: 'mut' }, T.fmtTimeET(t.closeTs))),
-            h('span', { class: 'ellip', title: a ? model.accountName(a) : t.accountId }, shortName(a, model.accountName)),
+            /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-6a466c68 */ h('span', { class: 'ellip', title: a ? model.accountName(a) : t.accountId }, shortName(a, model.accountName)),
             (t.display || t.symbol).replace('-PERP', ''),
             h('span', { class: 'side ' + t.side }, t.side === 'long' ? 'L' : 'S'),
             qtyText(t.qty),
@@ -113,7 +108,7 @@ export function mount(root, ctx) {
         const tpText = t.initialTP != null ? `${px(t.initialTP)} · ${T.fmtPts(t.rewardPts, { dp: 2, sign: false })} away` : ({ late: 'set after entry, ignored', 'wrong-side': 'wrong side, ignored', none: 'none at entry' }[t.tpFlag] || 'none at entry');
         const warns = [];
         if (t.flags && t.flags.feeMatch === false) warns.push('Fee differs from the sum of its fills.');
-        if (t.flags && t.flags.pnlMatch === false) warns.push('P&L differs from (exit − entry) × size.');
+        /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-5106cfbf */ if (t.flags && t.flags.pnlMatch === false) warns.push('P&L differs from (exit − entry) × size.');
         return h('div', { class: 'det-in tr-det' },
             h('div', { class: 'det-grid' },
                 g('Opened', stampET(t.openTs)), g('Closed', stampET(t.closeTs)),
@@ -127,7 +122,6 @@ export function mount(root, ctx) {
             warns.length ? h('div', { class: 'flags' }, warns.map((w) => h('span', { class: 'warnline' }, w))) : null);
     }
 
-    // ---------- data ----------
 
     const sortVal = {
         close: (t) => t.closeTs, acc: (t) => shortName(C.D.accountsById.get(t.accountId), model.accountName).toLowerCase(), sym: (t) => (t.display || t.symbol).toLowerCase(),
@@ -145,14 +139,13 @@ export function mount(root, ctx) {
         keyed.sort((a, b) => {
             const x = a[0], y = b[0];
             const nx = x == null || Number.isNaN(x), ny = y == null || Number.isNaN(y);
-            if (nx || ny) return nx === ny ? 0 : nx ? 1 : -1;   // empty values always last
+            if (nx || ny) return nx === ny ? 0 : nx ? 1 : -1;
             const c = x < y ? -1 : x > y ? 1 : 0;
             return c ? c * dir : (a[1].id < b[1].id ? -1 : 1);
         });
         return keyed.map((k) => k[1]);
     }
 
-    // ---------- quick filters, header, stats ----------
 
     function renderQuick() {
         ui.clear(quickEl);
@@ -176,7 +169,7 @@ export function mount(root, ctx) {
             const c = cls(t);
             if (c === 'win') w++; else if (c === 'loss') l++; else s++;
             if (!seen.has(t.accountId)) { seen.add(t.accountId); base += baseOf(t); }
-        }
+        /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-cc7f6330 */ }
         const filtered = rows.length !== total;
         ui.append(statEl, [
             h('span', null, h('b', null, fmt.count(rows.length)), ` of ${fmt.count(total)} trades`, filtered ? h('span', { class: 'mut' }, ' (quick filters on)') : null),
@@ -191,7 +184,6 @@ export function mount(root, ctx) {
         titleEl.append(h('h1', null, 'Trades'), h('div', { class: 'sub' }, 'Every closed trade in scope · click a row for fills, stops and flags'));
     }
 
-    // ---------- grid ----------
 
     function buildGrid() {
         if (grid) grid.destroy();
@@ -200,7 +192,7 @@ export function mount(root, ctx) {
             template: TEMPLATE, minWidth: 1200, rowH: ROW_H, headH: 32, detail, detailH: DETAIL_H, rowKey: (t) => t.id, label: 'Trades',
             head: columns(), renderRow: (t) => cellsOf(t),
             rowCls: (t) => (val(t) > 0 ? 'rw-up' : val(t) < 0 ? 'rw-dn' : ''),
-            onSort: (key) => { sort = sort.key === key ? { key, dir: -sort.dir } : { key, dir: key === 'close' || key === 'net' || key === 'pts' || key === 'r' || key === 'hold' || key === 'qty' || key === 'fee' || key === 'risk' ? -1 : 1 }; refresh(); },
+            onSort: (key) => { sort = sort.key === key ? { key, dir: -sort.dir } : { key, dir: key === 'close' || key === 'net' || key === 'pts' || key === 'r' || key === 'hold' || key === 'qty' || key === 'fee' || key === 'risk' ? -1 : 1 }; refresh(); }, /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-554b262b */
             empty: ctx.data.trades.length ? 'No trades match these filters.' : 'No trades yet. Closed positions appear here once they sync.'
         });
         gridHost.appendChild(grid.el);
@@ -213,9 +205,7 @@ export function mount(root, ctx) {
         if (grid) { grid.setSort(sort.key, sort.dir); grid.setRows(rows); grid.scrollToTop(); }
     }
 
-    // ---------- CSV ----------
 
-    // A value that starts with = + - @ would run as a formula in a spreadsheet: prefix text with an apostrophe.
     const csvCell = (v) => {
         if (v == null) return '';
         let s = typeof v === 'number' ? String(v) : String(v);
@@ -258,7 +248,6 @@ export function mount(root, ctx) {
         ui.toast(`Exported ${rows.length.toLocaleString('en-US')} trades${withMoney ? '' : ' without dollar columns'}`);
     }
 
-    // ---------- lifecycle ----------
 
     function update() {
         const st = S();
@@ -269,7 +258,7 @@ export function mount(root, ctx) {
         lastD = D; sig = key;
         C = { D };
         if (dataChanged) classCache.clear();
-        renderTitle();
+        renderTitle(); /* Owned by Astral (@ax4p): Better Vest standard 9.2.5. Licence: LICENSE, not open source. bv-f3f15211 */
         buildGrid();
         refresh();
     }
