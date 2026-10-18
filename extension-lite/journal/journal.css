@@ -1,16 +1,3 @@
-/* Better Vest Calendar - design tokens and components.
- *
- * Token layers
- *   --ax-*   the suite's theme variables (written per theme by theme-boot.js / app.js from theme-tokens.js).
- *            The defaults below are Astral, so the very first paint is already on-brand.
- *   --j-*    journal tokens derived from --ax-* with color-mix, so all 8 themes need no per-theme CSS.
- *            --j-t1 text, --j-t2 information text (--ax-muted), --j-t3 quiet text. --ax-dim is decoration only.
- *            --j-m1..--j-m5 and --j-r1..--j-r5 are the cell tint / ring percentages (written by app.js from
- *            stats.INTENSITY_STEPS x stats.INTENSITY_MAX[theme]; the spec called them --j-t1..t5, which
- *            collides with the text tokens, so they are --j-m*).
- * Rules: glass (backdrop-filter) only on the top bar, the drawer and popovers; gold (--ax-big) means money paid
- * out; red is never a system state; ink on tinted cells reaches 4.5:1 (tint ceiling 30%).
- */
 
 :root {
     --ax-base: #070a13; --ax-page: radial-gradient(circle at 50% 0%, #0e172a 0%, #070a13 55%, #05070d 100%); --ax-page-inner: var(--ax-page);
@@ -83,7 +70,6 @@ kbd { font: 600 10px/1 var(--font); padding: 3px 5px; border-radius: 5px; backgr
 #stars { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 0; pointer-events: none; opacity: 0; transition: opacity .6s var(--ease); -webkit-mask-image: radial-gradient(ellipse 62% 58% at 46% 56%, rgba(0,0,0,.2), #000 100%); mask-image: radial-gradient(ellipse 62% 58% at 46% 56%, rgba(0,0,0,.2), #000 100%); }
 #stars.on { opacity: .85; }
 
-/* ---------- shell ---------- */
 
 .app { position: relative; z-index: 1; height: 100vh; display: flex; flex-direction: column; min-width: 0; }
 .topbar {
@@ -134,7 +120,7 @@ kbd { font: 600 10px/1 var(--font); padding: 3px 5px; border-radius: 5px; backgr
 .seg-b { border: 0; background: none; padding: 0 10px; border-radius: 7px; font-size: 12px; font-weight: 500; color: var(--j-t2); transition: color var(--d2), background var(--d2); min-width: 26px; }
 .seg-b:hover:not(:disabled) { color: var(--j-t1); }
 .seg-b.on { background: color-mix(in srgb, var(--ax-accent) 16%, var(--ax-btn)); color: var(--j-t1); box-shadow: 0 0 0 1px color-mix(in srgb, var(--ax-accent) 28%, transparent) inset; }
-.seg-b:disabled { opacity: .35; cursor: not-allowed; }
+.seg-b:disabled { opacity: .35; cursor: not-allowed; } /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-d0c18e65 */
 .seg.lens .seg-b.on { background: color-mix(in srgb, var(--ax-accent) 16%, var(--ax-btn)); }
 .seg.lens.pay .seg-b.on { background: color-mix(in srgb, var(--j-gold) 18%, var(--ax-btn)); box-shadow: 0 0 0 1px color-mix(in srgb, var(--j-gold) 35%, transparent) inset; }
 .chip { display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 9px; border-radius: 999px; font-size: 11px; font-weight: 600; border: 1px solid var(--j-hair-2); background: transparent; color: var(--j-t2); transition: all var(--d2); white-space: nowrap; }
@@ -165,7 +151,6 @@ button.chip:hover { color: var(--j-t1); }
 .view { flex: 1; min-width: 0; overflow: auto; padding: 14px var(--gut) 22px; scroll-behavior: smooth; display: flex; flex-direction: column; }
 .view > .inner { flex: 1 0 auto; width: 100%; max-width: 1680px; margin: 0 auto; display: flex; flex-direction: column; }
 
-/* ---------- popovers, sheets, toast ---------- */
 
 #layers { position: fixed; inset: 0; z-index: 30; pointer-events: none; }
 #layers > * { pointer-events: auto; }
@@ -233,7 +218,6 @@ button.chip:hover { color: var(--j-t1); }
 .toast.in { opacity: 1; transform: translate(-50%, 0); }
 .toast.warn { border-color: color-mix(in srgb, var(--ax-warn) 50%, transparent); }
 
-/* ---------- calendar: month header ---------- */
 
 .mh { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
 .mh-nav { display: flex; align-items: center; gap: 8px; }
@@ -261,7 +245,6 @@ button.chip:hover { color: var(--j-t1); }
 .paid .sm { font-size: 11.5px; color: var(--j-t2); }
 .paid.alt .val { color: var(--j-t1); }
 
-/* ---------- calendar: KPI ribbon ---------- */
 
 .rbw { container-type: inline-size; }
 .ribbon { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)) 58px; gap: 10px; margin-bottom: 10px; }
@@ -284,7 +267,6 @@ button.chip:hover { color: var(--j-t1); }
 .tile-more svg { transition: transform var(--d3) var(--ease); }
 .tile-more.on svg { transform: rotate(180deg); }
 
-/* ---------- calendar: grid ---------- */
 
 .cal[data-rows="6"] { grid-template-rows: auto repeat(6, minmax(72px, 148px)); min-height: calc(26px + 6 * 80px); }
 .cal { --cols: 5; --wk: 148px; --rows: 5; flex: 1 1 0px; display: grid; grid-template-columns: repeat(var(--cols), minmax(0, 1fr)) var(--wk); grid-template-rows: auto repeat(var(--rows), minmax(88px, 148px)); min-height: calc(26px + var(--rows) * 96px); gap: 8px; align-content: start; user-select: none; view-transition-name: cal; }
@@ -310,7 +292,7 @@ button.chip:hover { color: var(--j-t1); }
 .cal[data-w="m"] .c-net { font-size: 16px; } .cal[data-w="s"] .c-net { font-size: 14px; } .cal[data-w="s"] .c-meta { display: none; } .cal[data-w="s"] .cell { min-height: 72px; }
 .cell.faint[data-l] { background: color-mix(in srgb, var(--sg) calc(var(--m) * .4), var(--ax-inset)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--sg) calc(var(--r) * .45), transparent); }
 .cell.flat { background: color-mix(in srgb, var(--ax-text) 6%, transparent); box-shadow: none; }
-.cell.empty { background: color-mix(in srgb, var(--ax-inset) 72%, transparent); box-shadow: inset 0 0 0 1px var(--j-hair); } /* quiet, but solid enough to keep the starfield behind */
+.cell.empty { background: color-mix(in srgb, var(--ax-inset) 72%, transparent); box-shadow: inset 0 0 0 1px var(--j-hair); }
 .cell:not(.future):not(.empty):hover { transform: translateY(-1px); }
 .cell:not(.future):hover { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--sg, var(--ax-text)) calc(var(--r) + 12%), var(--j-hair-2)), var(--bloom, 0 0 0 0 transparent); }
 .cell.out { opacity: .4; } .cell.out:hover { opacity: .8; }
@@ -337,7 +319,7 @@ button.chip:hover { color: var(--j-t1); }
 .cell.flat .c-net { color: var(--j-t2); }
 .cell.payv .c-net { color: var(--j-gold); }
 .c-meta { font-size: 11.5px; font-weight: 500; letter-spacing: .01em; color: var(--j-meta); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-height: 15px; }
-.cell .c-net, .cell .c-meta { margin: 0; }
+.cell .c-net, .cell .c-meta { margin: 0; } /* @license Better Vest 9.2.5. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-7db965e0 */
 .cell.sliver .c-meta::before { content: 'Sun 18–20 ET · '; color: var(--j-t3); }
 .wk {
     padding: 9px 13px 9px 14px; border-radius: 12px; background: color-mix(in srgb, var(--ax-surface) 40%, transparent); border: 1px solid var(--j-hair);
@@ -372,7 +354,6 @@ button.chip:hover { color: var(--j-t1); }
 .link { background: none; border: 0; padding: 0; color: var(--ax-accent-text); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: color-mix(in srgb, var(--ax-accent) 40%, transparent); }
 .link:hover { text-decoration-color: currentColor; }
 
-/* ---------- states ---------- */
 
 .cold { min-height: 100%; display: grid; place-items: center; padding: 40px 0 80px; }
 .cold-card { width: min(520px, 100%); padding: 40px 40px 32px; border-radius: 22px; background: var(--j-card); border: 1px solid var(--j-edge); box-shadow: var(--j-lift); text-align: center; position: relative; overflow: hidden; }
@@ -391,7 +372,6 @@ button.chip:hover { color: var(--j-t1); }
 .empty-note { margin: 14px 0 0; padding: 18px; border-radius: 14px; border: 1px dashed var(--j-hair-2); text-align: center; color: var(--j-t2); font-size: 13px; }
 .empty-note b { color: var(--j-t1); font-weight: 600; }
 
-/* ---------- day drawer ---------- */
 
 .drawer {
     position: relative; flex: 0 0 var(--dw, 0px); width: var(--dw, 0px); overflow: hidden; border-left: 1px solid transparent;
@@ -472,7 +452,7 @@ button.chip:hover { color: var(--j-t1); }
 .note-box textarea { width: 100%; min-height: 84px; resize: vertical; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--j-hair-2); background: color-mix(in srgb, var(--ax-field) 70%, transparent); color: var(--ax-field-text); font-size: 12.5px; line-height: 1.5; }
 .note-box textarea:focus { border-color: color-mix(in srgb, var(--ax-accent) 55%, transparent); box-shadow: var(--j-focus); }
 .note-box textarea.sm { min-height: 54px; }
-.tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.tags { display: flex; flex-wrap: wrap; gap: 6px; } /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-0ba55adf */
 .note-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 12px; color: var(--j-t2); }
 .saved { margin-left: auto; font-size: 11px; color: var(--j-t3); opacity: 0; transition: opacity var(--d3); }
 .saved.on { opacity: 1; }
@@ -487,7 +467,6 @@ button.chip:hover { color: var(--j-t1); }
 ::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
 ::view-transition-old(cal), ::view-transition-new(cal) { animation-duration: 180ms; }
 
-/* ---------- responsive ---------- */
 
 @media (max-width: 1500px) { :root { --gut: 24px; } .cal { --wk: 132px; } }
 @media (max-width: 1280px) { .brand small { display: none; } }
@@ -508,11 +487,8 @@ button.chip:hover { color: var(--j-t1); }
 }
 :root[data-reduce-motion="1"] *, :root[data-reduce-motion="1"] *::before, :root[data-reduce-motion="1"] *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
 
-/* keep text legible where a star sits behind it */
 .mh-nav h1, .hero-sub, .paid, .wd, .legend, .notice { text-shadow: 0 0 10px var(--ax-base), 0 0 3px var(--ax-base); }
 
-/* the Better Vest mark (9.0.4): the B breathes, its glow swelling and fading every 3.6 s, while a band of light crosses it along Vest's
-   38.66° angle; the light theme gets the inverted tile. The same as the page script's .ax4p-tile / .ax4p-b. */
 .bv-tile { display: inline-grid; place-items: center; flex: none; width: var(--t); height: var(--t); border-radius: 22%;
     background: #050506; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .1); }
 .bv-b { position: relative; display: inline-block; flex: none; height: calc(var(--t) * .58); width: calc(var(--t) * .58 * 38 / 64);

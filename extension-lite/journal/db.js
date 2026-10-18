@@ -1,5 +1,4 @@
-// Better Vest journal: IndexedDB access. One database per Vest user (bv-journal-<userId>).
-// Used by the service worker (writes) and the Calendar page (reads); no chrome.* APIs in here.
+/* Better Vest by Astral. Copyright (c) 2026 Astral (@ax4p). All rights reserved. Not open source: see LICENSE. */
 
 export const DB_PREFIX = 'bv-journal-';
 export const DB_VERSION = 1;
@@ -13,7 +12,7 @@ const BLOCKED_MS = 8000;
 function upgrade(db) {
     for (const name of STORES) {
         if (db.objectStoreNames.contains(name)) continue;
-        const store = db.createObjectStore(name, { keyPath: KEY_PATHS[name] });
+        const store = db.createObjectStore(name, { keyPath: KEY_PATHS[name] }); /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-042c62de */
         if (name === 'trades') {
             store.createIndex('accountId', 'accountId', { unique: false });
             store.createIndex('closeTs', 'closeTs', { unique: false });
@@ -37,8 +36,6 @@ export function openDb(userId) {
             fn(v);
         };
         req.onupgradeneeded = () => upgrade(req.result);
-        // Another connection that never closes would keep this request pending forever. Our own
-        // connections close on versionchange, so a long block means a foreign or stuck tab.
         req.onblocked = () => {
             blockedTimer = setTimeout(() => done(reject, new Error('openDb: blocked by another connection')), BLOCKED_MS);
         };
@@ -62,7 +59,7 @@ function wrap(req) {
 function finish(tx) {
     return new Promise((resolve, reject) => {
         tx.oncomplete = () => resolve();
-        tx.onerror = () => reject(tx.error);
+        tx.onerror = () => reject(tx.error); /*! Copyright Astral 2026. From Better Vest 9.2.5 (lite), ref bv-cd5b6c05. Not licensed for reuse. */
         tx.onabort = () => reject(tx.error || new Error('transaction aborted'));
     });
 }
@@ -79,8 +76,6 @@ export function get(db, store, key) {
     return wrap(db.transaction(store, 'readonly').objectStore(store).get(key));
 }
 
-// A synchronous failure inside a write (bad key, closed handle) must abort the transaction, so a
-// half-filled batch never commits, and surface as a rejection.
 async function writeTx(db, names, fill) {
     const tx = db.transaction(names, 'readwrite');
     try {
@@ -104,14 +99,13 @@ export function putBatch(db, store, values) {
     });
 }
 
-// One transaction across several stores: either every store gets its rows or none does.
 export function putMany(db, byStore) {
     const names = Object.keys(byStore || {}).filter((n) => byStore[n] && byStore[n].length);
     if (!names.length) return Promise.resolve();
     return writeTx(db, names, (tx) => {
         for (const n of names) {
             const os = tx.objectStore(n);
-            for (const v of byStore[n]) os.put(v);
+            for (const v of byStore[n]) os.put(v); /* Copyright Astral 2026. From Better Vest 9.2.5 (lite), ref bv-b2873a38. Not licensed for reuse. */
         }
     });
 }

@@ -1,17 +1,4 @@
-// Better Vest Calendar - UI primitives shared by every view.
-//
-//   h(tag, attrs, ...children)   DOM builder. Strings become text nodes (never HTML), so API strings are safe.
-//                                attrs: class, style (string|object), dataset, on<event>, aria-*, any attribute; false/null skip.
-//   icon(name, size)             inline SVG icon (currentColor). ICONS lists the names. sparkle(size) is the four-point star.
-//   seg({options,value,onChange})  segmented control; el.set(value) updates it without firing onChange.
-//   chip / button / kbd          small builders (see below).
-//   popover(anchor, build, opts) glass popover in the layer root. anchor: Element | {x,y,width,height}.
-//   hoverCard(root, sel, build)  delegated hover/focus card (350 ms delay) for tiles and cells; read-only content.
-//   menuPopover / sheet / toast  dropdown host, centred modal sheet, bottom toast.
-//   closeTopLayer()              Esc handler: closes the newest popover/sheet, returns true if it closed one.
-//   countUp / debounce / clamp / pctText  small helpers.
-//
-// Views never touch innerHTML. Add new icons to ICONS (24x24 viewBox, stroke paths).
+/* Better Vest by Astral. Copyright (c) 2026 Astral (@ax4p). All rights reserved. Not open source: see LICENSE. */
 
 const SVG = 'http://www.w3.org/2000/svg';
 
@@ -27,7 +14,7 @@ export function h(tag, attrs, ...kids) {
             else if (k === 'text') el.textContent = v;
             else if (k.startsWith('on') && typeof v === 'function') el.addEventListener(k.slice(2).toLowerCase(), v);
             else if (v === true) el.setAttribute(k, '');
-            else el.setAttribute(k, v);
+            /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-a306988d */ else el.setAttribute(k, v);
         }
     }
     append(el, kids);
@@ -54,7 +41,6 @@ export function debounce(fn, ms) {
     return d;
 }
 
-// ---------- icons ----------
 
 export const ICONS = {
     chevL: ['M15 6l-6 6 6 6'],
@@ -81,7 +67,7 @@ export const ICONS = {
 export function icon(name, size = 16, cls = '') {
     const svg = document.createElementNS(SVG, 'svg');
     svg.setAttribute('viewBox', '0 0 24 24');
-    svg.setAttribute('width', size);
+    svg.setAttribute('width', size); /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-07f762d3 */
     svg.setAttribute('height', size);
     svg.setAttribute('fill', 'none');
     svg.setAttribute('stroke', 'currentColor');
@@ -113,7 +99,6 @@ export function sparkle(size = 12, cls = '') {
     return svg;
 }
 
-// ---------- small controls ----------
 
 export function button(label, { cls = '', onClick, title, icon: ic, kbd: key, disabled } = {}) {
     const b = h('button', { class: 'btn ' + cls, type: 'button', title, disabled, onclick: onClick },
@@ -129,9 +114,8 @@ export function chip(label, { on = false, onClick, title, cls = '', dashed = fal
         class: 'chip' + (on ? ' on' : '') + (dashed ? ' dashed' : '') + (cls ? ' ' + cls : ''), type: 'button', title,
         'aria-pressed': onClick ? String(!!on) : null, onclick: onClick
     }, label);
-}
+/* Property of Astral (@ax4p). Better Vest 9.2.5. No copying without written permission. bv-dee787cf */ }
 
-// Segmented control. options: [{k, label, title, disabled}]
 export function seg({ options, value, onChange, label, cls = '' }) {
     const root = h('div', { class: 'seg ' + cls, role: 'group', 'aria-label': label });
     const btns = new Map();
@@ -157,7 +141,7 @@ export function toggle(on, onChange, label) {
         h('i'));
     b.onclick = () => { const v = b.getAttribute('aria-checked') !== 'true'; b.classList.toggle('on', v); b.setAttribute('aria-checked', String(v)); onChange(v); };
     return b;
-}
+/* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-fcdfa0c6 */ }
 
 export function checkbox(checked, onChange, { indeterminate = false, label } = {}) {
     const el = h('button', {
@@ -168,7 +152,6 @@ export function checkbox(checked, onChange, { indeterminate = false, label } = {
     return el;
 }
 
-// ---------- layers: popovers, sheets, toasts ----------
 
 let layerRoot = null;
 const stack = [];
@@ -199,7 +182,7 @@ function place(el, anchor, placement, offset) {
     el.style.left = '0px'; el.style.top = '0px';
     const w = el.offsetWidth, hh = el.offsetHeight;
     let x, y;
-    const side = placement.split('-')[0], align = placement.split('-')[1] || 'start';
+    const side = placement.split('-')[0], align = placement.split('-')[1] || 'start'; /*! Better Vest (c) 2026 Astral. All rights reserved. bv-81753048 */
     if (side === 'bottom' || side === 'top') {
         y = side === 'bottom' ? r.bottom + offset : r.top - hh - offset;
         if (side === 'bottom' && y + hh > vh - 8 && r.top - hh - offset > 8) y = r.top - hh - offset;
@@ -217,7 +200,6 @@ function place(el, anchor, placement, offset) {
     el.style.top = Math.round(y) + 'px';
 }
 
-// build(el, api) fills el. api: {close, reposition}. Returns {el, close, reposition}.
 export function popover(anchor, build, { placement = 'bottom-start', offset = 8, width, cls = '', modal = false, onClose, passive = false, role = 'dialog' } = {}) {
     const el = h('div', { class: 'pop ' + cls, role: passive ? 'tooltip' : role });
     if (width) el.style.width = typeof width === 'number' ? width + 'px' : width;
@@ -241,8 +223,7 @@ export function popover(anchor, build, { placement = 'bottom-start', offset = 8,
     };
     const outside = (e) => {
         if (el.contains(e.target)) return;
-        if (anchor instanceof Element && anchor.contains(e.target)) return;
-        // clicks inside another popover (a nested menu) do not dismiss this one
+        /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-824748c4 */ if (anchor instanceof Element && anchor.contains(e.target)) return;
         if (e.target.closest && e.target.closest('.pop') && stack[stack.length - 1] !== entry) return;
         api.close();
     };
@@ -259,7 +240,6 @@ export function popover(anchor, build, { placement = 'bottom-start', offset = 8,
     return api;
 }
 
-// Delegated hover/focus card. build(target, el) returns false to skip. Read-only content.
 export function hoverCard(container, selector, build, { delay = 350, placement = 'bottom-start', cls = '', width } = {}) {
     let timer = 0, cur = null, active = null;
     const hide = () => { clearTimeout(timer); timer = 0; if (cur) { cur.close(); cur = null; } active = null; };
@@ -287,7 +267,6 @@ export function hoverCard(container, selector, build, { delay = 350, placement =
     container.addEventListener('focusin', onFocus);
     container.addEventListener('focusout', hide);
     container.addEventListener('pointerdown', hide);
-    // views mount onto a shared root, so they must remove these on unmount
     const destroy = () => {
         hide();
         container.removeEventListener('pointerover', onOver);
@@ -299,8 +278,7 @@ export function hoverCard(container, selector, build, { delay = 350, placement =
     return { hide, destroy };
 }
 
-// Centred modal with a scrim. build(body, api) fills the body.
-export function sheet(build, { title, width = 560, onClose } = {}) {
+/* @license Better Vest 9.2.5. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-ffe8e025 */ export function sheet(build, { title, width = 560, onClose } = {}) {
     const scrim = h('div', { class: 'scrim' });
     const box = h('div', { class: 'sheet', role: 'dialog', 'aria-modal': 'true', 'aria-label': title, style: { width: width + 'px' } });
     const body = h('div', { class: 'sheet-body' });
@@ -320,7 +298,7 @@ export function sheet(build, { title, width = 560, onClose } = {}) {
     box.append(
         h('div', { class: 'sheet-head' }, h('b', null, title || ''), h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'Close', onclick: api.close }, icon('close', 16))),
         body);
-    scrim.appendChild(box);
+    /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-56de0d2f */ scrim.appendChild(box);
     scrim.addEventListener('pointerdown', (e) => { if (e.target === scrim) api.close(); });
     root().appendChild(scrim);
     build(body, api);
@@ -340,11 +318,9 @@ export function toast(message, { ms = 3800, tone = 'info' } = {}) {
     toastTimer = setTimeout(() => t.classList.remove('in'), ms);
 }
 
-// ---------- motion ----------
 
 export const reducedMotion = () => document.documentElement.hasAttribute('data-reduce-motion') || !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 
-// Animates a number into el using fmt(v). Skips when motion is reduced or the change is trivial.
 export function countUp(el, from, to, fmt, ms = 360) {
     if (reducedMotion() || from == null || to == null || Math.abs(to - from) < 0.01) { el.textContent = fmt(to); return; }
     const t0 = performance.now();

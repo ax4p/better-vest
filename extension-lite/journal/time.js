@@ -1,6 +1,4 @@
-// Better Vest Calendar - time and number formatting (pure, no DOM, no chrome APIs).
-// A "Vest day" ends at 20:00 New York time, when Vest resets the daily loss limit. Everything is
-// computed with Intl in America/New_York so DST days come out as 23 or 25 hours.
+/* Better Vest by Astral. Copyright (c) 2026 Astral (@ax4p). All rights reserved. Not open source: see LICENSE. */
 
 export const ET = 'America/New_York';
 export const MINUS = '−';
@@ -19,7 +17,7 @@ const DOW_INDEX = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
 const etFmt = new Intl.DateTimeFormat('en-US', {
     timeZone: ET, hourCycle: 'h23', weekday: 'short',
     year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit'
-});
+/* Better Vest (c) 2026 Astral. All rights reserved. bv-ef6d09e4 */ });
 
 export const pad2 = (n) => (n < 10 ? '0' : '') + n;
 export const keyOf = (y, m, d) => `${y}-${pad2(m)}-${pad2(d)}`;
@@ -29,7 +27,6 @@ export function parseKey(key) {
     return { y, m, d };
 }
 
-// Wall-clock parts of a timestamp in New York.
 export function etParts(ts) {
     const o = {};
     for (const p of etFmt.formatToParts(new Date(ts))) o[p.type] = p.value;
@@ -52,7 +49,6 @@ export function daysBetween(a, b) {
     return Math.round((Date.UTC(pb.y, pb.m - 1, pb.d) - Date.UTC(pa.y, pa.m - 1, pa.d)) / 864e5);
 }
 
-// UTC timestamp of a New York wall-clock time. Two passes settle the offset on DST days.
 export function etWallToUtc(y, m, d, h = 0, mi = 0) {
     const target = Date.UTC(y, m - 1, d, h, mi);
     let ts = target + 5 * 3600e3;
@@ -63,7 +59,7 @@ export function etWallToUtc(y, m, d, h = 0, mi = 0) {
         if (!diff) break;
         ts -= diff;
     }
-    return ts;
+    /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.2.5. bv-f97da1bc */ return ts;
 }
 
 export function etDateKey(ts) {
@@ -71,7 +67,6 @@ export function etDateKey(ts) {
     return keyOf(p.y, p.m, p.d);
 }
 
-// The calendar day a timestamp belongs to. vest: >= 20:00 ET counts toward the next date.
 export function dayKey(ts, mode = 'vest') {
     if (ts == null || !isFinite(ts)) return null;
     if (mode === 'local') {
@@ -84,7 +79,6 @@ export function dayKey(ts, mode = 'vest') {
     return b && p.h >= b ? addDays(key, 1) : key;
 }
 
-// Start/end timestamps of a day key, and its length in hours (23 / 24 / 25 on DST days).
 export function dayWindow(key, mode = 'vest') {
     const { y, m, d } = parseKey(key);
     let start, end;
@@ -106,17 +100,15 @@ export function dayWindow(key, mode = 'vest') {
     return { start, end, hours: Math.round((end - start) / 36e5) };
 }
 
-// Payouts are transfers, not trading: they sit on their plain ET calendar date (no 20:00 shift).
 export function payoutDayKey(p, basis = 'executed') {
     const ts = basis === 'requested' ? p.createdAt : (p.status === 'EXECUTED' && p.executedAt ? p.executedAt : p.createdAt);
     return ts ? etDateKey(ts) : null;
 }
 
-// ms until the next 20:00 ET reset.
 export function vestResetIn(now = Date.now()) {
     const p = etParts(now);
     let t = etWallToUtc(p.y, p.m, p.d, 20);
-    if (now >= t) {
+    if (now >= t) { /*! Copyright (c) 2026 Astral. Better Vest 9.2.5 is licensed to its users only to run it, never to copy it. bv-444bfb46 */
         const n = parseKey(addDays(keyOf(p.y, p.m, p.d), 1));
         t = etWallToUtc(n.y, n.m, n.d, 20);
     }
@@ -133,7 +125,6 @@ export function isoWeek(key) {
     return { year: t.getUTCFullYear(), week, label: 'Wk ' + week };
 }
 
-// Weeks (Monday first) covering a month. Each day: { key, inMonth, dow } with dow 0 = Sunday.
 export function monthGrid(y, m) {
     const first = keyOf(y, m, 1);
     const lead = (dowOfKey(first) + 6) % 7;
@@ -159,15 +150,13 @@ export function shiftMonth(ym, n) {
     return `${t.getUTCFullYear()}-${pad2(t.getUTCMonth() + 1)}`;
 }
 
-// ---------- number formatting (en-US) ----------
 
 const nf0 = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
-const nf2 = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const nf2 = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); /*! Copyright (c) 2026 Astral. Better Vest 9.2.5 is licensed to its users only to run it, never to copy it. bv-d2ecd320 */
 
 export const signOf = (v) => (v > 0 ? '+' : v < 0 ? MINUS : '');
 const ok = (v) => v != null && isFinite(v);
 
-// ctx 'cell': compact for calendar cells; anything else: always 2 decimals.
 export function fmtUsd(v, { ctx = 'table', sign = true } = {}) {
     if (!ok(v)) return '—';
     const a = Math.abs(v);
@@ -189,7 +178,6 @@ export function fmtUsd(v, { ctx = 'table', sign = true } = {}) {
     return s + body;
 }
 
-// Big hero number split so the cents can be set smaller.
 export function heroParts(v) {
     if (!ok(v)) return { sign: '', int: '—', cents: '' };
     const r = Math.round(Math.abs(v) * 100) / 100;
@@ -197,7 +185,6 @@ export function heroParts(v) {
     return { sign: r === 0 ? '' : signOf(v), cur: '$', int: nf0.format(+i), cents: '.' + c };
 }
 
-// fraction in, percent out: 0.0124 -> "+1.24%"
 export function fmtPct(f, { sign = true } = {}) {
     if (!ok(f)) return '—';
     const p = f * 100, a = Math.abs(p);
@@ -226,7 +213,7 @@ export function fmtR(v, { sign = true } = {}) {
     return (sign && r !== 0 ? signOf(v) : !sign && v < 0 ? MINUS : '') + r.toFixed(2) + 'R';
 }
 
-export function fmtNum(v, dp = 2) {
+/* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-9203eeed */ export function fmtNum(v, dp = 2) {
     if (!ok(v)) return '—';
     return new Intl.NumberFormat('en-US', { minimumFractionDigits: dp, maximumFractionDigits: dp }).format(v).replace('-', MINUS);
 }
@@ -235,7 +222,6 @@ export function fmtCount(n) {
     return ok(n) ? nf0.format(n) : '—';
 }
 
-// Price with the symbol's decimals and thousands separators.
 export function fmtPrice(v, dp = 2) {
     if (!ok(v)) return '—';
     return new Intl.NumberFormat('en-US', { minimumFractionDigits: dp, maximumFractionDigits: dp }).format(v);
@@ -250,7 +236,7 @@ export function fmtDur(ms) {
     const h = Math.floor(m / 60);
     if (h < 24) return h + 'h ' + pad2(m % 60) + 'm';
     return Math.floor(h / 24) + 'd ' + (h % 24) + 'h';
-}
+/* Copyright (c) 2026 Astral. Better Vest 9.2.5 is licensed to its users only to run it, never to copy it. bv-a99a1222 */ }
 
 export function fmtTimeET(ts, { seconds = true, suffix = false } = {}) {
     if (!ok(ts)) return '—';
@@ -264,7 +250,6 @@ export function fmtTimeLocal(ts, { seconds = false } = {}) {
     return pad2(t.getHours()) + ':' + pad2(t.getMinutes()) + (seconds ? ':' + pad2(t.getSeconds()) : '');
 }
 
-// style: 'short' Wed 14 Oct · 'long' Wed 14 Oct 2026 · 'dm' 14 Oct · 'month' October 2026 · 'iso' 2026-10-14
 export function fmtDate(key, style = 'short') {
     if (!key) return '—';
     const { y, m, d } = parseKey(key);
@@ -277,7 +262,7 @@ export function fmtDate(key, style = 'short') {
 
 export function fmtMonth(ym, { short = false } = {}) {
     const [y, m] = ym.split('-').map(Number);
-    return short ? MON3[m - 1] + ' \u2019' + String(y).slice(2) : MONTHS[m - 1] + ' ' + y; // 'Oct ’26' so it never reads as a day
+    return short ? MON3[m - 1] + ' \u2019' + String(y).slice(2) : MONTHS[m - 1] + ' ' + y;
 }
 
 export function fmtAgo(ts, now = Date.now()) {

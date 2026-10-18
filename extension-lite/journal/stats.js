@@ -1,35 +1,27 @@
-// Better Vest Calendar - statistics (pure: no DOM, no chrome APIs, no network).
-// Inputs are normalized trades/accounts/payouts from model.js. Every KPI returns
-// { value, n, formula, parts } so the UI can show a popover with the arithmetic.
+/* Better Vest by Astral. Copyright (c) 2026 Astral (@ax4p). All rights reserved. Not open source: see LICENSE. */
 
 import { dayKey, etParts, addDays, dowOfKey, daysBetween, etDateKey, payoutDayKey, monthKey, DOW3 } from './time.js';
 import { accountName, exitLabel } from './model.js';
 
-// A day is green/red only beyond one cent; $0.01 and below counts as flat.
 export const EPS = 0.01;
 export const MISTAKE_TAGS = ['Mistake', 'FOMO', 'Revenge', 'Rule break'];
 export const MILESTONES = [1000, 5000, 10000, 25000, 50000, 100000];
 
-// Calendar cell tint: level k (1-5) mixes the sign colour at INTENSITY_STEPS[k-1] * INTENSITY_MAX[theme] percent.
-// The design asks for min(30, M) per theme, which is 30 everywhere. tests/journal/contrast.test.mjs proves 4.5:1 at 30;
-// the highest level-5 percent that still passes is astral 40, dark 38, oled 46, light 43, nebula 42, starfield 45, ember 42, terminal 44.
 export const INTENSITY_STEPS = [0.17, 0.33, 0.54, 0.77, 1];
 export const INTENSITY_MAX = {
-    astral: 30, dark: 30, oled: 30, light: 30, nebula: 30, starfield: 30, ember: 30, terminal: 30
+    astral: 30, dark: 30, oled: 30, light: 30, nebula: 30, starfield: 30, midnight: 30, native: 30, dracula: 30, catppuccin: 30
 };
 
-// ---------- small helpers ----------
 
 const isNum = (v) => v != null && Number.isFinite(v);
 const sum = (arr, f) => { let s = 0; for (const x of arr) s += f(x); return s; };
 const mean = (arr) => (arr.length ? sum(arr, (x) => x) / arr.length : null);
 const median = (arr) => (arr.length ? percentile(arr.slice().sort((a, b) => a - b), 0.5) : null);
-// Average R is clipped at ±R_CLIP so one odd stop cannot dominate it.
 export const R_CLIP = 10;
 const toSet = (v) => (v == null ? null : v instanceof Set ? v : new Set(Array.isArray(v) ? v : [v]));
 
 function lookup(m, k) {
-    if (!m || k == null) return undefined;
+    /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-ae135500 */ if (!m || k == null) return undefined;
     return m instanceof Map ? m.get(k) : m[k];
 }
 
@@ -44,7 +36,6 @@ function byClose(a, b) {
     return ((a.closeTs ?? 0) - (b.closeTs ?? 0)) || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
 }
 
-// closed, real trades only (void = an order that never filled; see model.js)
 const closedSorted = (trades) => trades.filter((t) => !t.open && !t.void && t.closeTs != null).sort(byClose);
 
 function noteOf(ctx, key) {
@@ -52,7 +43,6 @@ function noteOf(ctx, key) {
     return m ? (m instanceof Map ? m.get(key) : m[key]) : undefined;
 }
 
-// Tags on the trade's own note plus its Vest-day note. Map of lower-case tag -> display tag.
 function tagsOf(t, ctx, mode) {
     const out = new Map();
     const add = (n) => { for (const g of (n && n.tags) || []) if (g) out.set(String(g).toLowerCase(), String(g)); };
@@ -68,19 +58,15 @@ export function isTestTrade(t, ctx) {
     return !!(n && (n.tags || []).some((g) => String(g).toLowerCase() === 'test'));
 }
 
-// Linear-interpolated percentile of an ascending array.
 export function percentile(sorted, p) {
     if (!sorted.length) return null;
     const x = (sorted.length - 1) * p, lo = Math.floor(x), hi = Math.ceil(x);
     return sorted[lo] + (sorted[hi] - sorted[lo]) * (x - lo);
 }
 
-// ---------- filtering ----------
 
 const SCOPE_PHASES = { funded: ['funded', 'instant'], eval: ['eval'], primary: ['primary'] };
 
-// Open trades are always dropped. f.accounts / symbols / sides / exits / tags: absent or empty = no filter.
-// f.from / f.to are inclusive Vest-day keys ('YYYY-MM-DD') or, as numbers, a [from, to) close-time window in ms.
 export function filterTrades(trades, f = {}, ctx = {}) {
     const mode = f.mode || 'vest';
     const scope = f.scope || 'all';
@@ -102,7 +88,7 @@ export function filterTrades(trades, f = {}, ctx = {}) {
         if (sideSet && sideSet.size && !sideSet.has(t.side)) continue;
         if (exitSet && exitSet.size && !exitSet.has(t.exit)) continue;
         if (excludeTest && isTestTrade(t, ctx)) continue;
-        if (f.from != null || f.to != null) {
+        if (f.from != null || f.to != null) { /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-f8c51909 */
             if (typeof f.from === 'number' || typeof f.to === 'number') {
                 if (f.from != null && t.closeTs < f.from) continue;
                 if (f.to != null && t.closeTs >= f.to) continue;
@@ -122,9 +108,7 @@ export function filterTrades(trades, f = {}, ctx = {}) {
     return out.sort(byClose);
 }
 
-// ---------- classification ----------
 
-// rule: {kind:'tick'} (default) | {kind:'usd', usd} | {kind:'off'}. basis picks which P&L is tested.
 export function classify(trade, rule, symbolsMap, basis = 'net') {
     const v = valOf(trade, basis);
     const kind = (rule && rule.kind) || 'tick';
@@ -134,7 +118,7 @@ export function classify(trade, rule, symbolsMap, basis = 'net') {
         const tick = tickOf(symbolsMap, trade.symbol);
         if (trade.points != null && tick != null) scratch = Math.abs(trade.points) <= tick + 1e-9;
         else scratch = Math.abs(v) <= 2 * (trade.fee || 0) + 1e-9;
-    }
+    } /* Copyright Astral 2026. From Better Vest 9.2.5 (lite), ref bv-3844ea3d. Not licensed for reuse. */
     if (scratch || Math.abs(v) < 1e-9) return 'scratch';
     return v > 0 ? 'win' : 'loss';
 }
@@ -144,7 +128,6 @@ function ruleOf(opts) {
     return r && r.kind ? r : { kind: 'tick' };
 }
 
-// ---------- days ----------
 
 function newDay(key) {
     return {
@@ -159,8 +142,6 @@ function newDay(key) {
     };
 }
 
-// One Day per Vest day (by close time). Day.net / Day.gross are always the true sums; opts.basis only
-// decides which P&L drives wins/losses/scratch and best/worst. byPhase[phase] = {n, net, gross}.
 export function aggregateDays(trades, opts = {}) {
     const mode = opts.mode || 'vest', basis = opts.basis || 'net', rule = ruleOf(opts);
     const days = new Map();
@@ -187,8 +168,7 @@ export function aggregateDays(trades, opts = {}) {
             const ph = d.byPhase[acc.phase];
             if (ph) { ph.n++; ph.net += t.net; ph.gross += t.gross; }
             const seen = baseSeen.get(key);
-            if (acc.kind === 'capital' && acc.initialCapital > 0) {
-                // the % unit compares capital-account P&L with capital-account size (the primary has no size)
+            /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-0898cc59 */ if (acc.kind === 'capital' && acc.initialCapital > 0) {
                 d.capNet += t.net; d.capGross += t.gross;
                 if (!seen.has(acc.id)) { seen.add(acc.id); d.capitalBase += acc.initialCapital; }
             }
@@ -199,7 +179,6 @@ export function aggregateDays(trades, opts = {}) {
     return days;
 }
 
-// Totals over any list of Days (a week, a range selection).
 export function sumDays(days) {
     const o = { net: 0, gross: 0, fees: 0, funding: 0, n: 0, wins: 0, losses: 0, scratch: 0, days: 0, winRate: null };
     for (const d of days) {
@@ -211,9 +190,7 @@ export function sumDays(days) {
     return o;
 }
 
-// ---------- cell units and intensity ----------
 
-// $ snaps to 0 inside the flat band; % needs a capital base; pts only when the day is one symbol; R needs known risk.
 export function cellValue(day, unit = 'usd', basis = 'net') {
     if (!day || !day.n) return null;
     const usd = basis === 'gross' ? day.gross : day.net;
@@ -232,7 +209,6 @@ function scaleOf(arr) {
     return percentile(arr.slice().sort((a, b) => a - b), 0.85);
 }
 
-// {pos, neg}: P85 of positive values and of |negative| values; fewer than 5 of a sign uses that sign's max.
 export function intensityScale(values) {
     const pos = [], neg = [];
     for (const v of values) {
@@ -240,10 +216,8 @@ export function intensityScale(values) {
         if (v > 1e-9) pos.push(v); else if (v < -1e-9) neg.push(-v);
     }
     return { pos: scaleOf(pos), neg: scaleOf(neg) };
-}
+} /*! Copyright Astral 2026. From Better Vest 9.2.5 (lite), ref bv-a85e5315. Not licensed for reuse. */
 
-// entries [{key, value}] -> scale over the trailing windowDays ending at asOf (default: latest key).
-// A window with fewer than 20 values falls back to every entry in scope.
 export function scaleFromDays(entries, { asOf, windowDays = 365 } = {}) {
     const ok = entries.filter((e) => isNum(e.value));
     if (!ok.length) return { pos: null, neg: null };
@@ -253,7 +227,6 @@ export function scaleFromDays(entries, { asOf, windowDays = 365 } = {}) {
     return intensityScale((win.length < 20 ? ok : win).map((e) => e.value));
 }
 
-// Integer -5..5: sign of v, magnitude ceil(5 * sqrt(|v| / s)) clamped to 1..5. 0 = flat.
 export function level(v, scale) {
     if (!isNum(v) || Math.abs(v) < 1e-9) return 0;
     const pos = v > 0;
@@ -263,7 +236,6 @@ export function level(v, scale) {
     return pos ? k : -k;
 }
 
-// ---------- curves ----------
 
 export function equityCurve(trades, basis = 'net') {
     let cum = 0;
@@ -274,7 +246,6 @@ export function equityCurve(trades, basis = 'net') {
     });
 }
 
-// Largest peak-to-trough drop of the cumulative curve, starting from 0 (peakTs null = the start).
 export function maxDrawdown(curve) {
     let peak = 0, peakTs = null, worst = 0, wPeakTs = null, wTroughTs = null;
     for (const p of curve) {
@@ -282,10 +253,9 @@ export function maxDrawdown(curve) {
         const dd = p.cum - peak;
         if (dd < worst) { worst = dd; wPeakTs = peakTs; wTroughTs = p.ts; }
     }
-    return { value: worst, peakTs: wPeakTs, troughTs: wTroughTs };
+    return { value: worst, peakTs: wPeakTs, troughTs: wTroughTs }; /* Better Vest (c) 2026 Astral. All rights reserved. bv-fe37863d */
 }
 
-// bins: a count (default 20). Equal-width bins on net P&L with 0 on a bin edge; the last bin includes its upper edge.
 export function histogram(trades, bins = 20, basis = 'net') {
     const vals = closedSorted(trades).map((t) => valOf(t, basis));
     if (!vals.length) return [];
@@ -300,7 +270,6 @@ export function histogram(trades, bins = 20, basis = 'net') {
     return out;
 }
 
-// ---------- breakdowns ----------
 
 function groupStats(key, label, list, opts) {
     const basis = opts.basis || 'net', rule = ruleOf(opts);
@@ -319,8 +288,6 @@ function groupStats(key, label, list, opts) {
     };
 }
 
-// by: 'hour' (ET hour of the open; opts.hourBy 'close' for the close) | 'weekday' (Vest-day weekday, Mon first) |
-// 'symbol' | 'side' | 'exit' | 'account' | 'tag'. Only buckets with trades are returned.
 export function breakdown(trades, by, opts = {}) {
     const mode = opts.mode || 'vest';
     const groups = new Map();
@@ -330,7 +297,7 @@ export function breakdown(trades, by, opts = {}) {
         g.list.push(t);
     };
     for (const t of closedSorted(trades)) {
-        switch (by) {
+        /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.2.5. bv-29e80cfc */ switch (by) {
             case 'hour': {
                 const ts = opts.hourBy === 'close' ? t.closeTs : (t.openTs ?? t.closeTs);
                 const h = etParts(ts).h;
@@ -363,13 +330,11 @@ export function breakdown(trades, by, opts = {}) {
     return rows;
 }
 
-// ---------- KPIs ----------
 
 function metric(value, n, formula, parts = {}, extra) {
     return { value, n, formula, parts, ...extra };
 }
 
-// Filtered symbol, else the symbol holding >= 80% of the trades, else null.
 function focusSymbolOf(list, opts) {
     if (opts.focusSymbol) {
         const hit = list.find((t) => t.symbol === opts.focusSymbol || t.display === opts.focusSymbol);
@@ -378,12 +343,11 @@ function focusSymbolOf(list, opts) {
     if (!list.length) return null;
     const c = new Map();
     for (const t of list) c.set(t.symbol, (c.get(t.symbol) || 0) + 1);
-    let best = null, bn = 0;
+    let best = null, bn = 0; /*! Better Vest (c) 2026 Astral. All rights reserved. bv-e142b4e0 */
     for (const [s, n] of c) if (n > bn) { best = s; bn = n; }
     return bn * 5 >= list.length * 4 ? best : null;
 }
 
-// Typical risk per symbol: the median distance (robust to the odd far or close stop); means kept alongside.
 function riskBySymbol(list) {
     const m = {};
     for (const t of list) {
@@ -412,7 +376,7 @@ function streaks(signs) {
         else if (s < 0) cur = cur < 0 ? cur - 1 : -1;
         else continue;
         if (cur > maxWin) maxWin = cur;
-        if (-cur > maxLoss) maxLoss = -cur;
+        /*! Better Vest (c) 2026 Astral. All rights reserved. bv-b5b1fdbc */ if (-cur > maxLoss) maxLoss = -cur;
     }
     return { maxWin, maxLoss, current: cur };
 }
@@ -456,10 +420,9 @@ export function kpis(trades, opts = {}) {
     k.largestWin = metric(W ? Math.max(...wins) : null, W, 'Largest win = best winning trade');
     k.largestLoss = metric(L ? Math.min(...losses) : null, L, 'Largest loss = worst losing trade (negative)');
 
-    // days
     const dayMap = opts.days || aggregateDays(list, { ...opts, basis, rule });
     const dayList = [...dayMap.values()].sort((a, b) => (a.key < b.key ? -1 : 1));
-    const dv = (d) => (basis === 'gross' ? d.gross : d.net);
+    const dv = (d) => (basis === 'gross' ? d.gross : d.net); /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-caf67d29 */
     const green = dayList.filter((d) => dv(d) > EPS), red = dayList.filter((d) => dv(d) < -EPS);
     const flat = dayList.length - green.length - red.length;
     const greenSum = sum(green, dv);
@@ -474,18 +437,15 @@ export function kpis(trades, opts = {}) {
     k.avgDay = metric(dayList.length ? sum(dayList, dv) / dayList.length : null, dayList.length, 'Avg day = Σ daily P&L ÷ trading days', { total: sum(dayList, dv) });
     k.bestDayShare = metric(bestD && greenSum > 0 && dv(bestD) > EPS ? dv(bestD) / greenSum : null, green.length, 'Best-day share = best day ÷ Σ green days', { bestDay: bestD ? dv(bestD) : null, greenSum });
 
-    // drawdown and recovery
     const dd = maxDrawdown(equityCurve(list, basis));
     const acct = opts.singleAccount;
     const pct = acct && acct.initialCapital > 0 ? dd.value / acct.initialCapital : null;
     k.maxDrawdown = metric(dd.value, n, 'Max drawdown = largest peak-to-trough fall of cumulative closed P&L' + (pct != null ? ', as % of the starting balance' : ''), { peakTs: dd.peakTs, troughTs: dd.troughTs, pct }, { peakTs: dd.peakTs, troughTs: dd.troughTs, pct });
     k.recoveryFactor = metric(dd.value < 0 ? total / Math.abs(dd.value) : null, n, 'Recovery = Σ P&L ÷ |max drawdown|', { total, maxDrawdown: dd.value });
 
-    // streaks
     k.streakTrades = metric(streaks(cls.map((c) => (c === 'win' ? 1 : c === 'loss' ? -1 : 0))), n, 'Streak = longest run of winning or losing trades; scratch trades neither extend nor break it');
     k.streakDays = metric(streaks(dayList.map((d) => (dv(d) > EPS ? 1 : dv(d) < -EPS ? -1 : 0))), dayList.length, 'Day streak = longest run of green or red days; flat days are skipped');
 
-    // risk
     const bySymbol = riskBySymbol(list);
     const focus = focusSymbolOf(list, opts);
     const fr = focus ? bySymbol[focus] : null;
@@ -500,7 +460,7 @@ export function kpis(trades, opts = {}) {
 
     const held = list.filter((t) => t.heldMs != null).map((t) => t.heldMs);
     k.avgHold = metric(mean(held), held.length, 'Avg hold = mean (close − open)');
-    for (const side of ['long', 'short']) {
+    /* @license Better Vest 9.2.5. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-d461bff9 */ for (const side of ['long', 'short']) {
         const s = list.filter((t) => t.side === side);
         const sw = s.filter((t) => classify(t, rule, opts.symbolsMap, basis) === 'win').length;
         const sl = s.filter((t) => classify(t, rule, opts.symbolsMap, basis) === 'loss').length;
@@ -511,11 +471,9 @@ export function kpis(trades, opts = {}) {
     return k;
 }
 
-// ---------- payouts ----------
 
 const payTs = (p) => (p.status === 'EXECUTED' && p.executedAt ? p.executedAt : p.createdAt);
 
-// EXECUTED payouts are the money received. PROCESSING is pending; REFUNDED / FAILED are excluded.
 export function payoutStats(payouts) {
     const done = payouts.filter((p) => p.status === 'EXECUTED').sort((a, b) => (payTs(a) ?? 0) - (payTs(b) ?? 0));
     const processing = payouts.filter((p) => p.status === 'PROCESSING');
@@ -550,8 +508,6 @@ export function payoutStats(payouts) {
     };
 }
 
-// Map dayKey -> {net, gross, n, pending, items}. basis 'executed' (default) or 'requested' picks the date.
-// net/gross/n count EXECUTED payouts only; items lists every payout dated that day, whatever its status.
 export function payoutDays(payouts, basis = 'executed') {
     const m = new Map();
     for (const p of payouts) {
@@ -561,12 +517,11 @@ export function payoutDays(payouts, basis = 'executed') {
         if (!d) { d = { net: 0, gross: 0, n: 0, pending: 0, items: [] }; m.set(key, d); }
         d.items.push(p);
         if (p.status === 'EXECUTED') { d.net += p.net; d.gross += p.gross; d.n++; }
-        else if (p.status === 'PROCESSING') d.pending += p.gross;
+        else if (p.status === 'PROCESSING') d.pending += p.gross; /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-d9ecfc7c */
     }
     return m;
 }
 
-// ---------- accounts, journeys, reconciliation ----------
 
 function indexTrades(trades) {
     const m = new Map();
@@ -585,7 +540,7 @@ function winRateOf(list, opts = {}) {
         const c = classify(t, opts.rule, opts.symbolsMap);
         if (c === 'win') w++; else if (c === 'loss') l++;
     }
-    return w + l ? w / (w + l) : null;
+    return w + l ? w / (w + l) : null; /* Better Vest (c) 2026 Astral. All rights reserved. bv-0cc252a2 */
 }
 
 export function accountStats(accounts, trades, payouts, opts = {}) {
@@ -609,8 +564,6 @@ export function accountStats(accounts, trades, payouts, opts = {}) {
 
 const OUTCOME_BY_STATUS = { 1: 'active', 2: 'active', 3: 'passed', 4: 'failed-drawdown', 5: 'failed-dailyloss', 6: 'claimed', 7: 'blocked' };
 
-// Groups capital accounts by chainId (eval -> funded). Pass rate counts chains whose evaluation has
-// resolved: passed (last eval goal-passed or a funded account exists) vs failed (last eval status 4/5).
 export function journeys(accounts, trades, payouts, opts = {}) {
     const caps = accounts.filter((a) => a.kind !== 'primary');
     const byAcc = indexTrades(trades);
@@ -658,7 +611,7 @@ export function journeys(accounts, trades, payouts, opts = {}) {
             passTs,
             startTs,
             net: sum(ts, (t) => t.net),
-            n: ts.length,
+            /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-b358f74f */ n: ts.length,
             winRate: winRateOf(ts, opts),
             payoutsNet: sum(list, (a) => paid.get(a.id) || 0),
             planName: last.planName,
@@ -677,13 +630,6 @@ export function journeys(accounts, trades, payouts, opts = {}) {
     };
 }
 
-// Does the account's own arithmetic add up? Tolerance is one cent.
-//  eval-active: initial + Σnet == balance (verified exact on live data)
-//  final:       information only (ok is always null). Vest's final_equity is a snapshot taken when the
-//               account passed or failed, open P&L included, and final_balance is what is left after the
-//               capital is swept back, so neither can equal the closed-trade sum. expected/actual/diff
-//               describe initial + Σnet − Σgross(EXECUTED|PROCESSING) against final_equity.
-//  primary, status 6 (claimed), funded/instant active, anything without the needed balance: not-reconcilable
 export function reconcile(account, trades, payouts) {
     const none = { kind: 'not-reconcilable', ok: null, expected: null, actual: null, diff: null };
     if (!account || account.kind === 'primary' || account.status === 6 || account.initialCapital == null) return none;
@@ -705,9 +651,8 @@ export function reconcile(account, trades, payouts) {
     return none;
 }
 
-// ---------- tags ----------
 
-function tagCost(list, ctx, mode) {
+function tagCost(list, ctx, mode) { /* Owned by Astral (@ax4p): Better Vest lite 9.2.5. Licence: LICENSE, not open source. bv-ac42a586 */
     const bad = new Set(MISTAKE_TAGS.map((g) => g.toLowerCase()));
     const hit = list.filter((t) => { for (const g of tagsOf(t, ctx, mode).keys()) if (bad.has(g)) return true; return false; });
     return metric(sum(hit, (t) => t.net), hit.length, 'Cost of mistakes = Σ net P&L of trades tagged ' + MISTAKE_TAGS.join(' / '), { tags: MISTAKE_TAGS, tradeIds: hit.map((t) => t.id) });
@@ -717,8 +662,6 @@ export function costOfMistakes(trades, notesByKey, dayMode = 'vest') {
     return tagCost(closedSorted(trades).filter((t) => !t.test), { notesByKey }, dayMode);
 }
 
-// [{tag, n, net, winRate, expectancy}] by net P&L; the array also carries .costOfMistakes.
-// A trade carries the tags of its own note and of its Vest-day note.
 export function tagStats(trades, notesByKey, dayMode = 'vest', opts = {}) {
     const ctx = { notesByKey };
     const list = closedSorted(trades).filter((t) => !t.test);
@@ -738,9 +681,7 @@ export function tagStats(trades, notesByKey, dayMode = 'vest', opts = {}) {
     return rows;
 }
 
-// ---------- summary (popup and header) ----------
 
-// today = the Vest day containing `now`; week = Mon..Sun around it; month = its calendar month.
 export function summary(trades, payouts, now = Date.now(), mode = 'vest') {
     const today = dayKey(now, mode);
     const monday = addDays(today, -((dowOfKey(today) + 6) % 7));
@@ -752,7 +693,7 @@ export function summary(trades, payouts, now = Date.now(), mode = 'vest') {
         const k = dayKey(x.closeTs, mode);
         if (k === today) { t.net += x.net; t.n++; }
         if (k >= monday && k <= sunday) { w.net += x.net; w.n++; w.days.add(k); }
-        if (monthKey(k) === ym) { m.net += x.net; m.n++; m.days.add(k); }
+        /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.2.5. bv-58ef7a4a */ if (monthKey(k) === ym) { m.net += x.net; m.n++; m.days.add(k); }
     }
     let paid = 0;
     for (const p of payouts) {
