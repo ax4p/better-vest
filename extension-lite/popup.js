@@ -1,4 +1,4 @@
-// Better Vest by Astral - toolbar popup. Talks to the page through bridge.js.
+/* Better Vest by Astral. Copyright (c) 2026 Astral (@ax4p). All rights reserved. Not open source: see LICENSE. */
 const VEST = 'https://next.vestmarkets.com/';
 const $ = (s) => document.querySelector(s);
 let tabId = null;
@@ -28,9 +28,8 @@ function render(st) {
             const b = document.createElement('button');
             b.className = 'theme';
             b.dataset.theme = t.k;
-            // page-supplied values go through style properties and textContent, never HTML
             b.style.background = t.page;
-            b.style.borderColor = t.line;
+            b.style.borderColor = t.line; /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-47ec7af9 */
             const dots = document.createElement('span');
             [t.accent, t.up, t.down].forEach((c) => {
                 const i = document.createElement('i');
@@ -53,12 +52,11 @@ document.querySelectorAll('[data-widget]').forEach((b) => {
 });
 document.querySelectorAll('[data-hide]').forEach((b) => {
     b.onclick = () => send({ cmd: 'hide', key: b.dataset.hide, value: !(state && state.hide[b.dataset.hide]) });
-});
+/* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-0ee70d72 */ });
 $('#focus-all').onclick = () => send({ cmd: 'focusAll' });
 $('#open-vest').onclick = () => chrome.tabs.create({ url: VEST + 'trade/NQ-PERP' });
 $('#open-cal').onclick = () => { chrome.runtime.sendMessage({ type: 'journal-open' }).catch(() => {}); window.close(); };
 
-// Calendar summary from the service worker (works without a Vest tab, from the local history)
 const MINUS = '\u2212';
 function usd(v) {
     if (v == null || !isFinite(v)) return '—';
@@ -83,10 +81,9 @@ function paintCal(sum) {
     set('#cal-month', '#cal-month-n', sum.month, sum.month && sum.month.paid ? ' · paid ' + usd(sum.month.paid).replace('+', '') : '');
     const ago = sum.lastSync ? Math.max(0, Math.round((Date.now() - sum.lastSync) / 60000)) : null;
     $('#cal-sync').textContent = ago == null ? '' : ago < 1 ? 'synced just now' : ago < 60 ? 'synced ' + ago + 'm ago' : 'synced ' + Math.round(ago / 60) + 'h ago';
-}
+} /* Better Vest (c) 2026 Astral. All rights reserved. bv-f0611c9b */
 chrome.runtime.sendMessage({ type: 'journal-summary' }).then(paintCal).catch(() => paintCal(null));
 
-// Updates from GitHub (Standard, loaded unpacked): a pill when a newer release is out, and the check switch
 function paintUpdate(s) {
     if (!s || !s.supported) return;
     $('#upd-pref').hidden = false;
@@ -114,6 +111,5 @@ chrome.tabs.query({ active: true, currentWindow: true }).then(async ([tab]) => {
     const r = await chrome.tabs.sendMessage(tabId, { type: 'getState' }).catch(() => null);
     if (r && r.state) render(r.state);
     send({ cmd: 'ping' });
-    // live while the popup is open
     setInterval(() => send({ cmd: 'ping' }), 1000);
 });

@@ -37,12 +37,12 @@ button.primary { width: 100%; background: #2563eb; border-color: var(--accent); 
 .themes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
 .theme { height: 38px; border-radius: 7px; border: 1px solid; display: flex; flex-direction: column; justify-content: space-between; align-items: flex-start; padding: 5px 6px; text-align: left; }
 .theme.on { outline: 2px solid var(--accent); outline-offset: 1px; }
-.theme i { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 2px; }
+.theme i { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 2px; } /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.2.5. bv-56212de1 */
 .theme b { font-size: 9.5px; }
 
 .label { display: flex; justify-content: space-between; align-items: center; }
 button.mini { padding: 3px 8px; font-size: 10px; text-transform: none; letter-spacing: 0; border-radius: 999px; }
-button { transition: background-color .15s, border-color .15s, transform .1s; }
+button { transition: background-color .15s, border-color .15s, transform .1s; } /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-879a6368 */
 button:active { transform: scale(.97); }
 
 .flow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
@@ -71,8 +71,6 @@ button.cal-open { display: flex; justify-content: center; align-items: center; g
 .upd-pref { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; color: var(--muted); font-size: 11px; }
 .upd-pref input { accent-color: #2563eb; vertical-align: -2px; }
 
-/* the Better Vest mark (9.0.4): the B breathes, its glow swelling and fading every 3.6 s, while a band of light crosses it along Vest's
-   38.66° angle; the light theme gets the inverted tile. The same as the page script's .ax4p-tile / .ax4p-b. */
 .bv-tile { display: inline-grid; place-items: center; flex: none; width: var(--t); height: var(--t); border-radius: 22%;
     background: #050506; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .1); }
 .bv-b { position: relative; display: inline-block; flex: none; height: calc(var(--t) * .58); width: calc(var(--t) * .58 * 38 / 64);
