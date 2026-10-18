@@ -26,9 +26,9 @@ Each [release](https://github.com/ax4p/better-vest/releases/latest) has three zi
 
 | Zip | What's in it |
 |---|---|
-| `better-vest-9.0.9.zip` | **Standard.** Everything. Take this one if you're not sure. |
-| `better-vest-lite-9.0.9.zip` | **Lite.** Everything but the voice, under 1 MB. |
-| `better-vest-nostats-9.0.9.zip` | **No stats.** Standard without the usage stats. See [Security](SECURITY.md#the-usage-count). |
+| `better-vest-9.2.5.zip` | **Standard.** Everything. Take this one if you're not sure. |
+| `better-vest-lite-9.2.5.zip` | **Lite.** Everything but the spoken voice lines, under 1 MB. |
+| `better-vest-nostats-9.2.5.zip` | **No stats.** Standard without the usage stats. See [Security](SECURITY.md#the-usage-stats). |
 
 Then load it in Chrome: the [video and steps](https://bv.astrals.dev/#install) on the site, or the [install guide](CONTRIBUTING.md) here. After that it updates itself.
 
@@ -36,16 +36,19 @@ Then load it in Chrome: the [video and steps](https://bv.astrals.dev/#install) o
 
 - **[Copy trader](https://bv.astrals.dev/features/copy-trader):** trade one account and up to ten others follow it, in as many groups as you like.
 - **[Trading on the chart](https://bv.astrals.dev/features/chart-trading):** drag your stop and target, stop and limit orders in one click, a trailing stop and auto breakeven.
-- **The Execute card:** long or short in one click with the stop and target attached, in points, dollars or at a price, your size from the dollars you risk, and FLAT, 50% (hover it for 10%, 25%, 75% or your own share) and REV.
+- **The Execute card:** long or short in one click with the stop and target attached, in points, dollars or at a price, your size from the dollars you risk, and FLAT, 50% (hover it for 10%, 25%, 75% or your own share) and REV. Float it, put it in place of Vest's ticket or under the chart, and hide the buttons you don't use.
+- **Price alerts:** click the chart where you want one. When price gets there you hear it and see a note. It never places an order.
+- **Voice commands (beta):** hold a key and say "long" or "close half", or say "Astral" first. Your voice stays on your computer.
 - **[Up to four charts](https://bv.astrals.dev/features/multi-chart),** each with its own market and timeframe.
 - **[Limits and locks](https://bv.astrals.dev/features/limits):** a daily loss and profit limit, a tilt guard, and a lock button for the days you should stop.
 - **A voice** that says what just filled, and a countdown to the New York open and the news.
+- **Your look:** themes, your own colors, and a background behind Vest.
 - **[P&L cards](https://bv.astrals.dev/features/pnl-cards)** of your day as an image, a video or a GIF, and a payout card.
 - **[The Calendar](https://bv.astrals.dev/features/calendar):** every trade from every account as a daily P&L calendar.
 
 ## Is it safe?
 
-- **Scanned.** `better-vest-9.0.9.zip` comes back clean from all 65 antivirus engines on VirusTotal ([report](https://www.virustotal.com/gui/file/e2591207358e9e20dbb494778361c1e8a69a6d4c9540f22a6bf55ca70270a347)).
+- **Scanned.** `better-vest-9.2.5.zip` comes back clean from all 64 antivirus engines on VirusTotal ([report](https://www.virustotal.com/gui/file/2b3c52c0268673186d90662083ef224270d47d54c08c19cf5b8c400aaba05aa9)).
 - **Readable.** The [`extension`](extension) folder is the Standard zip, file for file, not minified.
 - **Signed updates.** Your copy checks my signature and every file before it writes anything.
 - **Safety switches.** If Vest changes something, I can pause one feature for everyone until it's fixed ([how](SECURITY.md#safety-switches)).

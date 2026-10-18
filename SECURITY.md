@@ -8,13 +8,14 @@ It comes in three editions: Standard, Lite (Standard without the voice) and No s
 
 - It only runs on next.vestmarkets.com.
 - It asks Chrome for three permissions, `storage`, `alarms` and `tabGroups`, and nothing else.
-- It never sends me your account, your trades, your balances or anything you type. It sends me an anonymous usage count, so I know how many people use it, and every 3 minutes it asks my site whether I've paused a feature. See [The usage count](#the-usage-count) and [Safety switches](#safety-switches).
+- It never sends me your account, your trades, your balances or anything you type. It sends me anonymous usage stats, so I know how many people use it and what to make better, and every 3 minutes it asks my site whether I've paused a feature. See [The usage stats](#the-usage-stats) and [Safety switches](#safety-switches).
 - It never sees your password or your wallet's keys, and never stores your Vest login. (Read-only requests, like the Calendar reading your trade history, borrow the login your Vest tab already has, in memory. The copy trader's own code never touches it.)
 - It never withdraws, never changes account settings, never creates anything. The one account action it has is **Request payouts**: when you press it and confirm, it claims profit from your funded accounts to your Primary account through Vest's own Claim profit window. See [Request payouts](#request-payouts).
 - The copy trader is off until you switch it on. Then it copies your leader account's trades to your other Vest accounts through Vest's own order code. See [The copy trader](#the-copy-trader).
 - Some tools act on their own once you switch them on: the copy trader, a trailing stop or auto breakeven moving your stop (only ever tighter), and a stop order you armed sending its order when the price gets there. See [How it places orders](#how-it-places-orders).
 - At checkout it does nothing until you press a button that buys. Then, if the code on isn't my code WICK, it asks you first, and only keeps WICK when you get the same discount or more. See [The WICK code](#the-wick-code).
 - Multi-chart opens hidden Vest tabs, one for each extra market, in a group called Charts. They're Vest's own page, logged in like yours. See [Multi-chart's tabs](#multi-charts-tabs).
+- Voice commands (beta, off until you switch them on) use your microphone only in their own small window, and Chrome turns what you say into words on your computer. Your voice never leaves it. See [Voice commands](#voice-commands-beta).
 - Orders go through Vest's own buttons, the same ones you click.
 - The code is all in this repo, readable, exactly what's in the zip.
 
@@ -23,13 +24,13 @@ It comes in three editions: Standard, Lite (Standard without the voice) and No s
 | Permission | Why |
 |---|---|
 | `storage` | To keep your settings and the update status. |
-| `alarms` | For the update check every 30 minutes, the safety switches every 3 minutes, and the usage count every 3 minutes (Standard and Lite). |
+| `alarms` | For the update check every 30 minutes, the safety switches every 3 minutes, and the usage stats every 3 minutes (Standard and Lite). |
 | `tabGroups` | For the copy trader and multi-chart. Turbo's hidden follower tabs go into one collapsed group per copy group (Copy A, Copy B), out of your way. A copy group whose leader isn't your tab's account gets a Vest tab of its own, in a group called Better Vest. Light doesn't use it when you start copying from the tab that's on the leader account. Multi-chart's hidden tabs go into a collapsed group called Charts. |
 | Site access: `https://next.vestmarkets.com/*` | That's where the dock, the card and the chart tools live. It doesn't run on any other site. |
 
 That's the full list. It can't read your browsing history or cookies, and it doesn't touch your other tabs or downloads. You can see the same list yourself on `chrome://extensions` → Better Vest → **Details**.
 
-Two kinds of its own files can be loaded by the Vest page (Chrome calls them web-accessible): the voice's sound files (not in Lite), and the small page that shows the P&L card's pop-up. Only next.vestmarkets.com can load them. It also means Vest's page can tell that Better Vest is installed.
+Three kinds of its own files can be loaded by the Vest page (Chrome calls them web-accessible): the voice's sound files (not in Lite), the two sounds of the price alerts, and the small page that shows the P&L card's pop-up. Only next.vestmarkets.com can load them. It also means Vest's page can tell that Better Vest is installed.
 
 ## Where it connects
 
@@ -42,29 +43,32 @@ Every address in the code, and when each one is used:
 | `api-gateway.hz.vestmarkets.com` | Read-only (GET) requests: your trade history and payouts for the Calendar and the Payout card, open positions for the chart TP/SL and the copy trader, today's positions for the P&L card, the daily profit limit and the tilt guard, and your accounts' resting orders for the copy trader's limit-order mirror. They use the login your Vest tab already has and keep it in memory only, never on disk. The chart and the copy trader can only ask for positions, resting orders and market info. The copy trader's orders and Request payouts' claims go here too, but Vest's own code sends them, the same way it sends yours. | When the Calendar syncs, while you hold a position with chart TP/SL on, while copying is on, when you press P&L or the card pops up after a big close, and every 15 seconds while the daily profit limit or the tilt guard is on. |
 | `api.github.com` | "Which version is the latest?" Nothing about you is in that request. | Every 30 minutes, and when Chrome starts. You can turn it off in the toolbar popup. |
 | `raw.githubusercontent.com` | The files of a new version, from this repo. | Only when you click Update. |
-| `bv.astrals.dev` | My site: the usage count, and the safety switches. See [The usage count](#the-usage-count) and [Safety switches](#safety-switches). | The count: once when it's installed or updated, and every 3 minutes while a Vest tab is open (Standard and Lite). The switches: every 3 minutes while a Vest tab is open. |
+| `bv.astrals.dev` | My site: the usage stats, and the safety switches. See [The usage stats](#the-usage-stats) and [Safety switches](#safety-switches). | The stats: once when it's installed or updated, every 3 minutes while a Vest tab is open, and every 10 minutes once you've said yes (Standard and Lite). The switches: every 3 minutes while a Vest tab is open. |
 | `fonts.googleapis.com` | A font (the file itself comes from `fonts.gstatic.com`). | Only if you pick one of the Google fonts in Settings > Look. The default is Vest's own font, which loads nothing. |
 
 There's no other address in the code. No ads, and no analytics company. The voice, the news dates and the P&L pop-up are files inside the extension. Multi-chart's hidden tabs are Vest's own page, so they make Vest's own requests, the same as any Vest tab you open.
 
-## The usage count
+## The usage stats
 
-Standard and Lite tell me how many people use Better Vest, and nothing else. No stats only says it was installed.
+Standard and Lite send me anonymous usage stats, so I know how many people use Better Vest and what to make better. No stats sends nothing.
 
 | | Standard and Lite | No stats |
 |---|---|---|
-| **When it's installed, updated or switched to** | the version and the edition | the version and the edition |
+| **When it's installed, updated or switched to** | the version and the edition | nothing |
 | **Every 3 minutes while a Vest tab is open** | a random number, the version and the edition | nothing |
+| **Every 10 minutes while a Vest tab is open, once you've said yes** | the same random number, how many times each of Better Vest's own features was used that day, and how Better Vest is set up | nothing |
 
 - **The random number** is made on your computer the first time, with the browser's own random generator, and kept in the extension's storage. It isn't built from anything: not your Vest account, not your computer, not your address. It only lets me count the same person once. Removing the extension removes it, and so does switching to No stats.
+- **Feature use and setup:** how many times a day Better Vest's own buttons and keys were used (like FLAT, a hotkey or the P&L card), and its settings (like the theme, where the Execute card sits, which options are on, which keys are set), plus how many accounts of each kind and size you have. When you buy a Vest plan, the purchase too, once it's paid: whether my code WICK, another code or no code was on, and the price after its discount. Never which plan, which account, your card or another code's name. Only names from a fixed list in the code (`update/count.js`), and my site checks them again and drops anything else. Never a price, a size, an account id, anything you type, or the time of day.
+- **You're asked first:** after the update, a small note says what it sends and why. That part goes out only once you say yes, and Settings > More turns it off any time.
 - **Where it goes:** `bv.astrals.dev/api/count`, my site, as one small request from the extension's background script. No cookies, and nothing is read back.
-- **What I keep:** counts. Installs per version and edition, how many different numbers per day, and how many in the last 15 minutes. The numbers themselves go into a count that can't be turned back into them, except the ones seen in the last 15 minutes, which is what "online now" counts.
-- **What I never get:** your Vest account, trades, balances, positions, orders or the pages you open. Vercel, which hosts the site, sees the IP address of every request the way any website does; the count doesn't keep it.
-- **Don't want it?** Take the No stats zip, or switch to it on the update page. It sends only the install line above.
+- **What I keep:** counts. Installs per version and edition, how many different numbers per day, and how many in the last 15 minutes, and for 40 days each computer's day of feature use and setup, under a scrambled form of its number. After that only daily totals stay: how many used each feature or picked each setting. The numbers themselves go into a form that can't be turned back into them, except the ones seen in the last 15 minutes, which is what "online now" counts.
+- **What I never get:** your Vest account, trades, balances, P&L, positions, orders or the pages you open. Vercel, which hosts the site, sees the IP address of every request the way any website does; the stats don't keep it.
+- **Don't want it?** Turn it off in Settings > More, or take the No stats zip (or switch to it on the update page). No stats sends nothing at all.
 
 ## Safety switches
 
-If Vest changes something a feature depends on, or I find a bug, I can pause that one feature for everyone until it's fixed: the copy trader, Turbo, LONG / SHORT, FLAT / 50% / REV, stop orders, limit orders, TP / SL on the chart, the trailing stop, auto breakeven, account switching and payouts, or the loss limit's "Close my positions".
+If Vest changes something a feature depends on, or I find a bug, I can pause that one feature for everyone until it's fixed: the copy trader, Turbo, LONG / SHORT, FLAT / 50% / REV, stop orders, limit orders, TP / SL on the chart, the trailing stop, auto breakeven, account switching and payouts, the loss limit's "Close my positions", or voice commands.
 
 - **How it works:** every 3 minutes while a Vest tab is open, the extension asks `bv.astrals.dev/api/flags` which features are paused. Nothing about you is in that request: no number, no account, no cookies.
 - **What comes back:** a short list of feature names, my note on why, and the version the Chrome Web Store has. It's data, never code: Better Vest only reads names it knows and shows my note as plain text.
@@ -124,6 +128,16 @@ Not in Lite, which has none of it.
 - To know what happened, it reads what Vest's own page already receives about your orders and positions, read-only.
 - With several Vest tabs open, the tabs take turns through the browser (a Web Lock, on your computer), so each line is said once. The copy trader's tabs and multi-chart's tabs never speak.
 
+## Voice commands (beta)
+
+Off until you switch them on in Settings > Hotkeys. Not in the Tampermonkey script or on the phone.
+
+- Vest's page isn't allowed to use a microphone, so Better Vest opens a small window of its own (`cert/listen.html`) when you click **Open the mic window**. Chrome asks you once whether Better Vest may use the microphone. The window listens only while it's open; close it and voice commands stop.
+- What you say is turned into words by Chrome's own speech engine, on your computer (Chrome downloads that engine once). If Chrome can't do that on your computer, the window says so and does nothing. It never falls back to an online engine, and no sound or words are sent anywhere.
+- A command does exactly what its hotkey or button does: LONG, SHORT, the limit orders, breakeven, FLAT, 50% and REV (said twice, like REV's two clicks). It goes only to the Vest trade tab in front, through the extension itself, never as a message other scripts on Vest's page could send. **Open trades by voice** in Settings turns off everything but closing and breakeven.
+- With usage stats on (Standard and Lite), it counts how often the window opens, the minutes it listens, the seconds you hold the talk key, and how many commands it understood or missed, as numbers only, never words. That's how I'll know what a better engine would cost.
+- I can switch voice commands off for everyone while a fix is made ([Safety switches](#safety-switches)).
+
 ## Multi-chart's tabs
 
 - Each extra chart's market gets one Vest tab of its own (`/trade/<market>?bvChart=<market>`), opened next to yours, at most three, in a gray collapsed group called Charts. It's Vest's own page, logged in like your tab, and it feeds the chart.
@@ -148,6 +162,7 @@ This is how Better Vest stays free. Since 9.0 it does nothing at checkout until 
 - **No thanks**, or pressing the button again, goes on at once, as it was.
 - **Always use code WICK** (off until you switch it on) skips the question: your press puts WICK in and goes on. It never replaces a code you typed or picked in that purchase, and never keeps WICK when it gives less off.
 - When something is unsure (no code box, or no answer from Vest within a few seconds), your press goes through as it was.
+- The pop-up has one of three looks, picked once on each computer: your month with Better Vest (counted on this computer only), the plan's price from Vest's own card with and without WICK, or a short note from me.
 - **Settings > More > Support Astral** has both switches: **Ask about code WICK when I buy** and **Always use code WICK**.
 
 With WICK you pay the same or less, and the purchase supports me.
@@ -165,11 +180,14 @@ With WICK you pay the same or less, and the purchase supports me.
 - Your own picture or GIF for the P&L card's background, in the extension's own database, until you remove it.
 - Locks and the tilt guard's cooldown, with the loss limit's numbers (`ax4p_dll`). The profit limit and the tilt guard read your closed trades from Vest each time and keep no history of them.
 - Multi-chart's layout and each chart's drawings, with your other settings.
+- Price alerts you set (market, price, which way), with your other settings, until they ring or you remove them.
+- Voice commands' settings with your other settings, and where you last put the mic window, in Chrome's storage for the extension.
+- For the WICK pop-up: how many one-click entries you made this month and on which days (`ax4p-wick-tally` in the Vest page's storage, for one of its looks), and the discount Vest last gave for WICK (`ax4p-wick-pct`).
 - For one-click updates: a link to the folder you picked, so Chrome can write the new files there.
-- For the usage count: the last version and edition it counted, and in Standard and Lite the random number.
+- For the usage stats (Standard and Lite): the last version and edition it counted, the random number, your answer to the note, and the day's counts until they go out.
 - For the safety switches: the last answer from my site.
 
-None of it is sent anywhere, except that random number with the usage count. Removing the extension removes its storage. The copy of your settings in the Vest page's storage goes when you clear that site's data.
+None of it is sent anywhere, except what the usage stats send (above). Removing the extension removes its storage. The copy of your settings in the Vest page's storage goes when you clear that site's data.
 
 ## Updates are signed
 
@@ -191,15 +209,15 @@ When a new version is out and you're flat, a small panel at the bottom right of 
 ## Check it yourself
 
 1. **Read the code.** The [`extension`](extension) folder in this repo is the Standard zip, file for file ([`extension-lite`](extension-lite) and [`extension-nostats`](extension-nostats) are the other two). It isn't minified or obfuscated, so you can read it in your browser.
-2. **Check the zip is that code.** The SHA-256 of `better-vest-9.0.9.zip` is:
+2. **Check the zip is that code.** The SHA-256 of `better-vest-9.2.5.zip` is:
 
-   `e2591207358e9e20dbb494778361c1e8a69a6d4c9540f22a6bf55ca70270a347`
+   `2b3c52c0268673186d90662083ef224270d47d54c08c19cf5b8c400aaba05aa9`
 
-   Lite: `43f8050247b9a7e74f26ea0e021e77283b04618067cea96bdcf7d7df945238a9`. No stats: `f5297446a9ad2ddd0f75fe30e28cdcbbf7c76eaead84e94ff526dd1acfcaeea6`.
+   Lite: `5d3d9b201f9a4125d4fc530a5eecd9351209c73ad5497d82d07d67d2c87b824c`. No stats: `384f0afd706b47cf444524baf41d424103e99d61d18526aa92aa56964ca5d72c`.
 
-   - On Mac: `shasum -a 256 better-vest-9.0.9.zip`
-   - On Windows: `certutil -hashfile better-vest-9.0.9.zip SHA256`
-3. **Scan it.** VirusTotal checks a file with more than 60 antivirus engines. Upload the zip at [virustotal.com](https://www.virustotal.com) and you get the result for that exact file. The last version I scanned there, 9.0.9, came back with no engine flagging it: Standard 0 of 65 ([report](https://www.virustotal.com/gui/file/e2591207358e9e20dbb494778361c1e8a69a6d4c9540f22a6bf55ca70270a347)), Lite 0 of 65 ([report](https://www.virustotal.com/gui/file/43f8050247b9a7e74f26ea0e021e77283b04618067cea96bdcf7d7df945238a9)), No stats 0 of 66 ([report](https://www.virustotal.com/gui/file/f5297446a9ad2ddd0f75fe30e28cdcbbf7c76eaead84e94ff526dd1acfcaeea6)). The one before, 9.0.7, was 0 of 65 ([report](https://www.virustotal.com/gui/file/c628ba5b4f0253b9f884ebec6acae1976aa83a81b02204dbdef526bd0adf52c9)).
+   - On Mac: `shasum -a 256 better-vest-9.2.5.zip`
+   - On Windows: `certutil -hashfile better-vest-9.2.5.zip SHA256`
+3. **Scan it.** VirusTotal checks a file with more than 60 antivirus engines. Upload the zip at [virustotal.com](https://www.virustotal.com) and you get the result for that exact file. The last version I scanned there, 9.2.5, came back with no engine flagging it: Standard 0 of 64 ([report](https://www.virustotal.com/gui/file/2b3c52c0268673186d90662083ef224270d47d54c08c19cf5b8c400aaba05aa9)), Lite 0 of 66 ([report](https://www.virustotal.com/gui/file/5d3d9b201f9a4125d4fc530a5eecd9351209c73ad5497d82d07d67d2c87b824c)), No stats 0 of 66 ([report](https://www.virustotal.com/gui/file/384f0afd706b47cf444524baf41d424103e99d61d18526aa92aa56964ca5d72c)). The one released before, 9.0.9, was 0 of 65 ([report](https://www.virustotal.com/gui/file/e2591207358e9e20dbb494778361c1e8a69a6d4c9540f22a6bf55ca70270a347)).
 
    Reports for earlier versions also had an AI summary, "Code insights", which marked two things as suspicious. Both are on this page: the WICK code switch ([The WICK code](#the-wick-code)) and the updater writing its own files ([Updates are signed](#updates-are-signed)).
 4. **Watch it work.** Open Chrome's DevTools on the Vest tab (F12), go to Network, and use Better Vest. You'll only see the addresses listed above.
