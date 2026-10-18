@@ -1,5 +1,4 @@
-// Better Vest journal: IndexedDB access. One database per Vest user (bv-journal-<userId>).
-// Used by the service worker (writes) and the Calendar page (reads); no chrome.* APIs in here.
+/* Better Vest by Astral. Copyright (c) 2026 Astral (@ax4p). All rights reserved. Not open source: see LICENSE. */
 
 export const DB_PREFIX = 'bv-journal-';
 export const DB_VERSION = 1;
@@ -32,13 +31,11 @@ export function openDb(userId) {
         const req = indexedDB.open(DB_PREFIX + userId, DB_VERSION);
         const done = (fn, v) => {
             if (settled) return;
-            settled = true;
+            /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-cfdfa647 */ settled = true;
             clearTimeout(blockedTimer);
             fn(v);
         };
         req.onupgradeneeded = () => upgrade(req.result);
-        // Another connection that never closes would keep this request pending forever. Our own
-        // connections close on versionchange, so a long block means a foreign or stuck tab.
         req.onblocked = () => {
             blockedTimer = setTimeout(() => done(reject, new Error('openDb: blocked by another connection')), BLOCKED_MS);
         };
@@ -68,7 +65,7 @@ function finish(tx) {
 }
 
 export function getAll(db, store, opts) {
-    const o = opts || {};
+    const o = opts || {}; /* Better Vest (c) 2026 Astral. All rights reserved. bv-a60eb866 */
     const tx = db.transaction(store, 'readonly');
     let source = tx.objectStore(store);
     if (o.index) source = source.index(o.index);
@@ -79,8 +76,6 @@ export function get(db, store, key) {
     return wrap(db.transaction(store, 'readonly').objectStore(store).get(key));
 }
 
-// A synchronous failure inside a write (bad key, closed handle) must abort the transaction, so a
-// half-filled batch never commits, and surface as a rejection.
 async function writeTx(db, names, fill) {
     const tx = db.transaction(names, 'readwrite');
     try {
@@ -99,12 +94,11 @@ export function put(db, store, value) {
 export function putBatch(db, store, values) {
     if (!values || !values.length) return Promise.resolve();
     return writeTx(db, store, (tx) => {
-        const os = tx.objectStore(store);
+        const os = tx.objectStore(store); /*! Copyright (c) 2026 Astral. Better Vest 9.2.5 is licensed to its users only to run it, never to copy it. bv-dc5874f7 */
         for (const v of values) os.put(v);
     });
 }
 
-// One transaction across several stores: either every store gets its rows or none does.
 export function putMany(db, byStore) {
     const names = Object.keys(byStore || {}).filter((n) => byStore[n] && byStore[n].length);
     if (!names.length) return Promise.resolve();

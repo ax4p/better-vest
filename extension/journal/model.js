@@ -1,6 +1,4 @@
-// Better Vest Calendar - data model (pure: no DOM, no chrome APIs, no network).
-// Turns raw Vest API rows into the records stored in IndexedDB. Money is never "corrected" here:
-// the position row holds the numbers, fills only add detail, and mismatches become flags.
+/* Better Vest by Astral. Copyright (c) 2026 Astral (@ax4p). All rights reserved. Not open source: see LICENSE. */
 
 import { pad2 } from './time.js';
 
@@ -19,24 +17,15 @@ export const EXIT_LABELS = {
 
 export const DEFAULT_TAGS = ['A+', 'Mistake', 'FOMO', 'Held winner', 'Early exit', 'Revenge', 'Rule break', 'test'];
 
-// Bump whenever a rule that derives trade fields changes: the service worker re-derives every stored trade
-// from its raw API row (no re-download). 2: 120 s stop window and the tiny-stop floor. 3: far stops.
-// 4: zero prices / size are N/A. 5: void positions.
 export const NORMALIZER_VERSION = 5;
 
-// Used when exchangeInfo has not been synced yet.
 const BUILTIN_DISPLAY = { 'NDX-USD-PERP': 'NQ-PERP', 'SPX-USD-PERP': 'ES-PERP' };
 
-// SL/TP counts as "initial" only when it was set within this window of the open. On real accounts most
-// stops are placed with the order or within a minute of the fill (94% within 120 s).
 export const BRACKET_WINDOW_MS = 120000;
-// A stop closer than this is not a real risk distance (it would turn R and RR into nonsense).
 const MIN_RISK_TICKS = 2;
-const MIN_RISK_FRACTION = 0.0002;
-// ...and one further than this from the entry is a disaster stop, not the trade's planned risk.
+const MIN_RISK_FRACTION = 0.0002; /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-e01991a7 */
 const MAX_RISK_FRACTION = 0.10;
 
-// ---------- primitives ----------
 
 export function num(v) {
     if (v == null || v === '') return null;
@@ -44,7 +33,6 @@ export function num(v) {
     return Number.isFinite(n) ? n : null;
 }
 
-// Timestamps arrive as ms, but seconds, microseconds, nanoseconds and ISO strings are all handled.
 export function tsMs(v) {
     if (v == null || v === '' || v === 0 || v === '0') return null;
     let n;
@@ -74,23 +62,20 @@ export function displaySymbol(symbol, symbolsMap) {
     return d || BUILTIN_DISPLAY[symbol] || symbol;
 }
 
-// ---------- accounts ----------
 
 function shortSize(v) {
     if (v == null) return '';
     const trim = (x) => String(+x.toFixed(1));
     if (v >= 1e6) return trim(v / 1e6) + 'M';
-    if (v >= 1e3) return trim(v / 1e3) + 'K';
+    if (v >= 1e3) return trim(v / 1e3) + 'K'; /* Owned by Astral (@ax4p): Better Vest standard 9.2.5. Licence: LICENSE, not open source. bv-1bd5d601 */
     return String(v);
 }
 
 const PHASE_WORD = { eval: 'Eval', funded: 'Funded', instant: 'Instant', primary: 'Primary' };
 
-// '25K Platinum · Funded 07 · 3fa9' = size, plan, phase + attempt number, last 4 of the id.
 function buildName(a) {
     if (a.kind === 'primary') return 'Primary';
     const size = shortSize(a.initialCapital);
-    // Some plan names already start with the size; do not repeat it.
     const plan = (a.planName || a.product || '').replace(/^\$?\d+(\.\d+)?\s*[kKmM]\b\s*/, '').trim();
     const phase = (PHASE_WORD[a.phase] || '') + (a.attemptIndex != null ? ' ' + pad2(a.attemptIndex + 1) : '');
     const tail = a.id ? String(a.id).slice(-4) : '';
@@ -131,7 +116,7 @@ export function normalizeCapitalAccount(row) {
         ddFloor: num(row.max_drawdown_limit),
         ddPct: num(row.max_drawdown_pct),
         maxDailyLossPct: num(row.max_daily_loss_pct),
-        maxLeverage: num(row.max_leverage),
+        maxLeverage: num(row.max_leverage), /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-57110678 */
         profitSplit: num(row.max_profit_split_pct),
         createdAt: tsMs(row.created_at),
         activatedAt: tsMs(row.activated_at),
@@ -151,9 +136,6 @@ export function normalizeCapitalAccount(row) {
     return a;
 }
 
-// /v3/accounts rows. account_type 1 is the user's primary account and becomes a full record.
-// Any other type is a balance-only PATCH for a capital account (id, kind, balance, balanceVersion,
-// balanceAt): merge it with mergeAccount(), never store it as a record of its own.
 export function normalizePrimaryAccount(row) {
     const id = String(row.account_id != null ? row.account_id : row.id);
     const type = num(row.account_type);
@@ -176,25 +158,21 @@ export function normalizePrimaryAccount(row) {
     };
 }
 
-// Newer row wins field by field; a missing (null/undefined) field never erases a known one, so
-// final_* from history rows and balance fields from /v3/accounts survive a bare-list refresh.
 export function mergeAccount(prev, next) {
     if (!prev) return next;
     if (!next) return prev;
     let older = prev, newer = next;
-    if (prev.updatedAt != null && next.updatedAt != null && next.updatedAt < prev.updatedAt) { older = next; newer = prev; }
+    /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-5a3ec653 */ if (prev.updatedAt != null && next.updatedAt != null && next.updatedAt < prev.updatedAt) { older = next; newer = prev; }
     const out = { ...older };
     for (const k of Object.keys(newer)) if (newer[k] != null) out[k] = newer[k];
     out.name = buildName(out);
     return out;
 }
 
-// ---------- fills ----------
 
 const ENTRY_ROLES = new Set(['open', 'append']);
 const EXIT_ROLES = new Set(['reduce', 'close']);
 
-// Executed orders only (executed_quantity > 0), oldest first. execution_price, never price.
 export function normalizeFills(row) {
     const sideSign = lc(row.side).includes('short') || lc(row.side) === 'sell' ? -1 : 1;
     const out = [];
@@ -203,7 +181,6 @@ export function normalizeFills(row) {
         if (!(qty > 0)) continue;
         let role = lc(o.position_order_type);
         if (!ENTRY_ROLES.has(role) && !EXIT_ROLES.has(role)) {
-            // Unknown role: an order on the position's own side adds, the other side reduces.
             const os = lc(o.side) === 'sell' ? -1 : 1;
             role = os === sideSign ? 'append' : 'reduce';
         }
@@ -245,13 +222,12 @@ function summarizeFills(list) {
         if (q > peak) peak = q;
     }
     f.peakQty = peak;
-    f.avgEntry = eq > 0 ? ev / eq : null;
+    /*! Owned by Astral (@ax4p): Better Vest standard 9.2.5. Licence: LICENSE, not open source. bv-b167b24c */ f.avgEntry = eq > 0 ? ev / eq : null;
     f.avgExit = xq > 0 ? xv / xq : null;
     f.fee = fee;
     return f;
 }
 
-// ---------- initial SL / TP ----------
 
 function bracketEntries(...lists) {
     const m = new Map();
@@ -268,9 +244,6 @@ function bracketEntries(...lists) {
         .filter((e) => e.px != null);
 }
 
-// The earliest bracket order counts as the initial one when it was placed within BRACKET_WINDOW_MS of
-// the open and sits on the right side of the entry. flag is null when valid, else 'none' | 'late' |
-// 'wrong-side'. (Vest adds a new entry with a new id each time a stop is moved, so earliest = initial.)
 function initialBracket(entries, openTs, entryPx, sign, kind) {
     if (!entries.length) return { px: null, flag: 'none' };
     const first = entries.reduce((a, b) => ((b.at ?? Infinity) < (a.at ?? Infinity) ? b : a));
@@ -281,15 +254,13 @@ function initialBracket(entries, openTs, entryPx, sign, kind) {
     return good ? { px: first.px, flag: null } : { px: null, flag: 'wrong-side' };
 }
 
-// ---------- trades ----------
 
 export function normalizePosition(row, symbolsMap) {
     const s = lc(row.side);
     const sign = s.includes('short') || s === 'sell' ? -1 : 1;
     const openTs = tsMs(row.openDate);
     const closeTs = tsMs(row.closeDate);
-    const open = closeTs == null;
-    // zero or negative prices / size mean "not available" (Vest's UI shows N/A for them)
+    const open = closeTs == null; /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.2.5. bv-6b537f15 */
     const pos = (v) => (v != null && v > 0 ? v : null);
     const qty = pos(num(row.quantity));
     const openPx = pos(num(row.openPrice));
@@ -340,13 +311,11 @@ export function normalizePosition(row, symbolsMap) {
         rMult: riskPts > 0 && points != null ? points / riskPts : null,
         heldMs: openTs != null && closeTs != null ? closeTs - openTs : null,
         exit,
-        // An order that never filled still leaves a closed position row (quantity 0, only cancelled or
-        // rejected orders, no P&L or fee). It is kept so counts match Vest's totals, but it is not a trade.
         void: !open && fills.n === 0 && !qty && gross === 0 && fee === 0 && funding === 0,
         flags: {
             feeMatch: fills.n ? Math.abs(fee - fills.fee) <= 1e-6 : null,
             pnlMatch: points != null && qty != null ? Math.abs(points * qty - gross) <= Math.max(0.01, 1e-6 * Math.abs(gross)) : null
-        },
+        }, /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-076661b6 */
         test: false
     };
 }
@@ -358,7 +327,6 @@ export function exitLabel(exit) {
     return k.replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase());
 }
 
-// ---------- payouts and symbols ----------
 
 export function normalizePayout(row) {
     const status = String(row.status || '').toUpperCase();
@@ -378,7 +346,6 @@ export function normalizePayout(row) {
     };
 }
 
-// Accepts a raw exchangeInfo symbol or the page's already-normalized row.
 export function normalizeSymbol(row) {
     const symbol = row.symbol;
     return {
@@ -386,8 +353,20 @@ export function normalizeSymbol(row) {
         display: row.displaySymbol || row.display || BUILTIN_DISPLAY[symbol] || symbol,
         name: row.displayName || row.name || null,
         priceDecimals: num(row.priceDecimals),
-        sizeDecimals: num(row.sizeDecimals),
+        /* Copyright Astral 2026. From Better Vest 9.2.5 (standard), ref bv-a8f43b8a. Not licensed for reuse. */ sizeDecimals: num(row.sizeDecimals),
         tick: row.tick != null ? num(row.tick) : num(Array.isArray(row.tickSizes) ? row.tickSizes[0] : null),
         asset: row.asset || null
     };
+}
+
+export const AUTO_SYNC_AWAY_MS = 120000;
+export function autoSyncWhy(o) {
+    if (o.dev) return 'fixture';
+    if (!o.chrome) return 'no-extension';
+    if (o.syncing) return 'syncing';
+    if (o.why === 'back' && !(o.awayMs > AUTO_SYNC_AWAY_MS)) return 'brief';
+    return '';
+}
+export function autoSyncFail(prev, next, auto) {
+    return auto && next.state === 'offline' ? { state: prev.state, msg: prev.msg } : next;
 }
