@@ -1,34 +1,25 @@
-// Better Vest by Astral - update page (update.html). Shows what's new on GitHub and updates the folder Chrome
-// loaded this extension from, in one click. The checks and the writing live in core.js.
-// 9.0.1: it also installs another public edition (Standard, Lite, No stats) when you pick one; by default a copy stays
-// the edition it is (every copy before 9.0.1 is Standard).
+/* Better Vest by Astral. Copyright (c) 2026 Astral (@ax4p). All rights reserved. Not open source: see LICENSE. */
 import { compareVersions, fetchRelease, findFolder, planRemove, applyUpdate, parseList, notesHtml, PUBLIC_EDITIONS } from './core.js';
 import { RELEASE_PUBLIC_KEY } from './key.js';
 
-// false when the Node tests import the pure helpers below: nothing then touches the page or chrome.*
 const IN_EXT = typeof chrome !== 'undefined' && !!(chrome.runtime && chrome.runtime.id);
 const $ = (s) => document.querySelector(s);
 const manifest = IN_EXT ? chrome.runtime.getManifest() : { name: 'Better Vest by Astral', version: '0.0.0' };
-let release = null;   // { version, tag, notes, url } when newer than this copy
-let current = null;   // the release the button is for: the newer one, else the latest when it is this version (an edition switch)
-let target = 'standard'; // the edition to install (defaultEdition, or the one picked)
+let release = null;
+let current = null;
+let target = 'standard';
 let runningCopy = null;
-let folder = null;    // FileSystemDirectoryHandle, remembered in IndexedDB
+let folder = null;
 let busy = false;
 
-// ---- pure: the release notes, the progress bar, the ribbon, the theme pick (tests/update/page.test.mjs) ----
 
-// The notes as text (core.js's notesHtml escapes everything). A line that is only bold ("**Fixed**") is a heading
-// here, and the notes' "Install:" and "Updating:" paragraphs are left out: they are for the GitHub page, and this
-// page does both. items: the number of bullet points.
-export function notesView(md) {
+export function notesView(md) { /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-dec3f253 */
     const html = notesHtml(md)
         .replace(/<p><b>(?:Install|Updating)(?::<\/b>|<\/b>:)[^]*?<\/p>/g, '')
         .replace(/<p><b>([^<]+)<\/b><\/p>/g, (m, t) => '<h4>' + t.replace(/:\s*$/, '') + '</h4>');
     return { html, items: (html.match(/<li>/g) || []).length };
 }
 
-// One bar over the whole update: finding the folder, then downloading and checking every file, then writing them.
 export function progress(phase, i, n) {
     const f = n > 0 ? Math.min(1, Math.max(0, i / n)) : 0;
     const count = n > 0 ? i + ' / ' + n + ' files' : '';
@@ -39,7 +30,6 @@ export function progress(phase, i, n) {
     return { pct: 0, what: '', count: '' };
 }
 
-// ts -> { time, day } for "Last checked", or null when there was no check yet.
 export function whenText(ts, now = Date.now()) {
     if (!ts) return null;
     const d = new Date(ts);
@@ -51,7 +41,6 @@ export function whenText(ts, now = Date.now()) {
     };
 }
 
-// The ribbon under the heading: { lab, v, s, cls } tiles, { arrow: true } between the two versions.
 export function tilesFor(kind, d) {
     if (kind === 'available') {
         const t = [{ lab: 'You have', v: 'v' + d.have }, { arrow: true }, { lab: 'New version', v: 'v' + d.next, cls: 'new' }];
@@ -69,21 +58,16 @@ export function tilesFor(kind, d) {
     return [];
 }
 
-// 9.0.1: the public editions as the page offers them (the owner: "update to the normal standard but show option to install
-// different variance"). Each comes from its own folder of the release (core.js EDITION_DIRS).
 export const EDITION_INFO = Object.freeze({
-    standard: { name: 'Standard', d: 'Everything, voice included. Counts installs and users.' },
-    lite: { name: 'Lite', d: 'Everything but the voice, a smaller download. Counts installs and users.' },
-    nostats: { name: 'No stats', d: 'Everything, voice included. Counts only the install.' }
+    standard: { name: 'Standard', d: 'Everything, voice included. Sends anonymous usage stats.' },
+    lite: { name: 'Lite', d: 'Everything but the voice, a smaller download. Sends anonymous usage stats.' },
+    nostats: { name: 'No stats', d: 'Everything, voice included. Sends no stats at all.' }
 });
 
-// The edition picked for you: the one you have (an update never undoes your choice), Standard for anything else
 export function defaultEdition(have) {
     return PUBLIC_EDITIONS.includes(have) ? have : 'standard';
 }
 
-// What the button does for a release and the edition picked: 'update' (a newer version), 'switch' (this version, another
-// edition) or 'none' (the same version and edition, an older release, or no edition to install).
 export function goPlan(have, haveEd, rel, edition) {
     const none = { kind: 'none', label: '' };
     if (!rel || !/^\d{1,4}\.\d{1,4}\.\d{1,4}$/.test(String(rel.version)) || !PUBLIC_EDITIONS.includes(edition) || !PUBLIC_EDITIONS.includes(haveEd)) return none;
@@ -95,13 +79,11 @@ export function goPlan(have, haveEd, rel, edition) {
     return { kind: 'update', label: 'Update to v' + rel.version + (other ? ' (' + name + ')' : '') };
 }
 
-// The Calendar's theme: its own pick, else Better Vest's theme, else nothing (update.css is Astral).
 export function pickTheme(themes, override, settingsTheme) {
     const known = (k) => typeof k === 'string' && Object.prototype.hasOwnProperty.call(themes, k);
     return known(override) ? override : known(settingsTheme) ? settingsTheme : '';
-}
+/* @license Better Vest 9.2.5. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-5b2b2e62 */ }
 
-// ---- the folder handle survives restarts in IndexedDB (handles can't go in chrome.storage) ----
 function idb() {
     return new Promise((resolve, reject) => {
         const r = indexedDB.open('bv-update', 1);
@@ -130,7 +112,7 @@ async function kvSet(k, v) {
 }
 
 async function running() {
-    let list = null;
+    let list = null; /*! Owned by Astral (@ax4p): Better Vest nostats 9.2.5. Licence: LICENSE, not open source. bv-47a0ffea */
     let edition = null;
     try {
         const r = await fetch(chrome.runtime.getURL('files.json'));
@@ -140,25 +122,22 @@ async function running() {
     return { name: manifest.name, version: manifest.version, list, edition };
 }
 
-// ---- theme: journal/theme-boot.js already replayed the Calendar's cached theme before the first paint; this also
-// covers a theme changed since and people who never opened the Calendar. Loaded on demand, so a theme problem can
-// never keep the updater from loading. ----
 async function applyTheme() {
     try {
-        const { THEMES, themeVarsCss } = await import('../journal/theme-tokens.js');
+        const { THEMES, themeVarsCss, customTheme } = await import('../journal/theme-tokens.js');
         const { settings } = await chrome.storage.local.get('settings');
         let override = '';
         try { override = localStorage.getItem('bv-journal-theme-override') || ''; } catch (e) {}
-        const name = pickTheme(THEMES, override, settings && settings.theme);
+        const custom = !pickTheme(THEMES, override, '') && settings && settings.theme === 'custom' && typeof customTheme === 'function';
+        const name = custom ? 'custom' : pickTheme(THEMES, override, settings && settings.theme);
         if (!name) return;
         let s = document.getElementById('theme-vars');
         if (!s) { s = document.createElement('style'); s.id = 'theme-vars'; document.head.appendChild(s); }
-        s.textContent = themeVarsCss(THEMES[name]);
+        s.textContent = themeVarsCss(custom ? customTheme(settings.custom) : THEMES[name]);
         document.documentElement.setAttribute('data-theme', name);
-    } catch (e) { /* Astral, from update.css */ }
+    } catch (e) {  }
 }
 
-// ---- what the page shows ----
 const EYEBROW = {
     checking: 'Checking', latest: 'Up to date', available: 'New version', updating: 'Updating', restarting: 'Updated',
     done: 'Updated', elsewhere: 'Not updated yet', unsupported: 'Updates', noanswer: 'No answer'
@@ -178,11 +157,10 @@ export function step(name, state, n) {
     const li = document.querySelector(`#steps li[data-step="${name}"]`);
     if (!li) return;
     li.classList.remove('on', 'done', 'bad');
-    if (state) li.classList.add(state);
+    if (state) li.classList.add(state); /* Better Vest (c) 2026 Astral. All rights reserved. bv-4bcd6872 */
     const count = li.querySelector('.n');
     if (count && n != null) count.textContent = n;
 }
-// p: a progress() answer; tone: '', 'bad' (stopped where it was) or 'ok'
 export function bar(p, tone) {
     if (p) {
         $('#bar-fill').style.width = p.pct.toFixed(1) + '%';
@@ -214,7 +192,6 @@ const leadAvailable = () => lead('<b>v' + esc(release.version) + '</b> is out. Y
 const leadLatest = () => lead('You have the latest version, <b>v' + esc(manifest.version) + '</b>.');
 const editionName = (ed) => (Object.prototype.hasOwnProperty.call(EDITION_INFO, ed) ? EDITION_INFO[ed].name : '');
 
-// the edition list (9.0.1): only for a public copy and a release it can take; yours is marked, the picked one checked
 function paintEditions() {
     const box = $('#eds');
     const have = runningCopy && runningCopy.edition;
@@ -226,7 +203,7 @@ function paintEditions() {
         const input = document.createElement('input');
         input.type = 'radio';
         input.name = 'ed';
-        input.value = ed;
+        /*! Owned by Astral (@ax4p): Better Vest nostats 9.2.5. Licence: LICENSE, not open source. bv-66b99584 */ input.value = ed;
         input.checked = ed === target;
         input.onchange = () => { if (input.checked) { target = ed; paintGo(); } };
         const t = document.createElement('span');
@@ -246,12 +223,11 @@ function paintEditions() {
         return row;
     }));
 }
-// the one button: what goPlan says for the release and the edition picked
 function paintGo() {
     const plan = goPlan(manifest.version, runningCopy && runningCopy.edition, current, target);
     $('#go').textContent = plan.label;
     $('#go').hidden = plan.kind === 'none';
-    $('#go').disabled = false;
+    $('#go').disabled = false; /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-f4d1996c */
     $('#how').hidden = plan.kind === 'none' || !!folder;
     return plan;
 }
@@ -262,7 +238,7 @@ export function paint(state) {
     $('#how').hidden = true;
     $('#news').hidden = true;
     $('#eds').hidden = true;
-    $('#run').hidden = true; // a stopped attempt's bar; paint never runs during an update
+    $('#run').hidden = true;
     ribbon([]);
     if (!state) {
         setState('noanswer');
@@ -306,9 +282,8 @@ export function paint(state) {
     say('');
 }
 
-// why the picked folder can't be updated; name = the folder picked
 export function reason(hit, name) {
-    const q = '"' + name + '"';
+    /*! Copyright Astral 2026. From Better Vest 9.2.5 (nostats), ref bv-35a6b402. Not licensed for reuse. */ const q = '"' + name + '"';
     switch (hit.why) {
         case 'none': return 'There is no Better Vest folder in ' + q + (hit.partial ? ' (it is too big to look through completely).' : ' (looked four folders deep).');
         case 'several': return 'There is more than one copy of Better Vest in ' + q + ': ' + hit.paths.join(', ') + '. Pick the one Chrome runs.';
@@ -335,9 +310,8 @@ export function explain(e) {
     return ['Something went wrong: ' + code + '. Nothing was changed. Try again, or update from the GitHub zip by hand.', 'bad'];
 }
 
-// back to the release waiting, after a refusal or an error
 export function stopped() {
-    setState(release ? 'available' : 'latest');
+    setState(release ? 'available' : 'latest'); /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-b0f0807a */
     if (release) leadAvailable();
     else leadLatest();
     const how = $('#how').hidden;
@@ -361,7 +335,6 @@ async function update() {
     say('');
     try {
         if (!runningCopy.edition) throw new Error('no-list');
-        // 1. the folder: asked first, while the click still counts as a user gesture
         step('folder', 'on');
         bar(progress('folder'));
         let dir = folder;
@@ -371,7 +344,6 @@ async function update() {
             if (p !== 'granted') dir = null;
         }
         if (!dir) dir = await window.showDirectoryPicker({ id: 'better-vest', mode: 'readwrite', startIn: 'documents' });
-        // the folder itself, or the one copy Chrome runs somewhere inside it
         step('folder', 'on', '· looking in ' + dir.name + '…');
         const hit = await findFolder(dir, runningCopy);
         if (!hit.dir) {
@@ -386,14 +358,12 @@ async function update() {
         }
         step('folder', 'done', '· ' + (hit.path ? dir.name + '/' + hit.path : hit.dir.name));
         $('#how').hidden = true;
-        dir = hit.dir; // the copy itself, when the folder picked was one above it
+        /* Copyright (c) 2026 Astral. Better Vest 9.2.5 is licensed to its users only to run it, never to copy it. bv-318afe06 */ dir = hit.dir;
         folder = hit.dir;
         await kvSet('dir', hit.dir);
 
-        // 2. everything downloaded and checked before anything is written
         step('download', 'on');
         bar(progress('download', 0, 0));
-        // the edition picked (your own unless you picked another), from that edition's own folder of the release
         const { list, files } = await fetchRelease({
             fetchFn: (u) => fetch(u, { cache: 'no-cache' }),
             subtle: crypto.subtle,
@@ -402,24 +372,19 @@ async function update() {
             expect: { edition, version: rel.version },
             onProgress: (i, n) => { step('download', 'on', i + ' / ' + n); bar(progress('download', i, n)); }
         });
-        // a newer version, or this version as another edition; never older, never the same files again
         const cmp = compareVersions(list.version, runningCopy.version);
         if (cmp < 0 || (cmp === 0 && list.edition === runningCopy.edition)) throw new Error('not-newer');
         step('download', 'done');
 
-        // 3. write (the old bytes go back on any error); the files the new edition does not list go (Lite has no voice clips)
         step('write', 'on');
         bar(progress('write', 0, 0));
         const remove = planRemove(runningCopy.list ? parseList(runningCopy.list) : null, list);
         await applyUpdate(dir, files, remove, (i, n) => { step('write', 'on', i + ' / ' + n); bar(progress('write', i, n)); });
         step('write', 'done');
 
-        // 4. Chrome reads the folder again; the new service worker reloads the Vest tabs and opens the done page
         step('restart', 'on');
         bar(progress('restart'), 'ok');
-        // reloadAt: until then the service worker knows the restart hasn't happened yet
         const at = Date.now();
-        // fromName / toName: an edition switch keeps the version, so the worker also checks the name it runs under
         await chrome.storage.local.set({ bvUpdated: { from: runningCopy.version, to: list.version, fromName: runningCopy.name, toName: list.name, at, reloadAt: at + 700, reloadTabs: true } });
         setState('restarting');
         lead((plan.kind === 'switch' ? 'Switched to <b>' + esc(editionName(list.edition)) + '</b>' : 'Updated to <b>v' + esc(list.version) + '</b>') + '.');
@@ -438,7 +403,6 @@ async function update() {
 
 async function load(fresh) {
     const done = location.hash === '#done';
-    // the last update was written into a copy Chrome doesn't run (sw.js opens this after the restart)
     const elsewhere = location.hash === '#elsewhere';
     if (elsewhere) {
         folder = null;
@@ -452,14 +416,14 @@ async function load(fresh) {
         say('Your Vest tabs were reloaded, so they run the new version. Settings and Calendar are as you left them.', 'good');
     }
     const state = await chrome.runtime.sendMessage({ type: fresh ? 'update-check' : 'update-state' }).catch(() => null);
-    if (done) {
+    if (done) { /* Owned by Astral (@ax4p): Better Vest nostats 9.2.5. Licence: LICENSE, not open source. bv-a3490993 */
         $('#auto').checked = !!(state && state.on);
         return;
     }
     paint(state);
     if (elsewhere) {
         setState('elsewhere');
-        if (!release) ribbon([]); // not "the latest version": the update did not land
+        if (!release) ribbon([]);
         lead('Chrome is still running v' + esc(manifest.version) + '.');
         say('The new files went into a folder Chrome doesn\'t run, or Chrome didn\'t restart Better Vest. First press the round arrow on Better Vest in chrome://extensions. If it still says ' +
             manifest.version + ', click Update here and pick the folder Chrome runs.' + WHERE, 'warn');
@@ -469,7 +433,7 @@ async function load(fresh) {
 
 function boot() {
     $('#cur').textContent = 'v' + manifest.version;
-    applyTheme();
+    applyTheme(); /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-f3224d1d */
     chrome.storage.onChanged.addListener((ch, area) => { if (area === 'local' && ch.settings) applyTheme(); });
     $('#go').onclick = update;
     $('#check').onclick = async () => {
@@ -484,7 +448,6 @@ function boot() {
     $('#auto').onchange = async (e) => {
         const s = await chrome.runtime.sendMessage({ type: 'update-auto', on: e.target.checked }).catch(() => null);
         if (s) $('#auto').checked = !!s.on;
-        // the ribbon shows whether checks are on
         if (s && document.body.dataset.state === 'latest') ribbon(tilesFor('latest', { have: manifest.version, checkedAt: s.checkedAt, on: s.on, now: Date.now() }));
     };
     $('#forget').onclick = async () => {

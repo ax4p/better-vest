@@ -1,7 +1,3 @@
-/* Better Vest update page (update.html). The Calendar's look: the suite's --ax-* theme variables (Astral below; the
- * user's theme comes from journal/theme-boot.js and page.js) and tokens derived from them with color-mix, so every
- * theme works without rules of its own. One column while there is nothing to read; the release notes get their own.
- * body[data-state] (page.js setState) picks the badge, its colour and the done layout. */
 
 @font-face { font-family: Inter; src: url(../cert/assets/inter.woff2) format('woff2'); font-weight: 100 900; font-display: swap; }
 
@@ -60,7 +56,6 @@ kbd { display: inline-block; font: 600 11px/1 var(--font); padding: 3px 6px; bor
 .ic { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: 0 0 auto; }
 .ic.sm { width: 13px; height: 13px; }
 
-/* ---------- top bar ---------- */
 
 .app { position: relative; min-height: 100vh; display: flex; flex-direction: column; }
 .top {
@@ -91,7 +86,6 @@ kbd { display: inline-block; font: 600 11px/1 var(--font); padding: 3px 6px; bor
 .btn.ghost:hover:not(:disabled) { color: var(--u-t1); background: var(--u-hair); border-color: transparent; }
 .btn:disabled { opacity: .45; cursor: not-allowed; }
 
-/* ---------- layout ---------- */
 
 .wrap { width: 100%; max-width: 640px; margin: 0 auto; padding: 32px var(--gut) 56px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; align-items: start; }
 .wrap:has(> #news:not([hidden])) { max-width: 1180px; grid-template-columns: minmax(380px, 460px) minmax(0, 1fr); }
@@ -100,7 +94,6 @@ kbd { display: inline-block; font: 600 11px/1 var(--font); padding: 3px 6px; bor
 .card::before { content: ''; position: absolute; inset: 0; border-radius: inherit; background: var(--u-hi); pointer-events: none; }
 .card > * { position: relative; }
 
-/* ---------- the status card ---------- */
 
 body { --tone: var(--ax-accent); }
 body[data-state="latest"], body[data-state="done"], body[data-state="restarting"] { --tone: var(--ax-up); }
@@ -129,13 +122,12 @@ body[data-state="unsupported"] { --tone: var(--ax-muted); }
 .lead b { font-weight: 600; color: var(--ax-accent-text); font-variant-numeric: tabular-nums; }
 [data-state="latest"] .lead b, [data-state="done"] .lead b, [data-state="restarting"] .lead b { color: color-mix(in srgb, var(--ax-up) 70%, var(--u-t1)); }
 
-/* the KPI ribbon: the two versions, or what the last check found */
 .ribbon { display: flex; align-items: stretch; gap: 8px; margin-top: 20px; }
 .tile {
     flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 3px; padding: 10px 13px 11px; border-radius: 13px;
     background: var(--u-cell); box-shadow: inset 0 0 0 1px var(--u-hair);
 }
-.tile .lab { font-size: 9.5px; letter-spacing: .12em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tile .lab { font-size: 9.5px; letter-spacing: .12em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-234390dd */
 .tile .v { font-size: 20px; font-weight: 500; letter-spacing: -.015em; line-height: 1.2; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tile .s { font-size: 11px; color: var(--u-t2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tile.new { background: color-mix(in srgb, var(--ax-accent) 10%, var(--u-cell)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ax-accent) 40%, transparent), 0 0 24px -10px var(--ax-glow); }
@@ -144,7 +136,6 @@ body[data-state="unsupported"] { --tone: var(--ax-muted); }
 .arrow { flex: 0 0 14px; align-self: center; height: 14px; position: relative; }
 .arrow::before { content: ''; position: absolute; left: 1px; top: 3px; width: 7px; height: 7px; border-top: 2px solid var(--u-t3); border-right: 2px solid var(--u-t3); transform: rotate(45deg); }
 
-/* first time: where the folder is */
 .how { margin-top: 18px; padding: 14px 16px 14px; border-radius: 13px; background: color-mix(in srgb, var(--ax-accent) 5%, var(--u-cell)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ax-accent) 24%, var(--u-hair)); font-size: 12.5px; color: var(--u-t2); }
 .how-h { display: flex; align-items: center; gap: 8px; color: var(--u-t1); font-size: 13px; }
 .how-h .ic { width: 16px; height: 16px; color: var(--ax-accent-text); }
@@ -158,7 +149,6 @@ body[data-state="unsupported"] { --tone: var(--ax-muted); }
 .how .hint { margin: 10px 0 0; padding-top: 10px; border-top: 1px solid var(--u-hair); font-size: 12px; line-height: 1.6; }
 .how .hint b { color: var(--u-t1); font-weight: 600; }
 
-/* the editions (9.0.1): yours is picked; another one installs that edition */
 .eds { margin: 18px 0 0; padding: 0; border: 0; min-width: 0; }
 .eds legend { padding: 0; margin-bottom: 8px; }
 .eds-list { display: grid; gap: 6px; }
@@ -175,7 +165,6 @@ body[data-state="unsupported"] { --tone: var(--ax-muted); }
 .ed-t small { font-size: 11.5px; color: var(--u-t2); }
 .ed-you { flex: 0 0 auto; font-size: 10px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--u-t2); padding: 2px 7px; border-radius: 999px; background: var(--u-hair); }
 
-/* the one primary button */
 button.primary {
     display: flex; align-items: center; justify-content: center; gap: 9px; width: 100%; height: 46px; margin-top: 18px; padding: 0 18px;
     border-radius: 12px; border: 1px solid color-mix(in srgb, var(--ax-accent) 65%, transparent);
@@ -194,7 +183,6 @@ button.primary:disabled { opacity: .5; cursor: progress; }
 .go-note { margin: 9px 0 0; text-align: center; font-size: 11.5px; color: var(--u-t2); }
 #go[hidden] + .go-note { display: none; }
 
-/* the update running: one bar, then the four steps */
 .run { margin-top: 20px; }
 .bar-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 8px; font-size: 12.5px; color: var(--u-t1); }
 #bar-n { color: var(--u-t2); font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -216,10 +204,8 @@ button.primary:disabled { opacity: .5; cursor: progress; }
 .steps li.bad { color: color-mix(in srgb, var(--ax-down) 65%, var(--u-t1)); }
 .steps li.bad::before { content: '!'; font-weight: 800; color: var(--ax-down); background: color-mix(in srgb, var(--ax-down) 14%, transparent); box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--ax-down) 55%, transparent); }
 .steps .n { margin-left: -4px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--u-t2); font-weight: 400; font-variant-numeric: tabular-nums; }
-/* the file counts are on the bar */
 .steps li[data-step="download"] .n, .steps li[data-step="write"] .n { display: none; }
 
-/* what happened, and what to do */
 .msg {
     margin: 18px 0 0; padding: 12px 14px 12px 17px; border-radius: 12px; font-size: 13px; line-height: 1.55; color: var(--u-t1);
     background: var(--u-cell); box-shadow: inset 0 0 0 1px var(--u-hair); position: relative; overflow-wrap: anywhere;
@@ -229,7 +215,6 @@ button.primary:disabled { opacity: .5; cursor: progress; }
 .msg.warn { --k: var(--ax-warn); background: color-mix(in srgb, var(--ax-warn) 7%, var(--u-cell)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ax-warn) 30%, transparent); }
 .msg.bad { --k: var(--ax-down); background: color-mix(in srgb, var(--ax-down) 7%, var(--u-cell)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ax-down) 30%, transparent); }
 
-/* done: calm, centred */
 [data-state="done"] .hero { padding: 34px 28px 30px; text-align: center; }
 [data-state="done"] .head { flex-direction: column; gap: 14px; }
 [data-state="done"] .head-t { align-items: center; }
@@ -238,11 +223,10 @@ button.primary:disabled { opacity: .5; cursor: progress; }
 [data-state="done"] .lead { font-size: 24px; }
 [data-state="done"] .msg { text-align: left; }
 
-/* ---------- settings ---------- */
 
 .prefs { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px 16px; padding: 14px 16px 14px 18px; }
 .sw { position: relative; display: flex; align-items: center; gap: 12px; cursor: pointer; user-select: none; min-width: 0; }
-.sw input { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
+.sw input { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; } /*! Copyright (c) 2026 Astral. Better Vest 9.2.5 is licensed to its users only to run it, never to copy it. bv-72d74c25 */
 .track { position: relative; flex: 0 0 auto; width: 34px; height: 20px; border-radius: 999px; background: var(--u-hair); border: 1px solid var(--u-hair-2); transition: background .15s, border-color .15s; }
 .track i { position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--u-t2); transition: transform .2s var(--ease), background .15s; }
 .sw input:checked + .track { background: color-mix(in srgb, var(--ax-accent) 35%, transparent); border-color: color-mix(in srgb, var(--ax-accent) 55%, transparent); }
@@ -255,7 +239,6 @@ button.primary:disabled { opacity: .5; cursor: progress; }
 .sw-t small { font-size: 11.5px; color: var(--u-t2); }
 .acts { display: flex; gap: 6px; }
 
-/* ---------- what's new ---------- */
 
 .news { display: flex; flex-direction: column; position: sticky; top: 72px; max-height: calc(100vh - 96px); overflow: hidden; }
 .news-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 20px 12px 24px; border-bottom: 1px solid var(--u-hair); }
@@ -279,7 +262,6 @@ button.primary:disabled { opacity: .5; cursor: progress; }
 
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* ---------- narrower windows ---------- */
 
 @media (max-width: 1080px) {
     .wrap:has(> #news:not([hidden])) { max-width: 720px; grid-template-columns: minmax(0, 1fr); }
@@ -304,8 +286,6 @@ button.primary:disabled { opacity: .5; cursor: progress; }
 }
 :root[data-reduce-motion] .spin, :root[data-reduce-motion] .steps li.on::before { animation-duration: 2.4s; }
 
-/* the Better Vest mark (9.0.4): the B breathes, its glow swelling and fading every 3.6 s, while a band of light crosses it along Vest's
-   38.66° angle; the light theme gets the inverted tile. The same as the page script's .ax4p-tile / .ax4p-b. */
 .bv-tile { display: inline-grid; place-items: center; flex: none; width: var(--t); height: var(--t); border-radius: 22%;
     background: #050506; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .1); }
 .bv-b { position: relative; display: inline-block; flex: none; height: calc(var(--t) * .58); width: calc(var(--t) * .58 * 38 / 64);
