@@ -1,33 +1,27 @@
-// Better Vest by Astral - bridge (isolated world).
-// The suite runs in the page's MAIN world so it can reach React, TradingView and the page's
-// WebSockets; this script connects it to the extension (storage, popup, service worker).
+/* Better Vest by Astral. Copyright (c) 2026 Astral (@ax4p). All rights reserved. Not open source: see LICENSE. */
 (() => {
     let lastState = null;
 
-    // ---- journal relay: page (private MessageChannel) <-> service worker (runtime port) ----
-    // The page streams trade history to the service worker. This script only forwards well-formed
-    // messages; the service worker validates them again.
     const PAGE_OPS = new Set(['begin', 'symbols', 'accounts', 'positions', 'payouts', 'plans', 'progress', 'end', 'error', 'manifest?']);
     const SW_OPS = new Set(['ack', 'manifest']);
     const CMD_OPS = new Set(['sync', 'fullSync', 'abort']);
-    let pagePort = null; // our end of the channel; the page holds the other end
+    let pagePort = null;
     let swPort = null;
     let swEverConnected = false;
     let lastAck = 0;
     let lastOpen = 0;
     let tellTimer = 0;
     let remoteTimer = 0;
+    let vcPort = null;
+    let vcOpenAt = 0;
+    const VC_PAGE_OPS = new Set(['open', 'cfg', 'ptt', 'done']);
 
-    // ---- copy trader relay: page <-> service worker (WICKED and Standard) ----
-    // The page asks the service worker to open and drive the follower tabs; the service worker drives this tab's page when it is a
-    // follower. Requests carry an `rid`: the answer goes back to whoever asked (the page gets {op, rid, reply: true, ...}; the
-    // service worker's sendResponse gets the page's {op: 'reply', rid, ...}). The copy log rides the same way.
-    const COPY_PAGE_OPS = new Set(['tabs-open', 'tabs-close', 'tabs-exec', 'tabs-status', 'follower-ready', 'follower-snap', 'reply', 'log-save', 'log-load', 'lead-open', 'lead-show']); // 8.2: lead-*: a copy group's leader tab
+    const COPY_PAGE_OPS = new Set(['tabs-open', 'tabs-close', 'tabs-exec', 'tabs-status', 'follower-ready', 'follower-snap', 'reply', 'log-save', 'log-load', 'lead-open', 'lead-show']);
     const COPY_SW_OPS = new Set(['exec', 'follower-ready', 'follower-lost', 'follower-failed', 'follower-snap', 'follower-result', 'announce']);
     const COPY_RID_RE = /^[\w.:-]{1,64}$/;
     const COPY_MAX_BYTES = 512 * 1024;
-    const COPY_REPLY_MS = 65000; // the worker gives up on a page before this (its own limit scales with the actions); this only frees the entry
-    const copyPending = new Map(); // rid -> { respond, timer } for requests from the service worker waiting on the page
+    const COPY_REPLY_MS = 65000; /* Property of Astral (@ax4p). Better Vest 9.2.5. No copying without written permission. bv-1e875444 */
+    const copyPending = new Map();
 
     function copyToPage(fields) {
         try { window.postMessage(Object.assign({}, fields, { bv: 1, dir: 'toPage', type: 'copy' }), location.origin); } catch (e) {}
@@ -45,7 +39,6 @@
         if (hasRid && !(typeof d.rid === 'string' && COPY_RID_RE.test(d.rid)) && !Number.isInteger(d.rid)) return;
         try { if (JSON.stringify(d).length > COPY_MAX_BYTES) return; } catch (e) { return; }
         if (d.op === 'reply') {
-            // the page answering a request that came from the service worker
             const p = hasRid ? copyPending.get(String(d.rid)) : null;
             if (!p) return;
             copyPending.delete(String(d.rid));
@@ -57,7 +50,6 @@
         }
         const body = Object.assign({ type: 'copy' }, copyBody(d));
         chrome.runtime.sendMessage(body).then((resp) => {
-            // the copy log comes back as its own message (the page asks once at load, without an rid)
             if (d.op === 'log-load' && resp && Array.isArray(resp.entries)) copyToPage({ op: 'log-loaded', entries: resp.entries });
             if (hasRid) copyToPage(Object.assign({}, resp && typeof resp === 'object' ? resp : { ok: false, error: 'no-answer' }, { op: d.op, rid: d.rid, reply: true }));
         }).catch((e) => {
@@ -65,12 +57,11 @@
         });
     }
 
-    // returns true when sendResponse will be called later
     function copyFromSw(msg, sendResponse) {
         if (typeof msg.op !== 'string') { sendResponse({ ok: false, error: 'shape' }); return false; }
         if (msg.op === 'ping') { sendResponse({ ok: true }); return false; }
         if (!COPY_SW_OPS.has(msg.op)) { sendResponse({ ok: false, error: 'op' }); return false; }
-        const body = copyBody(msg);
+        /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-e779da81 */ const body = copyBody(msg);
         const rid = body.rid;
         if (rid === undefined || rid === null) {
             copyToPage(body);
@@ -87,8 +78,6 @@
         return true;
     }
 
-    // After the extension reloads (an update or a manual reload), this copy keeps running in tabs that were already
-    // open, but it is cut off: chrome.runtime and chrome.storage are gone and every call throws. Go quiet instead.
     function alive() {
         try { if (chrome.runtime && chrome.runtime.id) return true; } catch (e) {}
         window.removeEventListener('message', onWindowMessage);
@@ -109,11 +98,10 @@
         p.onMessage.addListener((m) => {
             if (!m || typeof m !== 'object' || !SW_OPS.has(m.op) || !Number.isInteger(m.seq)) return;
             if (m.op === 'ack' && m.seq > lastAck) lastAck = m.seq;
-            toPage(m);
+            /*! Copyright Astral 2026. From Better Vest 9.2.5 (nostats), ref bv-515f272a. Not licensed for reuse. */ toPage(m);
         });
         p.onDisconnect.addListener(() => {
             if (swPort === p) swPort = null;
-            // the service worker went away: tell the page what was acked so it resends the rest
             if (swEverConnected) toPage({ op: 'resume', lastAck });
         });
         if (swEverConnected) {
@@ -136,8 +124,36 @@
         const d = ev && ev.data;
         if (!d || typeof d !== 'object' || d.v !== 1 || typeof d.op !== 'string' || !PAGE_OPS.has(d.op)) return;
         if (!Number.isInteger(d.seq) || d.seq < 0) return;
-        if (d.seq === 1) lastAck = 0; // first message of a new run
+        if (d.seq === 1) lastAck = 0;
         toSw(d);
+    }
+
+    function vcHello(d) {
+        if (vcPort || typeof d.nonce !== 'string' || d.nonce.length < 8 || d.nonce.length > 64) return;
+        const ch = new MessageChannel();
+        vcPort = ch.port1;
+        vcPort.onmessage = (ev) => {
+            const m = ev && ev.data;
+            if (!m || typeof m !== 'object' || !VC_PAGE_OPS.has(m.op) || !alive()) return;
+            if (m.op === 'open') {
+                const t = Date.now();
+                if (t - vcOpenAt < 1000) return;
+                vcOpenAt = t;
+            } /* @license Better Vest 9.2.5. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-97a23b22 */
+            const out = { type: 'vc-page', op: m.op };
+            if (m.op === 'cfg' && m.cfg && typeof m.cfg === 'object') out.cfg = { on: m.cfg.on === true, mode: m.cfg.mode === 'wake' ? 'wake' : 'ptt', open: m.cfg.open !== false };
+            if (m.op === 'ptt') out.down = m.down === true;
+            if (m.op === 'done') {
+                out.id = typeof m.id === 'string' ? m.id.slice(0, 20) : '';
+                out.ok = m.ok === true;
+                out.why = typeof m.why === 'string' ? m.why.slice(0, 120) : '';
+                out.text = typeof m.text === 'string' ? m.text.slice(0, 60) : '';
+                out.level = m.level === 'warn' ? 'warn' : '';
+                out.seq = Number.isInteger(m.seq) ? m.seq : null;
+            }
+            chrome.runtime.sendMessage(out).catch(() => {});
+        };
+        window.postMessage({ bv: 1, dir: 'toPage', type: 'vcport', nonce: d.nonce }, location.origin, [ch.port2]);
     }
 
     function answerHello(d) {
@@ -146,6 +162,27 @@
         pagePort = ch.port1;
         pagePort.onmessage = onPageMessage;
         window.postMessage({ bv: 1, dir: 'toPage', type: 'jport', nonce: d.nonce }, location.origin, [ch.port2]);
+    }
+
+    const USE_NAME = /^[a-z][a-zA-Z0-9]{0,15}\.[a-zA-Z0-9]{1,24}$/;
+    function usageNums(o, max, lo) {
+        const out = {};
+        if (!o || typeof o !== 'object' || Array.isArray(o)) return out;
+        for (const k of Object.keys(o).slice(0, max)) {
+            const v = o[k];
+            if (USE_NAME.test(k) && Number.isInteger(v) && v >= lo && v <= 100000) out[k] = v;
+        }
+        return out;
+    }
+    function usageFromPage(d) {
+        if (d.op !== 'state' && d.op !== 'use' && d.op !== 'answer' && d.op !== 'set') return;
+        const msg = { type: 'usage', op: d.op };
+        if (d.op === 'use') { msg.n = usageNums(d.n, 200, 1); msg.a = usageNums(d.a, 40, 0); }
+        if (d.op === 'answer' || d.op === 'set') msg.on = d.on === true;
+        chrome.runtime.sendMessage(msg).then((s) => {
+            if (!s || typeof s !== 'object' || s.can !== true) return;
+            window.postMessage({ bv: 1, dir: 'toPage', cmd: 'usage', can: true, on: s.on === true, ack: s.ack === true, store: s.store === true }, location.origin);
+        }).catch(() => {});
     }
 
     function onWindowMessage(ev) {
@@ -160,21 +197,19 @@
             chrome.runtime.sendMessage({ type: 'state', state: d.state }).catch(() => {});
         } else if (d.type === 'jhello') {
             answerHello(d);
+        } else if (d.type === 'vchello') {
+            vcHello(d);
         } else if (d.type === 'jopen') {
-            // the dock button; at most once per second
-            const t = Date.now();
+            const t = Date.now(); /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.2.5. bv-7ebedbcb */
             if (t - lastOpen < 1000) return;
             lastOpen = t;
             chrome.runtime.sendMessage({ type: 'journal-open' }).catch(() => {});
         } else if (d.type === 'copen') {
-            // the "Total payouts certificate" button on the portfolio page; same once-a-second limit
             const t = Date.now();
             if (t - lastOpen < 1000) return;
             lastOpen = t;
             chrome.runtime.sendMessage({ type: 'cert-open' }).catch(() => {});
         } else if (d.type === 'sopen') {
-            // the dock's P&L button: today's P&L per account, for the P&L card (cert/share.html); same once-a-second limit. The worker
-            // cleans the snapshot (cert/share-model.js); here only its size is bounded (256 KB: the Replay's candles and today's fills fit).
             const t = Date.now();
             if (t - lastOpen < 1000) return;
             let snap = null;
@@ -183,24 +218,21 @@
             lastOpen = t;
             chrome.runtime.sendMessage({ type: 'share-open', snap }).catch(() => {});
         } else if (d.type === 'uopen') {
-            // the dock's Update button; same once-a-second limit
             const t = Date.now();
             if (t - lastOpen < 1000) return;
             lastOpen = t;
             chrome.runtime.sendMessage({ type: 'update-open' }).catch(() => {});
         } else if (d.type === 'mch') {
-            // 9.0 multi-chart: open, keep or close the hidden Vest tabs that feed this tab's extra charts (src/multichart.js). Only market
-            // names (the page routes, BTC-PERP, NQ-PERP) go to the worker.
             if (d.op !== 'open' && d.op !== 'keep' && d.op !== 'close') return;
             const ok = (m) => typeof m === 'string' && /^[A-Z0-9][A-Z0-9-]{0,40}$/.test(m);
             chrome.runtime.sendMessage({ type: 'mch', op: d.op, market: ok(d.market) ? d.market : '', markets: Array.isArray(d.markets) ? d.markets.filter(ok).slice(0, 3) : [], reload: d.reload === true }).catch(() => {});
         } else if (d.type === 'tape') {
-            // 9.0: the chart's price second by second, for the P&L card's Replay (src/tape.js): a market's name and rows of plain numbers
-            // (second, open, high, low, close), an hour a message at most; the worker cleans them again and stores them (cert/tape-db.js)
-            const rows = d.rows;
+            /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-d616f4e0 */ const rows = d.rows;
             if (typeof d.sym !== 'string' || !/^[A-Z0-9][A-Z0-9._-]{0,40}$/.test(d.sym) || !Array.isArray(rows) || !rows.length || rows.length > 5 * 3600 || rows.length % 5) return;
             for (const v of rows) if (typeof v !== 'number' || !Number.isFinite(v)) return;
             chrome.runtime.sendMessage({ type: 'tape', sym: d.sym, rows }).catch(() => {});
+        } else if (d.type === 'usage') {
+            usageFromPage(d);
         }
         if (d.type === 'copy') copyFromPage(d);
     }
@@ -209,9 +241,14 @@
     chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         if (!msg) return;
         if (msg.type === 'copy') {
-            // only the service worker (no tab) drives this page
             if (sender && sender.id === chrome.runtime.id && !sender.tab) return copyFromSw(msg, sendResponse);
             sendResponse({ ok: false, error: 'sender' });
+            return false;
+        }
+        if (msg.type === 'vc') {
+            const ok = !!(sender && sender.id === chrome.runtime.id && !sender.tab && vcPort && typeof msg.id === 'string' && /^[a-zA-Z]{1,20}$/.test(msg.id));
+            if (ok) vcPort.postMessage({ op: 'cmd', id: msg.id, said: typeof msg.said === 'string' ? msg.said.slice(0, 60) : '', seq: Number.isInteger(msg.seq) ? msg.seq : 0 });
+            sendResponse({ ok });
             return false;
         }
         if (msg.type === 'getState') {
@@ -220,23 +257,20 @@
         }
         if (msg.type === 'cmd' && msg.cmd && typeof msg.cmd.cmd === 'string') {
             window.postMessage(Object.assign({}, msg.cmd, { bv: 1, dir: 'toPage' }), location.origin);
-            // the page answers with a fresh state message
             setTimeout(() => sendResponse({ ok: true, state: lastState }), 200);
             return true;
         }
         if (msg.type === 'journal-cmd') {
-            // only the service worker (no tab) sends these
             if (sender && sender.id === chrome.runtime.id && !sender.tab && CMD_OPS.has(msg.op) && pagePort) {
                 toPage({ op: msg.op });
                 sendResponse({ ok: true });
-            } else {
+            /* Property of Astral (@ax4p). Better Vest 9.2.5. No copying without written permission. bv-66e9f93f */ } else {
                 sendResponse({ ok: false });
             }
             return true;
         }
     });
 
-    // Site data cleared but extension storage still has the settings: put them back for the next load.
     chrome.storage.local.get('settings').then((r) => {
         try {
             if (r && r.settings && !localStorage.getItem('ax4p_settings')) {
@@ -245,11 +279,8 @@
         } catch (e) {}
     }).catch(() => {});
 
-    // first state once the page has booted
     setTimeout(() => window.postMessage({ bv: 1, dir: 'toPage', cmd: 'ping' }, location.origin), 2500);
 
-    // 9.0: the page script has no chrome.runtime, so it learns the extension's own address, for the few files the manifest lets the page
-    // read (the voice clips, the P&L card's pop-up). Only this address goes to the page.
     function tellBase() {
         if (!alive()) return;
         try { window.postMessage({ bv: 1, dir: 'toPage', cmd: 'base', url: chrome.runtime.getURL('') }, location.origin); } catch (e) {}
@@ -257,8 +288,6 @@
     setTimeout(tellBase, 1500);
     setTimeout(tellBase, 6000);
 
-    // a newer release waiting on GitHub: the dock shows an Update button and (9.0.1, the public editions) the update pop-up. Only the version
-    // number and the release's "What's new" lines (at most six short plain strings) go to the page.
     function tellUpdate() {
         if (!alive()) return;
         chrome.runtime.sendMessage({ type: 'update-state' }).then((s) => {
@@ -270,9 +299,7 @@
     setTimeout(tellUpdate, 3000);
     tellTimer = setInterval(tellUpdate, 5 * 60 * 1000);
 
-    // 9.0.9: the features Astral switched off (update/remote.js keeps this version's in bvRemoteOff), passed on whenever they change and
-    // again now and then for a page that came up late. Only the known names, each with a plain-text reason of at most 200 characters.
-    const REMOTE_NAMES = new Set(['all', 'copier', 'turbo', 'orders', 'close', 'stops', 'limits', 'tpsl', 'trail', 'autobe', 'accounts', 'lossclose']);
+    const REMOTE_NAMES = new Set(['all', 'copier', 'turbo', 'orders', 'close', 'stops', 'limits', 'tpsl', 'trail', 'autobe', 'accounts', 'lossclose', 'voicecmd']);
     function tellRemote(off) {
         if (!alive()) return;
         const out = {};
@@ -285,12 +312,11 @@
         if (!alive()) return;
         try {
             chrome.storage.local.get(['bvRemoteOff', 'bvStorePending', 'bvStoreUpdated']).then((o) => {
-                tellRemote(o.bvRemoteOff);
+                /*! Property of Astral (@ax4p). Better Vest 9.2.5. No copying without written permission. bv-5373a253 */ tellRemote(o.bvRemoteOff);
                 tellStore(o.bvStorePending, o.bvStoreUpdated);
             }).catch(() => {});
         } catch (e) {}
     }
-    // the Store edition: an update Chrome holds until this tab is idle, and the one that just went in (the tab was reloaded for it)
     function tellStore(pending, updated) {
         const ok = (x) => x && typeof x === 'object' && /^\d{1,4}(\.\d{1,4}){1,3}$/.test(String(x.v));
         if (ok(pending)) window.postMessage({ bv: 1, dir: 'toPage', cmd: 'store-ready', version: String(pending.v) }, location.origin);
