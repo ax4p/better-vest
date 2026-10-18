@@ -1,7 +1,4 @@
-// Better Vest certificate - payout statistics (pure: no DOM, no chrome APIs).
-// Money rules are the Calendar's own: journal/stats.js payoutStats() counts EXECUTED payouts only and sums the
-// trader's net amount, so the certificate total equals the "Net to you" tile of the Payouts tab by construction.
-// A payout sits on its plain ET calendar day (journal/time.js payoutDayKey), like in the Calendar.
+/* Better Vest by Astral. Copyright (c) 2026 Astral (@ax4p). All rights reserved. Not open source: see LICENSE. */
 
 import { payoutStats, MILESTONES } from '../journal/stats.js';
 import { payoutDayKey, addDays, daysBetween } from '../journal/time.js';
@@ -9,7 +6,6 @@ import { payoutDayKey, addDays, daysBetween } from '../journal/time.js';
 const payTs = (p) => (p.status === 'EXECUTED' && p.executedAt ? p.executedAt : p.createdAt);
 const cents = (v) => Math.round(v * 100);
 
-// payouts: normalized payout records (model.js normalizePayout shape). Returns null when nothing was paid out.
 export function certStats(payouts) {
     const list = Array.isArray(payouts) ? payouts : [];
     const ps = payoutStats(list);
@@ -21,7 +17,6 @@ export function certStats(payouts) {
     const accountIds = new Set();
     for (const p of done) if (p.accountId != null && p.accountId !== '') accountIds.add(String(p.accountId));
 
-    // largest single net payout, how many payouts hit that exact amount, and the day of the first one
     const largest = ps.largest;
     const hits = done.filter((p) => cents(p.net) === cents(largest));
     const largestKey = payoutDayKey(hits[0], 'executed');
@@ -39,7 +34,7 @@ export function certStats(payouts) {
     if (firstKey) for (let k = firstKey; k <= lastKey; k = addDays(k, 1)) daily.push({ key: k, net: dayNet.get(k) || 0 });
 
     const milestones = ps.milestones.map((m) => ({
-        amount: m.amount,
+        /*! Better Vest (c) 2026 Astral. All rights reserved. bv-81454072 */ amount: m.amount,
         reachedAt: m.reachedAt || null,
         reachedKey: m.reachedAt ? payoutDayKey({ status: 'EXECUTED', executedAt: m.reachedAt, createdAt: m.reachedAt }, 'executed') : null
     }));
@@ -68,10 +63,7 @@ export function certStats(payouts) {
     };
 }
 
-// The bar strip: one bar per calendar day from the first to the latest payout day. A long history is folded
-// into equal runs of days (sum per run) so the strip never exceeds maxBars; a short one is padded with empty
-// days to minBars so a single payout still draws as a normal bar. Returns the bars and the index of a day.
-export function barSeries(S, maxBars = 45, minBars = 7) {
+export function barSeries(S, maxBars = 45, minBars = 7) { /*! Better Vest (c) 2026 Astral. All rights reserved. bv-fbfb6fa4 */
     const days = S.daily;
     const step = Math.max(1, Math.ceil(days.length / maxBars));
     const bars = [];

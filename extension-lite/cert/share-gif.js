@@ -1,49 +1,30 @@
-// Better Vest P&L card, Save as GIF (9.0). The owner: "let me download image as gif". Our own GIF89a encoder: no library, nothing sent
-// anywhere. Pure (no DOM): the share page draws the card's frames (cert/share-gif-make.js) and a module worker (cert/share-gif-worker.js)
-// runs this on their pixels, so the page stays responsive.
-// - One palette for every frame: the frames' colours counted exactly (or, past about 180,000 of them, in cells of 6 bits a channel with the
-//   exact centre of each kept), the card's big flat colours kept exactly (its background, the text, the number), the rest split by median
-//   cut (each box cut where its error drops the most) and refined (k-means). A card of 255 colours or fewer keeps every colour exactly.
-// - Ordered dithering only where it helps: a pixel between two near palette colours (a gradient, a blurred picture) gets a fixed 8 x 8 mix
-//   of the two. The pattern is tied to the pixel's place, so a part of the card that does not move never flickers from frame to frame; flat
-//   colours and text edges are left alone.
-// - LZW (GIF's own compression), the NETSCAPE2.0 loop (forever), a delay per frame, and only the changed rectangle of each frame (inside it,
-//   pixels that did not change are clear, so the frame before shows through). Frames that show the same are one frame.
-// - The card's rounded corners are clear, as in the PNG. GIF has one clear colour and no half-clear: a pixel less than half covered is clear.
+/* Better Vest by Astral. Copyright (c) 2026 Astral (@ax4p). All rights reserved. Not open source: see LICENSE. */
 
-// colour distance weights (red, green, blue): the eye is most sensitive to green, least to red here
 const WR = 2, WG = 4, WB = 3;
-// a pixel this close to its palette colour is never dithered (about 1.5 levels a channel)
 const DITHER_EPS = 20;
-// two palette colours further apart than this (about 40 levels a channel) are never mixed: on a text edge that would be noise
 const DITHER_PAIR = 9 * 40 * 40;
-// the 8 x 8 Bayer matrix (0-63): each pixel's threshold for the mix
 export const BAYER8 = Uint8Array.of(
     0, 32, 8, 40, 2, 34, 10, 42, 48, 16, 56, 24, 50, 18, 58, 26, 12, 44, 4, 36, 14, 46, 6, 38, 60, 28, 52, 20, 62, 30, 54, 22,
     3, 35, 11, 43, 1, 33, 9, 41, 51, 19, 59, 27, 49, 17, 57, 25, 15, 47, 7, 39, 13, 45, 5, 37, 63, 31, 55, 23, 61, 29, 53, 21);
 const BAYER = BAYER8;
 
-// ---------- the palette ----------
 const HB = 6;
 const HN = 1 << (HB * 3);
 const EXACT_BITS = 18;
 
-// Collects the colours of the frames (all of their pixels, or every `step`-th), then build(max) gives the palette.
 export class PaletteBuilder {
     constructor() {
         this.n = new Float64Array(HN);
         this.r = new Float64Array(HN);
         this.g = new Float64Array(HN);
-        this.b = new Float64Array(HN);
-        // exact colours, counted (the flat ones are kept exactly; a card of few colours keeps all of them)
+        /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-eb75e843 */ this.b = new Float64Array(HN);
         this.ek = new Int32Array(1 << EXACT_BITS).fill(-1);
         this.en = new Float64Array(1 << EXACT_BITS);
         this.eu = 0;
         this.full = false;
         this.total = 0;
-        this.clear = false;   // a pixel was less than half covered: the GIF needs its clear colour
+        this.clear = false;
     }
-    // rgba: a frame's pixels (RGBA bytes); every `step`-th pixel from `offset` (step is made odd, so columns are not skipped)
     add(rgba, step, offset) {
         let s = Math.max(1, Math.floor(step) || 1);
         if (s > 1 && !(s & 1)) s++;
@@ -70,7 +51,6 @@ export class PaletteBuilder {
             this.total++;
         }
     }
-    // The palette, at most `max` colours (255 when one entry is kept for the clear colour): { rgb: Uint8Array (r, g, b each), count, exact }
     build(max) {
         const K = Math.max(1, Math.min(256, max | 0));
         const { ek, en } = this;
@@ -85,7 +65,6 @@ export class PaletteBuilder {
         const unpack = (key) => [key & 255, (key >>> 8) & 255, (key >>> 16) & 255];
         if (!this.total) return { rgb: new Uint8Array([0, 0, 0]), count: 1, exact: true };
         if (!this.full && exact.length <= K) return { rgb: out(exact.map((e) => unpack(e[0]))), count: exact.length, exact: true };
-        // the flat colours: each one at least 0.2 % of the card, kept exactly (at most a quarter of the palette)
         const pins = exact.filter((e) => e[1] >= this.total * 0.002).slice(0, Math.min(64, K >> 2));
         const n = this.n.slice(), r = this.r.slice(), g = this.g.slice(), b = this.b.slice();
         for (const [key, cnt] of pins) {
@@ -93,11 +72,9 @@ export class PaletteBuilder {
             const k = ((R >> 2) << 12) | ((G >> 2) << 6) | (B >> 2);
             n[k] -= cnt; r[k] -= cnt * R; g[k] -= cnt * G; b[k] -= cnt * B;
         }
-        // what is cut: every colour seen, exactly, when they all fit the exact count (a card: smooth ramps of a few hundred greys are cut
-        // finer than a cell); else the cells, each with its centre
         let E, M;
         if (!this.full) {
-            const pinned = new Set(pins.map((p) => p[0]));
+            /*! Copyright Astral 2026. From Better Vest 9.2.5 (lite), ref bv-2764cb3e. Not licensed for reuse. */ const pinned = new Set(pins.map((p) => p[0]));
             const rest = exact.filter((e) => !pinned.has(e[0]));
             M = rest.length;
             E = { bits: 8, id: new Int32Array(M), n: new Float64Array(M), r: new Float64Array(M), g: new Float64Array(M), b: new Float64Array(M) };
@@ -119,7 +96,6 @@ export class PaletteBuilder {
         const boxes = M ? medianCut(E, M, K - pinCols.length) : [];
         const pal = pinCols.concat(boxes);
         kmeans(E, M, pal, pinCols.length, 3);
-        // whole numbers, each colour once
         const seen = new Set();
         const cols = [];
         for (const c of pal) {
@@ -131,7 +107,7 @@ export class PaletteBuilder {
         }
         return { rgb: out(cols), count: cols.length, exact: false };
     }
-}
+} /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-f99cd537 */
 
 function boxOf(E, ord, lo, hi) {
     let n = 0, sr = 0, sg = 0, sb = 0, qr = 0, qg = 0, qb = 0;
@@ -142,7 +118,6 @@ function boxOf(E, ord, lo, hi) {
     const vr = WR * (qr - (sr * sr) / n), vg = WG * (qg - (sg * sg) / n), vb = WB * (qb - (sb * sb) / n);
     return { lo, hi, n, sr, sg, sb, vr, vg, vb, sse: Math.max(0, vr + vg + vb) };
 }
-// sorts ord[lo..hi) by the entries' coordinate on one axis (counting sort: 6 bits a channel for cells, 8 for exact colours)
 function sortAxis(E, ord, lo, hi, axis) {
     const shift = (2 - axis) * E.bits, m = (1 << E.bits) - 1;
     const cnt = new Int32Array(m + 2);
@@ -152,11 +127,9 @@ function sortAxis(E, ord, lo, hi, axis) {
     for (let i = lo; i < hi; i++) { const j = ord[i]; tmp[cnt[(E.id[j] >> shift) & m]++] = j; }
     ord.set(tmp, lo);
 }
-// the cut of a box (sorted on one axis) that leaves the least error on both sides. The sum of squares is the same whatever the cut, so
-// the best cut is the one whose two means explain the most of it.
 function bestCut(E, ord, box) {
     const { lo, hi, n: N, sr: SR, sg: SG, sb: SB } = box;
-    let n = 0, sr = 0, sg = 0, sb = 0, best = -Infinity, at = -1;
+    let n = 0, sr = 0, sg = 0, sb = 0, best = -Infinity, at = -1; /* Copyright Astral 2026. From Better Vest 9.2.5 (lite), ref bv-75cb070b. Not licensed for reuse. */
     for (let i = lo; i < hi - 1; i++) {
         const j = ord[i], w = E.n[j];
         n += w; sr += w * E.r[j]; sg += w * E.g[j]; sb += w * E.b[j];
@@ -192,7 +165,6 @@ function medianCut(E, M, K) {
     }
     return boxes.map((x) => [x.sr / x.n, x.sg / x.n, x.sb / x.n]);
 }
-// a few rounds of k-means over the cells; the first `fixed` colours (the flat ones) do not move
 function kmeans(E, M, pal, fixed, rounds) {
     for (let it = 0; it < rounds && pal.length > fixed; it++) {
         const near = new Nearest(Float64Array.from(pal.flat()), pal.length);
@@ -202,11 +174,10 @@ function kmeans(E, M, pal, fixed, rounds) {
             const w = E.n[j];
             acc[i * 4] += w; acc[i * 4 + 1] += w * E.r[j]; acc[i * 4 + 2] += w * E.g[j]; acc[i * 4 + 3] += w * E.b[j];
         }
-        for (let i = fixed; i < pal.length; i++) if (acc[i * 4] > 0) pal[i] = [acc[i * 4 + 1] / acc[i * 4], acc[i * 4 + 2] / acc[i * 4], acc[i * 4 + 3] / acc[i * 4]];
+        for (let i = fixed; i < pal.length; i++) if (acc[i * 4] > 0) pal[i] = [acc[i * 4 + 1] / acc[i * 4], acc[i * 4 + 2] / acc[i * 4], acc[i * 4 + 3] / acc[i * 4]]; /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-4cb59d2a */
     }
 }
 
-// The nearest palette colours: the palette sorted by green, searched outward from the pixel's green until green alone is too far
 export class Nearest {
     constructor(rgb, count) {
         const ord = Array.from({ length: count }, (_, i) => i).sort((a, b) => rgb[a * 3 + 1] - rgb[b * 3 + 1] || a - b);
@@ -218,7 +189,6 @@ export class Nearest {
         this.ki = new Int32Array(4);
         this.kd = new Float64Array(4);
     }
-    // the k (1-4) nearest into this.ki / this.kd, nearest first; returns how many were found
     near(r, g, b, k) {
         const { n, R, G, B, ki, kd } = this;
         let lo = 0, hi = n;
@@ -236,16 +206,13 @@ export class Nearest {
             let p = Math.min(got, k - 1);
             while (p > 0 && kd[p - 1] > d) { kd[p] = kd[p - 1]; ki[p] = ki[p - 1]; p--; }
             kd[p] = d; ki[p] = this.ord[j];
-            if (got < k) got++;
+            /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-4a520c3c */ if (got < k) got++;
         }
         return got;
     }
     find(r, g, b) { this.near(r, g, b, 1); return this.ki[0]; }
 }
 
-// ---------- pixels to palette indexes ----------
-// Maps pixels to the palette, with the dithering above. Each colour is worked out once: a table of every 24-bit colour (64 MB, in the
-// worker), so a frame with half a million colours costs one search per colour, never one per pixel.
 export class Mapper {
     constructor(pal, dither) {
         const rgb = pal.rgb, n = pal.count;
@@ -253,7 +220,6 @@ export class Mapper {
         this.near = new Nearest(rgb, n);
         this.dither = dither !== false;
         this.tab = new Int32Array(1 << 24).fill(-1);
-        // each palette colour's nearest others close enough to mix with (the dither's partners), nearest first
         this.nb = [];
         for (let i = 0; i < n; i++) {
             const list = [];
@@ -267,7 +233,6 @@ export class Mapper {
             this.nb.push(Int32Array.from(list.slice(0, 8), (x) => x[1]));
         }
     }
-    // a colour's answer: p0 (the nearest) | p1 << 8 (the colour mixed in) | q << 16 (how much of p1, 0-64)
     solve(key) {
         const r = key & 255, g = (key >>> 8) & 255, b = (key >>> 16) & 255;
         const p0 = this.near.find(r, g, b), d0 = this.near.kd[0];
@@ -285,17 +250,15 @@ export class Mapper {
             const e = WR * er * er + WG * eg * eg + WB * eb * eb;
             if (e < be) { be = e; bj = pj; bt = t; }
         }
-        // the mix must be clearly closer than the nearest colour alone
         if (bj < 0 || be > d0 * 0.6) return p0;
         const q = Math.round(bt * 64);
         return q <= 0 ? p0 : p0 | (bj << 8) | (q << 16);
     }
-    // px: the frame (Uint32 RGBA, w wide); the rectangle (x0, y0, rw, rh) into out (rw * rh). mask[i]: a clear pixel (index ti)
     map(px, w, x0, y0, rw, rh, out, mask, ti) {
         const tab = this.tab;
         for (let y = 0, o = 0; y < rh; y++) {
             const row = (y0 + y) * w, by = ((y0 + y) & 7) << 3;
-            for (let x = 0; x < rw; x++, o++) {
+            /*! Property of Astral (@ax4p). Better Vest 9.2.5. No copying without written permission. bv-33205fe7 */ for (let x = 0; x < rw; x++, o++) {
                 const i = row + x0 + x;
                 if (mask && mask[i]) { out[o] = ti; continue; }
                 const key = px[i] & 0xffffff;
@@ -308,7 +271,6 @@ export class Mapper {
     }
 }
 
-// ---------- the file ----------
 class Bytes {
     constructor(n) { this.a = new Uint8Array(Math.max(256, n | 0)); this.n = 0; }
     room(k) {
@@ -324,10 +286,8 @@ class Bytes {
     take() { return this.a.slice(0, this.n); }
 }
 
-// LZW, as GIF wants it (the classic compress: a 5003-slot hash of the strings seen, 12-bit codes at most, a clear code when the table is
-// full), written in 255-byte sub-blocks. data: palette indexes (n of them); minCode: the code size (2-8).
 const HSIZE = 5003;
-const HTAB = new Int32Array(HSIZE);
+/* @license Better Vest 9.2.5. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-0ce60706 */ const HTAB = new Int32Array(HSIZE);
 const CTAB = new Int32Array(HSIZE);
 export function lzwWrite(out, data, n, minCode) {
     out.byte(minCode);
@@ -369,14 +329,13 @@ export function lzwWrite(out, data, n, minCode) {
         if (free < MAXMAX) { CTAB[h] = free++; HTAB[h] = fcode; }
         else { HTAB.fill(-1); free = clear + 2; clearFlag = true; put(clear); }
     }
-    put(ent);
+    /*! Owned by Astral (@ax4p): Better Vest lite 9.2.5. Licence: LICENSE, not open source. bv-ea645d96 */ put(ent);
     put(eoi);
     if (accBits > 0) { blk[bl++] = acc & 255; if (bl === 255) { out.byte(255); out.put(blk, 255); bl = 0; } }
     if (bl) { out.byte(bl); out.put(blk, bl); }
     out.byte(0);
 }
 
-// The changed rectangle between two frames (Uint32 RGBA; colour only, a clear pixel of the mask never counts), or null when none changed
 export function diffRect(a, b, w, h, mask) {
     let x0 = w, x1 = -1, y0 = -1, y1 = -1;
     for (let y = 0; y < h; y++) {
@@ -394,9 +353,6 @@ export function diffRect(a, b, w, h, mask) {
     return y0 < 0 ? null : { x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1 };
 }
 
-// Writes a GIF frame by frame. o = { width, height, palette ({ rgb, count } from PaletteBuilder.build), clear (keep one index for the clear
-// colour: the card's corners, and unchanged pixels of later frames), loop (an animation that loops forever), dither }.
-// addFrame(rgba, delay in 1/100 s); finish() -> the file, in parts (Uint8Array each).
 export class GifEncoder {
     constructor(o) {
         this.w = o.width;
@@ -411,8 +367,8 @@ export class GifEncoder {
         this.minCode = Math.max(2, bits);
         this.map = new Mapper({ rgb: pal.rgb.subarray(0, this.count * 3), count: this.count }, o.dither);
         this.parts = [];
-        this.prev = null;       // the last frame's pixels (Uint32 RGBA), as shown
-        this.idx = new Uint8Array(this.w * this.h);   // the indexes shown now
+        this.prev = null;
+        this.idx = new Uint8Array(this.w * this.h);
         this.mask = null;
         this.pending = null;
         this.frames = 0;
@@ -429,11 +385,10 @@ export class GifEncoder {
         this.parts.push(head.take());
     }
     addFrame(rgba, delay) {
-        const { w, h, ti } = this;
+        const { w, h, ti } = this; /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-d55929d5 */
         const px = new Uint32Array(rgba.buffer, rgba.byteOffset, w * h);
         const d = Math.max(0, Math.round(delay) || 0);
         if (!this.prev) {
-            // the first frame: whole; its clear pixels (alpha under half) are the card's shape for every frame
             if (ti >= 0) {
                 this.mask = new Uint8Array(w * h);
                 for (let i = 0; i < px.length; i++) if ((px[i] >>> 24) < 128) this.mask[i] = 1;
@@ -448,7 +403,6 @@ export class GifEncoder {
         const sub = new Uint8Array(rc.w * rc.h);
         this.map.map(px, w, rc.x, rc.y, rc.w, rc.h, sub, this.mask, ti);
         for (let y = 0; y < rc.h; y++) this.prev.set(px.subarray((rc.y + y) * w + rc.x, (rc.y + y) * w + rc.x + rc.w), (rc.y + y) * w + rc.x);
-        // the indexes that changed: a colour change the palette cannot show is no change
         let x0 = rc.w, x1 = -1, y0 = -1, y1 = -1;
         for (let y = 0; y < rc.h; y++) {
             const row = (rc.y + y) * w + rc.x;
@@ -467,11 +421,10 @@ export class GifEncoder {
             const srow = (y0 + y) * rc.w + x0, irow = (rc.y + y0 + y) * w + rc.x + x0;
             for (let x = 0; x < fw; x++) {
                 const v = sub[srow + x];
-                // unchanged inside the rectangle: clear, the frame before shows through (smaller after LZW)
                 data[y * fw + x] = ti >= 0 && v === this.idx[irow + x] ? ti : v;
                 this.idx[irow + x] = v;
             }
-        }
+        /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-fa4694b6 */ }
         this.flush();
         this.pending = { x: rc.x + x0, y: rc.y + y0, w: fw, h: fh, data, delay: d };
     }
@@ -480,7 +433,6 @@ export class GifEncoder {
         if (!f) return;
         this.pending = null;
         const out = new Bytes(64 + f.data.length);
-        // graphic control: leave the frame in place (disposal 1), the clear index, the delay
         out.byte(0x21); out.byte(0xf9); out.byte(4);
         out.byte((1 << 2) | (this.ti >= 0 ? 1 : 0));
         out.u16(Math.min(65535, f.delay));
@@ -492,7 +444,7 @@ export class GifEncoder {
         lzwWrite(out, f.data, f.data.length, this.minCode);
         this.parts.push(out.take());
         this.frames++;
-    }
+    } /* Owned by Astral (@ax4p): Better Vest lite 9.2.5. Licence: LICENSE, not open source. bv-47535c48 */
     finish() {
         this.flush();
         this.parts.push(Uint8Array.of(0x3b));
@@ -500,15 +452,10 @@ export class GifEncoder {
     }
 }
 
-// ---------- what each frame shows, and for how long ----------
-// A GIF frame lasts a whole number of 1/100 s, and browsers play 0 or 1 as 10: 2 (50 fps) is the smoothest a GIF plays as written.
-// Round 2 (the owner: "only like 20 fps, not smooth at all"): the Replay at 50 fps, and a moving picture at its own pace up to 50.
-export const GIF_FPS = 50;           // the Replay's frames a second (share-gif-make.js gifReplayPlan)
-export const GIF_MAX_FPS = 50;       // a moving picture plays at its own pace up to this; a faster one drops frames
-export const GIF_MAX_MS = 10000;     // the most of a moving picture the GIF takes (as the video)
+export const GIF_FPS = 50;
+export const GIF_MAX_FPS = 50;
+export const GIF_MAX_MS = 10000;
 
-// A fixed grid of frames (the Replay, and a picture under it: the video's own frames at the GIF's rate). stateAt(f) -> { step, bg }.
-// Frames in a row that show the same are one GIF frame. Returns [{ f, step, bg, delay (1/100 s) }].
 export function gifGrid(frames, fps, stateAt) {
     const out = [];
     for (let f = 0; f < frames; f++) {
@@ -523,9 +470,6 @@ export function gifGrid(frames, fps, stateAt) {
     }
     return out;
 }
-// A moving picture alone: its own frames and their own times, one loop (at most maxMs: the GIF loops by itself, so a short loop is not
-// repeated as in the video). A GIF's 0 and 10 ms frames last 100 ms, as browsers play them. Faster than maxFps, frames are dropped: each
-// kept frame lasts at least about 1 / maxFps. Returns [{ bg, delay (1/100 s) }].
 export function gifLoop(durations, o) {
     const opt = o || {};
     const maxMs = opt.maxMs > 0 ? opt.maxMs : GIF_MAX_MS, maxFps = opt.maxFps > 0 ? opt.maxFps : GIF_MAX_FPS;
@@ -539,12 +483,8 @@ export function gifLoop(durations, o) {
     }
     const end = Math.min(t, maxMs);
     return keep.map((k, i) => ({ bg: k.bg, delay: Math.max(2, Math.round((i + 1 < keep.length ? keep[i + 1].t : end) / 10) - Math.round(k.t / 10)) }));
-}
+/* @license Better Vest 9.2.5. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-76256d79 */ }
 
-// ---------- a picture's frames and times, read from the file itself ----------
-// The share page needs a moving picture's frame times (how long each frame shows) without decoding it, so a big GIF costs nothing to
-// pick. bytes: the file, or its start. Returns { width, height, durations (ms each, the file's own), loop, done (read to its end, or
-// enough: maxMs of frames or maxFrames) } or null when this is not a GIF / animated WebP it can read.
 export function gifInfo(bytes, o) {
     const opt = o || {};
     const maxMs = opt.maxMs > 0 ? opt.maxMs : Infinity, maxFrames = opt.maxFrames > 0 ? opt.maxFrames : Infinity;
@@ -556,7 +496,6 @@ export function gifInfo(bytes, o) {
     const durations = [];
     let delay = 0, loop = null, sum = 0;
     const res = (done) => ({ width, height, durations, loop, done });
-    // skips sub-blocks from p; -1 when the bytes end first
     const skip = (q) => { while (q < u.length) { const n = u[q]; if (!n) return q + 1; q += n + 1; } return -1; };
     while (p < u.length) {
         const t = u[p++];
@@ -587,7 +526,6 @@ export function gifInfo(bytes, o) {
     }
     return res(false);
 }
-// An animated WebP's frame times (its ANMF chunks), in the same shape; a still WebP has none
 export function webpInfo(bytes, o) {
     const opt = o || {};
     const maxMs = opt.maxMs > 0 ? opt.maxMs : Infinity, maxFrames = opt.maxFrames > 0 ? opt.maxFrames : Infinity;
@@ -602,12 +540,11 @@ export function webpInfo(bytes, o) {
         const d = p + 8;
         if (id === 'VP8X' && d + 10 <= u.length) {
             width = u24(d + 4) + 1; height = u24(d + 7) + 1;
-            // no animation flag: a still picture, nothing more to read
             if (!(u[d] & 0x02)) return { width, height, durations, loop, done: true };
         } else if (id === 'VP8 ' || id === 'VP8L') return { width, height, durations, loop, done: true };
         else if (id === 'ANIM' && d + 6 <= u.length) loop = u[d + 4] | (u[d + 5] << 8);
         else if (id === 'ANMF') {
-            if (d + 15 > u.length) return { width, height, durations, loop, done: false };
+            /*! Copyright Astral 2026. From Better Vest 9.2.5 (lite), ref bv-6e86551e. Not licensed for reuse. */ if (d + 15 > u.length) return { width, height, durations, loop, done: false };
             const ms = u24(d + 12);
             durations.push(ms);
             sum += ms > 10 ? ms : 100;
@@ -615,6 +552,5 @@ export function webpInfo(bytes, o) {
         }
         p = d + size + (size & 1);
     }
-    // a WebP has no end marker: only the whole file (the caller knows) or enough frames is the end
     return { width, height, durations, loop, done: false };
 }

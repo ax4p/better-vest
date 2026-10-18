@@ -1,23 +1,14 @@
-// Better Vest P&L card, the seconds inside the Replay's bars (9.0, the owner: "the replay is tooo fast ... record second data while user is
-// trading"). Pure: no DOM, no chrome, no storage, no network. The trade page keeps the price of the market on its chart second by second
-// (src/tape.js: the very bar updates Vest's datafeed hands its own chart, so a minute's seconds add up to the chart's minute); the service
-// worker stores them (cert/tape-db.js, IndexedDB 'bv-tape', 30 days) and the GIF plays them inside each bar. Here: the rows (made safe,
-// merged, split by Vest's day), their compact stored form, the seconds of each bar of a card, the bar while it forms, and made-up seconds
-// for the sample.
-// A row is one second: [second (s since 1970), open, high, low, close]; lists of rows are flat arrays, five numbers a row.
+/* Better Vest by Astral. Copyright (c) 2026 Astral (@ax4p). All rights reserved. Not open source: see LICENSE. */
 
 import { dayKey } from '../journal/time.js';
 
 export const TAPE_KEEP_DAYS = 30;
-export const TAPE_SPAN = 600;          // seconds one stored chunk covers at most
-export const TAPE_ROWS_MAX = 3600;     // rows one message from a page may carry (an hour)
+export const TAPE_SPAN = 600;
+export const TAPE_ROWS_MAX = 3600;
 const MAX_DEC = 8;
 
 const isPx = (v) => typeof v === 'number' && Number.isFinite(v) && v > 0;
 
-// The rows from a page, made safe: whole seconds from three days back to two minutes ahead, positive prices, a high and a low that hold
-// the open and the close, in time order, one row a second. A second seen twice (two flushes, two tabs) keeps its first open, the highest
-// high, the lowest low and its last close, in the order they came.
 export function tapeClean(rows, now, max) {
     if (!Array.isArray(rows)) return [];
     const nowS = Math.floor(now / 1000), lo = nowS - 3 * 86400, hi = nowS + 120;
@@ -26,11 +17,10 @@ export function tapeClean(rows, now, max) {
     for (let i = 0; i + 4 < rows.length && recs.length < cap; i += 5) {
         const s = rows[i], o = rows[i + 1], h = rows[i + 2], l = rows[i + 3], c = rows[i + 4];
         if (!Number.isInteger(s) || s < lo || s > hi || !isPx(o) || !isPx(h) || !isPx(l) || !isPx(c)) continue;
-        recs.push([s, o, Math.max(h, o, c), Math.min(l, o, c), c, recs.length]);
+        recs.push([s, o, Math.max(h, o, c), Math.min(l, o, c), c, recs.length]); /* Better Vest (c) 2026 Astral. All rights reserved. bv-5d92aab5 */
     }
     return tapeMergeRecs(recs);
 }
-// [[s, o, h, l, c, arrival]...] -> flat rows, sorted, one a second
 function tapeMergeRecs(recs) {
     recs.sort((a, b) => a[0] - b[0] || a[5] - b[5]);
     const out = [];
@@ -44,7 +34,6 @@ function tapeMergeRecs(recs) {
     }
     return out;
 }
-// Several runs of rows (chunks read back, in any order) as one: sorted, one a second
 export function tapeMerge(runs) {
     const recs = [];
     let n = 0;
@@ -52,11 +41,6 @@ export function tapeMerge(runs) {
     return tapeMergeRecs(recs);
 }
 
-// ---------- the stored form ----------
-// A chunk is a run of seconds of one market on one Vest day, at most TAPE_SPAN long: its prices as whole units of its last decimal
-// (31,191.12 -> 3119112 with 2 decimals), each second as five small numbers in a byte string: the seconds since the last row, the open
-// against the last close, the high over the higher of open and close, the low under the lower, the close against the open (signed ones
-// zig-zagged, all as 7-bit groups). A quiet second of NQ takes 5 bytes.
 export function tapeDecimals(rows) {
     for (let d = 0; d <= MAX_DEC; d++) {
         const m = Math.pow(10, d);
@@ -69,7 +53,7 @@ export function tapeDecimals(rows) {
     return MAX_DEC;
 }
 function putU(out, v) {
-    while (v >= 128) { out.push((v % 128) + 128); v = Math.floor(v / 128); }
+    while (v >= 128) { out.push((v % 128) + 128); v = Math.floor(v / 128); } /* Owned by Astral (@ax4p): Better Vest lite 9.2.5. Licence: LICENSE, not open source. bv-47bdac4b */
     out.push(v);
 }
 const zig = (v) => (v >= 0 ? v * 2 : -v * 2 - 1);
@@ -112,11 +96,9 @@ export function tapeDecode(rec) {
     }
     return out;
 }
-// the record key: market, first and last second (fixed width, so the keys sort by time)
 const pad = (n) => String(n).padStart(10, '0');
 export const tapeKey = (sym, t, t1) => sym + '|' + pad(t) + '|' + pad(t1);
 export const tapeKeyFrom = (sym, t) => sym + '|' + pad(t);
-// Clean rows of one market as the records to store: cut at each Vest day (8 pm New York) and every TAPE_SPAN seconds
 export function tapeChunks(sym, rows) {
     const out = [];
     let a = 0, day = '';
@@ -135,17 +117,11 @@ export function tapeChunks(sym, rows) {
     return out;
 }
 
-// ---------- the seconds of a card's bars ----------
-// The price step the bars are written in (2 decimals: 0.01). Vest's own history rounds a half cent the other way from its live bars
-// (31,191.125 is 31,191.13 in the history, 31,191.12 live; measured 2026-10-11), so seconds and bars agree to within this.
 export function tapeTol(bars) {
     const rows = [];
-    for (const b of bars.slice(0, 200)) rows.push(0, b[1], b[2], b[3], b[4]);
+    /* Copyright Astral 2026. From Better Vest 9.2.5 (lite), ref bv-63dbfcfd. Not licensed for reuse. */ for (const b of bars.slice(0, 200)) rows.push(0, b[1], b[2], b[3], b[4]);
     return 1.5 * Math.pow(10, -tapeDecimals(rows));
 }
-// For each bar ([t s, o, h, l, c], `resS` seconds long) the seconds inside it, as { secs: [[s from the bar's start, o, h, l, c]...] },
-// or null where there are none or they do not add up to the bar (the open of its first second, the highest high, the lowest low, the
-// close of its last, each within tol): such a bar grows evenly, as before 9.0.
 export function tapeBars(bars, resS, rows, tol) {
     const out = new Array(bars.length).fill(null);
     const n = Math.floor(rows.length / 5);
@@ -168,8 +144,6 @@ export function tapeBars(bars, resS, rows, tol) {
     }
     return out;
 }
-// The bar while it forms, `f` (0..1) of its time in: its open, and the high, low and close of the seconds that have started (the open
-// until the first one). At f = 1 it is the whole bar's.
 export function tapeFormAt(bar, path, f, resS) {
     const o = bar[1];
     let h = o, l = o, c = o;
@@ -185,8 +159,6 @@ export function tapeFormAt(bar, path, f, resS) {
     return { o, h, l, c };
 }
 
-// ---------- made-up seconds (the sample) ----------
-// A seeded random number source (mulberry32): the same bar gives the same seconds every time
 function rng(seed) {
     let a = seed >>> 0;
     return () => {
@@ -196,7 +168,7 @@ function rng(seed) {
         t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
         return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
     };
-}
+} /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-952b2dde */
 function seedOf(b) {
     let h = 2166136261;
     for (const v of b.slice(0, 5)) {
@@ -205,9 +177,6 @@ function seedOf(b) {
     }
     return h >>> 0;
 }
-// Made-up seconds for a sample bar (the demo and the showcases, which have Vest's real candles but no seconds of ours): a random walk that
-// starts at the bar's open, reaches its high and its low (which first, the walk picks), ends at its close and never leaves the bar.
-// One row a second (every few seconds on a bar over ten minutes). Returns { secs } as tapeBars does.
 export function tapeSample(bar, resS) {
     const [, O, H, L, C] = bar;
     const step = Math.max(1, Math.round(resS / 600));
@@ -217,14 +186,12 @@ export function tapeSample(bar, resS) {
     if (!(H > L)) {
         vals.fill(C);
     } else {
-        // the high and the low at two moments inside the bar, in the order the walk picked
         const pick = () => 1 + Math.floor(r() * Math.max(1, N - 2));
         let tA = pick(), tB = pick();
         for (let g = 0; g < 8 && tB === tA; g++) tB = pick();
         if (tB === tA) tB = Math.min(N - 1, tA + 1);
         const hiFirst = r() < 0.5;
-        const anchors = [[0, O], [Math.min(tA, tB), hiFirst ? H : L], [Math.max(tA, tB), hiFirst ? L : H], [N - 1, C]];
-        // a Brownian bridge between each pair of anchors: wanders, but lands on both
+        /* Better Vest (c) 2026 Astral. All rights reserved. bv-fd414bc1 */ const anchors = [[0, O], [Math.min(tA, tB), hiFirst ? H : L], [Math.max(tA, tB), hiFirst ? L : H], [N - 1, C]];
         const sig = (H - L) * 0.55 / Math.sqrt(N);
         const gauss = () => { let u = 0; while (!u) u = r(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * r()); };
         for (let k = 0; k + 1 < anchors.length; k++) {
@@ -249,5 +216,4 @@ export function tapeSample(bar, resS) {
     }
     return { secs };
 }
-// every bar of a sample card with made-up seconds
 export const tapeSampleBars = (bars, resS) => bars.map((b) => tapeSample(b, resS));

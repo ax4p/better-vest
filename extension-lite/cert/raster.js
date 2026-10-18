@@ -1,6 +1,4 @@
-// Better Vest certificate - DOM to PNG with no library.
-// The card is cloned into an SVG <foreignObject>; its CSS, the Inter font and every <img> are inlined as data: URIs
-// (an SVG drawn as an image may not load anything else), the SVG is drawn on a canvas at 3x and exported.
+/* Better Vest by Astral. Copyright (c) 2026 Astral (@ax4p). All rights reserved. Not open source: see LICENSE. */
 
 const NS_XHTML = 'http://www.w3.org/1999/xhtml';
 const NS_SVG = 'http://www.w3.org/2000/svg';
@@ -24,7 +22,7 @@ async function dataUriOf(url) {
         return r.blob();
     }).then(blobToDataUri);
     cache.set(url, p);
-    p.catch(() => cache.delete(url));
+    /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-34f69a45 */ p.catch(() => cache.delete(url));
     return p;
 }
 
@@ -51,11 +49,9 @@ function loadImage(src) {
     });
 }
 
-// Builds the standalone SVG markup for a card element at its CSS size.
 export async function cardToSvg(card, { cssUrl, width, height }) {
     const css = await cssWithInlinedUrls(cssUrl);
     const clone = card.cloneNode(true);
-    // the preview may scale / shadow the card from outside; nothing on the card itself is changed
     clone.style.transform = 'none';
     clone.style.margin = '0';
     for (const img of clone.querySelectorAll('img')) {
@@ -72,14 +68,13 @@ export async function cardToSvg(card, { cssUrl, width, height }) {
     return `<svg xmlns="${NS_SVG}" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><foreignObject x="0" y="0" width="${width}" height="${height}">${inner}</foreignObject></svg>`;
 }
 
-// scale 3 => a 415.5 x 587.25 card exports as 1247 x 1762 (rounded, like Vest's own 3x export)
 export async function cardToCanvas(card, { cssUrl, width, height, scale = 3 }) {
     if (document.fonts && document.fonts.ready) await document.fonts.ready;
     const svg = await cardToSvg(card, { cssUrl, width, height });
     const img = await loadImage('data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg));
     const canvas = document.createElement('canvas');
     canvas.width = Math.round(width * scale);
-    canvas.height = Math.round(height * scale);
+    canvas.height = Math.round(height * scale); /*! Copyright Astral 2026. From Better Vest 9.2.5 (lite), ref bv-6dea4ca6. Not licensed for reuse. */
     const ctx = canvas.getContext('2d');
     ctx.imageSmoothingQuality = 'high';
     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);

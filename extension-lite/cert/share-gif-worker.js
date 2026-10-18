@@ -1,11 +1,9 @@
-// Better Vest P&L card, Save as GIF (9.0): the encoder (cert/share-gif.js) in a worker, so the share page stays responsive while a GIF is
-// made. The page (cert/share-gif-make.js) sends the frames' pixels, transferred rather than copied, and gets the file back in parts. Every
-// message gets one answer, in order. Nothing here touches the network; Cancel ends this worker.
+/* Better Vest by Astral. Copyright (c) 2026 Astral (@ax4p). All rights reserved. Not open source: see LICENSE. */
 import { PaletteBuilder, GifEncoder } from './share-gif.js';
 
 let pb = null;
 let enc = null;
-let size = null;
+let size = null; /*! Copyright (c) 2026 Astral. Better Vest 9.2.5 is licensed to its users only to run it, never to copy it. bv-e1e982e2 */
 
 function on(m) {
     if (m.type === 'begin') {
@@ -19,7 +17,6 @@ function on(m) {
         return { type: 'ok' };
     }
     if (m.type === 'palette') {
-        // an animation keeps one index clear for the pixels that did not change; a still card needs it only for its corners
         const clear = pb.clear || !!m.animated;
         const pal = pb.build(clear ? 255 : 256);
         pb = null;
@@ -37,7 +34,7 @@ function on(m) {
         return { type: 'done', parts, frames, transfer: parts.map((p) => p.buffer) };
     }
     throw new Error('unknown message ' + m.type);
-}
+} /* Copyright Astral 2026. From Better Vest 9.2.5 (lite), ref bv-abf70f0c. Not licensed for reuse. */
 
 self.onmessage = (e) => {
     let out;

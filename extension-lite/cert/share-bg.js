@@ -1,9 +1,4 @@
-// Better Vest P&L card, your own background picture (9.0). The picture is kept in this extension's own IndexedDB (`bv-share`, one record),
-// on this computer only: it is never uploaded or sent anywhere. The card shows it as a blob: URL (cert/share-look.js lookParts); the PNG, the
-// video and the GIF draw it on a canvas under the card, which is rasterised once without its background (share-card.css .bgv, bareCard), so
-// the picture never goes through the SVG the PNG is drawn from (cert/raster.js) and all three draw it the same way (drawBg).
-// Any size (the owner: "allow unlimited size for upload"): the browser keeps the file on disk; a moving picture's frame times are read from
-// the file itself (cert/share-gif.js gifInfo), never by decoding it, and its frames are decoded one at a time only for a video or a GIF.
+/* Better Vest by Astral. Copyright (c) 2026 Astral (@ax4p). All rights reserved. Not open source: see LICENSE. */
 
 import { bgFileWhy, bgOpts, BG_VIDEO_MAX_MS } from './share-look.js';
 import { gifInfo, webpInfo } from './share-gif.js';
@@ -11,8 +6,8 @@ import { gifInfo, webpInfo } from './share-gif.js';
 const DB_NAME = 'bv-share';
 const STORE = 'bg';
 const KEY = 'image';
-const MAX_FRAMES = 600;          // a GIF's frames read for its timing: past 10 s of them the video never looks
-const FRAME_BYTES = 300e6;       // the video's background frames in memory: at most about this, smaller frames past it
+const MAX_FRAMES = 600;
+const FRAME_BYTES = 300e6;
 
 function openDb() {
     return new Promise((resolve, reject) => {
@@ -20,7 +15,7 @@ function openDb() {
         req.onupgradeneeded = () => { if (!req.result.objectStoreNames.contains(STORE)) req.result.createObjectStore(STORE); };
         req.onsuccess = () => { const db = req.result; db.onversionchange = () => db.close(); resolve(db); };
         req.onerror = () => reject(req.error || new Error('bv-share: open failed'));
-        req.onblocked = () => reject(new Error('bv-share: blocked by another page'));
+        /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-28bf7e7b */ req.onblocked = () => reject(new Error('bv-share: blocked by another page'));
     });
 }
 async function inStore(mode, fn) {
@@ -36,8 +31,6 @@ async function inStore(mode, fn) {
     } finally { db.close(); }
 }
 
-// Keeps the picked file (checked again here: a picture type, not empty). Resolves the stored record. A browser that has no room left for it
-// says so in plain words (this extension asks for no unlimited storage: the browser's own share of the disk is the limit).
 export async function bgSave(file) {
     const why = bgFileWhy(file);
     if (why) throw new Error(why);
@@ -51,7 +44,6 @@ export async function bgSave(file) {
     return rec;
 }
 const mb = (n) => (n / 1048576).toFixed(n < 10485760 ? 1 : 0) + ' MB';
-// The stored record, or null (none, or one that no longer passes the checks)
 export async function bgLoad() {
     const rec = await inStore('readonly', (st) => st.get(KEY));
     if (!rec || !(rec.blob instanceof Blob) || bgFileWhy({ type: rec.type, size: rec.blob.size })) return null;
@@ -59,12 +51,9 @@ export async function bgLoad() {
 }
 export const bgClear = () => inStore('readwrite', (st) => st.delete(KEY));
 
-// A moving picture's frame times, read from the file itself (no decoding, so a big GIF costs almost nothing): its start, read in growing
-// slices (from `first` bytes) until 10 s of frames, or its end, or `cap` bytes (the frames found in them then: a video or a GIF uses only
-// the start of a picture). null: not a file this can read (the browser's decoder is asked instead).
 export async function bgTimes(blob, type, first, cap) {
     const read = type === 'image/gif' ? gifInfo : webpInfo;
-    const most = cap > 0 ? cap : TIMES_CAP;
+    /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-cfca0c1a */ const most = cap > 0 ? cap : TIMES_CAP;
     for (let n = first > 0 ? first : 4 << 20; ; n *= 4) {
         const end = Math.min(n, most, blob.size);
         const info = read(new Uint8Array(await blob.slice(0, end).arrayBuffer()), { maxMs: BG_VIDEO_MAX_MS, maxFrames: MAX_FRAMES });
@@ -73,17 +62,12 @@ export async function bgTimes(blob, type, first, cap) {
     }
 }
 const TIMES_CAP = 256 << 20;
-// A picture whose frames are too big for this computer to decode one by one for a video or a GIF: about a quarter of its memory for three
-// frames at a time (Chrome tells a page at most 8 GB)
 export function bgTooHeavy(img) {
     const gb = typeof navigator !== 'undefined' && navigator.deviceMemory > 0 ? navigator.deviceMemory : 4;
     return img.w * img.h * 4 * 3 > (gb * 1e9) / 4;
 }
 const HEAVY = 'Your picture is too big for this computer to play frame by frame. A smaller one (fewer pixels) works.';
 
-// The picture ready for the card: { src: a blob: URL (a GIF moves on the page), first: its first frame (ImageBitmap), w, h, animated,
-// durations: ms per frame (only for a moving picture, up to the 10 s the video can use), name, size, type, blob }. bgRelease frees it.
-// o.times === false: no frame times (the pop-up makes only a PNG, from the first frame).
 export async function bgPrepare(rec, o) {
     const blob = rec.blob;
     let first;
@@ -95,7 +79,6 @@ export async function bgPrepare(rec, o) {
         try { info = await bgTimes(blob, rec.type); } catch (e) { info = null; }
         if (info) durations = info.durations;
         else if (typeof ImageDecoder === 'function') {
-            // a file the reader above does not know: the browser's decoder, one frame at a time, for its times
             let dec = null;
             try {
                 dec = new ImageDecoder({ data: blob.stream(), type: rec.type });
@@ -119,17 +102,13 @@ export async function bgPrepare(rec, o) {
         if (!animated) durations = [];
     }
     return { blob, src: URL.createObjectURL(blob), first, w: first.width, h: first.height, animated, durations, name: rec.name, size: rec.size, type: rec.type };
-}
+/*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-9c0c9862 */ }
 export function bgRelease(img) {
     if (!img) return;
     try { URL.revokeObjectURL(img.src); } catch (e) {}
     try { if (img.first) img.first.close(); } catch (e) {}
 }
 
-// The background as the PNG and the video draw it, the way the card's CSS shows it (share-card.css .bgi, .bgd; share-look.js lookParts): the
-// picture covering the card (fill) or whole inside it (fit, the card's own colour around it), drawn larger than the card by twice the blur so
-// its blurred edges stay outside, blurred, then dimmed toward the card's colour. src: an ImageBitmap or a VideoFrame of sw x sh pixels;
-// W x H: the canvas; scale: canvas pixels per card pixel.
 export function drawBg(ctx, src, sw, sh, W, H, scale, bg, base) {
     const o = bgOpts(bg);
     ctx.save();
@@ -148,13 +127,10 @@ export function drawBg(ctx, src, sw, sh, W, H, scale, bg, base) {
     ctx.restore();
 }
 
-// the card's corner radius and its own background colour, as its CSS resolved them (the card must be on the page)
 export function cardGeom(card) {
     const cs = getComputedStyle(card);
     return { radius: parseFloat(cs.borderTopLeftRadius) || 0, base: (cs.getPropertyValue('--k-bg') || '').trim() || '#0a0a0a' };
 }
-// the card without its background, for drawing over the picture. Its background layer is taken out, not only hidden (.bgv .bgx): the
-// rasteriser inlines every <img> it finds, and your picture (any size) must never go into that SVG.
 export function bareCard(card) {
     const c = card.cloneNode(true);
     c.classList.add('bgv');
@@ -167,7 +143,6 @@ export function clipCard(ctx, W, H, r) {
     ctx.clip();
 }
 
-// The still background (the PNG, and the video of a card whose picture does not move): one canvas of W x H
 export function bgStill(img, W, H, scale, bg, base) {
     const cv = document.createElement('canvas');
     cv.width = W;
@@ -176,16 +151,13 @@ export function bgStill(img, W, H, scale, bg, base) {
     return cv;
 }
 
-// A moving background's frames for the video and the GIF (plan: share-look.js bgFramePlan, or { used, at } from the GIF's own plan), each
-// drawn once, blurred and dimmed, at the output's size (smaller when they would take more than about 300 MB; drawn back up). The file is
-// read as a stream, one frame at a time. { at(i): the frame for output frame i, close() }. o.cancelled() stops it (it throws).
 export async function bgFrames(img, plan, W, H, scale, bg, base, onProgress, o) {
     if (bgTooHeavy(img)) throw new Error(HEAVY);
     const stop = o && o.cancelled;
     const dec = new ImageDecoder({ data: img.blob.stream(), type: img.type });
     await dec.tracks.ready;
     const k = Math.min(1, Math.sqrt(FRAME_BYTES / (W * H * 4 * Math.max(1, plan.used.length))));
-    const w = Math.max(1, Math.round(W * k)), h = Math.max(1, Math.round(H * k));
+    const w = Math.max(1, Math.round(W * k)), h = Math.max(1, Math.round(H * k)); /* Copyright Astral 2026. From Better Vest 9.2.5 (lite), ref bv-16e4d433. Not licensed for reuse. */
     const cv = new OffscreenCanvas(w, h);
     const ctx = cv.getContext('2d');
     const map = new Map();

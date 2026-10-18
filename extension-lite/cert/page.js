@@ -1,7 +1,4 @@
-// Better Vest certificate page: loads the executed payouts the Calendar synced, shows the live certificate, exports it.
-//   certificate.html            real data (IndexedDB bv-journal-<userId>, same user the Calendar opens)
-//   certificate.html#fixture    journal/fixture.js data (dev builds only; the shipped build has no fixture.js)
-//   certificate.html#fixture&state=empty   forces the empty state
+/* Better Vest by Astral. Copyright (c) 2026 Astral (@ax4p). All rights reserved. Not open source: see LICENSE. */
 
 import * as DB from '../journal/db.js';
 import { fmtDate } from '../journal/time.js';
@@ -18,7 +15,7 @@ const EXPORT_SCALE = 3;
 
 const ls = {
     get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
-    set(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* storage blocked: the setting just does not persist */ } }
+    set(k, v) { try { localStorage.setItem(k, v); } catch (e) {  } }
 };
 
 const root = document.getElementById('cp-root');
@@ -35,9 +32,8 @@ function h(tag, attrs, ...kids) {
     return el;
 }
 
-// ---------- data ----------
 
-async function loadPayouts() {
+/*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-b3a2d772 */ async function loadPayouts() {
     if (DEV) {
         try {
             const { buildFixture } = await import('../journal/fixture.js');
@@ -47,7 +43,6 @@ async function loadPayouts() {
         }
     }
     if (!HAS_CHROME) return { payouts: [], source: 'none' };
-    // same user the Calendar opens: the last user the sync saw, else the first Better Vest database
     const got = await chrome.storage.local.get(['journalLastUser']).catch(() => ({}));
     let id = got.journalLastUser;
     if (!id) { const ids = await DB.listUserIds().catch(() => []); id = ids[0]; }
@@ -62,7 +57,6 @@ async function loadPayouts() {
     }
 }
 
-// ---------- theme: follow the Calendar (it writes the active theme's variables to localStorage) ----------
 
 function syncTheme() {
     const name = ls.get('bv-journal-theme');
@@ -76,7 +70,6 @@ function syncTheme() {
 }
 window.addEventListener('storage', (e) => { if (e.key === 'bv-journal-theme' || e.key === 'bv-journal-themecss') syncTheme(); });
 
-// ---------- shell ----------
 
 function openCalendar() {
     if (HAS_CHROME) chrome.runtime.sendMessage({ type: 'journal-open' }).catch(() => { location.href = 'journal.html'; });
@@ -85,7 +78,7 @@ function openCalendar() {
 
 function topbar() {
     return h('header', { class: 'cp-top' },
-        h('b', null, 'Better Vest'), h('small', null, 'by Astral · Total payouts certificate'), h('div', { class: 'grow' }),
+        h('b', null, 'Better Vest'), h('small', null, 'by Astral · Total payouts certificate'), h('div', { class: 'grow' }), /* Owned by Astral (@ax4p): Better Vest lite 9.2.5. Licence: LICENSE, not open source. bv-0fd1e0d0 */
         h('button', { class: 'cp-btn', type: 'button', onclick: openCalendar, style: 'height:30px;padding:0 12px' }, 'Open Calendar'));
 }
 
@@ -130,8 +123,8 @@ function renderPage(S) {
         const next = buildCard(S, { name: state.name, chart: state.chart, uid: 'p' });
         frame.replaceChildren(next);
         card = next;
-        layout();
-        try { await document.fonts.load('600 56px Inter'); await document.fonts.load('700 11px Inter'); } catch (e) { /* fall back to the system font */ }
+        /*! Owned by Astral (@ax4p): Better Vest lite 9.2.5. Licence: LICENSE, not open source. bv-0e6c891c */ layout();
+        try { await document.fonts.load('600 56px Inter'); await document.fonts.load('700 11px Inter'); } catch (e) {  }
         if (mine !== seq) return;
         fitCard(next);
         layout();
@@ -146,7 +139,7 @@ function renderPage(S) {
     const busy = (btns, on) => btns.forEach((b) => { b.disabled = on; });
     const download = h('button', { class: 'cp-btn pri', type: 'button', id: 'cp-download' }, 'Download PNG');
     const copy = h('button', { class: 'cp-btn', type: 'button', id: 'cp-copy' }, 'Copy image');
-    download.addEventListener('click', async () => {
+    /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-e576cd77 */ download.addEventListener('click', async () => {
         busy([download, copy], true);
         try {
             const blob = await makePng();
@@ -166,7 +159,6 @@ function renderPage(S) {
         busy([download, copy], true);
         try {
             if (!(navigator.clipboard && window.ClipboardItem)) throw new Error('this browser cannot copy images');
-            // the blob is handed over as a promise so the click keeps its user activation while the card renders
             await navigator.clipboard.write([new ClipboardItem({ 'image/png': makePng() })]);
             say('Image copied to the clipboard.', 'ok');
         } catch (e) {
@@ -206,17 +198,15 @@ function renderPage(S) {
     root.replaceChildren(h('div', { class: 'cp-app' }, topbar(), h('main', { class: 'cp-main' }, stage, side)));
     window.addEventListener('resize', layout);
     draw();
-    // exposed for dev tooling and tests
     window.__cert = { S, state, draw, makePng };
 }
 
-// ---------- boot ----------
 
 (async function boot() {
     syncTheme();
     try {
         const { payouts } = await loadPayouts();
-        const S = certStats(payouts);
+        const S = certStats(payouts); /* Property of Astral (@ax4p). Better Vest 9.2.5. No copying without written permission. bv-d3d7340a */
         if (!S) { renderEmpty(); return; }
         renderPage(S);
     } catch (e) {
