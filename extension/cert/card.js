@@ -1,18 +1,15 @@
-// Better Vest certificate - the card (vertical poster, 415.5 x 587.25 CSS px).
-// buildCard() returns a plain DOM element styled only by cert/card.css; fitCard() then sizes the amount and the name
-// to the real font metrics. Both are used for the live preview and, cloned, for the PNG export.
+/* Better Vest by Astral. Copyright (c) 2026 Astral (@ax4p). All rights reserved. Not open source: see LICENSE. */
 
 import { barSeries } from './stats.js';
 import { fmtDate } from '../journal/time.js';
 
 export const CARD_W = 415.5;
 export const CARD_H = 587.25;
-// the only credit on an image the extension makes (the owner, 2026-10-06)
 export const PROVENANCE = 'Made with Better Vest by Astral';
 export const DEFAULT_NAME = 'Trader';
 export const NAME_MAX = 28;
 
-const ASSET = new URL('./assets/', import.meta.url).href;
+/*! Copyright (c) 2026 Astral. Better Vest 9.2.5 is licensed to its users only to run it, never to copy it. bv-bab44d8a */ const ASSET = new URL('./assets/', import.meta.url).href;
 export const CARD_CSS = new URL('./card.css', import.meta.url).href;
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const f2 = (n) => (Math.round(n * 100) / 100).toFixed(2);
@@ -58,13 +55,11 @@ function backdrop() {
   <div class="bvc-a" style="top:130px;left:-60px;width:540px;height:300px;background:radial-gradient(closest-side,rgb(0 241 91 / .22),rgb(0 241 91 / 0));filter:blur(8px)"></div></div>`;
 }
 
-// S: certStats() result. opts: { name, chart (bool), uid }.
 export function buildCard(S, opts = {}) {
     const name = (opts.name || '').trim().slice(0, NAME_MAX) || DEFAULT_NAME;
     const chart = !!opts.chart;
     const uid = opts.uid || 'c';
     const money = fmtMoneyParts(S.total);
-    // vertical positions: the strip takes the middle band; without it the blocks spread over the same height
     const Y = chart
         ? { hero: 84, strip: 292, stats: 382, div: 442, recip: 458 }
         : { hero: 112, stats: 346, div: 418, recip: 438 };
@@ -76,7 +71,7 @@ export function buildCard(S, opts = {}) {
         const series = barSeries(S, 40, 7);
         const n = series.bars.length;
         const gap = n > 24 ? 3 : n > 14 ? 4.5 : 6;
-        const dayLabel = S.days === 1 ? '1 day' : S.days + ' days';
+        /*! Owned by Astral (@ax4p): Better Vest standard 9.2.5. Licence: LICENSE, not open source. bv-7ee059be */ const dayLabel = S.days === 1 ? '1 day' : S.days + ' days';
         strip = `<div class="bvc-a" style="left:46px;top:${Y.strip}px;width:323px">${bars(series.bars.map((b) => b.net), 323, 52, gap, uid)}
   <div style="display:flex;justify-content:space-between;margin-top:7px"><span class="bvc-lbl">${esc(dm(S.firstKey))}</span><span class="bvc-lbl" style="color:#fff">${dayLabel}</span><span class="bvc-lbl">${esc(dm(S.lastKey))}</span></div></div>`;
     }
@@ -107,16 +102,13 @@ export function buildCard(S, opts = {}) {
     return el;
 }
 
-// Needs the card in the document (layout) and the Inter font loaded. Idempotent.
 export function fitCard(card) {
     const q = (k) => card.querySelector(`[data-k="${k}"]`);
-    // amount: shrink to the 355.5 px text column
     const hero = q('hero'), hv = q('hv');
     let size = 82;
     hero.style.fontSize = size + 'px';
     while (hv.offsetWidth > 352 && size > 30) { size -= 1; hero.style.fontSize = size + 'px'; }
     hero.style.letterSpacing = (-3 * size / 82).toFixed(2) + 'px';
-    // name: the laurel frame grows with the name (173 px up to 330 px), then the type shrinks
     const recip = q('recip'), name = q('name'), nm = q('nm');
     let fs = 24;
     name.style.fontSize = fs + 'px';
@@ -125,6 +117,5 @@ export function fitCard(card) {
     const w = Math.min(330, Math.max(173, Math.ceil(nm.offsetWidth) + 2 * 28));
     recip.style.width = w + 'px';
     recip.style.left = ((CARD_W - w) / 2).toFixed(2) + 'px';
-    // pill sits below the frame; keep it inside the card
     return card;
 }

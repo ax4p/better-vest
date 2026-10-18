@@ -1,6 +1,4 @@
-// Better Vest share poster: the card, as one HTML string styled only by cert/share-card.css. The same design as docs/pnl-cards/poster.html
-// (the owner's pick, 2026-10-06): the P&L first, Vest's logo and name as the firm's watermark, the accounts as a list (copy trading: the
-// whole group, each account a row), dark or light, four styles, four formats. The only credit is "Made with Better Vest by Astral".
+/* Better Vest by Astral. Copyright (c) 2026 Astral (@ax4p). All rights reserved. Not open source: see LICENSE. */
 
 import { cardRows, maskName, dayLong, money, cleanColor } from './share-model.js';
 import { replayModel, replayGeom, hhmm, tzShort, replayPick, replayTf, heikinAshi, tfLabel } from './share-replay.js';
@@ -8,22 +6,18 @@ import { sessionOf, SESSIONS, todayTrades, snapGroups, mktName } from './share-s
 import { lookParts } from './share-look.js';
 import { ordinal, dayShort } from './share-payout.js';
 
-// Vest's wordmark (its mark and name, from Vest's own page), as on Vest's own position share card
 export const VEST_SVG = '<svg class="vestmark" viewBox="0 0 60 12" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Vest"><path d="M32.02 2.45H30.73C30.67 2.45 30.63 2.48 30.61 2.53L28.03 9.79L25.45 2.53C25.43 2.48 25.38 2.45 25.33 2.45H24.05C23.96 2.45 23.9 2.53 23.93 2.62L27.25 11.74H28.82L32.14 2.62C32.17 2.53 32.11 2.45 32.02 2.45H32.02Z" fill="currentColor"/><path d="M40.24 2.83C39.58 2.4 38.79 2.19 37.85 2.19C36.91 2.19 36.16 2.39 35.49 2.79C34.82 3.2 34.3 3.77 33.92 4.52C33.55 5.26 33.36 6.14 33.36 7.15C33.36 8.17 33.55 8.97 33.93 9.7C34.31 10.42 34.84 10.99 35.52 11.39C36.21 11.8 37 12 37.92 12C38.83 12 39.64 11.78 40.36 11.32C41.09 10.87 41.83 10.04 42.12 8.98L40.49 8.98C40.23 9.47 39.89 9.86 39.45 10.12C39 10.4 38.46 10.55 37.85 10.55C36.93 10.55 36.23 10.24 35.74 9.64C35.31 9.12 35.07 8.41 35.01 7.52H42.15C42.2 6.42 42.06 5.47 41.73 4.67C41.39 3.88 40.9 3.26 40.24 2.83ZM35.04 6.29C35.13 5.54 35.36 4.93 35.74 4.48C36.23 3.87 36.95 3.56 37.9 3.56C38.79 3.56 39.45 3.85 39.9 4.41C40.26 4.86 40.48 5.49 40.56 6.29H35.04Z" fill="currentColor"/><path d="M46.43 3.87C46.8 3.64 47.29 3.53 47.9 3.56C48.54 3.57 49.06 3.72 49.46 4.01C49.87 4.3 50.11 4.69 50.18 5.19H51.79C51.74 4.5 51.49 3.88 51.15 3.47C50.8 3.06 50.35 2.75 49.8 2.52C49.24 2.3 48.61 2.19 47.9 2.19C47.19 2.19 46.56 2.3 46.02 2.52C45.48 2.75 45.07 3.06 44.77 3.47C44.47 3.88 44.32 4.36 44.32 4.91C44.32 5.35 44.42 5.72 44.62 6.03C44.82 6.34 45.16 6.62 45.63 6.85C46.1 7.09 46.75 7.31 47.57 7.53C48.33 7.73 48.9 7.91 49.27 8.05C49.65 8.19 49.9 8.35 50.02 8.51C50.14 8.67 50.2 8.89 50.2 9.15C50.2 9.6 50.02 9.96 49.66 10.23C49.29 10.49 48.79 10.62 48.16 10.62C47.48 10.62 46.92 10.48 46.47 10.18C46.01 9.88 45.72 9.48 45.6 8.98H43.99C44.12 10.03 44.62 10.78 45.33 11.26C46.04 11.75 46.95 11.99 48.06 11.99C49.17 11.99 50.13 11.73 50.8 11.22C51.46 10.71 51.79 10 51.79 9.11C51.79 8.63 51.69 8.22 51.49 7.89C51.28 7.56 50.95 7.27 50.47 7.03C50 6.78 49.35 6.56 48.53 6.35C47.8 6.17 47.24 6.01 46.86 5.86C46.48 5.72 46.22 5.57 46.07 5.41C45.93 5.25 45.86 5.05 45.86 4.83C45.86 4.43 46.05 4.11 46.43 3.87Z" fill="currentColor"/><path d="M56.77 3.71H59.58V2.45H56.77V0.13C56.77 0.02 56.64 -0.04 56.56 0.03L55.28 1.05C55.25 1.08 55.23 1.11 55.23 1.15V2.45H53.34V3.71H55.23V9.23C55.23 11.52 56.89 11.74 57.99 11.74H59.58V10.42H57.97C57.41 10.42 56.77 10.19 56.77 9.14V3.71Z" fill="currentColor"/><path d="M4.49 0.09L0.05 3.64C-0.02 3.69 -0.02 3.79 0.05 3.84L9.39 11.3C9.44 11.33 9.5 11.33 9.55 11.3L18.89 3.84C18.96 3.79 18.96 3.69 18.89 3.64L14.45 0.09C14.37 0.02 14.24 0.08 14.24 0.19V11.61C14.24 11.68 14.19 11.74 14.12 11.74H4.82C4.75 11.74 4.7 11.68 4.7 11.61V0.19C4.7 0.08 4.57 0.02 4.49 0.09Z" fill="currentColor"/></svg>';
 
-// CSS size of each format; the PNG is twice that (1080 x 1350, 1080 x 1080, 1920 x 1080, 1080 x 1920)
 export const CARD_SIZES = { feed: [540, 675], square: [540, 540], wide: [960, 540], story: [540, 960] };
 
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const big = (v) => { const m = money(v); const i = m.lastIndexOf('.'); return `${m.slice(0, i)}<small>${m.slice(i)}</small>`; };
 const pct = (v) => (v < 0 ? '−' : '+') + Math.abs(v).toFixed(2) + '%';
 const cls = (v) => (v > 0 ? 'up' : v < 0 ? 'dn' : '');
-// points (8.2): "+53.75 pt", "−1,203 pt"; the big number keeps its decimals small, like the cents
-export function fmtPts(v, unit = true) {
+/*! Better Vest (c) 2026 Astral. All rights reserved. bv-40798370 */ export function fmtPts(v, unit = true) {
     const a = Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
     return (v < 0 ? '−' : '+') + a + (unit ? ' pt' : '');
 }
-// the sum of some trades' points, or null when one is unknown (the card then keeps the amount)
 function ptsSum(list) {
     let s = 0;
     for (const v of list) { if (!Number.isFinite(v)) return null; s += v; }
@@ -31,9 +25,6 @@ function ptsSum(list) {
 }
 const bigPts = (v) => { const m = fmtPts(v, false); const i = m.indexOf('.'); return i < 0 ? `${m}<small> pt</small>` : `${m.slice(0, i)}<small>${m.slice(i)} pt</small>`; };
 
-// snap: a cleaned snapshot; p: the choices { mode, picked, style, theme, format, hero, list: { on, green, mask }, show: {...}, handle };
-// maxRows: how many account rows the panel may hold (the page finds the most that fit). Returns { html, n } (n: the accounts on the card).
-// M (8.2, optional): the Summary model (share-summary.js summaryModel) whose rows the card lists; without it the card is 8.1.5's (cardRows).
 const MKT_NAMES = { NQ: 'Nasdaq 100', ES: 'S&P 500', BTC: 'Bitcoin', ETH: 'Ethereum', SOL: 'Solana', XAU: 'Gold', MNQ: 'Micro Nasdaq' };
 const MKT_COLORS = ['#2463EB', '#7C3AED', '#D97706', '#0D9488', '#DB2777', '#0891B2', '#65A30D'];
 const mktColor = (k) => MKT_COLORS[[...String(k)].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7) % MKT_COLORS.length];
@@ -62,13 +53,10 @@ export function cardHtml(snap, p, maxRows, M) {
         else if (kind === 'sessions') acctLine = `${plural(M.trades.length, 'trade')} in ${plural(n, 'session')}`;
         else acctLine = copy || n > 1 ? `Across <b>${n}</b> ${what}${n === 1 ? '' : 's'}` : mk(rows[0]);
     }
-    // points (8.2): only when everything on the card is one market (else the amount stays, and the rows give each market's points)
     const pts = p.hero === 'pts' && M ? M.ptsTotal : null;
     const ptsOn = p.hero === 'pts' && !!M;
     const heroTxt = pts != null ? bigPts(pts) : p.hero === 'pct' && R.ret != null ? pct(R.ret) : big(total);
-    // $ and % (8.2): the return beside the amount, smaller
     const heroPct = p.hero === 'both' && R.ret != null ? `<span class="hpct">${pct(R.ret)}</span>` : '';
-    // several markets: the amount stays big, and the line under it gives each market's own points
     const byMkt = ptsOn && M.ptsMixed ? (M.ptsByMarket || []) : [];
     const mixTxt = byMkt.slice(0, 3).map((x) => `<span class="${x.pts != null ? cls(x.pts) : ''}">${esc(x.market)} ${x.pts != null ? fmtPts(x.pts) : '–'}</span>`).join(' · ') + (byMkt.length > 3 ? ` · +${byMkt.length - 3} more` : '');
     const secTxt = ptsOn ? (pts != null ? (show.pct ? money(total) : '') : byMkt.length ? mixTxt : n ? 'No points for some trades' : '')
@@ -85,7 +73,7 @@ export function cardHtml(snap, p, maxRows, M) {
         if (kind === 'accounts') chip = show.market && snap.market ? `<span class="mkt"><span>${esc(snap.market.slice(0, 3))}</span>${esc(snap.market)}</span>` : '';
         else if (range) chip = `<span class="pchip">${esc(PERIOD_CHIP[range.kind] || range.label)}</span>`;
         const headL = { markets: 'MARKET', groups: 'GROUP', trades: 'TRADE · ET', sessions: 'SESSION · ET' }[kind] || 'ACCOUNT';
-        const headR = ptsOn ? 'POINTS' : range ? esc(range.head) : 'DAY P&amp;L';
+        const headR = ptsOn ? 'POINTS' : range ? esc(range.head) : 'DAY P&amp;L'; /*! Owned by Astral (@ax4p): Better Vest standard 9.2.5. Licence: LICENSE, not open source. bv-3d3de265 */
         const th = cols ? `<div class="th"><span>${headL}</span><span class="thr"><span class="tn">TRADES</span><span>${headR}</span></span></div>`
             : `<div class="th"><span>${headL}</span><span>${headR}</span></div>`;
         const name = (r) => {
@@ -102,7 +90,6 @@ export function cardHtml(snap, p, maxRows, M) {
             + `<div class="rows">${rows.slice(0, max).map((r) => `<div class="r"><span class="nm">${name(r)}</span>${val(r)}</div>`).join('')}</div>`
             + (n > max ? `<div class="more">+${n - max} more ${more}${n - max === 1 ? '' : 's'}</div>` : '') + '</div>';
     }
-    // the extras (8.2): one line of the trades' numbers, each item a choice in Show
     let extras = '';
     if (M && (show.winrate || show.best || show.fees || show.worst || (show.trades && kind === 'trades')) && M.stats.count) {
         const st = M.stats, bits = [];
@@ -114,7 +101,6 @@ export function cardHtml(snap, p, maxRows, M) {
         if (bits.length) extras = `<div class="xs">${bits.join(' · ')}</div>`;
     }
     const badge = copy ? '<span class="badge"><i></i>Copy trading</span>' : '';
-    // numbers that are not a real account's (the copy trader's demo, a showcase) say so on the card itself
     const sample = snap.demo ? '<span class="badge sample">Sample</span>' : '';
     const dayTxt = range && range.label ? range.label : dayLong(snap.day);
     const date = show.date && snap.day ? `<span class="date">${esc(dayTxt)}</span>` : '';
@@ -129,29 +115,22 @@ export function cardHtml(snap, p, maxRows, M) {
         + (secTxt ? `<div class="sec ${ptsOn && pts == null ? (byMkt.length ? 'pm' : '') : cls(total)}">${secTxt}</div>` : '') + (acctLine ? `<div class="sub">${acctLine}</div>` : '') + '<div class="rule"></div></div>';
     const split = listed && f === 'wide';
     const style = ['vest', 'silver', 'oled', 'neon'].includes(p.style) ? p.style : 'vest';
-    // 9.0: your own background and accent (nothing changes at their defaults)
     const L = lookParts(p, p.bgImg, heroVal < 0);
     const html = `<div class="card ${f} s-${style}${p.theme === 'light' ? ' light' : ''}${heroVal < 0 ? ' red' : ''}${L.cls}"${L.style ? ` style="${L.style}"` : ''}>${L.layer}<div class="in">`
-        + `<div class="hd"><span class="vest" style="width:${vestW}px">${VEST_SVG}</span><div class="chips">${sample}${badge}${date}</div></div>`
+        + `<div class="hd"><span class="vest" style="width:${vestW}px">${VEST_SVG}</span><div class="chips">${sample}${badge}${date}</div></div>` /* Copyright Astral 2026. From Better Vest 9.2.5 (standard), ref bv-8162c7f4. Not licensed for reuse. */
         + `<div class="body${listed ? ' listed' : ''}${split ? ' split' : ''}">${hero}${panel}</div>${extras}${foot}</div></div>`;
     return { html, n, unknown: R.unknown };
 }
 
-// ---------------------------------------------------------------- Payout (9.0): the payout itself, today's or every one so far
-// The same card as the Summary's (header, hero, list panel, extras, footer), so every style, theme and format works the same way.
 
 const PAY_INNER = { feed: 472, square: 472, wide: 880, story: 464 };
-// the amount as big as the format allows, smaller when a long one would run out of the card ($1,234,567.89 for a lifetime)
 export function payHeroPx(txt, base, inner) {
     const t = String(txt);
     const i = t.indexOf('.');
-    // Inter Bold's digits are about 0.6 em; the cents are drawn at half size
     const units = ((i < 0 ? t.length : i) + (i < 0 ? 0 : (t.length - i) * 0.5)) * 0.6;
     return Math.max(28, Math.min(base, Math.floor(inner / units)));
 }
 
-// The Payout card. PM: share-payout.js payoutModel(); p: the page's choices; maxRows: how many payout rows the panel may hold (the page finds
-// the most that fit); o = { sample }. Returns { html, n } (n: the payouts on the card; 0: nothing to save).
 export function payoutHtml(PM, p, maxRows, o) {
     const opt = o || {};
     if (!PM || PM.empty) return { html: '', n: 0 };
@@ -179,20 +158,18 @@ export function payoutHtml(PM, p, maxRows, o) {
     const hero = `<div class="hero"><div class="lbl">${lbl}</div>`
         + `<div class="amt ${style === 'vest' || style === 'oled' ? 'up' : ''}" style="font-size:${heroPx}px">${big(PM.total).replace(/^\+/, '')}</div>`
         + `<div class="sub">${sub}</div><div class="rule"></div></div>`;
-    let panel = '';
+    let panel = ''; /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-9275005b */
     if (listed) {
         const n = items.length;
         const max = n <= maxRows ? n : Math.max(1, maxRows - 1);
         const title = life ? 'Latest payouts' : PM.latest ? 'Payouts that day' : 'Today\'s payouts';
         const year = items[0].day.slice(0, 4);
-        // a payout of another year keeps its year in the list
         const when = (it) => (life ? `<span class="tm pdt">${esc(it.day.slice(0, 4) === year ? dayShort(it.day).replace(/ \d{4}$/, '') : dayShort(it.day))}</span>`
             : `<span class="tm">${esc(etHm(it.at))}</span>`);
         panel = `<div class="panel"><div class="ph"><b>${title}</b></div><div class="th"><span>${life ? 'DATE' : 'TIME · ET'}${show.accounts ? ' · ACCOUNT' : ''}</span><span>RECEIVED</span></div>`
             + `<div class="rows">${items.slice(0, max).map((it) => `<div class="r"><span class="nm">${when(it)}${show.accounts ? mk(it.name) : ''}</span><b class="up">${money(it.net, false)}</b></div>`).join('')}</div>`
             + (n > max ? `<div class="more">+${n - max} more payout${s(n - max)}</div>` : '') + '</div>';
     }
-    // the extras: today's place in the whole; the lifetime's biggest and first
     const bits = [];
     if (!life && show.paytotal && PM.lifetime && PM.nth > 0) bits.push(`Your <b>${ordinal(PM.nth)}</b> payout · <b>${money(PM.lifetime.total, false)}</b> paid out in total`);
     if (life && show.paybest) bits.push(`Biggest <b>${money(PM.biggest.net, false)}</b>`, `First <b>${esc(dayShort(PM.first.day))}</b>`);
@@ -207,11 +184,7 @@ export function payoutHtml(PM, p, maxRows, o) {
     return { html, n: PM.count };
 }
 
-// ---------------------------------------------------------------- Replay (design 05): the day's trades on Vest's own candles
 
-// the chart's size on each format (CSS px; the PNG is twice that), as tall as the card allows. Your name in the footer takes a line off
-// it, and so does the % line in the hero on the upright formats (on 16:9 it sits beside the amount). Fixed numbers, so what the tests
-// measure is what the card draws.
 export const REPLAY_CHART = { feed: [472, 426], square: [472, 296], wide: [880, 326], story: [464, 664] };
 export function replayChartSize(format, o) {
     const f = REPLAY_CHART[format] ? format : 'feed';
@@ -220,15 +193,11 @@ export function replayChartSize(format, o) {
 }
 const AXIS_W = 64, TIME_H = 22, TOP = 8;
 
-// ---- the Replay's chart options (8.2 round 2, the owner: "customization of chart to maybe match user candle colors, custom time frame") ----
-// Every default is 8.1.5's chart, to the character (tests/share/golden.test.mjs).
 export const CHART_DEFAULTS = { colors: 'vest', up: '', down: '', type: 'candles', tf: 0, grid: true, price: true, time: true, zones: true, lines: true, marks: 'arrows', volume: false };
 export const CHART_TYPES = ['candles', 'hollow', 'bars', 'line', 'area', 'ha'];
 export const CHART_MARKS = ['arrows', 'dots', 'off'];
-// the colour presets: [up, down]; Mono follows the card's own text colours, so it reads on dark and light
 export const CHART_PRESETS = { classic: ['#26a69a', '#ef5350'], mono: ['var(--k-text)', 'var(--k-dim)'], neon: ['#00f15b', '#ff2e63'], bo: ['#2962ff', '#ff9800'] };
-// the options made safe (they come from this computer's own storage)
-export function chartOpts(c) {
+export function chartOpts(c) { /* @license Better Vest 9.2.5. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-dd871550 */
     const o = Object.assign({}, CHART_DEFAULTS);
     if (!c || typeof c !== 'object') return o;
     if (['vest', 'classic', 'mono', 'neon', 'bo', 'mine', 'custom'].includes(c.colors)) o.colors = c.colors;
@@ -240,8 +209,6 @@ export function chartOpts(c) {
     if (CHART_MARKS.includes(c.marks)) o.marks = c.marks;
     return o;
 }
-// The candle colours as the card's own style variables ('' for Vest's, 8.1.5's): bodies --k-cu / --k-cd, wicks --k-wu / --k-wd, borders
-// --k-bu / --k-bd. "Match my chart" takes the chart's own (the snapshot's chartColors); a border unlike the body draws one (cb).
 export function chartColors(ch, snap) {
     let c = null;
     if (ch.colors === 'mine' && snap && snap.chartColors) c = snap.chartColors;
@@ -254,48 +221,36 @@ export function chartColors(ch, snap) {
 }
 const f2 = (v) => v.toFixed(1);
 const priceTxt = (v) => v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-// a trade's P&L on the chart, exact to the cent (rounding $19.50 up to $20 would not be what Vest booked)
 const tag = (v) => money(v);
-function niceStep(range, lines) {
+function niceStep(range, lines) { /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.2.5. bv-8f673996 */
     const raw = range / lines;
     const e = Math.pow(10, Math.floor(Math.log10(raw)));
     for (const m of [1, 2, 2.5, 5, 10]) if (m * e >= raw) return m * e;
     return 10 * e;
 }
 
-// The chart as a list of shapes (8.2): each one carries its SVG markup (the 8.1.5 markup, to the character, for the default options), what a
-// canvas needs to draw it (share-video.js), and the step it appears at in the video: the candle it belongs to (-1: from the start).
-// o = { labels: 'usd' | 'pts' | 'r' | 'off', prices, pnl, sessions, best }; all off / 'usd' draws 8.1.5's chart.
-// Entries are arrows whose tip is the fill price, exits are rings, the zone between them and the trade's P&L on top.
 export function replayScene(M, w, h, o) {
     const opt = o || {};
-    // 8.2 round 2: the chart's own options (chartOpts); without them 8.1.5's chart
     const ch = opt.chart ? chartOpts(opt.chart) : CHART_DEFAULTS;
     const axisW = ch.price ? AXIS_W : 0, timeH = ch.time ? TIME_H : 6;
     const PANE = opt.pnl ? Math.max(46, Math.round(h * 0.17)) : 0;
     const box = { x: 0, y: TOP, w: w - axisW, h: h - TOP - timeH - (PANE ? PANE + 8 : 0) };
-    // volume under the candles, when Vest's candles carry it
     const VOL = ch.volume && M.bars.every((b) => b.length > 5) ? Math.max(24, Math.round(box.h * 0.16)) : 0;
     if (VOL) box.h -= VOL + 4;
     const fillPx = [];
     for (const t of M.trades) for (const f of t.fills) fillPx.push(f.px);
-    // Heikin Ashi draws its own candles (and frames the chart on them); the trades stay at their real prices
     const drawn = ch.type === 'ha' ? heikinAshi(M.bars) : M.bars;
     const G = replayGeom(drawn, box, fillPx);
     const grid = [], bands = [], candles = [], zones = [], marks = [], tags = [], pane = [], last = [];
-    // 9.0: `at`, the moment (ms) a trade's shape belongs to (a fill, an exit), so a GIF that plays the seconds inside a bar shows it then
     const it = (list, svg, step, d, at) => list.push(at != null ? { svg, step, d, at } : { svg, step, d });
-    // price grid and axis
     const step = niceStep(G.hi - G.lo, 5);
     const lastY = G.yOf(M.bars[M.bars.length - 1][4]);
     for (let p = Math.ceil(G.lo / step) * step; p < G.hi; p += step) {
         const y = G.yOf(p);
         if (y < box.y + 6 || y > box.y + box.h - 4) continue;
         if (ch.grid) it(grid, `<line class="gl" x1="0" x2="${f2(box.w)}" y1="${f2(y)}" y2="${f2(y)}"/>`, -1, { t: 'line', c: 'gl', x1: 0, x2: box.w, y1: y, y2: y });
-        // the last price's tag covers the axis there, as on TradingView: the label under it is left out
         if (ch.price && Math.abs(y - lastY) >= 15) { const txt = priceTxt(p).replace(/\.00$/, ''); it(grid, `<text class="ax" x="${f2(box.w + 8)}" y="${f2(y + 3.5)}">${txt}</text>`, -1, { t: 'text', c: 'ax', x: box.w + 8, y: y + 3.5, s: txt }); }
     }
-    // time axis: round times of the chart's own clock, about five of them
     const resMin = G.resS / 60;
     const spanMin = resMin * G.n;
     const every = [5, 10, 15, 30, 60, 120, 180, 240, 360, 720, 1440].find((m) => m >= resMin && spanMin / m <= 6) || 1440;
@@ -312,9 +267,8 @@ export function replayScene(M, w, h, o) {
         else if (ch.grid) it(grid, `<line class="gl" x1="${f2(x)}" x2="${f2(x)}" y1="${f2(box.y)}" y2="${f2(box.y + box.h)}"/>`, -1, { t: 'line', c: 'gl', x1: x, x2: x, y1: box.y, y2: box.y + box.h });
         else if (ch.time) it(grid, `<text class="ax" x="${f2(x)}" y="${f2(h - 6)}" text-anchor="middle">${t}</text>`, -1, { t: 'text', c: 'ax', x, y: h - 6, s: t, a: 'middle' });
     });
-    // sessions (New York time): a faint band behind every other session, its name at the top
     if (opt.sessions) {
-        let run = null;
+        /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-ea9600df */ let run = null;
         const runs = [];
         M.bars.forEach((b, i) => { const s = sessionOf(b[0] * 1000); if (!run || run.s !== s) { run = { s, a: i, b: i }; runs.push(run); } else run.b = i; });
         runs.forEach((r, k) => {
@@ -324,11 +278,9 @@ export function replayScene(M, w, h, o) {
             if (x2 - x1 >= 46) it(bands, `<text class="sl" x="${f2(x1 + 5)}" y="${f2(box.y + 11)}">${esc(name)}</text>`, -1, { t: 'text', c: 'sl', x: x1 + 5, y: box.y + 11, s: name });
         });
     }
-    // candles (8.2 round 2: or hollow candles, bars, a line, an area, Heikin Ashi)
     const bw = Math.max(1, G.slot * 0.62);
     const border = !!opt.border && (ch.type === 'candles' || ch.type === 'ha');
     if (ch.type === 'line' || ch.type === 'area') {
-        // one piece per candle, from the close before (so the video draws it candle by candle)
         const bottom = box.y + box.h;
         drawn.forEach((b, i) => {
             const x = G.xOfIdx(i), y = G.yOf(b[4]);
@@ -349,19 +301,16 @@ export function replayScene(M, w, h, o) {
         const top = G.yOf(Math.max(b[1], b[4])), bot = G.yOf(Math.min(b[1], b[4]));
         const wy1 = G.yOf(b[2]), wy2 = G.yOf(b[3]);
         if (ch.type === 'bars') {
-            // open to the left, close to the right, as TradingView's bars
             const t = Math.max(1.5, bw / 2), oy = G.yOf(b[1]), cy = G.yOf(b[4]);
             const d = `M${f2(x)} ${f2(wy1)}V${f2(wy2)}M${f2(x - t)} ${f2(oy)}H${f2(x)}M${f2(x)} ${f2(cy)}H${f2(x + t)}`;
             it(candles, `<path class="${up ? 'ou' : 'od'}" d="${d}"/>`, i, { t: 'path', c: up ? 'ou' : 'od', d });
             return;
-        }
-        // hollow: a rising candle is an outline (TradingView's hollow candles, by open and close)
+        } /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-b77a8134 */
         const hollow = ch.type === 'hollow' && up;
         const bc = (up ? 'cu' : 'cd') + (hollow ? ' ch' : border ? ' cb' : '');
         const body = { t: 'rect', c: bc, x: x - bw / 2, y: top, w: bw, h: Math.max(1, bot - top) };
         const bodySvg = `<rect class="${bc}" x="${f2(x - bw / 2)}" y="${f2(top)}" width="${f2(bw)}" height="${f2(Math.max(1, bot - top))}"/>`;
         if (hollow) {
-            // the wick stops at the outline, so the candle reads as empty
             const w1 = { t: 'line', c: 'wu', x1: x, x2: x, y1: wy1, y2: top }, w2 = { t: 'line', c: 'wu', x1: x, x2: x, y1: top + Math.max(1, bot - top), y2: wy2 };
             const ln = (q) => `<line class="wu" x1="${f2(q.x1)}" x2="${f2(q.x2)}" y1="${f2(q.y1)}" y2="${f2(q.y2)}"/>`;
             it(candles, ln(w1) + ln(w2) + bodySvg, i, { t: 'group', parts: [w1, w2, body] });
@@ -370,7 +319,6 @@ export function replayScene(M, w, h, o) {
         it(candles, `<line class="${up ? 'wu' : 'wd'}" x1="${f2(x)}" x2="${f2(x)}" y1="${f2(wy1)}" y2="${f2(wy2)}"/>` + bodySvg, i,
             { t: 'group', parts: [{ t: 'line', c: up ? 'wu' : 'wd', x1: x, x2: x, y1: wy1, y2: wy2 }, body] });
     });
-    // volume: a bar per candle under them, the tallest VOL high
     if (VOL) {
         const vy = box.y + box.h + 4 + VOL;
         const maxV = Math.max(...M.bars.map((b) => b[5])) || 1;
@@ -381,7 +329,6 @@ export function replayScene(M, w, h, o) {
             it(candles, `<rect class="${c}" x="${f2(x - bw / 2)}" y="${f2(vy - vh)}" width="${f2(bw)}" height="${f2(vh)}"/>`, i, { t: 'rect', c, x: x - bw / 2, y: vy - vh, w: bw, h: vh });
         });
     }
-    // the trades: zones and lines under the markers, the P&L tags on top
     const lastBar = M.bars[M.bars.length - 1];
     const placed = [];
     const room = (x, y) => !placed.some((q) => Math.abs(q[0] - x) < 66 && Math.abs(q[1] - y) < 15);
@@ -415,16 +362,14 @@ export function replayScene(M, w, h, o) {
             const s = stepOf(f.t);
             if (!f.entry) { it(marks, `<circle class="ex" cx="${f2(x)}" cy="${f2(y)}" r="4"/>`, s, { t: 'circle', c: 'ex', x, y, r: 4 }, f.t); continue; }
             const buy = t.side === 'long';
-            // dots (8.2 round 2): a filled dot at the fill, green for a buy, red for a sell
             if (ch.marks === 'dots') { const c = buy ? 'db' : 'ds'; it(marks, `<circle class="${c}" cx="${f2(x)}" cy="${f2(y)}" r="4.5"/>`, s, { t: 'circle', c, x, y, r: 4.5 }, f.t); continue; }
-            // a buy points up from below the price, a sell down from above: the tip is the fill price
             const d = `M${f2(x)} ${f2(y)}l-5 ${buy ? 9 : -9}h10z`;
             it(marks, `<path class="${buy ? 'ab' : 'as'}" d="${d}"/>`, s, { t: 'path', c: buy ? 'ab' : 'as', d }, f.t);
         }
         if (opt.prices) {
             const fIn = t.fills[0], fOut = t.open ? null : t.fills[t.fills.length - 1];
             for (const f of [fIn, fOut]) {
-                if (!f) continue;
+                if (!f) continue; /*! Better Vest (c) 2026 Astral. All rights reserved. bv-87b95038 */
                 const x = G.xOf(f.t) + 8, y = G.yOf(f.px) + (f.entry ? (t.side === 'long' ? 12 : -6) : 3.5);
                 const s = priceTxt(f.px);
                 it(marks, `<text class="px" x="${f2(x)}" y="${f2(y)}">${s}</text>`, stepOf(f.t), { t: 'text', c: 'px', x, y, s }, f.t);
@@ -448,13 +393,11 @@ export function replayScene(M, w, h, o) {
             }
         }
         if (isBest) {
-            // just above the trade's own label (or the top of its zone when it has none)
             const bx = at ? at[0] : Math.max(18, Math.min(box.w - 18, (x1 + x2) / 2)), by = Math.max(box.y + 9, at ? at[1] - 12 : zy - 5);
             placed.push([bx, by]);
             it(tags, `<text class="pl pb" x="${f2(bx)}" y="${f2(by)}" text-anchor="middle">BEST</text>`, sOut, { t: 'text', c: 'pl pb', x: bx, y: by, s: 'BEST', a: 'middle' }, tEnd);
         }
     }
-    // the running P&L under the candles: a step line of the realized total, each trade's step at its exit
     if (PANE) {
         const y0 = box.y + box.h + 8, y1 = y0 + PANE;
         const seq = closed.slice().sort((a, b) => a.closeT - b.closeT);
@@ -466,7 +409,7 @@ export function replayScene(M, w, h, o) {
         it(pane, `<line class="pz" x1="0" x2="${f2(box.w)}" y1="${f2(zy)}" y2="${f2(zy)}"/>`, -1, { t: 'line', c: 'pz', x1: 0, x2: box.w, y1: zy, y2: zy });
         it(pane, `<text class="pt" x="4" y="${f2(y0 + 10)}">P&amp;L</text>`, -1, { t: 'text', c: 'pt', x: 4, y: y0 + 10, s: 'P&L' });
         let px = 0, py = zy;
-        for (const p of pts) {
+        /*! Copyright (c) 2026 Astral. Better Vest 9.2.5 is licensed to its users only to run it, never to copy it. bv-4ad5927d */ for (const p of pts) {
             const x = G.xOf(p.t.closeT), y = Y(p.v);
             const d = `M${f2(px)} ${f2(py)}H${f2(x)}V${f2(y)}`;
             it(pane, `<path class="pn ${p.v >= 0 ? 'pnu' : 'pnd'}" d="${d}"/>`, stepOf(p.t.closeT), { t: 'path', c: 'pn ' + (p.v >= 0 ? 'pnu' : 'pnd'), d }, p.t.closeT);
@@ -477,36 +420,28 @@ export function replayScene(M, w, h, o) {
             const s0 = stepOf(pts[pts.length - 1].t.closeT), at0 = pts[pts.length - 1].t.closeT;
             it(pane, `<path class="pn ${fin >= 0 ? 'pnu' : 'pnd'}" d="M${f2(px)} ${f2(py)}H${f2(box.w)}"/>`, s0, { t: 'path', c: 'pn ' + (fin >= 0 ? 'pnu' : 'pnd'), d: `M${f2(px)} ${f2(py)}H${f2(box.w)}` }, at0);
             const s = money(fin);
-            // without the price axis the total sits at the right end of its own line
             if (ch.price) it(pane, `<text class="pt ${fin >= 0 ? 'pw' : 'pd'}" x="${f2(box.w + 8)}" y="${f2(py + 3.5)}">${s}</text>`, s0, { t: 'text', c: 'pt ' + (fin >= 0 ? 'pw' : 'pd'), x: box.w + 8, y: py + 3.5, s }, at0);
             else it(pane, `<text class="pt ${fin >= 0 ? 'pw' : 'pd'}" x="${f2(box.w - 4)}" y="${f2(py - 5)}" text-anchor="end">${s}</text>`, s0, { t: 'text', c: 'pt ' + (fin >= 0 ? 'pw' : 'pd'), x: box.w - 4, y: py - 5, s, a: 'end' }, at0);
         }
     }
-    // the last price on the axis, like the chart's own (the real one, also on Heikin Ashi)
     const ly = G.yOf(lastBar[4]);
     const lc = lastBar[4] >= lastBar[1] ? 'cu' : 'cd';
     const lt = priceTxt(lastBar[4]);
     if (ch.price) it(last, `<rect class="${lc}" x="${f2(box.w + 2)}" y="${f2(ly - 9)}" width="${AXIS_W - 2}" height="18" rx="3"/><text class="lp" x="${f2(box.w + 7)}" y="${f2(ly + 3.5)}">${lt}</text>`, M.bars.length - 1,
         { t: 'group', parts: [{ t: 'rect', c: lc, x: box.w + 2, y: ly - 9, w: AXIS_W - 2, h: 18, rx: 3 }, { t: 'text', c: 'lp', x: box.w + 7, y: ly + 3.5, s: lt }] });
-    // 8.1.5's order: grid and axes, candles, zones and lines, then the markers, the tags and the last price (new layers slot in between)
     const items = grid.concat(bands, candles, zones, pane, marks, tags, last);
-    // 9.0: the chart type and borders, for a candle the GIF draws from the seconds inside it (cert/share-video.js)
     return { items, geom: G, box, n: M.bars.length, w, h, type: ch.type, border };
 }
 
-// The chart as SVG (the card and the PNG): every shape of the scene. Returns { svg, geom, box, scene } so the tests can check where each fill landed.
 export function replaySvg(M, w, h, o) {
     const sc = replayScene(M, w, h, o);
     return { svg: `<svg class="rp-svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">${sc.items.map((x) => x.svg).join('')}</svg>`, geom: sc.geom, box: sc.box, scene: sc };
 }
 
-// The Replay card. Returns { html, n, err }: n is the trades closed today on the chart (0: nothing to save), err why there is no chart.
 export function replayHtml(snap, p) {
     const R0 = snap && snap.replay;
-    // 8.2: another market of the day (p.rpMarket), when the dock sent its candles
     const R = R0 && !R0.err ? replayPick(R0, p.rpMarket) : R0;
-    // 8.2 round 2: the chart's options; the timeframe redraws the same session from the finest candles held
-    const ch = p.chart ? chartOpts(p.chart) : null;
+    /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-d2679ec4 */ const ch = p.chart ? chartOpts(p.chart) : null;
     const RT = ch && ch.tf && R && !R.err ? replayTf(R, ch.tf) : R;
     const M = RT && !RT.err ? replayModel(RT, p.rsel) : null;
     if (!M) return { html: '', n: 0, err: (R && R.err) || 'none' };
@@ -522,19 +457,15 @@ export function replayHtml(snap, p) {
     const tf = tfLabel(M.res);
     const sample = snap.demo || M.sample ? '<span class="badge sample">Sample</span>' : '';
     const chip = show.market && mkt ? `<span class="badge rp-mkt">${esc(mkt)} · ${tf}</span>` : `<span class="badge rp-mkt">${tf}</span>`;
-    // dated by the session it draws: today, or the latest day this account traded the market
     const day = M.day || snap.day;
     const date = show.date && day ? `<span class="date">${esc(dayLong(day))}</span>` : '';
     const counts = M.n + ' trade' + (M.n === 1 ? '' : 's') + ' · ' + M.wins + ' won' + (M.open ? ' · ' + M.open + ' open' : '');
-    // 8.2: a copy group's Replay: the chart account's trades marked once, the hero the whole group's P&L on this market in this time
     const G = replayGroup(snap, R, M, p.rpAcc, mkt);
     const net = G ? G.net : M.net;
     const gPct = G && G.size > 0 ? (G.net / G.size) * 100 : null;
     const shownPct = G ? gPct : pct;
-    // points (8.2): the closed trades' points (one market, so they add up); a trade without points keeps the amount
     const pts = p.hero === 'pts' ? (G ? G.pts : ptsSum(M.trades.filter((t) => !t.open).map((t) => t.pts))) : null;
     const heroVal = pts != null ? pts : net;
-    // the card counts only what it shows: a few of the session's trades say so
     const lbl0 = G ? `Group P&amp;L on ${esc(mkt || 'this market')}` : M.partial ? `P&amp;L · ${M.n + M.open} of ${M.all} trades` : M.others || R !== R0 ? `Day P&amp;L on ${esc(mkt || 'this market')}` : 'Day P&amp;L';
     const lbl = pts != null ? lbl0.replace(/^P&amp;L/, 'Points').replace('P&amp;L', 'points') : lbl0;
     const secTxt = pts != null ? (show.pct ? money(net) : '') : show.pct && shownPct != null ? (shownPct < 0 ? '−' : '+') + Math.abs(shownPct).toFixed(2) + '%' : '';
@@ -550,18 +481,15 @@ export function replayHtml(snap, p) {
     const legend = `<div class="rp-legend">${keys}${esc(tzShort(M.tz, ms))}${M.fees > 0 ? ' · after ' + money(M.fees, false) + ' fees' : ''}</div>`;
     const colors = ch ? chartColors(ch, snap) : { vars: '', border: false };
     const { svg, scene } = replaySvg(M, cw, chh, ch ? Object.assign({}, p.rp, { chart: ch, border: colors.border }) : p.rp);
-    // 9.0: your own background and accent (nothing changes at their defaults)
     const L = lookParts(p, p.bgImg, heroVal < 0);
     const vars = [colors.vars, L.style].filter(Boolean).join(';');
     const html = `<div class="card ${f} rp s-${style}${p.theme === 'light' ? ' light' : ''}${heroVal < 0 ? ' red' : ''}${L.cls}"${vars ? ` style="${vars}"` : ''}>${L.layer}<div class="in">`
         + `<div class="hd"><span class="vest" style="width:${vestW}px">${VEST_SVG}</span><div class="chips">${sample}${chip}${date}</div></div>`
         + hero + `<div class="rp-chart" style="width:${cw}px;height:${chh}px">${svg}</div>`
         + `<div class="ft"><div class="rp-left">${name}${legend}</div>${credit}</div></div></div>`;
-    return { html, n: M.n + M.open, err: '', scene, M, group: G, chart: ch };
+    return { html, n: M.n + M.open, err: '', scene, M, group: G, chart: ch }; /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-353fdcb2 */
 }
 
-// The copy group's total for the Replay: the chart account's trades (the model's) plus the group's other accounts' trades of today on the
-// same market, closed inside the time shown. null when no group is chosen, the group is unknown, or the session is not today's.
 export function replayGroup(snap, R, M, gid, mkt) {
     if (!gid || !snap || !R || !M || (R.day && snap.day && R.day !== snap.day)) return null;
     const g = snapGroups(snap).find((x) => x.id === gid);
@@ -577,7 +505,6 @@ export function replayGroup(snap, R, M, gid, mkt) {
     if (mine) accts.add(R.accountId);
     let size = 0;
     for (const id of accts) { const a = (snap.accounts || []).find((x) => x.id === id); if (a && a.size > 0) size += a.size; else { size = 0; break; } }
-    // points (8.2): one market, so the group's points add up; null when any trade has none
     const pts = ptsSum((mine ? M.trades.filter((t) => !t.open).map((t) => t.pts) : []).concat(others.map((t) => t.points)));
     return { id: g.id, net, n: (mine ? M.n : 0) + others.length, accounts: accts.size, size, pts };
 }

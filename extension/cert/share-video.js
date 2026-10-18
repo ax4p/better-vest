@@ -1,10 +1,4 @@
-// Better Vest P&L card, Save as video (8.2): the Replay card's day plays out. The card without its chart is drawn once (cert/raster.js, the
-// PNG's own pipeline), then every frame the chart's shapes that have come so far (share-card.js replayScene: the same shapes, positions and
-// colours as the PNG) are painted over it on a canvas, and the canvas is recorded in the page (MediaRecorder): MP4 where Chrome can, WebM
-// otherwise. Nothing is uploaded; the file is saved like the PNG.
-// 9.0: a moving background (your GIF) is a video for every card: the card is drawn once without its background (cert/share-bg.js) over each
-// of the picture's frames (one loop, up to 10 s; on the Replay the picture loops while the day plays). The same recorder does both, and
-// Save as GIF (cert/share-gif-make.js) draws its frames with the same stages (replayStage, cardStage).
+/* Better Vest by Astral. Copyright (c) 2026 Astral (@ax4p). All rights reserved. Not open source: see LICENSE. */
 
 import { cardToCanvas } from './raster.js';
 import { videoPlan, videoItems } from './share-replay.js';
@@ -17,16 +11,13 @@ export function videoMime() {
 }
 export const videoExt = (mime) => (/mp4/.test(mime) ? 'mp4' : 'webm');
 
-// the card's own colours, as its CSS resolved them (dark or light, the style's)
 function palette(card) {
     const cs = getComputedStyle(card);
     const v = (n, d) => (cs.getPropertyValue(n) || '').trim() || d;
     const cu = v('--k-cu', '#00d68f'), cd = v('--k-cd', '#ff3b5c');
-    // 8.2 round 2: wicks and borders of the chart's own colours (Match my chart), else the bodies'
     return { grid: v('--k-grid', 'rgba(255,255,255,.05)'), dim: v('--k-dim', '#737373'), mut: v('--k-mut', '#a3a3a3'), text: v('--k-text', '#fafafa'), bg: v('--k-bg', '#0a0a0a'),
         up: v('--k-up', '#22c55e'), down: v('--k-down', '#ff3b5c'), cu, cd, wu: v('--k-wu', cu), wd: v('--k-wd', cd), bu: v('--k-bu', cu), bd: v('--k-bd', cd) };
 }
-// how each shape class paints (share-card.css says the same for the SVG)
 function paint(ctx, d, P) {
     const has = (c) => (' ' + d.c + ' ').includes(' ' + c + ' ');
     ctx.save();
@@ -34,14 +25,13 @@ function paint(ctx, d, P) {
     ctx.globalAlpha = 1;
     if (d.t === 'line') {
         ctx.lineWidth = 1;
-        if (has('gl')) ctx.strokeStyle = P.grid;
+        /*! Owned by Astral (@ax4p): Better Vest standard 9.2.5. Licence: LICENSE, not open source. bv-14ed27e3 */ if (has('gl')) ctx.strokeStyle = P.grid;
         else if (has('wu')) ctx.strokeStyle = P.wu;
         else if (has('wd')) ctx.strokeStyle = P.wd;
         else if (has('pz')) { ctx.strokeStyle = P.grid; ctx.setLineDash([2, 3]); }
         else if (has('cw') || has('cl') || has('co')) { ctx.lineWidth = 1.5; ctx.setLineDash([3, 3]); ctx.strokeStyle = has('cw') ? P.up : has('cl') ? P.down : P.mut; }
         ctx.beginPath(); ctx.moveTo(d.x1, d.y1); ctx.lineTo(d.x2, d.y2); ctx.stroke();
     } else if (d.t === 'rect') {
-        // a hollow candle is its outline; a border unlike the body is drawn round it (share-card.css .ch, .cb)
         if (has('ch')) { ctx.lineWidth = 1; ctx.strokeStyle = P.bu; ctx.strokeRect(d.x, d.y, d.w, d.h); ctx.restore(); return; }
         if (has('vu') || has('vd')) { ctx.fillStyle = has('vu') ? P.cu : P.cd; ctx.globalAlpha = 0.32; }
         else if (has('cu')) ctx.fillStyle = P.cu;
@@ -60,9 +50,8 @@ function paint(ctx, d, P) {
         else if (has('ar')) { ctx.globalAlpha = 0.1; ctx.fillStyle = P.cu; ctx.fill(path); }
     } else if (d.t === 'circle') {
         ctx.beginPath(); ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
-        // an entry dot (8.2 round 2) is filled with its side's colour; an exit is a ring
         if (has('db') || has('ds')) { ctx.fillStyle = has('db') ? P.up : P.down; ctx.fill(); ctx.lineWidth = 1.4; ctx.strokeStyle = P.bg; ctx.stroke(); }
-        else { ctx.fillStyle = P.bg; ctx.fill(); ctx.lineWidth = 1.6; ctx.strokeStyle = P.text; ctx.stroke(); }
+        else { ctx.fillStyle = P.bg; ctx.fill(); ctx.lineWidth = 1.6; ctx.strokeStyle = P.text; ctx.stroke(); } /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-2014cb4a */
     } else if (d.t === 'text') {
         let size = 10, weight = 400, fill = P.dim, halo = 0;
         if (has('ax')) { size = 10; fill = P.dim; }
@@ -83,8 +72,6 @@ function paint(ctx, d, P) {
     ctx.restore();
 }
 
-// Records `canvas` while draw(f) paints frame f of plan ({ fps, frames }), in real time (MediaRecorder records the canvas as it is painted).
-// o = { mime, onProgress(0..1), last() (the closing frame) }. Resolves { blob, mime, seconds }.
 export async function recordCanvas(canvas, plan, draw, o) {
     const opt = o || {};
     const mime = opt.mime || videoMime();
@@ -109,15 +96,11 @@ export async function recordCanvas(canvas, plan, draw, o) {
     if (opt.last) opt.last(); else draw(plan.frames - 1);
     await new Promise((r) => setTimeout(r, 120));
     rec.stop();
-    await done;
+    await done; /*! Copyright (c) 2026 Astral. Better Vest 9.2.5 is licensed to its users only to run it, never to copy it. bv-74d59140 */
     stream.getTracks().forEach((t) => t.stop());
     return { blob: new Blob(chunks, { type: mime.split(';')[0] }), mime, seconds: plan.frames / plan.fps };
 }
 
-// The Replay's frames (shared by the video and the GIF, 9.0): the card with an empty chart drawn once (without its background when your
-// picture goes under it), then for each frame the shapes of the chart up to `step`. card: the card element on the page; scene: replayScene's
-// result; o = { cssUrl, width, height, scale, bg (9.0: your picture under the card: { still: a canvas } or { at(f): the picture for frame f }) }.
-// Resolves { canvas, draw(step, f) }.
 export async function replayStage(card, scene, o) {
     const scale = o.scale || 2;
     const base = o.bg ? bareCard(card) : card.cloneNode(true);
@@ -126,7 +109,7 @@ export async function replayStage(card, scene, o) {
     const baseCanvas = await cardToCanvas(base, { cssUrl: o.cssUrl, width: o.width, height: o.height, scale });
     const chart = card.querySelector('.rp-chart');
     const cr = chart.getBoundingClientRect(), kr = card.getBoundingClientRect();
-    const k = kr.width / o.width; // the preview may be scaled on the page
+    const k = kr.width / o.width;
     const ox = (cr.left - kr.left) / k, oy = (cr.top - kr.top) / k;
     if (document.fonts && document.fonts.load) { try { await document.fonts.load('700 11px Inter'); await document.fonts.load('400 10px Inter'); } catch (e) {} }
     const P = palette(card);
@@ -137,7 +120,6 @@ export async function replayStage(card, scene, o) {
     const radius = o.bg ? cardGeom(card).radius * scale : 0;
     const under = (f) => {
         ctx.setTransform(1, 0, 0, 1, 0, 0);
-        // each frame from clear: the card's rounded edge stays as it is in the PNG
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         if (o.bg) {
             const b = o.bg.still || o.bg.at(f);
@@ -150,11 +132,6 @@ export async function replayStage(card, scene, o) {
         under(f);
         for (const it of videoItems(scene, step)) paint(ctx, it.d, P);
     };
-    // the GIF's (round 2): p bars of the day have come (0..n, a fraction is the bar that is forming). While the day plays, the last price
-    // tag on the axis rides on the forming close, as on a live chart (liveTag); the finished day shows the real one.
-    // 9.0: o.tape, the seconds inside the bars ({ form(i, f): the bar's { o, h, l, c } f of its time in, or null; at(i, f): that moment in
-    // ms }, from cert/tape.js): the forming bar is drawn from the prices it has reached (tapeShape), and a trade's shapes show at their own
-    // second. Heikin Ashi, and a bar without seconds, still grow evenly.
     const fc = frameCtx(scene);
     const tape = o.tape || null;
     const drawAt = (p, f) => {
@@ -164,8 +141,6 @@ export async function replayStage(card, scene, o) {
     return { canvas, draw, drawAt };
 }
 
-// What frame p of the Replay's GIF paints, in order (pure, tested): [{ d, frac (the bar forming evenly, or undefined) }]. p bars have
-// come (0..n); with tape (9.0) the forming bar is drawn from its seconds and a trade's shapes wait for their own second. fc: frameCtx's.
 export const frameCtx = (scene) => { const tagItem = scene.items.find(isLastTag); return { tagItem, tick: tagItem ? sceneTick(scene) : 0 }; };
 export function frameItems(scene, p, tape, fc) {
     const { tagItem, tick } = fc || frameCtx(scene);
@@ -178,7 +153,7 @@ export function frameItems(scene, p, tape, fc) {
     for (const it of scene.items) {
         if (live && it === tagItem) continue;
         if (it.step < cur) { out.push({ d: it.d }); if (live && it.step === cur - 1) close = closeOf(it.d, 1) || close; }
-        else if (it.step === cur && frac > 0) {
+        else if (it.step === cur && frac > 0) { /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-1e4cf2f5 */
             const kind = q ? barKind(it.d) : '';
             if (kind) { out.push({ d: tapeShape(it.d, kind, q, scene) }); if (live) close = { y: scene.geom.yOf(q.c), up: q.c >= q.o }; }
             else if (now != null && it.at != null) { if (it.at <= now) out.push({ d: it.d }); }
@@ -189,9 +164,7 @@ export function frameItems(scene, p, tape, fc) {
     return out;
 }
 
-// the last price tag on the axis (share-card.js: a group of a rect and its 'lp' text)
 const isLastTag = (it) => it && it.d && it.d.t === 'group' && it.d.parts.length === 2 && it.d.parts[1].t === 'text' && hasC(it.d.parts[1], 'lp');
-// Where a bar's close is while it forms: { y, up }. A candle's body edge away from the open; a line chart's segment end; else null.
 export function closeOf(d, f) {
     const { parts, clipX } = formingParts(d, f);
     const body = parts.find((q) => q.t === 'rect' && (hasC(q, 'cu') || hasC(q, 'cd')));
@@ -203,20 +176,17 @@ export function closeOf(d, f) {
     const y0 = Number(m[2]), y1 = Number(m[4]);
     return { y: y0 + (y1 - y0) * k, up: y1 <= y0 };
 }
-// the price at height y on the chart (the inverse of share-replay.js replayGeom's yOf)
 export function priceAtY(scene, y) {
     const G = scene.geom, box = scene.box;
     return G.lo + (1 - (y - box.y) / box.h) * (G.hi - G.lo);
 }
-// The day's price step: the largest of the usual ticks that every candle's open, high, low and close sits on (so a forming price shows
-// as the market would print it: 31,412.25, never 31,412.37)
 export function sceneTick(scene) {
     const ps = [];
     for (const it of scene.items) {
         if (it.step < 0 || !it.d || it.d.t !== 'group') continue;
         for (const q of it.d.parts) {
             if (q.t === 'rect' && (hasC(q, 'cu') || hasC(q, 'cd'))) ps.push(priceAtY(scene, q.y), priceAtY(scene, q.y + q.h));
-            else if (q.t === 'line' && (hasC(q, 'wu') || hasC(q, 'wd'))) ps.push(priceAtY(scene, q.y1), priceAtY(scene, q.y2));
+            else if (q.t === 'line' && (hasC(q, 'wu') || hasC(q, 'wd'))) ps.push(priceAtY(scene, q.y1), priceAtY(scene, q.y2)); /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-f9c15799 */
         }
         if (ps.length > 400) break;
     }
@@ -224,7 +194,6 @@ export function sceneTick(scene) {
     for (const t of [10, 5, 1, 0.5, 0.25, 0.1, 0.05, 0.01]) if (ps.every((v) => Math.abs(v / t - Math.round(v / t)) < 1e-3)) return t;
     return 0.01;
 }
-// The tag as it rides on the forming close: the real tag's shape moved to y, its colour the bar's way, its text the price there
 export function liveTag(d, close, scene, tick) {
     const [r, t] = d.parts;
     const dy = close.y - (r.y + r.h / 2);
@@ -234,9 +203,6 @@ export function liveTag(d, close, scene, tick) {
     return { t: 'group', parts: [Object.assign({}, r, { y: r.y + dy, c: close.up ? 'cu' : 'cd' }), Object.assign({}, t, { y: t.y + dy, s })] };
 }
 
-// The bar that is forming in the GIF's Replay (round 2): its body grows from the open to the close, its wick from the open's level out to
-// the high and the low, its volume up from the floor; a line or area chart's segment draws itself from the last close; OHLC bars show at
-// half time. Anything else of that bar (a fill, a tag, a zone) shows as the bar starts. f: 0..1. Returns { parts, clipX } (pure, tested).
 const hasC = (q, c) => (' ' + q.c + ' ').includes(' ' + c + ' ');
 export function formingParts(d, f) {
     const k = Math.max(0, Math.min(1, f));
@@ -264,8 +230,7 @@ export function formingParts(d, f) {
         } else out.push(q);
     }
     return { parts: out, clipX };
-}
-// 9.0: what a bar of the chart is drawn as: 'candle' (also hollow), 'ohlc' (TradingView's bars), 'line' (a line or an area), else ''
+} /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-0baece27 */
 export function barKind(d) {
     if (!d) return '';
     if (d.t === 'path') return hasC(d, 'ou') || hasC(d, 'od') ? 'ohlc' : '';
@@ -274,9 +239,6 @@ export function barKind(d) {
     const body = d.parts.some((q) => q.t === 'rect' && (hasC(q, 'cu') || hasC(q, 'cd')));
     return body && d.parts.some((q) => q.t === 'line' && (hasC(q, 'wu') || hasC(q, 'wd'))) ? 'candle' : '';
 }
-// 9.0: the bar while it forms, from the prices it has reached (q = { o, h, l, c }, cert/tape.js tapeFormAt): the finished bar's place and
-// width, its body from the open to the close, its wick from the low to the high, its colour the way it goes now; a line's end at the close.
-// Pure (tested): scene gives the price scale (geom.yOf) and the chart's type and borders.
 export function tapeShape(d, kind, q, scene) {
     const Y = scene.geom.yOf, up = q.c >= q.o;
     if (kind === 'ohlc') {
@@ -308,10 +270,9 @@ function paintForming(ctx, d, P, f) {
     ctx.restore();
 }
 
-// Records the Replay card. o: replayStage's, plus { mime, onProgress(0..1), fps }. Resolves { blob, mime, seconds }.
 export async function recordReplay(card, scene, o) {
     const mime = o.mime || videoMime();
-    if (!mime) throw new Error('this browser cannot record video');
+    /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-5f8ec99f */ if (!mime) throw new Error('this browser cannot record video');
     const { canvas, draw } = await replayStage(card, scene, o);
     const plan = videoPlan(scene.n, { fps: o.fps });
     draw(-1, 0);
@@ -319,8 +280,6 @@ export async function recordReplay(card, scene, o) {
     return Object.assign(res, { seconds: plan.total });
 }
 
-// Any card over its moving background (9.0): the card drawn once without its background, over each frame of the picture.
-// o = { cssUrl, width, height, scale, bg: { at(f) } }. Resolves { canvas, draw(f) }.
 export async function cardStage(card, o) {
     const scale = o.scale || 2;
     const over = await cardToCanvas(bareCard(card), { cssUrl: o.cssUrl, width: o.width, height: o.height, scale });
@@ -337,7 +296,6 @@ export async function cardStage(card, o) {
     };
     return { canvas, draw };
 }
-// Records any card over its moving background. o: cardStage's, plus { mime, onProgress(0..1), plan (share-look.js bgFramePlan) }.
 export async function recordCard(card, o) {
     const { canvas, draw } = await cardStage(card, o);
     draw(0);

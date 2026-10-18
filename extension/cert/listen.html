@@ -1,0 +1,30 @@
+<!doctype html>
+<!-- @license Better Vest 9.2.5. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-be064cf8 -->
+<html lang="en" data-theme="astral">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Voice commands · Better Vest</title>
+<link rel="icon" href="../icons/icon32.png">
+<link rel="stylesheet" href="listen.css">
+<script src="../journal/theme-boot.js"></script>
+</head>
+<body data-state="boot" data-mode="ptt">
+<main class="app">
+  <header class="top">
+    <span class="bv-tile" style="--t:26px" role="img" aria-label="Better Vest"><span class="bv-b"><i></i></span></span>
+    <b>Voice commands</b>
+    <span class="beta">Beta</span>
+    <span class="grow"></span>
+    <span class="chip" id="mode">Push to talk</span>
+  </header>
+  <button type="button" class="talk" id="talk" aria-label="Hold to talk"><span class="ring"></span><span class="mic" aria-hidden="true"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg></span></button>
+  <p class="state" id="state">Starting…</p>
+  <p class="heard" id="heard"></p>
+  <p class="did" id="did"></p>
+  <footer class="foot" id="foot">Heard on this computer only. Nothing is sent.</footer>
+</main>
+<script type="module" src="listen.js"></script>
+<!-- Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-0974d9ae -->
+</body>
+</html>

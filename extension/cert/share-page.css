@@ -1,5 +1,3 @@
-/* Better Vest share poster: the page around the card (cert/share.html). The card itself is styled by cert/share-card.css only.
- * The owner, 2026-10-06: the controls in two bars on top, the card big below, comfortable. */
 * { box-sizing: border-box; }
 :root { --pg: #070707; --bar: rgba(14, 14, 14, .9); --ctl: #161616; --ctl-h: #1d1d1d; --line: rgba(255, 255, 255, .08); --line2: rgba(255, 255, 255, .14);
     --text: #FAFAFA; --mut: #A3A3A3; --dim: #737373; --up: #22C55E; --down: #FF3B5C; }
@@ -7,7 +5,6 @@ html, body { margin: 0; height: 100%; background: var(--pg); color: var(--text);
 body { display: flex; flex-direction: column; overflow: hidden; }
 button { font: inherit; color: inherit; }
 
-/* ---------- the top bar: what the card is about, and the two actions ---------- */
 .bar { display: flex; align-items: center; gap: 12px; padding: 14px 22px; background: var(--bar); border-bottom: 1px solid var(--line); position: relative; z-index: 3; }
 .brand { display: flex; align-items: center; gap: 11px; margin-right: 10px; }
 .brand .mark { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; background: rgba(34, 197, 94, .1); box-shadow: inset 0 0 0 1px rgba(34, 197, 94, .25); color: var(--up); }
@@ -20,7 +17,7 @@ button { font: inherit; color: inherit; }
 .seg button:hover:not(:disabled):not(.on) { color: var(--text); }
 .seg button.on { background: #2b2b2b; color: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, .4); }
 .seg button:disabled { opacity: .35; cursor: not-allowed; }
-.seg.sm button { height: 26px; padding: 0 10px; font-size: 12px; }
+.seg.sm button { height: 26px; padding: 0 10px; font-size: 12px; } /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-6fac433e */
 .ctl { display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 12px; border-radius: 10px; border: 0; background: var(--ctl); box-shadow: inset 0 0 0 1px var(--line); color: var(--text); font-weight: 600; cursor: pointer; white-space: nowrap; }
 .ctl:hover, .ctl[aria-expanded="true"] { background: var(--ctl-h); box-shadow: inset 0 0 0 1px var(--line2); }
 .ctl b { padding: 1px 7px; border-radius: 6px; background: rgba(255, 255, 255, .08); color: var(--mut); font-size: 11.5px; font-weight: 600; }
@@ -34,7 +31,6 @@ button { font: inherit; color: inherit; }
 .btn.primary:hover:not(:disabled) { background: #15b14f; }
 .btn:disabled { opacity: .4; cursor: not-allowed; }
 
-/* ---------- the second bar: how it looks ---------- */
 .opts { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 18px; padding: 10px 22px; background: rgba(10, 10, 10, .85); border-bottom: 1px solid var(--line); position: relative; z-index: 2; }
 .grp { display: flex; align-items: center; gap: 8px; }
 .grp .k { font-size: 10.5px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--dim); }
@@ -50,7 +46,6 @@ button { font: inherit; color: inherit; }
 .txt:focus { box-shadow: inset 0 0 0 1px rgba(34, 197, 94, .5); }
 .txt::placeholder { color: var(--dim); }
 
-/* ---------- drop-downs ---------- */
 .pop { position: relative; }
 .dd { position: absolute; top: calc(100% + 8px); left: 0; min-width: 300px; max-width: 380px; padding: 8px; border-radius: 14px; background: #121212; box-shadow: 0 0 0 1px var(--line2), 0 18px 50px rgba(0, 0, 0, .65); z-index: 10; }
 .dd.right { left: auto; right: 0; min-width: 260px; }
@@ -68,9 +63,7 @@ button { font: inherit; color: inherit; }
 .dd .row.off { opacity: .45; cursor: default; }
 .dd .note { padding: 6px 8px 2px; font-size: 11.5px; line-height: 16px; color: var(--dim); }
 .dd .note:empty { display: none; }
-/* the Summary's and the Replay's own controls swap places */
 #mode[hidden], .pop[hidden] { display: none; }
-/* Replay: the trades list and the time range */
 .ctl .ic { width: 15px; height: 15px; fill: none; stroke: var(--mut); stroke-width: 2; stroke-linecap: round; }
 .dd .row .sd { font-size: 10px; font-weight: 800; letter-spacing: .06em; padding: 1px 5px; border-radius: 4px; }
 .dd .row .sd.l { color: var(--up); background: rgba(34, 197, 94, .12); }
@@ -90,23 +83,18 @@ button { font: inherit; color: inherit; }
 .dd .field { padding: 8px 8px 4px; border-top: 1px solid var(--line); margin-top: 6px; }
 .dd .field label { display: block; margin-bottom: 6px; font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--dim); }
 
-/* ---------- the card, big ---------- */
 .stage { position: relative; flex: 1; min-height: 0; display: grid; place-items: center; overflow: hidden;
     background: radial-gradient(60% 70% at 50% 45%, #151515 0%, #080808 70%), var(--pg); }
 .stage::before { content: ""; position: absolute; inset: 0; background-image: radial-gradient(rgba(255, 255, 255, .045) 1px, transparent 1px); background-size: 22px 22px; mask-image: radial-gradient(70% 70% at 50% 50%, #000, transparent); pointer-events: none; }
 .stage .fit { position: relative; transform-origin: center; }
-/* 8.2: the card is placed by its centre, so a card taller than the stage (9:16) is still centred once scaled (a grid item taller than its
-   cell was pushed down, under the caption) */
 .stage .fit { position: absolute; left: 50%; top: calc(50% - 8px); translate: -50% -50%; }
 .stage .cap { position: absolute; left: 0; right: 0; bottom: 14px; text-align: center; font-size: 11.5px; color: var(--dim); }
 .stage .empty { max-width: 440px; padding: 28px; border-radius: 16px; background: #101010; box-shadow: 0 0 0 1px var(--line); text-align: center; font-size: 14px; line-height: 21px; color: var(--mut); }
-/* the note after Copy or Download: the stage's top-right corner, under those buttons, never over a control */
 .toast { position: absolute; right: 22px; top: 16px; transform: translateY(-6px); opacity: 0; padding: 10px 16px; border-radius: 10px; background: #1a1a1a; box-shadow: 0 0 0 1px var(--line2), 0 12px 30px rgba(0, 0, 0, .6); font-weight: 600; pointer-events: none; transition: opacity .18s, transform .18s; z-index: 1; }
 .toast.on { opacity: 1; transform: translateY(0); }
 .toast.bad { color: #ff8da1; }
 @media (max-width: 980px) { .brand span#sub { display: none; } .bar { flex-wrap: wrap; } }
 
-/* ---------- 8.2: the new controls (Summary rows, period, markets; Replay accounts, market, labels) ---------- */
 .ctl .k2 { font-size: 10.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--dim); }
 .dd .row input[type="radio"] { width: 16px; height: 16px; margin: 0; accent-color: #22C55E; flex: none; }
 .dd .row .hint { margin-left: auto; font-size: 11.5px; color: var(--dim); white-space: nowrap; }
@@ -118,11 +106,9 @@ button { font: inherit; color: inherit; }
 #sumopts[hidden], #rpopts[hidden], #rplab-g[hidden], .grp[hidden], .btn[hidden], .seg button[hidden] { display: none; }
 .btn.rec { background: rgba(255, 59, 92, .12); box-shadow: inset 0 0 0 1px rgba(255, 59, 92, .45); color: #ff8da1; }
 .btn svg path[d^="M8 5.5"] { fill: currentColor; stroke: none; }
-/* 8.2: more controls in the top bar: it wraps instead of pushing the actions off the page */
 .bar { flex-wrap: wrap; row-gap: 10px; }
 .brand span#sub { white-space: nowrap; }
 
-/* ---------- 8.2 round 2: the Replay's Chart drop-down (page-only names: cx-*) ---------- */
 .ctl .cx-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--up); }
 .ctl .cx-dot[hidden] { display: none; }
 .dd.cxp { width: 404px; max-width: 404px; max-height: calc(100vh - 160px); overflow: auto; }
@@ -153,7 +139,6 @@ button { font: inherit; color: inherit; }
 .cx-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .cx-chips .chip { height: 28px; }
 
-/* ---------- 8.2 round 2: the video preview (page-only names: vm-*) ---------- */
 .vm { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; padding: 24px; background: rgba(0, 0, 0, .72); backdrop-filter: blur(6px); }
 .vm[hidden] { display: none; }
 .vm-box { display: flex; flex-direction: column; max-width: min(92vw, 1100px); max-height: calc(100vh - 48px); border-radius: 16px; background: #101010; box-shadow: 0 0 0 1px var(--line2), 0 30px 90px rgba(0, 0, 0, .7); overflow: hidden; }
@@ -166,7 +151,7 @@ button { font: inherit; color: inherit; }
 .vm-stage { min-height: 0; display: grid; place-items: center; padding: 16px; background: #070707; }
 .vm-stage video { display: block; max-width: 100%; max-height: calc(100vh - 240px); border-radius: 10px; background: #000; cursor: pointer; }
 .vm-bar { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-top: 1px solid var(--line); }
-.vm-play { display: grid; place-items: center; width: 36px; height: 36px; flex: none; border: 0; border-radius: 50%; background: #fafafa; color: #000; cursor: pointer; }
+.vm-play { display: grid; place-items: center; width: 36px; height: 36px; flex: none; border: 0; border-radius: 50%; background: #fafafa; color: #000; cursor: pointer; } /*! Better Vest (c) 2026 Astral. All rights reserved. bv-bfd866f4 */
 .vm-play svg { width: 16px; height: 16px; fill: currentColor; }
 .vm-play .vm-pp, .vm-play.on .vm-pi { display: none; }
 .vm-play.on .vm-pp { display: inline; }
@@ -175,7 +160,6 @@ button { font: inherit; color: inherit; }
 .vm-ft { display: flex; align-items: center; gap: 8px; padding: 12px 16px 14px; border-top: 1px solid var(--line); }
 .vm-note { flex: 1; color: var(--dim); font-size: 12px; }
 .vm-note.warn { color: #fbbf24; }
-/* 9.0: Save as GIF (page-only names: gm-*), in the video preview's frame */
 .gm-stage { position: relative; min-width: min(560px, 86vw); min-height: 320px; }
 .gm-stage img { display: block; max-width: 100%; max-height: calc(100vh - 250px); border-radius: 10px; image-rendering: auto; }
 .gm-stage img[hidden], .gm-work[hidden] { display: none; }
@@ -186,7 +170,6 @@ button { font: inherit; color: inherit; }
 .gm-pct { color: var(--dim); font-size: 12px; font-variant-numeric: tabular-nums; }
 .gm-k { color: var(--dim); font-size: 12px; font-weight: 600; }
 #gm-mode[hidden], #gm-mode-k[hidden] { display: none; }
-/* 9.0: the Replay's speed, a second row under the chart and size choices */
 .gm-spd { border-top: 0; padding-top: 0; }
 .gm-spd[hidden] { display: none; }
 .gm-spd .gm-hint { min-width: 0; max-width: 44ch; line-height: 1.35; }
@@ -195,7 +178,6 @@ button { font: inherit; color: inherit; }
 .gm-opts .seg button.on span { color: #c7c7c7; }
 .gm-hint { flex: 1; color: var(--dim); font-size: 12px; }
 
-/* ---------- 9.0: the Payout card's day, and the Background drop-down (page-only names: lk-*) ---------- */
 #payk[hidden] { display: none; }
 .ctl .lk-sw { width: 14px; height: 14px; border-radius: 4px; box-shadow: inset 0 0 0 1px var(--line2); background-size: cover; background-position: center; }
 .ctl .lk-sw.lk-none { background: conic-gradient(from 45deg, #2a2a2a 25%, #151515 0 50%, #2a2a2a 0 75%, #151515 0) 0 0 / 6px 6px; }

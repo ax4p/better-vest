@@ -1,7 +1,4 @@
-// Better Vest P&L card: the seconds the trade page recorded (9.0, cert/tape.js), kept in this extension's own IndexedDB 'bv-tape'. The
-// service worker writes what a Vest tab sends (src/tape.js -> bridge.js -> sw.js); the share page reads the seconds under a card's bars.
-// One store of chunks, keyed "market|first second|last second", with the Vest day of each (8 pm New York) for keeping the last 30 days.
-// Only on this computer; nothing here touches the network. env (the tests): { indexedDB, IDBKeyRange }, else the browser's own.
+/* Better Vest by Astral. Copyright (c) 2026 Astral (@ax4p). All rights reserved. Not open source: see LICENSE. */
 
 import { tapeClean, tapeChunks, tapeDecode, tapeMerge, tapeKeyFrom, TAPE_SPAN, TAPE_KEEP_DAYS } from './tape.js';
 import { dayKey, addDays } from '../journal/time.js';
@@ -30,8 +27,6 @@ export function tapeOpen(env) {
     });
 }
 
-// The seconds a page sent for one market: made safe (cert/tape.js tapeClean), stored as chunks; every few hours the days past the last
-// TAPE_KEEP_DAYS go. Resolves the number of seconds stored.
 export async function tapeWrite(sym, rows, now, env) {
     if (typeof sym !== 'string' || !SYM_RE.test(sym)) return 0;
     const clean = tapeClean(rows, now);
@@ -41,9 +36,7 @@ export async function tapeWrite(sym, rows, now, env) {
     try {
         const tx = db.transaction(STORE, 'readwrite');
         const st = tx.objectStore(STORE);
-        const done1 = txDone(tx);
-        // A page sends every 15 s: the newest chunk just before these seconds grows (on the same Vest day, up to TAPE_SPAN) instead of
-        // a new record each time, which would cost more in the record's own fields than its seconds
+        /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-c10ebb9f */ const done1 = txDone(tx);
         const first = clean[0];
         const near = await done(st.getAll(E.IDBKeyRange.bound(tapeKeyFrom(sym, first - TAPE_SPAN), tapeKeyFrom(sym, first) + '|~')));
         const prev = near.filter((c) => c.t1 < first).sort((a, b) => a.t1 - b.t1).pop();
@@ -59,15 +52,13 @@ export async function tapeWrite(sym, rows, now, env) {
     return clean.length / 5;
 }
 
-// The seconds of one market from `from` to `to` (s, both included), as flat rows, one a second
-export async function tapeRead(sym, from, to, env) {
+/*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-bc96099d */ export async function tapeRead(sym, from, to, env) {
     if (typeof sym !== 'string' || !SYM_RE.test(sym) || !(to >= from)) return [];
     const E = envOf(env);
     let db;
     try { db = await tapeOpen(env); } catch (e) { return []; }
     try {
         const tx = db.transaction(STORE, 'readonly');
-        // a chunk is at most TAPE_SPAN long, so one that started that long before `from` can still reach into it
         const range = E.IDBKeyRange.bound(tapeKeyFrom(sym, Math.max(0, Math.floor(from) - TAPE_SPAN)), tapeKeyFrom(sym, Math.floor(to)) + '|~');
         const recs = await done(tx.objectStore(STORE).getAll(range));
         const rows = tapeMerge(recs.map(tapeDecode));
@@ -78,7 +69,6 @@ export async function tapeRead(sym, from, to, env) {
     } finally { db.close(); }
 }
 
-// Drops every chunk of a Vest day before the last TAPE_KEEP_DAYS (today included). Resolves how many went.
 async function tapePruneDb(db, now, env) {
     const E = envOf(env);
     const keep = addDays(dayKey(now, 'vest'), -(TAPE_KEEP_DAYS - 1));
