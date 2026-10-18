@@ -1,4 +1,4 @@
-// Better Vest by Astral - toolbar popup. Talks to the page through bridge.js.
+/* Better Vest by Astral. Copyright (c) 2026 Astral (@ax4p). All rights reserved. Not open source: see LICENSE. */
 const VEST = 'https://next.vestmarkets.com/';
 const $ = (s) => document.querySelector(s);
 let tabId = null;
@@ -24,11 +24,10 @@ function render(st) {
     document.querySelectorAll('[data-hide]').forEach((b) => b.classList.toggle('on', !!st.hide[b.dataset.hide]));
     const box = $('#themes');
     if (!box.children.length && st.themes) {
-        st.themes.forEach((t) => {
+        /*! Property of Astral (@ax4p). Better Vest 9.2.5. No copying without written permission. bv-de2d921c */ st.themes.forEach((t) => {
             const b = document.createElement('button');
             b.className = 'theme';
             b.dataset.theme = t.k;
-            // page-supplied values go through style properties and textContent, never HTML
             b.style.background = t.page;
             b.style.borderColor = t.line;
             const dots = document.createElement('span');
@@ -58,7 +57,6 @@ $('#focus-all').onclick = () => send({ cmd: 'focusAll' });
 $('#open-vest').onclick = () => chrome.tabs.create({ url: VEST + 'trade/NQ-PERP' });
 $('#open-cal').onclick = () => { chrome.runtime.sendMessage({ type: 'journal-open' }).catch(() => {}); window.close(); };
 
-// Calendar summary from the service worker (works without a Vest tab, from the local history)
 const MINUS = '\u2212';
 function usd(v) {
     if (v == null || !isFinite(v)) return '—';
@@ -67,7 +65,7 @@ function usd(v) {
     const body = a < 10 ? r.toFixed(2) : a < 9999.5 ? Math.round(a).toLocaleString('en-US') : (a / 1e3).toFixed(1) + 'k';
     return (v > 0 ? '+' : MINUS) + '$' + body;
 }
-function paintCal(sum) {
+/* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-f1fefb2b */ function paintCal(sum) {
     const set = (id, nId, row, extra) => {
         const b = $(id);
         b.textContent = row ? usd(row.net) : '—';
@@ -86,9 +84,8 @@ function paintCal(sum) {
 }
 chrome.runtime.sendMessage({ type: 'journal-summary' }).then(paintCal).catch(() => paintCal(null));
 
-// Updates from GitHub (Standard, loaded unpacked): a pill when a newer release is out, and the check switch
 function paintUpdate(s) {
-    if (!s || !s.supported) return;
+    if (!s || !s.supported) return; /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-d41c976f */
     $('#upd-pref').hidden = false;
     $('#upd-auto').checked = !!s.on;
     $('#upd').hidden = !s.available;
@@ -114,6 +111,5 @@ chrome.tabs.query({ active: true, currentWindow: true }).then(async ([tab]) => {
     const r = await chrome.tabs.sendMessage(tabId, { type: 'getState' }).catch(() => null);
     if (r && r.state) render(r.state);
     send({ cmd: 'ping' });
-    // live while the popup is open
     setInterval(() => send({ cmd: 'ping' }), 1000);
 });

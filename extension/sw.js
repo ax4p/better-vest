@@ -1,15 +1,4 @@
-// Better Vest by Astral - service worker (ES module, static imports only).
-// 1. Keeps the latest page state per tab (for the popup and the toolbar badge).
-// 2. Journal hub: receives the trade history that the Vest page streams over the 'journal' port,
-//    validates and normalizes it, writes it to IndexedDB, runs the post-conditions, and serves
-//    the popup summary, the sync command relay and the Calendar tab opener.
-// 3. Updates (the public editions, loaded unpacked): asks GitHub for the latest release every 30 minutes; update.html does the rest.
-// 4. Usage counts (9.0.1: update/count.js, in the public editions and the WICKED zip; DEV and this working folder do not carry it). The
-//    only address it talks to is https://bv.astrals.dev/api/count: an install count (every edition that counts) and, in Standard, Lite and
-//    WICKED, a heartbeat every 10 minutes while a Vest tab is open (a random id, the version and the edition).
-// 5. Remote switches (9.0.9: update/remote.js, every extension build): every 3 minutes while a Vest tab is open, one GET of
-//    https://bv.astrals.dev/api/flags (which features Astral switched off, and the version the Chrome Web Store serves; nothing goes out
-//    about the trader). The Store edition installs a held Store update when every Vest tab is idle.
+/* Better Vest by Astral. Copyright (c) 2026 Astral (@ax4p). All rights reserved. Not open source: see LICENSE. */
 
 import { openDb, getAll, get, putMany, putMeta, getMeta, listUserIds } from './journal/db.js';
 import {
@@ -20,6 +9,7 @@ import { LATEST_URL, compareVersions, parseLatest, whatsNew } from './update/cor
 import { remoteStart, remotePageState } from './update/remote.js';
 import { cleanSnap } from './cert/share-model.js';
 import { tapeWrite } from './cert/tape-db.js';
+import { VC_IDS } from './cert/listen-cmd.js';
 import { countStart } from './update/count.js';
 
 const stateKey = (tabId) => 'tab:' + tabId;
@@ -27,7 +17,6 @@ const stateKey = (tabId) => 'tab:' + tabId;
 chrome.runtime.onMessage.addListener((msg, sender) => {
     if (!msg || msg.type !== 'state' || !sender.tab) return;
     const st = msg.state || {};
-    // seenAt: when the page said it (9.0.9: a held Store update waits for every Vest tab's fresh "idle")
     chrome.storage.session.set({ [stateKey(sender.tab.id)]: Object.assign({}, st, { seenAt: Date.now() }) }).catch(() => {});
     remotePageState(st);
     chrome.action.setBadgeText({ tabId: sender.tab.id, text: st.feed ? updateBadge : '!' }).catch(() => {});
@@ -42,10 +31,9 @@ chrome.tabs.onRemoved.addListener((tabId) => {
     chrome.storage.session.remove(stateKey(tabId)).catch(() => {});
 });
 
-// ---------- journal: validation ----------
 
 const MAX_MSG_BYTES = 4 * 1024 * 1024;
-const USER_RE = /^[\w.:-]{1,128}$/;
+/*! Property of Astral (@ax4p). Better Vest 9.2.5. No copying without written permission. bv-98158ea4 */ const USER_RE = /^[\w.:-]{1,128}$/;
 const OPS = new Set(['begin', 'symbols', 'accounts', 'positions', 'payouts', 'plans', 'progress', 'end', 'error', 'manifest?', 'resume']);
 const ACCOUNT_SOURCES = new Set(['active', 'history', 'all', 'primary']);
 const RUN_MODES = new Set(['auto', 'manual', 'full', 'delta']);
@@ -53,7 +41,6 @@ const SYNC_STATES = new Set(['full', 'delta', 'stamp', 'incomplete']);
 
 const isObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 const isStr = (v) => typeof v === 'string' && v.length > 0 && v.length <= 256;
-// ids become object keys and IndexedDB keys: never accept prototype names
 const BAD_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
 const isId = (v) => isStr(v) && v.length <= 128 && !BAD_KEYS.has(v);
 const numOrNull = (v) => {
@@ -72,7 +59,6 @@ function approxBytes(msg) {
     try { return JSON.stringify(msg).length; } catch (e) { return Infinity; }
 }
 
-// Shape checks only. Counts the page claims are never trusted: the rows themselves are what is stored.
 export function validateMessage(msg) {
     if (!isObj(msg) || msg.v !== 1 || typeof msg.op !== 'string' || !OPS.has(msg.op)) throw new Reject('shape');
     if (msg.op === 'resume') {
@@ -90,7 +76,7 @@ export function validateMessage(msg) {
         case 'payouts':
         case 'plans':
             if (!Array.isArray(msg.rows) || msg.rows.some((r) => !isObj(r))) throw new Reject('shape');
-            break;
+            break; /* Property of Astral (@ax4p). Better Vest 9.2.5. No copying without written permission. bv-a223b391 */
         case 'accounts':
             if (!Array.isArray(msg.rows) || msg.rows.some((r) => !isObj(r)) || !ACCOUNT_SOURCES.has(msg.source)) throw new Reject('shape');
             for (const r of msg.rows) {
@@ -100,7 +86,6 @@ export function validateMessage(msg) {
             break;
         case 'positions':
             if (!isId(msg.accountId) || !Array.isArray(msg.rows)) throw new Reject('shape');
-            // every row must belong to the account the page says it asked for
             for (const r of msg.rows) {
                 if (!isObj(r) || !isId(r.positionId) || r.accountId !== msg.accountId) throw new Reject('account-mismatch');
             }
@@ -120,10 +105,9 @@ export function validateMessage(msg) {
     return msg;
 }
 
-// ---------- journal: one IDB connection per user ----------
 
-const dbs = new Map(); // userId -> Promise<IDBDatabase>
-const symbolMaps = new Map(); // userId -> Map(symbol -> Symbol)
+const dbs = new Map();
+const symbolMaps = new Map();
 
 function dbFor(userId) {
     let p = dbs.get(userId);
@@ -141,9 +125,8 @@ function dbFor(userId) {
     return p;
 }
 
-// A handle that was closed by a versionchange or a browser-side close throws InvalidStateError.
 async function withDb(userId, fn) {
-    try {
+    /* Copyright Astral 2026. From Better Vest 9.2.5 (standard), ref bv-514b8fe8. Not licensed for reuse. */ try {
         return await fn(await dbFor(userId));
     } catch (e) {
         if (e && e.name === 'InvalidStateError') {
@@ -154,11 +137,9 @@ async function withDb(userId, fn) {
     }
 }
 
-// Stored trades are derived fields; the raw API rows are kept. When the derivation rules change
-// (NORMALIZER_VERSION), every trade is rebuilt from its raw row before anything reads the store.
 async function renormalizeIfNeeded(userId, db) {
     if ((await getMeta(db, 'normalizerVersion')) === NORMALIZER_VERSION) return;
-    const raws = await getAll(db, 'raw');
+    const raws = await getAll(db, 'raw'); /* Copyright (c) 2026 Astral. Better Vest 9.2.5 is licensed to its users only to run it, never to copy it. bv-dfe95c78 */
     if (raws.length) {
         const syms = new Map();
         for (const s of await getAll(db, 'symbols')) syms.set(s.symbol, s);
@@ -188,7 +169,6 @@ async function symbolsMap(userId, db) {
     return m;
 }
 
-// ---------- journal: broadcast to the Calendar page and popup ----------
 
 const BROADCAST_MS = 250;
 let lastBroadcast = 0;
@@ -200,7 +180,6 @@ function emit(payload) {
     chrome.runtime.sendMessage(payload).catch(() => {});
 }
 
-// At most 4 per second; progress frames coalesce, the newest one wins.
 function broadcast(payload) {
     const wait = lastBroadcast + BROADCAST_MS - Date.now();
     if (wait <= 0 && !broadcastTimer) { emit(payload); return; }
@@ -215,9 +194,8 @@ function broadcast(payload) {
     }, Math.max(0, wait));
 }
 
-// ---------- journal: message handling ----------
 
-const runs = new Map(); // userId -> {runId, mode, startedAt, rejected: []}
+const runs = new Map();
 
 async function writeAccounts(db, msg) {
     const prevAll = new Map((await getAll(db, 'accounts')).map((a) => [a.id, a]));
@@ -229,13 +207,12 @@ async function writeAccounts(db, msg) {
                 if (row.account_id == null && row.id == null) { dropped++; continue; }
                 const next = normalizePrimaryAccount(row);
                 const prev = out.get(next.id) || prevAll.get(next.id);
-                // a balance-only patch for a capital account we do not hold yet has nothing to attach to
                 if (!prev && next.kind !== 'primary') { dropped++; continue; }
                 out.set(next.id, mergeAccount(prev, next));
             } else {
                 if (row.id == null) { dropped++; continue; }
                 const next = normalizeCapitalAccount(row);
-                out.set(next.id, mergeAccount(out.get(next.id) || prevAll.get(next.id), next));
+                /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-2f103a3a */ out.set(next.id, mergeAccount(out.get(next.id) || prevAll.get(next.id), next));
             }
         } catch (e) { dropped++; }
     }
@@ -256,7 +233,6 @@ async function writePositions(userId, db, msg) {
         trades.push(t);
         raw.push({ id: t.id, accountId: msg.accountId, row, at });
     }
-    // trade ids the harness (or the user) marked as test trades stay marked after a re-sync
     const testIds = await getMeta(db, 'testTradeIds');
     if (Array.isArray(testIds) && testIds.length) {
         const set = new Set(testIds);
@@ -279,7 +255,7 @@ async function writePayouts(db, msg) {
     for (const r of msg.rows) {
         if (!isStr(r.request_id)) continue;
         rows.push(normalizePayout(r));
-    }
+    /*! Property of Astral (@ax4p). Better Vest 9.2.5. No copying without written permission. bv-78d4e796 */ }
     await putMany(db, { payouts: rows });
 }
 
@@ -298,7 +274,7 @@ async function buildManifest(db) {
         if (t.open) e.openIds.push(t.id);
     }
     for (const a of accounts) if (bySync[a.id]) entry(a.id);
-    for (const id of Object.keys(acc)) {
+    for (const id of Object.keys(acc)) { /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-eb8decef */
         const s = bySync[id] || {};
         Object.assign(acc[id], {
             apiTotal: s.apiTotal == null ? null : s.apiTotal,
@@ -312,8 +288,6 @@ async function buildManifest(db) {
     return { accounts: acc, symbolsAt: symbolsAt || null, lastFullSync: lastFullSync || null, lastSync: lastSync || null, lastDiscovery: lastDiscovery || null };
 }
 
-// Per-account bookkeeping from the page's end message. Only the sync bookkeeping uses these claims;
-// stored rows are never touched by them.
 function mergeSyncRecords(prev, stats, nowMs) {
     const out = Object.assign(Object.create(null), isObj(prev) ? prev : {});
     const accounts = isObj(stats.accounts) ? stats.accounts : {};
@@ -354,7 +328,7 @@ async function runPostconditions(db, run, msg) {
         const open = mine.filter((t) => t.open).length;
         const closed = mine.length - open;
         const s = sync[a.id];
-        const apiTotal = s && s.apiTotal != null ? s.apiTotal : null;
+        const apiTotal = s && s.apiTotal != null ? s.apiTotal : null; /* @license Better Vest 9.2.5. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-70f1932c */
         const countOk = apiTotal == null ? null : closed + open === apiTotal;
         let rec = null;
         try { rec = reconcile(a, mine, payouts); } catch (e) { rec = { kind: 'not-reconcilable', ok: null, expected: null, actual: null, diff: null }; }
@@ -379,14 +353,10 @@ async function runPostconditions(db, run, msg) {
         runId: msg.runId, mode: stats.mode, ok: msg.ok, at: nowMs, ms: numOrNull(stats.ms), pages: numOrNull(stats.pages),
         errors: Array.isArray(stats.errors) ? stats.errors.slice(0, 50).map((e) => ({ code: String(e && e.code || '').slice(0, 40) })) : []
     });
-    // A run that reached its end after reading the account lists counts as a sync even if some accounts
-    // failed (they carry their own state and are retried next time); otherwise one bad account would keep
-    // every automatic refresh off. lastRun.ok tells the Calendar whether the run was partial.
     if (msg.ok || (run && run.accountsWritten)) {
         await putMeta(db, 'lastSync', nowMs);
-        // a CLOSED-event delta only re-reads active accounts, so it does not count as a discovery
         if (stats.mode !== 'delta') await putMeta(db, 'lastDiscovery', nowMs);
-        if (stats.mode === 'full' && msg.ok) await putMeta(db, 'lastFullSync', nowMs);
+        if (stats.mode === 'full' && msg.ok) await putMeta(db, 'lastFullSync', nowMs); /* Owned by Astral (@ax4p): Better Vest standard 9.2.5. Licence: LICENSE, not open source. bv-488ce583 */
     }
     return pc;
 }
@@ -404,7 +374,7 @@ async function handleMessage(port, raw, bind) {
         if (seq != null) port.postMessage({ op: 'ack', seq, ok: false, code: e.code || 'shape' });
         return;
     }
-    if (msg.op === 'resume') return; // the page resends its unacked messages; every write is idempotent
+    if (msg.op === 'resume') return;
     const userId = msg.userId;
     let ok = true;
     let code = null;
@@ -431,7 +401,7 @@ async function handleMessage(port, raw, bind) {
                 break;
             }
             case 'positions':
-                await withDb(userId, (db) => writePositions(userId, db, msg));
+                await withDb(userId, (db) => writePositions(userId, db, msg)); /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-e75d38e6 */
                 break;
             case 'payouts':
                 await withDb(userId, (db) => writePayouts(db, msg));
@@ -470,8 +440,7 @@ async function handleMessage(port, raw, bind) {
 
 chrome.runtime.onConnect.addListener((port) => {
     if (port.name !== 'journal') return;
-    // only our own content script on the Vest site opens this port
-    const s = port.sender;
+    /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-68c1a487 */ const s = port.sender;
     if (!s || s.id !== chrome.runtime.id || !s.tab || !String(s.url || '').startsWith('https://next.vestmarkets.com/')) {
         port.disconnect();
         return;
@@ -483,7 +452,6 @@ chrome.runtime.onConnect.addListener((port) => {
     });
 });
 
-// ---------- journal: popup, Calendar and command relay ----------
 
 async function lastUserId() {
     const r = await chrome.storage.local.get('journalLastUser').catch(() => null);
@@ -528,18 +496,16 @@ async function journalSync(mode) {
     return { ok: false, reason: 'no-vest-tab' };
 }
 
-// Opens (or focuses) one of the extension's own pages; from a Vest tab it opens right next to that tab.
 async function openExtPage(file, sender) {
     const base = chrome.runtime.getURL(file);
     let ctxs = [];
-    try { ctxs = await chrome.runtime.getContexts({ contextTypes: ['TAB'] }); } catch (e) { ctxs = []; }
+    try { ctxs = await chrome.runtime.getContexts({ contextTypes: ['TAB'] }); } catch (e) { ctxs = []; } /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-c79198f5 */
     const hit = ctxs.find((c) => typeof c.documentUrl === 'string' && c.documentUrl.startsWith(base) && c.tabId >= 0);
     if (hit) {
         await chrome.tabs.update(hit.tabId, { active: true });
         if (hit.windowId >= 0) await chrome.windows.update(hit.windowId, { focused: true }).catch(() => {});
         return { ok: true, reason: 'focused' };
     }
-    // opened from a Vest tab: put the Calendar right next to it, in the same window
     const opts = { url: base };
     if (sender && sender.tab && sender.tab.windowId >= 0) { opts.windowId = sender.tab.windowId; opts.index = sender.tab.index + 1; }
     await chrome.tabs.create(opts);
@@ -548,8 +514,6 @@ async function openExtPage(file, sender) {
 
 const journalOpen = (sender) => openExtPage('journal.html', sender);
 const certOpen = (sender) => openExtPage('certificate.html', sender);
-// the share poster: the trade page's snapshot of today's P&L, cleaned, kept for this browser session only, then the page (an open one
-// re-reads it: it listens to the change). It lives in cert/ because the 8.0.5 self-updater only installs files in folders it knows.
 async function shareOpen(snap, sender) {
     const clean = cleanSnap(snap);
     if (!clean) return { ok: false, reason: 'bad' };
@@ -561,8 +525,6 @@ const EXT_BASE = chrome.runtime.getURL('');
 const fromExtensionPage = (sender) => !!sender && sender.id === chrome.runtime.id && typeof sender.url === 'string' && sender.url.startsWith(EXT_BASE);
 const fromVestScript = (sender) => !!sender && sender.id === chrome.runtime.id && !!sender.tab && String(sender.url || '').startsWith('https://next.vestmarkets.com/');
 
-// 9.0: the chart's price second by second, for the P&L card's Replay (src/tape.js -> bridge.js). Only from a Vest tab of the user's own,
-// never a copy follower's, a copy group leader's or a chart data tab; cleaned again and kept in IndexedDB 'bv-tape' for 30 days.
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (!isObj(msg) || msg.type !== 'tape') return;
     if (!fromVestScript(sender) || /[?&](bvCopy|bvLead|bvChart)=/.test(String(sender.tab.url || ''))) { sendResponse({ ok: false }); return false; }
@@ -570,12 +532,63 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     return true;
 });
 
+const VC_URL = chrome.runtime.getURL('cert/listen.html');
+const VC_TRADE = /^https:\/\/next\.vestmarkets\.com\/trade\//;
+const VC_HELPER = /[?&](bvCopy|bvLead|bvChart)=/;
+async function vcOpen() { /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-dc92221e */
+    let ctxs = [];
+    try { ctxs = await chrome.runtime.getContexts({ contextTypes: ['TAB'] }); } catch (e) { ctxs = []; }
+    const hit = ctxs.find((c) => typeof c.documentUrl === 'string' && c.documentUrl.startsWith(VC_URL) && c.windowId >= 0);
+    if (hit) { await chrome.windows.update(hit.windowId, { focused: true }).catch(() => {}); return { ok: true, reason: 'focused' }; }
+    let at = {};
+    try { at = (await chrome.storage.local.get('vcWin')).vcWin || {}; } catch (e) {}
+    const opts = { url: VC_URL, type: 'popup', width: 320, height: 380, focused: true };
+    if (Number.isInteger(at.left) && Number.isInteger(at.top)) { opts.left = at.left; opts.top = at.top; }
+    await chrome.windows.create(opts).catch(() => chrome.windows.create({ url: VC_URL, type: 'popup', width: 320, height: 380, focused: true }));
+    return { ok: true, reason: 'created' };
+}
+async function vcTarget() {
+    let w = null;
+    try { w = await chrome.windows.getLastFocused({ populate: true, windowTypes: ['normal'] }); } catch (e) {}
+    const tab = w && Array.isArray(w.tabs) ? w.tabs.find((t) => t.active) : null;
+    const url = tab ? String(tab.url || '') : '';
+    return tab && VC_TRADE.test(url) && !VC_HELPER.test(url) && !tab.discarded ? tab : null;
+}
+async function vcSend(msg) {
+    if (VC_IDS.indexOf(msg.id) < 0) return { sent: false, why: 'Not a command.' };
+    const tab = await vcTarget();
+    if (!tab) return { sent: false, why: 'Bring Vest’s trade page to the front.' };
+    try {
+        const r = await chrome.tabs.sendMessage(tab.id, { type: 'vc', id: msg.id, said: String(msg.said || '').slice(0, 60), seq: Number.isInteger(msg.seq) ? msg.seq : 0 });
+        return r && r.ok ? { sent: true } : { sent: false, why: 'Vest’s page did not answer. Reload it.' };
+    } catch (e) {
+        return { sent: false, why: 'Vest’s page did not answer. Reload it.' };
+    }
+}
+const vcCfgClean = (c) => ({ on: !!(c && c.on === true), mode: c && c.mode === 'wake' ? 'wake' : 'ptt', open: !(c && c.open === false) });
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+    if (!isObj(msg) || (msg.type !== 'vc-cmd' && msg.type !== 'vc-page')) return;
+    if (msg.type === 'vc-cmd') {
+        if (!fromExtensionPage(sender) || !String(sender.url).startsWith(VC_URL)) { sendResponse({ sent: false }); return false; }
+        vcSend(msg).then(sendResponse, () => sendResponse({ sent: false }));
+        return true;
+    }
+    if (!fromVestScript(sender) || VC_HELPER.test(String(sender.tab.url || ''))) return;
+    if (msg.op === 'open') vcOpen().catch(() => {});
+    else if (msg.op === 'cfg') chrome.storage.session.set({ vcCfg: vcCfgClean(msg.cfg) }).catch(() => {});
+    else if (msg.op === 'ptt') chrome.runtime.sendMessage({ type: 'vc-ptt', down: msg.down === true }).catch(() => {});
+    else if (msg.op === 'done' && VC_IDS.indexOf(msg.id) >= 0) {
+        chrome.runtime.sendMessage({ type: 'vc-done', id: msg.id, ok: msg.ok === true, why: String(msg.why || '').slice(0, 120), text: String(msg.text || '').slice(0, 60),
+            level: msg.level === 'warn' ? 'warn' : '', seq: Number.isInteger(msg.seq) ? msg.seq : null }).catch(() => {});
+    }
+});
+
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (!isObj(msg) || typeof msg.type !== 'string') return;
     if (msg.type === 'journal-summary' && fromExtensionPage(sender)) {
         journalSummary().then(sendResponse, () => sendResponse({ userId: null }));
         return true;
-    }
+    } /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-113ae479 */
     if (msg.type === 'journal-sync' && fromExtensionPage(sender)) {
         journalSync(msg.mode).then(sendResponse, () => sendResponse({ ok: false, reason: 'error' }));
         return true;
@@ -584,17 +597,14 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         journalOpen(sender).then(sendResponse, () => sendResponse({ ok: false, reason: 'error' }));
         return true;
     }
-    // the total-payouts certificate page (certificate.html); same rules as journal-open
     if (msg.type === 'cert-open' && (fromExtensionPage(sender) || fromVestScript(sender))) {
         certOpen(sender).then(sendResponse, () => sendResponse({ ok: false, reason: 'error' }));
         return true;
     }
-    // the dock's Share button: only Vest's own trade page sends the snapshot
     if (msg.type === 'share-open' && fromVestScript(sender)) {
         shareOpen(msg.snap, sender).then(sendResponse, () => sendResponse({ ok: false, reason: 'error' }));
         return true;
     }
-    // updates: the dock and the popup ask; only extension pages may check, switch or open
     if (msg.type === 'update-state' && (fromExtensionPage(sender) || fromVestScript(sender))) {
         updateState().then(sendResponse, () => sendResponse(null));
         return true;
@@ -606,17 +616,13 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (msg.type === 'update-auto' && fromExtensionPage(sender) && typeof msg.on === 'boolean') {
         chrome.storage.local.set({ bvUpdateCheck: msg.on }).then(scheduleUpdates).then(updateState).then(sendResponse, () => sendResponse(null));
         return true;
-    }
+    } /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-fc6dc658 */
     if (msg.type === 'update-open' && (fromExtensionPage(sender) || fromVestScript(sender))) {
         openExtPage('update.html', sender).then(sendResponse, () => sendResponse({ ok: false, reason: 'error' }));
         return true;
     }
 });
 
-// ---------- updates ----------
-// Only the public editions (Standard, Lite, No stats) loaded unpacked from the GitHub zip update from GitHub: the WICKED build is
-// rebuilt from its own source, and the DEV build never updates itself, so the line below stays a comment in both. Web Store copies are
-// updated by Chrome. The check is a plain GET to GitHub's API with nothing from the user in it; nothing is downloaded until Update is clicked.
 let UPDATER = false;
 UPDATER = true;
 const UPDATE_ALARM = 'bv-update-check';
@@ -631,8 +637,6 @@ async function updaterSupported() {
     return true;
 }
 
-// available: a newer release; latest (9.0.1): the newest release whatever its version (the update page switches edition with it); heads:
-// the newer release's "What's new" lines, for the pop-up on Vest's page (the bridge passes them on, as text)
 async function updateState() {
     const supported = await updaterSupported();
     const st = await chrome.storage.local.get(['bvUpdate', 'bvUpdateCheck', 'bvUpdateAt', 'bvLatest']);
@@ -655,7 +659,7 @@ async function checkUpdate(force) {
     if (bvUpdateCheck === false && !force) return updateState();
     try {
         const r = await fetch(LATEST_URL, { headers: { Accept: 'application/vnd.github+json' }, cache: 'no-store' });
-        if (r.ok) {
+        if (r.ok) { /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-dfcb4a22 */
             const rel = parseLatest(await r.json());
             await chrome.storage.local.set(rel ? { bvUpdateAt: Date.now(), bvLatest: rel } : { bvUpdateAt: Date.now() });
             if (rel && compareVersions(rel.version, chrome.runtime.getManifest().version) > 0) await chrome.storage.local.set({ bvUpdate: rel });
@@ -672,13 +676,10 @@ async function scheduleUpdates() {
         await chrome.alarms.clear(UPDATE_ALARM).catch(() => {});
         return;
     }
-    // copies from before 7.5.1 made this alarm with a 6-hour period: replace it when the period differs
     const a = await chrome.alarms.get(UPDATE_ALARM);
     if (!a || a.periodInMinutes !== UPDATE_EVERY_MIN) chrome.alarms.create(UPDATE_ALARM, { delayInMinutes: 1, periodInMinutes: UPDATE_EVERY_MIN });
 }
 
-// After update.html rewrote the folder and restarted us: reload the Vest tabs (their page script is the old one
-// until then) and show the done page. The flag is only honoured by the version it names.
 let afterUpdateRan = false;
 async function afterSelfUpdate() {
     if (afterUpdateRan) return;
@@ -686,12 +687,8 @@ async function afterSelfUpdate() {
     const { bvUpdated } = await chrome.storage.local.get('bvUpdated');
     if (!bvUpdated) return;
     const v = chrome.runtime.getManifest().version;
-    // 9.0.1: an edition switch keeps the version and changes the name (Better Vest by Astral Lite...), so both say whether it landed
     const name = chrome.runtime.getManifest().name;
     if (bvUpdated.to !== v || (bvUpdated.toName && bvUpdated.toName !== name)) {
-        // Running again and still the old version: the new files went into a copy Chrome doesn't run (an identical one
-        // in another folder), or the page closed before the restart. Say so once. A worker that starts before reloadAt
-        // is the old one waking up early (the restart is a timer set for reloadAt, never sooner).
         const t = Date.now();
         const stillOld = bvUpdated.from === v && (!bvUpdated.fromName || bvUpdated.fromName === name);
         if (stillOld && t >= (bvUpdated.reloadAt || bvUpdated.at || 0) && t - (bvUpdated.at || 0) < 10 * 60 * 1000) {
@@ -717,50 +714,33 @@ paintUpdateBadge().catch(() => {});
 scheduleUpdates().catch(() => {});
 afterSelfUpdate().catch(() => {});
 
-// ---------- usage counts (9.0.1: the public editions and the WICKED zip) ----------
-// update/count.js: the install count, and in Standard, Lite and WICKED the heartbeat. Only the builds that count carry that file and the line below.
 countStart();
 
-// ---------- remote switches and quick Store updates (9.0.9: every extension build) ----------
-// update/remote.js: what Astral switched off, passed to the pages through bvRemoteOff; the Store edition's held updates.
 remoteStart();
 
-// Whenever the worker starts, bring the last user's stored trades up to the current derivation rules.
-lastUserId().then((uid) => { if (uid) dbFor(uid).catch(() => {}); }).catch(() => {});
+lastUserId().then((uid) => { if (uid) dbFor(uid).catch(() => {}); }).catch(() => {}); /*! Better Vest (c) 2026 Astral. All rights reserved. bv-89b18068 */
 
-// ---------- copy trader: follower tabs and the copy log (WICKED and Standard) ----------
-// The Tabs engine: the leader's page asks for one background tab per switched-on follower account
-// (/trade/<market>?bvCopy=<accountId>), grouped as "Copy" and collapsed. Each follower tab pins its own account and announces
-// 'follower-ready'. Orders never pass through here as requests of ours: 'tabs-exec' only hands the leader's actions to the
-// follower pages, whose own code calls Vest's own functions. The worker sleeps, so all state lives in chrome.storage.session
-// and every handler reloads it. Only this block uses the tabGroups permission.
-// 8.2, copy groups: every group copies from its own leader tab, so the state is per group ({ groups: { A: ..., B: ... } }), each group's
-// follower tabs are grouped as "Copy A", "Copy B", and a follower tab is found by its tab id in whichever group holds it. The leader tabs
-// the copier asks for (lead-open: /trade/<market>?bvLead=<id>) sit in a "Better Vest" tab group; `leads` remembers them.
 
 const COPY_KEY = 'copy:tabs';
 const COPY_WATCH_ALARM = 'bv-copy-watch';
 const COPY_MAX_FOLLOWERS = 10;
 const COPY_MAX_ACTIONS = 256;
-const COPY_SNAP_BYTES = 200 * 1024; // a follower tab's snapshot of its own account (positions, orders, events) is small; anything bigger is not one
+const COPY_SNAP_BYTES = 200 * 1024;
 const COPY_MARKET_RE = /^[A-Za-z0-9._-]{1,40}$/;
 const COPY_ID_RE = /^[\w.:-]{1,128}$/;
-// An exec message gets BASE plus PER for each of its actions (the page's own limit is 5 s per action). The leader tab's own limit for the batch is
-// CE_T.actionMs per action plus CE_T.slackMs (20-engines.js): it must stay ABOVE this one, so that the worker, not the leader, ends a hung tab
-// and every other follower's result still reaches the leader. The tab drops an exec that is older than this when it finally runs it.
 const COPY_EXEC_BASE_MS = 3000;
 const COPY_EXEC_PER_MS = 5000;
 const COPY_EXEC_MAX_MS = 60000;
-const COPY_PING_MS = 8000;        // a tab's main thread can be busy for seconds (eleven Vest tabs on one machine): that is not a crash
-const COPY_ALIVE_MS = 10000;      // a tab that pushed a snapshot or answered an exec this lately is alive: the watch does not ping it
-const COPY_RELOAD_GRACE_MS = 30000; // a tab that became ready this lately is not reloaded by the watch
-const COPY_STAGGER_MS = 250;      // tabs are opened this far apart: nine tabs refreshing a login at one instant could log each other out
+const COPY_PING_MS = 8000;
+const COPY_ALIVE_MS = 10000;
+const COPY_RELOAD_GRACE_MS = 30000;
+const COPY_STAGGER_MS = 250;
 const COPY_REOPEN_MAX = 5;
 const COPY_REOPEN_WINDOW_MS = 2 * 60 * 1000;
 const COPY_ORIGIN = 'https://next.vestmarkets.com/';
 const COPY_LOG_KEY = 'copy:log';
-const COPY_LOG_MAX = 3000; // 8.0.5: a 10-follower order writes about 20 to 50 lines; 1000 held only about 20 orders
-const COPY_LOG_BYTES = 2 * 1024 * 1024; // 8.0.5: 3000 lines, and trouble lines carry their debug trail (code + state); storage.local allows 10 MB
+const COPY_LOG_MAX = 3000;
+const COPY_LOG_BYTES = 2 * 1024 * 1024;
 
 const copyBlank = () => ({ gid: null, on: false, market: null, leaderTabId: null, windowId: null, groupId: null, followers: {}, specs: {} });
 const COPY_GID_RE = /^[A-Z]$/;
@@ -771,8 +751,8 @@ let copyRoot = null;
 let copyLoading = null;
 let copyChain = Promise.resolve();
 let copySeq = 0;
-const copyAlive = new Map();     // tabId -> when the tab last pushed a snapshot, answered an exec or announced itself (memory only: a restart pings once)
-const copyInflight = new Map();  // tabId -> exec messages on their way to the tab: a busy tab is never taken for a dead one
+const copyAlive = new Map();
+const copyInflight = new Map(); /*! Copyright (c) 2026 Astral. Better Vest 9.2.5 is licensed to its users only to run it, never to copy it. bv-d9c0b096 */
 
 const copyFix = (v, g) => { const st = Object.assign(copyBlank(), v); if (!isObj(st.followers)) st.followers = {}; st.gid = g; return st; };
 function copyLoad() {
@@ -785,19 +765,17 @@ function copyLoad() {
                 for (const g of Object.keys(v.groups)) if (COPY_GID_RE.test(g) && isObj(v.groups[g])) copyRoot.groups[g] = copyFix(v.groups[g], g);
                 if (isObj(v.leads)) for (const g of Object.keys(v.leads)) if (COPY_GID_RE.test(g) && isObj(v.leads[g]) && Number.isInteger(v.leads[g].tabId)) copyRoot.leads[g] = { tabId: v.leads[g].tabId, market: v.leads[g].market };
                 if (Number.isInteger(v.leadGroup)) copyRoot.leadGroup = v.leadGroup;
-            } else if (isObj(v) && isObj(v.followers)) copyRoot.groups.A = copyFix(v, 'A'); // a worker of 8.1 saved one Turbo state
+            } else if (isObj(v) && isObj(v.followers)) copyRoot.groups.A = copyFix(v, 'A');
             return copyRoot;
         }, () => (copyRoot = copyRootBlank()));
     }
     return copyLoading;
 }
 const copySave = () => chrome.storage.session.set({ [COPY_KEY]: copyRoot }).catch(() => {});
-// one group's Turbo state, made when first asked for
 function copyGroup(root, g) {
     if (!isObj(root.groups[g])) root.groups[g] = copyFix({}, g);
     return root.groups[g];
 }
-// the group whose leader or follower tab this is: [gid, st], or null
 function copyGroupOfTab(root, tabId) {
     if (tabId == null) return null;
     for (const g of Object.keys(root.groups)) {
@@ -806,8 +784,7 @@ function copyGroupOfTab(root, tabId) {
     }
     return null;
 }
-const copyAnyOn = (root) => Object.keys(root.groups).some((g) => root.groups[g].on);
-// state changes run one at a time; reads (tabs-exec, tabs-status) do not wait for them
+const copyAnyOn = (root) => Object.keys(root.groups).some((g) => root.groups[g].on); /* Copyright Astral 2026. From Better Vest 9.2.5 (standard), ref bv-7cd44f11. Not licensed for reuse. */
 function copyLock(fn) {
     const run = copyChain.then(fn);
     copyChain = run.then(() => {}, () => {});
@@ -821,7 +798,6 @@ function copyTimeout(p, ms) {
 }
 const copySleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const copyErr = (e) => String((e && e.message) || e || 'error').slice(0, 200);
-// ids become object keys: own keys only, so a name like "toString" is never mistaken for a follower
 const copyFollower = (st, id) => (typeof id === 'string' && Object.prototype.hasOwnProperty.call(st.followers, id) ? st.followers[id] : null);
 const copyUrl = (market, accountId) => `${COPY_ORIGIN}trade/${encodeURIComponent(market)}?bvCopy=${encodeURIComponent(accountId)}`;
 const copyIdOf = (st, tabId) => Object.keys(st.followers).find((k) => st.followers[k].tabId === tabId);
@@ -833,13 +809,8 @@ function copyNotifyLeader(st, payload) {
 }
 
 
-// Chrome frees a hidden tab that has not been used for a while (memory saver) unless it is told not to; the flag is set when a tab is created, and
-// set again whenever the worker hears from it or looks at it (it costs nothing, and a tab that was replaced, restored or discarded and reloaded
-// keeps it only because Chrome says so).
 const copyKeep = (tabId) => { if (tabId != null) chrome.tabs.update(tabId, { autoDiscardable: false }).catch(() => {}); };
 
-// A tab that did not receive an exec (no receiver: it was discarded, crashed or is on an error page) is reloaded at once, not at the next 30 s watch.
-// A tab that is merely loading is left alone, and one tab is reloaded at most every 10 s. The leader has already been told (copyUnready).
 async function copyRecover(st, id, tabId) {
     const f = copyFollower(st, id);
     if (!f || f.tabId !== tabId || Date.now() - (f.reloadAt || 0) < 10000) return;
@@ -849,9 +820,6 @@ async function copyRecover(st, id, tabId) {
     chrome.tabs.reload(tabId).catch(() => {});
 }
 
-// A follower tab that cannot take actions now. The leader is told at once (its engine then refuses that follower's actions, which is not an
-// attempt): until now only a closed tab was reported, so the leader kept sending, got 'follower-not-ready' (counted as an attempt) and paused the
-// follower after two tries with a text that hid the cause. `why` is for the log.
 function copyUnready(st, id, why) {
     const f = copyFollower(st, id);
     if (!f) return;
@@ -864,13 +832,12 @@ function copyUnready(st, id, why) {
 async function copyArmWatch(on) {
     if (on) {
         const a = await chrome.alarms.get(COPY_WATCH_ALARM);
-        if (!a) chrome.alarms.create(COPY_WATCH_ALARM, { delayInMinutes: 0.5, periodInMinutes: 0.5 });
+        /*! Copyright (c) 2026 Astral. Better Vest 9.2.5 is licensed to its users only to run it, never to copy it. bv-72c9c3a8 */ if (!a) chrome.alarms.create(COPY_WATCH_ALARM, { delayInMinutes: 0.5, periodInMinutes: 0.5 });
     } else {
         await chrome.alarms.clear(COPY_WATCH_ALARM).catch(() => {});
     }
 }
 
-// Creates a background tab per account (staggered, in parallel), then groups them together: "Copy", blue, collapsed.
 async function copyCreateTabs(st, accountIds) {
     const open = async (id, i) => {
         if (i) await copySleep(i * COPY_STAGGER_MS);
@@ -879,7 +846,6 @@ async function copyCreateTabs(st, accountIds) {
         try {
             return await chrome.tabs.create(opts);
         } catch (e) {
-            // the window is gone: fall back to wherever the leader is now
             const lead = await chrome.tabs.get(st.leaderTabId).catch(() => null);
             if (!lead) throw e;
             st.windowId = lead.windowId;
@@ -897,14 +863,13 @@ async function copyCreateTabs(st, accountIds) {
         f.tabId = tabs[i] ? tabs[i].id : null;
         if (tabs[i]) made.push(tabs[i]);
     });
-    // a discarded tab would stop answering: keep Chrome from freeing these
     for (const t of made) chrome.tabs.update(t.id, { autoDiscardable: false }).catch(() => {});
     if (!made.length) return;
     const gl = st.gid || 'A';
     const winId = made[0].windowId;
     let gid = st.groupId;
     if (gid != null) {
-        const g = await chrome.tabGroups.get(gid).catch(() => null);
+        /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-0a3f903d */ const g = await chrome.tabGroups.get(gid).catch(() => null);
         if (!g || g.windowId !== winId) gid = null;
     }
     try {
@@ -912,7 +877,6 @@ async function copyCreateTabs(st, accountIds) {
         st.groupId = gid;
         await chrome.tabGroups.update(gid, { title: 'Copy ' + gl, color: COPY_TAB_COLORS[Math.max(0, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.indexOf(gl)) % COPY_TAB_COLORS.length], collapsed: true });
     } catch (e) {
-        /* the tabs work ungrouped too */
     }
 }
 
@@ -924,13 +888,10 @@ async function copyShutdown(st) {
     st.market = null;
     st.leaderTabId = null;
     await copySave();
-    await copyArmWatch(copyAnyOn(copyRoot || copyRootBlank())); // the other groups' tabs are still watched
-    // state is cleared first, so the removals below are not mistaken for crashes
+    await copyArmWatch(copyAnyOn(copyRoot || copyRootBlank()));
     if (ids.length) await chrome.tabs.remove(ids).catch(() => {});
 }
 
-// The size and price decimals of the markets the copier manages, by Vest's API spelling: the leader tab sends them (a follower tab has no GET
-// bridge to learn them from) and they go to the follower tabs with their ready answer and with every exec message.
 function copySpecsOf(v) {
     const out = {};
     if (!isObj(v)) return out;
@@ -957,7 +918,6 @@ function copyValidOpen(msg) {
     return { market: msg.market, followers: out, specs: copySpecsOf(msg.specs) };
 }
 
-// a follower tab of any group (never a leader)
 const copyIsFollowerPage = (root, sender) => { const hit = sender.tab ? copyGroupOfTab(root, sender.tab.id) : null; return !!hit && hit[1].leaderTabId !== sender.tab.id; };
 
 function copyOpen(sender, msg) {
@@ -966,20 +926,16 @@ function copyOpen(sender, msg) {
         const st = copyGroup(root, copyGid(msg.g));
         const req = copyValidOpen(msg);
         if (!req) return { ok: false, error: 'shape' };
-        // a follower tab is never a leader
         if (copyIsFollowerPage(root, sender) || /[?&]bvCopy=/.test(String(sender.url || ''))) return { ok: false, error: 'follower' };
         const leader = sender.tab;
-        // a tab copies one group at a time: a group it led before (its tabs-close was lost) is shut down
-        for (const og of Object.keys(root.groups)) if (root.groups[og] !== st && root.groups[og].on && root.groups[og].leaderTabId === leader.id) await copyShutdown(root.groups[og]);
+        /* Copyright Astral 2026. From Better Vest 9.2.5 (standard), ref bv-725771a8. Not licensed for reuse. */ for (const og of Object.keys(root.groups)) if (root.groups[og] !== st && root.groups[og].on && root.groups[og].leaderTabId === leader.id) await copyShutdown(root.groups[og]);
         const wanted = new Map(req.followers.map((f) => [f.accountId, f]));
-        // followers that are no longer wanted
         const drop = [];
         for (const id of Object.keys(st.followers)) {
             if (wanted.has(id)) continue;
             if (st.followers[id].tabId != null) drop.push(st.followers[id].tabId);
             delete st.followers[id];
         }
-        // adopt the asking tab as the leader; the followers stay in the window they have unless none is left alive
         let anyAlive = false;
         for (const id of Object.keys(st.followers)) if (await copyTabAlive(st.followers[id].tabId)) anyAlive = true;
         st.leaderTabId = leader.id;
@@ -1016,7 +972,7 @@ function copyClose(sender, msg) {
         const st = copyGroup(await copyLoad(), copyGid(msg && msg.g));
         if (st.leaderTabId != null && sender.tab && sender.tab.id !== st.leaderTabId) return { ok: false, error: 'not-leader' };
         await copyShutdown(st);
-        return { ok: true };
+        return { ok: true }; /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-8261fbfd */
     });
 }
 
@@ -1035,8 +991,6 @@ function copyStatusOf(st) {
     };
 }
 
-// Hands each action to the tab of the follower it names, all tabs at once, and returns every result with its timings.
-// Nothing waits for a tab that is not ready: that action fails fast and the reconciler fixes it later.
 async function copyExec(sender, msg) {
     const st = copyGroup(await copyLoad(), copyGid(msg.g));
     if (!st.on) return { ok: false, error: 'off' };
@@ -1050,14 +1004,14 @@ async function copyExec(sender, msg) {
         if (!groups.has(a.accountId)) groups.set(a.accountId, []);
         groups.get(a.accountId).push(i);
     }
-    const bid = typeof msg.bid === 'string' && COPY_ID_RE.test(msg.bid) ? msg.bid : null; // the leader's name for this batch: each tab's result is relayed under it
+    const bid = typeof msg.bid === 'string' && COPY_ID_RE.test(msg.bid) ? msg.bid : null;
     const specs = copySpecsOf(msg.specs);
-    if (Object.keys(specs).length) st.specs = Object.assign(isObj(st.specs) ? st.specs : {}, specs); // kept in memory, saved with the next save
+    if (Object.keys(specs).length) st.specs = Object.assign(isObj(st.specs) ? st.specs : {}, specs);
     const startedAt = Date.now();
     const t0 = performance.now();
     const results = new Array(actions.length);
     const followers = {};
-    const snaps = {}; // each follower tab's own account as it saw it after its actions (the leader trusts it over its own reads)
+    const snaps = {};
     const fail = (idxs, error) => idxs.forEach((i) => { results[i] = { action: actions[i], ok: false, ms: 0, error }; });
     await Promise.all([...groups].map(async ([id, idxs]) => {
         const f = copyFollower(st, id);
@@ -1065,7 +1019,7 @@ async function copyExec(sender, msg) {
         if (f.tabId == null || !f.ready || f.failed) { copyNotifyLeader(st, { op: 'follower-lost', accountId: id, why: 'not-ready' }); return fail(idxs, 'follower-not-ready'); }
         const sent = performance.now();
         const tabId = f.tabId;
-        copyInflight.set(tabId, (copyInflight.get(tabId) || 0) + 1);
+        /* Copyright Astral 2026. From Better Vest 9.2.5 (standard), ref bv-11f96323. Not licensed for reuse. */ copyInflight.set(tabId, (copyInflight.get(tabId) || 0) + 1);
         const limitMs = Math.min(COPY_EXEC_MAX_MS, COPY_EXEC_BASE_MS + COPY_EXEC_PER_MS * idxs.length);
         try {
             const resp = await copyTimeout(chrome.tabs.sendMessage(f.tabId, {
@@ -1080,11 +1034,8 @@ async function copyExec(sender, msg) {
             followers[id] = { sendMs: Math.round((sent - t0) * 10) / 10, rtMs: Math.round((back - sent) * 10) / 10 };
             if (resp && copySnapOk(resp.snap)) snaps[id] = resp.snap;
             copyAlive.set(tabId, Date.now());
-            // this follower's answer goes to the leader now, not with the whole batch: the leader may give up on the batch (a slow tab, a worker that
-            // went away) and would lose the acknowledgements of every tab that did answer
             if (bid && arr) copyNotifyLeader(st, { op: 'follower-result', bid, accountId: id, results: arr, snap: resp && copySnapOk(resp.snap) ? resp.snap : undefined });
         } catch (e) {
-            // no receiver means the tab is reloading or gone: stop sending until it announces itself again, and say so to the leader
             if (!/timeout/.test(copyErr(e))) { copyUnready(st, id, 'send-failed'); copyRecover(st, id, tabId).catch(() => {}); }
             fail(idxs, copyErr(e));
             followers[id] = { sendMs: Math.round((sent - t0) * 10) / 10, rtMs: Math.round((performance.now() - sent) * 10) / 10, error: copyErr(e) };
@@ -1100,9 +1051,8 @@ function copyReady(sender, msg) {
     return copyLock(async () => {
         const root = await copyLoad();
         const hit = sender.tab ? copyGroupOfTab(root, sender.tab.id) : null;
-        const st = hit ? hit[1] : copyBlank();
+        /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-c37ed7e2 */ const st = hit ? hit[1] : copyBlank();
         const f = copyFollower(st, msg.accountId);
-        // only the tab this follower was opened in may announce it
         if (!st.on || !f || !sender.tab || f.tabId !== sender.tab.id) return { ok: false, error: 'unknown-tab' };
         f.ready = true;
         f.readyAt = Date.now();
@@ -1120,13 +1070,11 @@ function copySnapOk(snap) {
     try { return JSON.stringify(snap).length <= COPY_SNAP_BYTES; } catch (e) { return false; }
 }
 
-// A follower tab's own account, passed on to the leader tab as it came. Four a second from each of ten tabs: nothing is saved and nothing
-// waits for the lock (the saved state is read from memory, and only the tab this follower was opened in may speak for it).
 async function copySnap(sender, msg) {
     const root = await copyLoad();
     const hit = sender.tab ? copyGroupOfTab(root, sender.tab.id) : null;
     const st = hit ? hit[1] : copyBlank();
-    const f = st.on ? copyFollower(st, msg.accountId) : null;
+    const f = st.on ? copyFollower(st, msg.accountId) : null; /* @license Better Vest 9.2.5. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-31dc469e */
     if (!f || !sender.tab || f.tabId !== sender.tab.id) return { ok: false, error: 'unknown-tab' };
     if (!copySnapOk(msg.snap)) return { ok: false, error: 'shape' };
     copyAlive.set(sender.tab.id, Date.now());
@@ -1134,7 +1082,6 @@ async function copySnap(sender, msg) {
     return { ok: true };
 }
 
-// A follower tab that closed or crashed gets opened again (at most COPY_REOPEN_MAX times in two minutes).
 async function copyReopen(st, accountId) {
     const f = copyFollower(st, accountId);
     if (!st.on || !f || f.failed) return;
@@ -1154,10 +1101,6 @@ async function copyReopen(st, accountId) {
     await copySave();
 }
 
-// Every 30 s: the tabs match the state, a tab that is gone is opened again, a discarded one is reloaded, a silent one is pinged. The lock is held
-// only for the look at the tabs and for the decision, never across the pings (ten pings in turn held it for up to 30 s, and the follower tabs'
-// own 'follower-ready' needs it). A tab is alive when it pushed a snapshot or answered an exec in the last COPY_ALIVE_MS: only the silent ones are
-// pinged, all at once, and a tab is reloaded only after two missed pings (so 16 s of a busy main thread is forgiven), never with an exec on its way.
 async function copyWatch() {
     const plan = await copyLock(async () => {
         const root = await copyLoad();
@@ -1189,7 +1132,6 @@ async function copyWatch() {
     await Promise.all([
         ...plan.announce.map((tabId) => chrome.tabs.sendMessage(tabId, { type: 'copy', op: 'announce' }).catch(() => {})),
         ...plan.ping.map(async (p) => {
-            // the bridge answers a ping without the page: no answer twice in a row on a finished tab means a crashed or error page
             for (let k = 0; k < 2; k++) {
                 try {
                     await copyTimeout(chrome.tabs.sendMessage(p.tabId, { type: 'copy', op: 'ping' }), COPY_PING_MS);
@@ -1198,7 +1140,7 @@ async function copyWatch() {
                     return;
                 } catch (e) {
                 }
-            }
+            } /*! Copyright (c) 2026 Astral. Better Vest 9.2.5 is licensed to its users only to run it, never to copy it. bv-35685233 */
             quiet.push(p);
         })
     ]);
@@ -1209,7 +1151,6 @@ async function copyWatch() {
             const st = root.groups[p.g];
             if (!st || !st.on) continue;
             const f = copyFollower(st, p.id);
-            // judged again: it may have spoken, been replaced or been given an exec while the pings were out
             if (!f || f.tabId !== p.tabId || copyInflight.has(p.tabId) || Date.now() - (copyAlive.get(p.tabId) || 0) < COPY_ALIVE_MS) continue;
             if (f.ready && Date.now() - (f.readyAt || 0) < COPY_RELOAD_GRACE_MS) continue;
             copyUnready(st, p.id, 'ping');
@@ -1219,8 +1160,6 @@ async function copyWatch() {
     });
 }
 
-// Follower tabs this worker has no record of (the extension was reloaded or updated, the browser restored the tabs): nobody drives
-// them, so they are closed. Runs when the worker starts, after the saved state is back.
 function copySweep() {
     return copyLock(async () => {
         const root = await copyLoad();
@@ -1228,21 +1167,16 @@ function copySweep() {
         try { tabs = await chrome.tabs.query({ url: COPY_ORIGIN + '*' }); } catch (e) { return; }
         const known = new Set();
         for (const g of Object.keys(root.groups)) for (const k of Object.keys(root.groups[g].followers)) known.add(root.groups[g].followers[k].tabId);
-        const st = root.groups.A || copyBlank(); // for the DEV line below
+        const st = root.groups.A || copyBlank();
         const stray = tabs.filter((t) => /[?&]bvCopy=/.test(String(t.url || '')) && !known.has(t.id)).map((t) => t.id);
         if (stray.length) await chrome.tabs.remove(stray).catch(() => {});
     });
 }
 
-// ---------- 8.2: the leader tabs of the copy groups ----------
-// A group whose leader is not the asking tab's account copies from a tab of its own: /trade/<market>?bvLead=<id> (&bvStart=1: start copying
-// once it is pinned to the leader). The page pins its account and keeps itself awake; the worker only opens it, keeps Chrome from freeing it,
-// puts it in the "Better Vest" tab group, remembers it per group (a second ask reuses it) and, for lead-show, brings it to the front. It never
-// closes one: the owner may trade in it.
 const copyLeadUrl = (market, g, start) => `${COPY_ORIGIN}trade/${encodeURIComponent(market)}?bvLead=${g}${start ? '&bvStart=1' : ''}`;
 
 function copyLeadOpen(sender, msg, show) {
-    return copyLock(async () => {
+    return copyLock(async () => { /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-869dca91 */
         const root = await copyLoad();
         const g = copyGid(msg.g);
         const market = typeof msg.market === 'string' && COPY_MARKET_RE.test(msg.market) ? msg.market : 'NQ-PERP';
@@ -1254,7 +1188,6 @@ function copyLeadOpen(sender, msg, show) {
                 if (t && chrome.windows && t.windowId != null) chrome.windows.update(t.windowId, { focused: true }).catch(() => {});
                 return { ok: true, tabId: cur.tabId, opened: false };
             }
-            // it is there but did not answer the start over the page channel (loading, or frozen): it is sent the start in its address
             if (start) chrome.tabs.update(cur.tabId, { url: copyLeadUrl(market, g, true) }).catch(() => {});
             return { ok: true, tabId: cur.tabId, opened: false };
         }
@@ -1270,14 +1203,12 @@ function copyLeadOpen(sender, msg, show) {
             const gid = await chrome.tabs.group(tg ? { groupId: tg.id, tabIds: [tab.id] } : { tabIds: [tab.id], createProperties: { windowId: tab.windowId } });
             root.leadGroup = gid;
             await chrome.tabGroups.update(gid, { title: 'Better Vest', color: 'grey' });
-        } catch (e) { /* the tab works ungrouped too */ }
+        } catch (e) {  }
         await copySave();
         return { ok: true, tabId: tab.id, opened: true };
     });
 }
 
-// The copy trader's log (what it sent): the last 500 entries survive a reload of the page.
-// Entries are plain data the page already scrubbed of anything token-like; only the shape and size are checked here.
 function copyLogSave(msg) {
     if (!Array.isArray(msg.entries)) return Promise.resolve({ ok: false, error: 'shape' });
     let out = msg.entries.slice(-COPY_LOG_MAX).filter((e) => isObj(e) && Number.isFinite(e.t) && typeof e.type === 'string');
@@ -1288,7 +1219,7 @@ function copyLogLoad() {
     return chrome.storage.local.get(COPY_LOG_KEY).then((r) => {
         const v = r && r[COPY_LOG_KEY];
         return { ok: true, entries: Array.isArray(v) ? v.slice(-COPY_LOG_MAX) : [] };
-    });
+    }); /* Better Vest (c) 2026 Astral. All rights reserved. bv-36e32c32 */
 }
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
@@ -1313,11 +1244,10 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 chrome.tabs.onRemoved.addListener((tabId, info) => {
     copyLock(async () => {
         const root = await copyLoad();
-        // a leader tab the copier opened (lead-open) is forgotten
         for (const g of Object.keys(root.leads)) if (root.leads[g] && root.leads[g].tabId === tabId) { delete root.leads[g]; await copySave(); }
         const hit = copyGroupOfTab(root, tabId);
         if (!hit) return;
-        const gk = hit[0], st = hit[1];
+        const gk = hit[0], st = hit[1]; /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-115d07c3 */
         if (!st.on) return;
         if (tabId === st.leaderTabId) { await copyShutdown(st); return; }
         const id = copyIdOf(st, tabId);
@@ -1326,16 +1256,12 @@ chrome.tabs.onRemoved.addListener((tabId, info) => {
         f.tabId = null;
         f.ready = false;
         await copySave();
-        // a closing window takes the leader with it, and that removal shuts everything down
         if (info && info.isWindowClosing) return;
         copyNotifyLeader(st, { op: 'follower-lost', accountId: id });
-        // quick path; if the worker sleeps first, the watch alarm reopens it
         setTimeout(() => copyLock(async () => { await copyReopen(copyGroup(await copyLoad(), gk), id); }).catch(() => {}), 800);
     }).catch(() => {});
 });
 
-// A follower tab that starts loading cannot take actions until its page pins the account and announces itself again. The leader tab
-// loading (a reload) ends copying: a reload never resumes it, so the follower tabs have no one to serve.
 chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
     if (changeInfo.status !== 'loading') return;
     copyLock(async () => {
@@ -1349,17 +1275,11 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
         copyUnready(st, id, 'loading');
         await copySave();
     }).catch(() => {});
-}); // no filter argument: Chrome's tabs.onUpdated takes none (a filter throws and the whole worker fails to register)
+});
 
 chrome.alarms.onAlarm.addListener((a) => { if (a.name === COPY_WATCH_ALARM) copyWatch().catch(() => {}); });
 copySweep().catch(() => {});
 
-// ---------- 9.0 multi-chart: the hidden chart data tabs ----------
-// A Vest tab showing extra charts (src/multichart.js) asks for one hidden Vest tab per market they show: /trade/<market>?bvChart=<market>,
-// opened in the background next to it, never discarded, in a collapsed "Charts" group. That tab's own Vest chart's datafeed feeds the
-// extra charts over a same-origin BroadcastChannel; the suite stands down there. The tabs close with the tab that asked for them, or as
-// soon as it no longer shows that market (it says which it keeps every few seconds). The map lives in chrome.storage.session: this
-// worker sleeps. Up to three markets a tab (four charts, one of them Vest's own).
 const MCH_KEY = 'mchTabs';
 const MCH_RE = /^[A-Z0-9][A-Z0-9-]{0,40}$/;
 let mchQueue = Promise.resolve();
@@ -1389,7 +1309,7 @@ async function mchOpen(opener, market, reload) {
     const all = await mchLoad();
     const key = String(opener.id);
     const mine = isObj(all[key]) ? all[key] : (all[key] = {});
-    const cur = await mchTab(mine[market]);
+    /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-f6a940d6 */ const cur = await mchTab(mine[market]);
     if (mchIsData(cur, market)) {
         if (reload) await chrome.tabs.reload(cur.id).catch(() => {});
         return { ok: true, tabId: cur.id };
@@ -1402,13 +1322,12 @@ async function mchOpen(opener, market, reload) {
     await mchGroup(tab);
     return { ok: true, tabId: tab.id };
 }
-// the markets the tab still shows; every other data tab of it closes
 async function mchKeep(opener, markets) {
     const all = await mchLoad();
     const key = String(opener.id);
     const mine = isObj(all[key]) ? all[key] : {};
     const close = [];
-    for (const m of Object.keys(mine)) if (markets.indexOf(m) < 0) { close.push(mine[m]); delete mine[m]; }
+    for (const m of Object.keys(mine)) if (markets.indexOf(m) < 0) { close.push(mine[m]); delete mine[m]; } /* Better Vest (c) 2026 Astral. All rights reserved. bv-32094636 */
     if (Object.keys(mine).length) all[key] = mine; else delete all[key];
     await mchSave(all);
     for (const id of close) { const t = await mchTab(id); if (t && /[?&]bvChart=/.test(String(t.url || t.pendingUrl || ''))) chrome.tabs.remove(id).catch(() => {}); }
@@ -1416,7 +1335,6 @@ async function mchKeep(opener, markets) {
 }
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (!isObj(msg) || msg.type !== 'mch') return;
-    // only a Vest page tab, never a data tab itself
     if (!fromVestScript(sender) || /[?&]bvChart=/.test(String(sender.tab.url || ''))) { sendResponse({ ok: false, error: 'sender' }); return false; }
     const opener = sender.tab;
     const list = Array.isArray(msg.markets) ? msg.markets.filter((m) => typeof m === 'string' && MCH_RE.test(m)).slice(0, 3) : [];
@@ -1432,13 +1350,11 @@ chrome.tabs.onRemoved.addListener((tabId) => {
         const all = await mchLoad();
         const key = String(tabId);
         let changed = false;
-        // the tab that asked closed: its data tabs go too
         if (isObj(all[key])) {
             for (const id of Object.values(all[key])) { const t = await mchTab(id); if (t && /[?&]bvChart=/.test(String(t.url || t.pendingUrl || ''))) chrome.tabs.remove(id).catch(() => {}); }
             delete all[key];
             changed = true;
         }
-        // a data tab closed (by hand): forgotten; the extra chart's watch asks for it again
         for (const k of Object.keys(all)) for (const [m, id] of Object.entries(all[k] || {})) if (id === tabId) { delete all[k][m]; changed = true; }
         if (changed) await mchSave(all);
     }).catch(() => {});

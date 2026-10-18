@@ -16,7 +16,7 @@ body {
   margin: 0; width: 300px; padding: 12px;
   background: radial-gradient(circle at 50% 0%, #0e172a 0%, var(--bg) 70%);
   color: var(--text); font: 12px/1.35 system-ui, -apple-system, "Segoe UI", sans-serif;
-}
+} /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-fffa6a46 */
 header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
 .name { font-weight: 800; font-size: 14px; letter-spacing: .02em; }
 .by { color: var(--muted); font-size: 11px; }
@@ -53,7 +53,7 @@ button:active { transform: scale(.97); }
 
 .cal { background: linear-gradient(180deg, rgba(56, 189, 248, 0.07), transparent 70%), var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 9px 10px 10px; margin-bottom: 10px; }
 .cal-head { display: flex; justify-content: space-between; align-items: baseline; }
-.cal-label { margin: 0 0 7px; }
+.cal-label { margin: 0 0 7px; } /* @license Better Vest 9.2.5. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-395e434e */
 .cal-sync { color: var(--muted); font-size: 10px; }
 .cal-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 9px; }
 .cal-grid div { display: flex; flex-direction: column; gap: 1px; }
@@ -71,8 +71,6 @@ button.cal-open { display: flex; justify-content: center; align-items: center; g
 .upd-pref { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; color: var(--muted); font-size: 11px; }
 .upd-pref input { accent-color: #2563eb; vertical-align: -2px; }
 
-/* the Better Vest mark (9.0.4): the B breathes, its glow swelling and fading every 3.6 s, while a band of light crosses it along Vest's
-   38.66° angle; the light theme gets the inverted tile. The same as the page script's .ax4p-tile / .ax4p-b. */
 .bv-tile { display: inline-grid; place-items: center; flex: none; width: var(--t); height: var(--t); border-radius: 22%;
     background: #050506; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .1); }
 .bv-b { position: relative; display: inline-block; flex: none; height: calc(var(--t) * .58); width: calc(var(--t) * .58 * 38 / 64);
