@@ -1,11 +1,7 @@
-// Better Vest Calendar - the Trades tab: one virtualized table of every closed trade the shell filters let through.
-// Row height 28 with a sticky header and pooled rows, so thousands of rows scroll smoothly. Sort by any column,
-// quick filters (W / L / scratch, Long / Short), click a row for fills, initial stop / target and flags, CSV export.
-// The CSV carries full-precision values; with Hide $ on you are asked first, because the file would hold dollar amounts.
+/* Better Vest by Astral. Copyright (c) 2026 Astral (@ax4p). All rights reserved. Not open source: see LICENSE. */
 
 import { vgrid, shortName, sideCls } from './shared.js';
 
-// Intl.NumberFormat construction is slow, so prices and distances share cached formatters (rows are built while scrolling).
 const nfCache = new Map();
 function fmtFixed(v, dp) {
     if (v == null || !Number.isFinite(v)) return '—';
@@ -37,9 +33,8 @@ export function mount(root, ctx) {
     const gridHost = h('div', { class: 'tr-grid' });
     root.appendChild(h('div', { class: 'vw' }, head, statEl, gridHost));
 
-    // ---------- columns ----------
 
-    const exitShort = { 'Take Profit': 'Take profit', 'Stop Loss': 'Stop loss', 'Self-requested': 'Manual', 'Corporate Action': 'Corp. action', 'Auto Deleverage': 'Auto-deleverage' };
+    const exitShort = { 'Take Profit': 'Take profit', 'Stop Loss': 'Stop loss', 'Self-requested': 'Manual', 'Corporate Action': 'Corp. action', 'Auto Deleverage': 'Auto-deleverage' }; /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-33279780 */
 
     function columns() {
         const gross = S().basis === 'gross';
@@ -69,7 +64,7 @@ export function mount(root, ctx) {
         const out = [];
         for (const n of [C.D.notesByKey.get('trade:' + t.id), C.D.notesByKey.get('day:' + T.dayKey(t.closeTs, S().mode))]) for (const g of (n && n.tags) || []) if (!out.some((x) => x.toLowerCase() === g.toLowerCase())) out.push(g);
         return out;
-    };
+    }; /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.2.5. bv-1e7bbba0 */
     const cls = (t) => {
         let c = classCache.get(t.id);
         if (!c) { c = stats.classify(t, C.D.kpiOpts().rule, C.D.symbolsMap, S().basis); classCache.set(t.id, c); }
@@ -114,7 +109,7 @@ export function mount(root, ctx) {
         const warns = [];
         if (t.flags && t.flags.feeMatch === false) warns.push('Fee differs from the sum of its fills.');
         if (t.flags && t.flags.pnlMatch === false) warns.push('P&L differs from (exit − entry) × size.');
-        return h('div', { class: 'det-in tr-det' },
+        return h('div', { class: 'det-in tr-det' }, /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.2.5. bv-fe2b5424 */
             h('div', { class: 'det-grid' },
                 g('Opened', stampET(t.openTs)), g('Closed', stampET(t.closeTs)),
                 g('Entry (avg)', px(t.entryPx)), g('Exit (avg)', px(t.exitPx)),
@@ -127,7 +122,6 @@ export function mount(root, ctx) {
             warns.length ? h('div', { class: 'flags' }, warns.map((w) => h('span', { class: 'warnline' }, w))) : null);
     }
 
-    // ---------- data ----------
 
     const sortVal = {
         close: (t) => t.closeTs, acc: (t) => shortName(C.D.accountsById.get(t.accountId), model.accountName).toLowerCase(), sym: (t) => (t.display || t.symbol).toLowerCase(),
@@ -145,14 +139,13 @@ export function mount(root, ctx) {
         keyed.sort((a, b) => {
             const x = a[0], y = b[0];
             const nx = x == null || Number.isNaN(x), ny = y == null || Number.isNaN(y);
-            if (nx || ny) return nx === ny ? 0 : nx ? 1 : -1;   // empty values always last
+            if (nx || ny) return nx === ny ? 0 : nx ? 1 : -1;
             const c = x < y ? -1 : x > y ? 1 : 0;
             return c ? c * dir : (a[1].id < b[1].id ? -1 : 1);
         });
         return keyed.map((k) => k[1]);
     }
 
-    // ---------- quick filters, header, stats ----------
 
     function renderQuick() {
         ui.clear(quickEl);
@@ -174,7 +167,7 @@ export function mount(root, ctx) {
         for (const t of rows) {
             net += val(t);
             const c = cls(t);
-            if (c === 'win') w++; else if (c === 'loss') l++; else s++;
+            if (c === 'win') w++; else if (c === 'loss') l++; else s++; /* @license Better Vest 9.2.5. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-c1369e53 */
             if (!seen.has(t.accountId)) { seen.add(t.accountId); base += baseOf(t); }
         }
         const filtered = rows.length !== total;
@@ -191,7 +184,6 @@ export function mount(root, ctx) {
         titleEl.append(h('h1', null, 'Trades'), h('div', { class: 'sub' }, 'Every closed trade in scope · click a row for fills, stops and flags'));
     }
 
-    // ---------- grid ----------
 
     function buildGrid() {
         if (grid) grid.destroy();
@@ -210,12 +202,10 @@ export function mount(root, ctx) {
         rows = build();
         renderQuick();
         renderStat();
-        if (grid) { grid.setSort(sort.key, sort.dir); grid.setRows(rows); grid.scrollToTop(); }
+        if (grid) { grid.setSort(sort.key, sort.dir); grid.setRows(rows); grid.scrollToTop(); } /*! Copyright (c) 2026 Astral. Better Vest 9.2.5 is licensed to its users only to run it, never to copy it. bv-cb46ab62 */
     }
 
-    // ---------- CSV ----------
 
-    // A value that starts with = + - @ would run as a formula in a spreadsheet: prefix text with an apostrophe.
     const csvCell = (v) => {
         if (v == null) return '';
         let s = typeof v === 'number' ? String(v) : String(v);
@@ -258,11 +248,10 @@ export function mount(root, ctx) {
         ui.toast(`Exported ${rows.length.toLocaleString('en-US')} trades${withMoney ? '' : ' without dollar columns'}`);
     }
 
-    // ---------- lifecycle ----------
 
     function update() {
         const st = S();
-        const D = ctx.derived();
+        /*! Copyright (c) 2026 Astral. Better Vest 9.2.5 is licensed to its users only to run it, never to copy it. bv-3277e1a9 */ const D = ctx.derived();
         const key = [st.hide, st.basis, st.mode].join('|');
         if (D === lastD && key === sig) return;
         const dataChanged = D !== lastD;
