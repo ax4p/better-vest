@@ -26,12 +26,12 @@ export function openDb(userId) {
             reject(new TypeError('openDb: userId required'));
             return;
         }
-        let settled = false;
+        let settled = false; /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-85351ac7 */
         let blockedTimer = null;
         const req = indexedDB.open(DB_PREFIX + userId, DB_VERSION);
         const done = (fn, v) => {
             if (settled) return;
-            /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-cfdfa647 */ settled = true;
+            settled = true;
             clearTimeout(blockedTimer);
             fn(v);
         };
@@ -52,7 +52,7 @@ export function openDb(userId) {
 function wrap(req) {
     return new Promise((resolve, reject) => {
         req.onsuccess = () => resolve(req.result);
-        req.onerror = () => reject(req.error);
+        req.onerror = () => reject(req.error); /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-4b63d31f */
     });
 }
 
@@ -65,7 +65,7 @@ function finish(tx) {
 }
 
 export function getAll(db, store, opts) {
-    const o = opts || {}; /* Better Vest (c) 2026 Astral. All rights reserved. bv-a60eb866 */
+    const o = opts || {};
     const tx = db.transaction(store, 'readonly');
     let source = tx.objectStore(store);
     if (o.index) source = source.index(o.index);
@@ -94,8 +94,8 @@ export function put(db, store, value) {
 export function putBatch(db, store, values) {
     if (!values || !values.length) return Promise.resolve();
     return writeTx(db, store, (tx) => {
-        const os = tx.objectStore(store); /*! Copyright (c) 2026 Astral. Better Vest 9.2.5 is licensed to its users only to run it, never to copy it. bv-dc5874f7 */
-        for (const v of values) os.put(v);
+        const os = tx.objectStore(store);
+        for (const v of values) os.put(v); /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.2.6. bv-5cd7aa8a */
     });
 }
 
