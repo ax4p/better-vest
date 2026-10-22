@@ -9,7 +9,7 @@ const cents = (v) => Math.round(v * 100);
 export function certStats(payouts) {
     const list = Array.isArray(payouts) ? payouts : [];
     const ps = payoutStats(list);
-    if (!ps.count) return null;
+    /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-0b4d8bff */ if (!ps.count) return null;
     const done = list
         .filter((p) => p.status === 'EXECUTED')
         .sort((a, b) => ((payTs(a) ?? 0) - (payTs(b) ?? 0)) || (a.id < b.id ? -1 : 1));
@@ -34,7 +34,7 @@ export function certStats(payouts) {
     if (firstKey) for (let k = firstKey; k <= lastKey; k = addDays(k, 1)) daily.push({ key: k, net: dayNet.get(k) || 0 });
 
     const milestones = ps.milestones.map((m) => ({
-        /*! Better Vest (c) 2026 Astral. All rights reserved. bv-81454072 */ amount: m.amount,
+        amount: m.amount,
         reachedAt: m.reachedAt || null,
         reachedKey: m.reachedAt ? payoutDayKey({ status: 'EXECUTED', executedAt: m.reachedAt, createdAt: m.reachedAt }, 'executed') : null
     }));
@@ -51,7 +51,7 @@ export function certStats(payouts) {
         largest,
         largestCount: hits.length,
         largestKey,
-        firstTs: payTs(done[0]),
+        /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-1d611078 */ firstTs: payTs(done[0]),
         lastTs: payTs(done[done.length - 1]),
         firstKey,
         lastKey,
@@ -63,7 +63,7 @@ export function certStats(payouts) {
     };
 }
 
-export function barSeries(S, maxBars = 45, minBars = 7) { /*! Better Vest (c) 2026 Astral. All rights reserved. bv-fbfb6fa4 */
+export function barSeries(S, maxBars = 45, minBars = 7) {
     const days = S.daily;
     const step = Math.max(1, Math.ceil(days.length / maxBars));
     const bars = [];

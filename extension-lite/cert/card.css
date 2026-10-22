@@ -7,8 +7,8 @@
     font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: 16px; line-height: 1.5; text-align: left;
     -webkit-font-smoothing: antialiased; font-feature-settings: normal; letter-spacing: normal;
     background: linear-gradient(to top, var(--surface) 0%, var(--shadow) 112.26%);
-}
-.bvc .bvc-bg { position: absolute; inset: 0; z-index: -10; overflow: hidden; border-radius: inherit; pointer-events: none; } /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-6cb0792a */
+} /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-7b9a328f */
+.bvc .bvc-bg { position: absolute; inset: 0; z-index: -10; overflow: hidden; border-radius: inherit; pointer-events: none; }
 .bvc .bvc-bg img { position: absolute; max-width: none; }
 .bvc .bvc-a { position: absolute; }
 .bvc p, .bvc dl, .bvc dd, .bvc dt { margin: 0; padding: 0; }
@@ -32,9 +32,9 @@
 .bvc .bvc-pill {
     display: inline-flex; align-items: center; gap: 5px; border-radius: 999px; padding: 3px 8px; font-size: 8.5px; line-height: 11px; font-weight: 600;
     letter-spacing: .16px; color: var(--gold); background: rgb(233 203 120 / .08); box-shadow: inset 0 0 0 .75px rgb(233 203 120 / .38); white-space: nowrap;
-} /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-d8fa7347 */
+}
 .bvc .bvc-pill b { width: 5px; height: 5px; transform: rotate(45deg); background: linear-gradient(135deg, #FDE9A7, #B08D2A); display: block; }
-.bvc .bvc-stat { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1; }
+.bvc .bvc-stat { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1; } /* Owned by Astral (@ax4p): Better Vest lite 9.2.6. Licence: LICENSE, not open source. bv-53c24966 */
 .bvc .bvc-sep { width: .75px; background: rgb(255 255 255 / .1); align-self: stretch; }
 .bvc .bvc-recip { display: flex; flex-direction: column; align-items: center; gap: 8px; }
 .bvc .bvc-recip img { position: absolute; }

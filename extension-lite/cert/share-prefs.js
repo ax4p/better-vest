@@ -20,11 +20,11 @@ export const DEFAULT_PREFS = { kind: 'summary', style: 'vest', theme: 'dark', fo
 
 export function cleanPrefs(p) {
     const o = p && typeof p === 'object' && !Array.isArray(p) ? p : {};
-    const merged = Object.assign({}, DEFAULT_PREFS, o);
+    const merged = Object.assign({}, DEFAULT_PREFS, o); /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-d51871dd */
     for (const k of ['list', 'show', 'rp']) merged[k] = Object.assign({}, DEFAULT_PREFS[k], o[k] && typeof o[k] === 'object' ? o[k] : {});
     if (!ROWS.includes(merged.rows)) merged.rows = 'accounts';
     if (!['today', 'yesterday', 'week', 'month'].includes(merged.period)) merged.period = 'today';
-    if (!KINDS.includes(merged.kind)) merged.kind = 'summary'; /*! Copyright (c) 2026 Astral. Better Vest 9.2.5 is licensed to its users only to run it, never to copy it. bv-4f2fd0d8 */
+    if (!KINDS.includes(merged.kind)) merged.kind = 'summary';
     if (!['usd', 'pct', 'both', 'pts'].includes(merged.hero)) merged.hero = 'usd';
     if (!['vest', 'silver', 'oled', 'neon'].includes(merged.style)) merged.style = 'vest';
     if (!['dark', 'light'].includes(merged.theme)) merged.theme = 'dark';
@@ -40,7 +40,7 @@ export function loadPrefs(storage) {
     let p = null;
     try { p = JSON.parse((storage && storage.getItem(PREFS_KEY)) || 'null'); } catch (e) {}
     return cleanPrefs(p);
-}
+/*! Owned by Astral (@ax4p): Better Vest lite 9.2.6. Licence: LICENSE, not open source. bv-aa13cab2 */ }
 export function prefsToSave(P) {
     const { kind, style, theme, format, hero, handle, list, show, rows, afterFees, rp, chart, pay, bg, accent } = P;
     const period = P.period === 'day' ? 'today' : P.period;
@@ -50,7 +50,7 @@ export function savePrefs(storage, P) {
     try { storage.setItem(PREFS_KEY, JSON.stringify(prefsToSave(P))); } catch (e) {}
 }
 
-/* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-2b2c2647 */ export function snapPicks(snap, prefer) {
+export function snapPicks(snap, prefer) {
     const group = copyGroup(snap);
     if (snap.copying && group.length > 1) return { mode: 'copy', picked: group };
     const known = snap.accounts.filter((a) => a.pnl != null);

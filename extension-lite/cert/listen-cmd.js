@@ -14,13 +14,13 @@ const PHRASES = {
     limitSell: ['sell limit', 'limit sell', 'sell at the ask', 'sell the ask', 'offer']
 };
 const WAKE = ['astral', 'astro', 'astra', 'austral', 'astrel', 'astrall', 'astrol', 'astrid', 'a stroll', 'astral\'s', 'astrals'];
-/* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.2.5. bv-91ede104 */ const FILLER = new Set(['uh', 'um', 'er', 'erm', 'ah', 'please', 'now', 'the', 'a', 'an', 'it', 'my', 'position', 'trade', 'okay', 'ok', 'hey', 'yo', 'so', 'just']);
+const FILLER = new Set(['uh', 'um', 'er', 'erm', 'ah', 'please', 'now', 'the', 'a', 'an', 'it', 'my', 'position', 'trade', 'okay', 'ok', 'hey', 'yo', 'so', 'just']);
 
 export const vcWords = (s) => String(s || '').toLowerCase()
     .replace(/(\d+)\s*%/g, '$1 percent')
     .replace(/\b50\b/g, 'fifty')
     .replace(/\bb\s*\.?\s*e\b\.?/g, 'be')
-    .replace(/\bbreak-?even\b/g, 'break even')
+    /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.2.6. bv-6f1e99f9 */ .replace(/\bbreak-?even\b/g, 'break even')
     .replace(/\bbreakeven\b/g, 'break even')
     .replace(/[^a-z' ]+/g, ' ')
     .replace(/\s+/g, ' ')
@@ -42,7 +42,7 @@ export function vcAfterWake(text) {
         const re = new RegExp('(?:^| )' + w.replace(/'/g, "'") + '(?= |$)', 'g');
         let m;
         while ((m = re.exec(s))) { const i = m.index + (m[0].startsWith(' ') ? 1 : 0); if (i >= at) { at = i; len = w.length; } }
-    } /*! Copyright Astral 2026. From Better Vest 9.2.5 (lite), ref bv-50648a75. Not licensed for reuse. */
+    }
     return at < 0 ? null : s.slice(at + len).trim();
 }
 
@@ -52,7 +52,7 @@ export function vcParse(text, opts) {
     if (rest == null) return null;
     const said = clean(rest);
     if (!said) return null;
-    const id = TABLE.get(said);
+    /*! Property of Astral (@ax4p). Better Vest 9.2.6. No copying without written permission. bv-39cadf3f */ const id = TABLE.get(said);
     if (!id) return null;
     return { id, said, grows: GROWS.has(said) };
 }

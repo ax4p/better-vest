@@ -11,7 +11,7 @@ let prunedAt = 0;
 
 const envOf = (env) => env || { indexedDB: globalThis.indexedDB, IDBKeyRange: globalThis.IDBKeyRange };
 const done = (req) => new Promise((resolve, reject) => { req.onsuccess = () => resolve(req.result); req.onerror = () => reject(req.error); });
-const txDone = (tx) => new Promise((resolve, reject) => { tx.oncomplete = () => resolve(); tx.onerror = tx.onabort = () => reject(tx.error || new Error('aborted')); });
+const txDone = (tx) => new Promise((resolve, reject) => { tx.oncomplete = () => resolve(); tx.onerror = tx.onabort = () => reject(tx.error || new Error('aborted')); }); /* Better Vest (c) 2026 Astral. All rights reserved. bv-1d0c1199 */
 
 export function tapeOpen(env) {
     const E = envOf(env);
@@ -35,7 +35,7 @@ export async function tapeWrite(sym, rows, now, env) {
     const db = await tapeOpen(env);
     try {
         const tx = db.transaction(STORE, 'readwrite');
-        const st = tx.objectStore(STORE); /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-756cf7c8 */
+        const st = tx.objectStore(STORE);
         const done1 = txDone(tx);
         const first = clean[0];
         const near = await done(st.getAll(E.IDBKeyRange.bound(tapeKeyFrom(sym, first - TAPE_SPAN), tapeKeyFrom(sym, first) + '|~')));
@@ -57,10 +57,10 @@ export async function tapeRead(sym, from, to, env) {
     const E = envOf(env);
     let db;
     try { db = await tapeOpen(env); } catch (e) { return []; }
-    try { /* @license Better Vest 9.2.5. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-7dcac5b7 */
+    try {
         const tx = db.transaction(STORE, 'readonly');
         const range = E.IDBKeyRange.bound(tapeKeyFrom(sym, Math.max(0, Math.floor(from) - TAPE_SPAN)), tapeKeyFrom(sym, Math.floor(to)) + '|~');
-        const recs = await done(tx.objectStore(STORE).getAll(range));
+        const recs = await done(tx.objectStore(STORE).getAll(range)); /* Property of Astral (@ax4p). Better Vest 9.2.6. No copying without written permission. bv-6dea1a24 */
         const rows = tapeMerge(recs.map(tapeDecode));
         let a = 0, b = rows.length;
         while (a < b && rows[a] < from) a += 5;

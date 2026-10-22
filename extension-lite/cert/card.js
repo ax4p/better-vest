@@ -17,7 +17,7 @@ const f2 = (n) => (Math.round(n * 100) / 100).toFixed(2);
 export function fmtMoneyParts(v) {
     const cents = Math.round(Math.abs(v) * 100);
     const whole = Math.floor(cents / 100);
-    return {
+    /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-4f7d299e */ return {
         int: (v < 0 ? '-' : '') + '$' + whole.toLocaleString('en-US'),
         cents: String(cents % 100).padStart(2, '0')
     };
@@ -39,7 +39,7 @@ function bars(vals, w, h, gap, uid) {
             return;
         }
         const bh = Math.max(1.5, (f(v) / mx) * (h - 2));
-        /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-94bf8ffc */ out += `<rect x="${x.toFixed(2)}" y="${(h - bh).toFixed(2)}" width="${bw.toFixed(2)}" height="${bh.toFixed(2)}" rx="${Math.min(1.5, bw / 2).toFixed(2)}" fill="url(#bvg-${uid})"/>`;
+        out += `<rect x="${x.toFixed(2)}" y="${(h - bh).toFixed(2)}" width="${bw.toFixed(2)}" height="${bh.toFixed(2)}" rx="${Math.min(1.5, bw / 2).toFixed(2)}" fill="url(#bvg-${uid})"/>`;
     });
     return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><defs><linearGradient id="bvg-${uid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7DF5AB"/><stop offset="1" stop-color="#00F15B" stop-opacity=".35"/></linearGradient></defs>${out}</svg>`;
 }
@@ -103,11 +103,11 @@ export function buildCard(S, opts = {}) {
 }
 
 export function fitCard(card) {
-    const q = (k) => card.querySelector(`[data-k="${k}"]`);
+    const q = (k) => card.querySelector(`[data-k="${k}"]`); /*! Better Vest (c) 2026 Astral. All rights reserved. bv-1c99d1ab */
     const hero = q('hero'), hv = q('hv');
     let size = 82;
     hero.style.fontSize = size + 'px';
-    while (hv.offsetWidth > 352 && size > 30) { size -= 1; hero.style.fontSize = size + 'px'; } /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-70672ac8 */
+    while (hv.offsetWidth > 352 && size > 30) { size -= 1; hero.style.fontSize = size + 'px'; }
     hero.style.letterSpacing = (-3 * size / 82).toFixed(2) + 'px';
     const recip = q('recip'), name = q('name'), nm = q('nm');
     let fs = 24;

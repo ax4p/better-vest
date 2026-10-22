@@ -21,7 +21,7 @@ export function gifReplayPlan(n, fps) {
         if (t <= r.intro) return 0;
         return Math.min(n, Math.round(((t - r.intro) / reveal) * n * 1000) / 1000);
     };
-    /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-8483f390 */ return { fps, frames, intro: r.intro, reveal, hold: r.hold, total, pAt };
+    return { fps, frames, intro: r.intro, reveal, hold: r.hold, total, pAt };
 }
 
 export const GIF_SPEEDS = ['fit', '10', '30', '60'];
@@ -37,7 +37,7 @@ export function gifSpeedPlan(n, resS, speed, fps, wins) {
     if (len(0, n) > room) {
         const w = ws.find((x) => len(x.a, x.b) <= room);
         if (!w) {
-            const z = ws[ws.length - 1];
+            /*! Copyright Astral 2026. From Better Vest 9.2.6 (lite), ref bv-6cde70ef. Not licensed for reuse. */ const z = ws[ws.length - 1];
             return { speed: String(k), ok: false, need: r.intro + len(z ? z.a : 0, z ? z.b : n) + r.hold, a: z ? z.a : 0, b: z ? z.b : n, window: z ? z.kind || 'trades' : false };
         }
         a = w.a; b = w.b; window = w.kind || 'trades';
@@ -61,13 +61,13 @@ export function gifTradeWindows(bars, resS, trades) {
     const lastT = list.length > 1 ? list.reduce((x, y) => (end(y) > end(x) ? y : x)) : null;
     const last = lastT ? gifTradeWindow(bars, resS, [lastT]) : null;
     if (last && !(all && Math.abs(last.a - all.a) < 1e-9 && Math.abs(last.b - all.b) < 1e-9)) out.push(Object.assign({ kind: 'last' }, last));
-    return out; /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-aeb7c3e9 */
+    return out;
 }
 export const GIF_WIN = { lead: 60, tail: 30 };
 export function gifTradeWindow(bars, resS, trades) {
     const ts = [];
     for (const t of trades || []) for (const f of (t && t.fills) || []) if (f && f.t > 0) ts.push(f.t / 1000);
-    if (!ts.length || !bars || !bars.length) return null;
+    if (!ts.length || !bars || !bars.length) return null; /*! Property of Astral (@ax4p). Better Vest 9.2.6. No copying without written permission. bv-08abe4cf */
     const pOf = (s) => {
         if (s < bars[0][0]) return 0;
         let a = 0, b = bars.length - 1;
@@ -115,8 +115,8 @@ export async function makeGif(o) {
             if (o.img && o.img.animated) {
                 const used = [];
                 const seen = new Set();
-                for (const p of plan) if (!seen.has(p.bg)) { seen.add(p.bg); used.push(p.bg); }
-                at = 0.15; /*! Copyright Astral 2026. From Better Vest 9.2.5 (lite), ref bv-b620bd3d. Not licensed for reuse. */
+                for (const p of plan) if (!seen.has(p.bg)) { seen.add(p.bg); used.push(p.bg); } /*! Copyright (c) 2026 Astral. Better Vest 9.2.6 is licensed to its users only to run it, never to copy it. bv-ffcfcffd */
+                at = 0.15;
                 frames = await bgFrames(o.img, { used, at: (k) => plan[k].bg }, W, H, scale, o.bg, g.base, (f) => tell(f * at, 'picture'), { cancelled: stop });
                 bg = { at: frames.at };
             } else if (o.img) bg = { still: bgStill(o.img, W, H, scale, o.bg, g.base) };
@@ -156,14 +156,14 @@ export async function makeGif(o) {
             const px = pixels(k);
             await call({ type: 'sample', buf: px.buffer, step, offset: i }, [px.buffer]);
             tell(at + ((i + 1) / pick.length) * span1, 'colours');
-        /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-ba7d60c0 */ }
+        }
         halt();
         const pal = await call({ type: 'palette', animated, dither: o.dither !== false });
         const from = at + span1;
 
         const inflight = [];
         for (let k = 0; k < plan.length; k++) {
-            halt();
+            /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-a31228da */ halt();
             const px = pixels(k);
             inflight.push(call({ type: 'frame', buf: px.buffer, delay: plan[k].delay }, [px.buffer]));
             if (inflight.length >= 2) await inflight.shift();

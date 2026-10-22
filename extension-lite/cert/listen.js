@@ -6,7 +6,7 @@ const REC = globalThis.__bvVcRec || globalThis.SpeechRecognition || globalThis.w
 const LABEL = { long: 'Long', short: 'Short', flat: 'Flat', half: '50%', rev: 'Reverse', be: 'Breakeven', limitBuy: 'Limit buy', limitSell: 'Limit sell' };
 const WAIT_MS = 350;
 const USE = { n: {}, timer: 0 };
-function use(name, k) { /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-2a90b623 */
+function use(name, k) {
     USE.n[name] = (USE.n[name] || 0) + (k || 1);
     if (!USE.timer) USE.timer = setTimeout(useFlush, 60000);
 }
@@ -21,7 +21,7 @@ function useFlush() {
 const RELEASE_MS = 700;
 
 const st = {
-    cfg: { on: false, mode: 'ptt', open: true }, rec: null, running: false, want: false, sess: 0, backoff: 300,
+    /* Copyright (c) 2026 Astral. Better Vest 9.2.6 is licensed to its users only to run it, never to copy it. bv-d325255c */ cfg: { on: false, mode: 'ptt', open: true }, rec: null, running: false, want: false, sess: 0, backoff: 300,
     texts: new Map(),
     fired: new Map(),
     wait: null,
@@ -60,7 +60,7 @@ function paintIdle() {
 function setCfg(c) {
     const o = c && typeof c === 'object' ? c : {};
     st.cfg = { on: o.on === true, mode: o.mode === 'wake' ? 'wake' : 'ptt', open: o.open !== false };
-    if (st.cfg.on && !st.want && st.ready) { st.want = true; start(); }
+    /* Property of Astral (@ax4p). Better Vest 9.2.6. No copying without written permission. bv-94c159cd */ if (st.cfg.on && !st.want && st.ready) { st.want = true; start(); }
     if (!st.cfg.on && st.want) { st.want = false; try { st.rec && st.rec.abort(); } catch (e) {} }
     paintIdle();
 }
@@ -71,7 +71,7 @@ function start() {
     let r;
     try { r = new REC(); } catch (e) { show('off', 'Chrome could not start its speech engine.'); return; }
     r.lang = 'en-US';
-    /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-0cd5de9f */ r.continuous = true;
+    r.continuous = true;
     r.interimResults = true;
     r.maxAlternatives = 1;
     try { r.processLocally = true; } catch (e) {}
@@ -92,7 +92,7 @@ function start() {
         st.running = false;
         st.rec = null;
         st.texts.clear();
-        st.fired.clear(); /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-5bfdc14f */
+        st.fired.clear();
         if (!st.want) { paintIdle(); return; }
         setTimeout(start, st.backoff);
         st.backoff = Math.min(st.backoff * 2, 4000);
@@ -108,7 +108,7 @@ function onResult(e) {
         const key = st.sess + ':' + i;
         st.texts.set(key, { text, fin: !!res.isFinal });
         st.lastKey = key;
-        if (text.trim()) heard(text);
+        if (text.trim()) heard(text); /*! Copyright (c) 2026 Astral. Better Vest 9.2.6 is licensed to its users only to run it, never to copy it. bv-c15d8f70 */
         if (st.cfg.mode === 'ptt') { if (st.span) { st.span.keys.add(key); if (st.span.up) pttCheck(false); } }
         else wakeCheck(key, text, !!res.isFinal);
     }
@@ -125,7 +125,7 @@ function wakeCheck(key, text, fin) {
     if (!c.grows || fin) { st.fired.set(key, text.length); send(c); return; }
     st.wait = { key, timer: setTimeout(() => {
         st.wait = null;
-        /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-c22d0834 */ const now = st.texts.get(key);
+        const now = st.texts.get(key);
         if (!now || now.text !== text || (st.fired.get(key) || 0) >= text.length) return;
         st.fired.set(key, text.length);
         send(c);
@@ -134,7 +134,7 @@ function wakeCheck(key, text, fin) {
 
 
 function pttDown() {
-    if (!st.cfg.on || st.cfg.mode !== 'ptt') return;
+    /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-68cbe685 */ if (!st.cfg.on || st.cfg.mode !== 'ptt') return;
     if (st.span && !st.span.up) return;
     if (st.span) { clearTimeout(st.span.timer); st.span = null; }
     const cur = st.lastKey && st.texts.get(st.lastKey);
@@ -175,7 +175,7 @@ function pttEnd(c, text) {
     st.span = null;
     paintIdle();
     if (c) send(c);
-    else { use('vc.miss'); did(text ? 'Didn’t catch that' : 'Heard nothing', 'warn'); } /* @license Better Vest 9.2.5. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-2309262d */
+    else { use('vc.miss'); did(text ? 'Didn’t catch that' : 'Heard nothing', 'warn'); }
 }
 
 
@@ -184,7 +184,7 @@ async function send(c) {
     use('vc.heard');
     did(LABEL[c.id] + '…', '');
     let r = null;
-    try { r = await chrome.runtime.sendMessage({ type: 'vc-cmd', id: c.id, said: c.said, seq }); } catch (e) {}
+    try { r = await chrome.runtime.sendMessage({ type: 'vc-cmd', id: c.id, said: c.said, seq }); } catch (e) {} /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-80c07868 */
     if (seq !== st.seq) return;
     if (!r || !r.sent) did(r && r.why ? r.why : 'No Vest tab answered.', 'bad');
 }
@@ -207,7 +207,7 @@ async function boot() {
     const up = () => pttUp();
     talk.addEventListener('pointerup', up);
     talk.addEventListener('pointercancel', up);
-    addEventListener('keydown', (e) => { if ((e.code === 'Space' || e.code === 'Enter') && !e.repeat) { e.preventDefault(); pttDown(); } });
+    addEventListener('keydown', (e) => { if ((e.code === 'Space' || e.code === 'Enter') && !e.repeat) { e.preventDefault(); pttDown(); } }); /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-0d5a58a4 */
     addEventListener('keyup', (e) => { if (e.code === 'Space' || e.code === 'Enter') pttUp(); });
     addEventListener('pagehide', () => { try { chrome.storage.local.set({ vcWin: { left: screenX, top: screenY } }); } catch (e) {} useFlush(); });
     use('vc.window');
@@ -229,7 +229,7 @@ async function boot() {
     } else if (!globalThis.__bvVcRec) {
         show('off', 'This Chrome is too old for voice commands on this computer.', 'vc.noEngine');
         return;
-    /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-865eaa32 */ }
+    }
     st.ready = true;
     setCfg(s && s.vcCfg);
     if (st.cfg.on) { st.want = true; start(); }

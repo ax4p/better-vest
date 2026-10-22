@@ -29,10 +29,10 @@ export function bgOpts(raw) {
     for (const k of ['color', 'c1', 'c2']) { const c = hexColor(raw[k]); if (c) o[k] = c; }
     o.angle = clampInt(raw.angle, 0, 360, BG_DEFAULTS.angle);
     if (BG_FITS.includes(raw.fit)) o.fit = raw.fit;
-    /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-a9563463 */ o.dim = clampInt(raw.dim, 0, BG_DIM_MAX, BG_DEFAULTS.dim);
+    o.dim = clampInt(raw.dim, 0, BG_DIM_MAX, BG_DEFAULTS.dim);
     o.blur = clampInt(raw.blur, 0, BG_BLUR_MAX, BG_DEFAULTS.blur);
     return o;
-}
+/* Property of Astral (@ax4p). Better Vest 9.2.6. No copying without written permission. bv-9bbd6cd8 */ }
 export const accentOpt = (v) => hexColor(v);
 
 export function bgFileWhy(f) {
@@ -66,7 +66,7 @@ export function lookParts(p, img, red) {
             const pad = bg.blur * 2;
             const st = bg.blur ? ` style="left:-${pad}px;top:-${pad}px;width:calc(100% + ${pad * 2}px);height:calc(100% + ${pad * 2}px);filter:blur(${bg.blur}px)"` : '';
             own = `<div class="bgx bgo bgim"><img class="bgi${bg.fit === 'fit' ? ' bgf' : ''}" src="${src}" alt=""${st}><i class="bgd" style="opacity:${(bg.dim / 100).toFixed(2)}"></i></div>`;
-        } /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-66ffda43 */
+        }
     }
     if (own) { cls += ' own'; layer = own; }
     return { cls, style, layer, bg, accent: acc, image: bg.kind === 'image' && layer === own };
@@ -85,7 +85,7 @@ export function bgFramePlan(durations, o) {
         if (ms < min) ms = Math.ceil(min / loopMs) * loopMs;
         ms = Math.min(ms, max);
         frames = Math.max(1, Math.round((ms / 1000) * fps));
-    }
+    } /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-f17f105b */
     const starts = [];
     let acc = 0;
     for (const x of d) { starts.push(acc); acc += x; }
