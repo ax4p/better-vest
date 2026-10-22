@@ -7,7 +7,7 @@ export const TAPE_DB = 'bv-tape';
 const STORE = 'chunks';
 const SYM_RE = /^[A-Z0-9][A-Z0-9._-]{0,40}$/;
 const PRUNE_EVERY_MS = 6 * 3600e3;
-/*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-a72ad5f3 */ let prunedAt = 0;
+let prunedAt = 0;
 
 const envOf = (env) => env || { indexedDB: globalThis.indexedDB, IDBKeyRange: globalThis.IDBKeyRange };
 const done = (req) => new Promise((resolve, reject) => { req.onsuccess = () => resolve(req.result); req.onerror = () => reject(req.error); });
@@ -15,7 +15,7 @@ const txDone = (tx) => new Promise((resolve, reject) => { tx.oncomplete = () => 
 
 export function tapeOpen(env) {
     const E = envOf(env);
-    return new Promise((resolve, reject) => {
+    /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-6dbb9dc6 */ return new Promise((resolve, reject) => {
         const req = E.indexedDB.open(TAPE_DB, 1);
         req.onupgradeneeded = () => {
             const db = req.result;
@@ -55,11 +55,11 @@ export async function tapeWrite(sym, rows, now, env) {
 export async function tapeRead(sym, from, to, env) {
     if (typeof sym !== 'string' || !SYM_RE.test(sym) || !(to >= from)) return [];
     const E = envOf(env);
-    let db;
+    let db; /*! Copyright (c) 2026 Astral. Better Vest 9.2.6 is licensed to its users only to run it, never to copy it. bv-9b4503e5 */
     try { db = await tapeOpen(env); } catch (e) { return []; }
     try {
         const tx = db.transaction(STORE, 'readonly');
-        /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-f6bda50f */ const range = E.IDBKeyRange.bound(tapeKeyFrom(sym, Math.max(0, Math.floor(from) - TAPE_SPAN)), tapeKeyFrom(sym, Math.floor(to)) + '|~');
+        const range = E.IDBKeyRange.bound(tapeKeyFrom(sym, Math.max(0, Math.floor(from) - TAPE_SPAN)), tapeKeyFrom(sym, Math.floor(to)) + '|~');
         const recs = await done(tx.objectStore(STORE).getAll(range));
         const rows = tapeMerge(recs.map(tapeDecode));
         let a = 0, b = rows.length;

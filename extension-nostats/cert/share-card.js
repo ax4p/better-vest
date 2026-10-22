@@ -16,7 +16,7 @@ const pct = (v) => (v < 0 ? '−' : '+') + Math.abs(v).toFixed(2) + '%';
 const cls = (v) => (v > 0 ? 'up' : v < 0 ? 'dn' : '');
 export function fmtPts(v, unit = true) {
     const a = Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
-    /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-0a66e65b */ return (v < 0 ? '−' : '+') + a + (unit ? ' pt' : '');
+    return (v < 0 ? '−' : '+') + a + (unit ? ' pt' : '');
 }
 function ptsSum(list) {
     let s = 0;
@@ -28,7 +28,7 @@ const bigPts = (v) => { const m = fmtPts(v, false); const i = m.indexOf('.'); re
 const MKT_NAMES = { NQ: 'Nasdaq 100', ES: 'S&P 500', BTC: 'Bitcoin', ETH: 'Ethereum', SOL: 'Solana', XAU: 'Gold', MNQ: 'Micro Nasdaq' };
 const MKT_COLORS = ['#2463EB', '#7C3AED', '#D97706', '#0D9488', '#DB2777', '#0891B2', '#65A30D'];
 const mktColor = (k) => MKT_COLORS[[...String(k)].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7) % MKT_COLORS.length];
-const PERIOD_CHIP = { today: 'Today', yesterday: 'Yesterday', week: 'This week', month: 'This month' };
+const PERIOD_CHIP = { today: 'Today', yesterday: 'Yesterday', week: 'This week', month: 'This month' }; /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-54e32d1c */
 const etHm = (ms) => { try { return new Intl.DateTimeFormat('en-GB', { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(ms)); } catch (e) { return ''; } };
 export function cardHtml(snap, p, maxRows, M) {
     const R = M || cardRows(snap, { mode: p.mode, picked: p.picked, greenOnly: !!(p.list && p.list.green) });
@@ -55,7 +55,7 @@ export function cardHtml(snap, p, maxRows, M) {
     }
     const pts = p.hero === 'pts' && M ? M.ptsTotal : null;
     const ptsOn = p.hero === 'pts' && !!M;
-    /* Owned by Astral (@ax4p): Better Vest nostats 9.2.5. Licence: LICENSE, not open source. bv-634445f8 */ const heroTxt = pts != null ? bigPts(pts) : p.hero === 'pct' && R.ret != null ? pct(R.ret) : big(total);
+    const heroTxt = pts != null ? bigPts(pts) : p.hero === 'pct' && R.ret != null ? pct(R.ret) : big(total);
     const heroPct = p.hero === 'both' && R.ret != null ? `<span class="hpct">${pct(R.ret)}</span>` : '';
     const byMkt = ptsOn && M.ptsMixed ? (M.ptsByMarket || []) : [];
     const mixTxt = byMkt.slice(0, 3).map((x) => `<span class="${x.pts != null ? cls(x.pts) : ''}">${esc(x.market)} ${x.pts != null ? fmtPts(x.pts) : '–'}</span>`).join(' · ') + (byMkt.length > 3 ? ` · +${byMkt.length - 3} more` : '');
@@ -65,7 +65,7 @@ export function cardHtml(snap, p, maxRows, M) {
     let panel = '';
     if (listed) {
         const max = n <= maxRows ? n : Math.max(1, maxRows - 1);
-        const green = p.list.green;
+        /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-34504cc7 */ const green = p.list.green;
         const title = kind === 'markets' ? (green ? 'Green markets' : 'All markets') : kind === 'groups' ? (green ? 'Green copy groups' : 'Copy groups')
             : kind === 'trades' ? (green ? 'Green trades' : 'Trades') : kind === 'sessions' ? 'Sessions'
             : copy ? (green ? 'Green copy traded accounts' : 'All copy traded accounts') : (green ? 'Green accounts' : 'Accounts');
@@ -97,7 +97,7 @@ export function cardHtml(snap, p, maxRows, M) {
         if (show.winrate && st.winRate != null) bits.push(`<b>${Math.round(st.winRate * 100)}%</b> won`);
         if (show.best && st.best != null) bits.push(`best <b class="${cls(st.best)}">${money(st.best)}</b>`);
         if (show.worst && st.worst != null) bits.push(`biggest loss <b class="${cls(st.worst)}">${money(st.worst)}</b>`);
-        if (show.fees) bits.push(`fees <b>${money(st.fees, false)}</b>`); /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-8a12de81 */
+        if (show.fees) bits.push(`fees <b>${money(st.fees, false)}</b>`);
         if (bits.length) extras = `<div class="xs">${bits.join(' · ')}</div>`;
     }
     const badge = copy ? '<span class="badge"><i></i>Copy trading</span>' : '';
@@ -105,7 +105,7 @@ export function cardHtml(snap, p, maxRows, M) {
     const dayTxt = range && range.label ? range.label : dayLong(snap.day);
     const date = show.date && snap.day ? `<span class="date">${esc(dayTxt)}</span>` : '';
     const name = show.handle && String(p.handle || '').trim() ? `<div class="handle">${esc(String(p.handle).trim().slice(0, 32))}</div>` : '<div></div>';
-    const credit = show.credit ? '<div class="credit">Made with Better Vest by Astral</div>' : '';
+    /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-e5d9b7ac */ const credit = show.credit ? '<div class="credit">Made with Better Vest by Astral</div>' : '';
     const foot = name !== '<div></div>' || credit ? `<div class="ft">${name}${credit}</div>` : '';
     const lbl0 = copy || kind === 'groups' ? 'Total profit' : range ? esc(range.heroLbl) : 'Day P&amp;L';
     const lbl = pts != null ? (copy || kind === 'groups' ? 'Total points' : lbl0.replace('P&amp;L', 'points')) + (M.ptsMarket ? ' · ' + esc(M.ptsMarket) : '') : lbl0;
@@ -151,10 +151,10 @@ export function payoutHtml(PM, p, maxRows, o) {
     const date = show.date && dateTxt ? `<span class="date">${esc(dateTxt)}</span>` : '';
     const s = (n) => (n === 1 ? '' : 's');
     const lbl = life ? 'Total payouts' : PM.count > 1 ? `${PM.count} payouts received` : 'Payout received';
-    let sub; /* Copyright Astral 2026. From Better Vest 9.2.5 (nostats), ref bv-ef08fe56. Not licensed for reuse. */
+    let sub;
     if (life) sub = `<b>${PM.count}</b> payout${s(PM.count)} from <b>${PM.accounts}</b> funded account${s(PM.accounts)}`;
     else if (PM.count === 1) sub = (show.accounts ? `<b>${mk(items[0].name)}</b> · ` : '') + `${esc(etHm(items[0].at))} ET`;
-    else sub = `From <b>${PM.accounts}</b> funded account${s(PM.accounts)}`;
+    else sub = `From <b>${PM.accounts}</b> funded account${s(PM.accounts)}`; /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-79a89421 */
     const hero = `<div class="hero"><div class="lbl">${lbl}</div>`
         + `<div class="amt ${style === 'vest' || style === 'oled' ? 'up' : ''}" style="font-size:${heroPx}px">${big(PM.total).replace(/^\+/, '')}</div>`
         + `<div class="sub">${sub}</div><div class="rule"></div></div>`;
@@ -196,13 +196,13 @@ const AXIS_W = 64, TIME_H = 22, TOP = 8;
 export const CHART_DEFAULTS = { colors: 'vest', up: '', down: '', type: 'candles', tf: 0, grid: true, price: true, time: true, zones: true, lines: true, marks: 'arrows', volume: false };
 export const CHART_TYPES = ['candles', 'hollow', 'bars', 'line', 'area', 'ha'];
 export const CHART_MARKS = ['arrows', 'dots', 'off'];
-export const CHART_PRESETS = { classic: ['#26a69a', '#ef5350'], mono: ['var(--k-text)', 'var(--k-dim)'], neon: ['#00f15b', '#ff2e63'], bo: ['#2962ff', '#ff9800'] };
+export const CHART_PRESETS = { classic: ['#26a69a', '#ef5350'], mono: ['var(--k-text)', 'var(--k-dim)'], neon: ['#00f15b', '#ff2e63'], bo: ['#2962ff', '#ff9800'] }; /*! Copyright Astral 2026. From Better Vest 9.2.6 (nostats), ref bv-bfa9533c. Not licensed for reuse. */
 export function chartOpts(c) {
     const o = Object.assign({}, CHART_DEFAULTS);
     if (!c || typeof c !== 'object') return o;
     if (['vest', 'classic', 'mono', 'neon', 'bo', 'mine', 'custom'].includes(c.colors)) o.colors = c.colors;
     o.up = cleanColor(c.up); o.down = cleanColor(c.down);
-    if (CHART_TYPES.includes(c.type)) o.type = c.type; /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-124920d8 */
+    if (CHART_TYPES.includes(c.type)) o.type = c.type;
     const tf = Math.round(Number(c.tf));
     o.tf = tf >= 1 && tf <= 1440 ? tf : 0;
     for (const k of ['grid', 'price', 'time', 'zones', 'lines', 'volume']) if (typeof c[k] === 'boolean') o[k] = c[k];
@@ -235,13 +235,13 @@ export function replayScene(M, w, h, o) {
     const axisW = ch.price ? AXIS_W : 0, timeH = ch.time ? TIME_H : 6;
     const PANE = opt.pnl ? Math.max(46, Math.round(h * 0.17)) : 0;
     const box = { x: 0, y: TOP, w: w - axisW, h: h - TOP - timeH - (PANE ? PANE + 8 : 0) };
-    const VOL = ch.volume && M.bars.every((b) => b.length > 5) ? Math.max(24, Math.round(box.h * 0.16)) : 0; /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-78fa9ebe */
+    const VOL = ch.volume && M.bars.every((b) => b.length > 5) ? Math.max(24, Math.round(box.h * 0.16)) : 0;
     if (VOL) box.h -= VOL + 4;
     const fillPx = [];
     for (const t of M.trades) for (const f of t.fills) fillPx.push(f.px);
     const drawn = ch.type === 'ha' ? heikinAshi(M.bars) : M.bars;
     const G = replayGeom(drawn, box, fillPx);
-    const grid = [], bands = [], candles = [], zones = [], marks = [], tags = [], pane = [], last = [];
+    const grid = [], bands = [], candles = [], zones = [], marks = [], tags = [], pane = [], last = []; /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-f7e544bc */
     const it = (list, svg, step, d, at) => list.push(at != null ? { svg, step, d, at } : { svg, step, d });
     const step = niceStep(G.hi - G.lo, 5);
     const lastY = G.yOf(M.bars[M.bars.length - 1][4]);
@@ -272,12 +272,12 @@ export function replayScene(M, w, h, o) {
         const runs = [];
         M.bars.forEach((b, i) => { const s = sessionOf(b[0] * 1000); if (!run || run.s !== s) { run = { s, a: i, b: i }; runs.push(run); } else run.b = i; });
         runs.forEach((r, k) => {
-            const x1 = G.xOfIdx(r.a) - G.slot / 2, x2 = G.xOfIdx(r.b) + G.slot / 2;
+            const x1 = G.xOfIdx(r.a) - G.slot / 2, x2 = G.xOfIdx(r.b) + G.slot / 2; /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-16f19d3f */
             const name = ((SESSIONS.find((s) => s.id === r.s) || {}).name || '').toUpperCase();
             if (k % 2 === 0) it(bands, `<rect class="ss" x="${f2(x1)}" y="${f2(box.y)}" width="${f2(x2 - x1)}" height="${f2(box.h)}"/>`, -1, { t: 'rect', c: 'ss', x: x1, y: box.y, w: x2 - x1, h: box.h });
             if (x2 - x1 >= 46) it(bands, `<text class="sl" x="${f2(x1 + 5)}" y="${f2(box.y + 11)}">${esc(name)}</text>`, -1, { t: 'text', c: 'sl', x: x1 + 5, y: box.y + 11, s: name });
         });
-    /*! Better Vest (c) 2026 Astral. All rights reserved. bv-cdf2f9da */ }
+    }
     const bw = Math.max(1, G.slot * 0.62);
     const border = !!opt.border && (ch.type === 'candles' || ch.type === 'ha');
     if (ch.type === 'line' || ch.type === 'area') {
@@ -310,10 +310,10 @@ export function replayScene(M, w, h, o) {
         const bc = (up ? 'cu' : 'cd') + (hollow ? ' ch' : border ? ' cb' : '');
         const body = { t: 'rect', c: bc, x: x - bw / 2, y: top, w: bw, h: Math.max(1, bot - top) };
         const bodySvg = `<rect class="${bc}" x="${f2(x - bw / 2)}" y="${f2(top)}" width="${f2(bw)}" height="${f2(Math.max(1, bot - top))}"/>`;
-        /*! Copyright (c) 2026 Astral. Better Vest 9.2.5 is licensed to its users only to run it, never to copy it. bv-03a61a74 */ if (hollow) {
+        if (hollow) {
             const w1 = { t: 'line', c: 'wu', x1: x, x2: x, y1: wy1, y2: top }, w2 = { t: 'line', c: 'wu', x1: x, x2: x, y1: top + Math.max(1, bot - top), y2: wy2 };
             const ln = (q) => `<line class="wu" x1="${f2(q.x1)}" x2="${f2(q.x2)}" y1="${f2(q.y1)}" y2="${f2(q.y2)}"/>`;
-            it(candles, ln(w1) + ln(w2) + bodySvg, i, { t: 'group', parts: [w1, w2, body] });
+            /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-7cbed34e */ it(candles, ln(w1) + ln(w2) + bodySvg, i, { t: 'group', parts: [w1, w2, body] });
             return;
         }
         it(candles, `<line class="${up ? 'wu' : 'wd'}" x1="${f2(x)}" x2="${f2(x)}" y1="${f2(wy1)}" y2="${f2(wy2)}"/>` + bodySvg, i,
@@ -349,7 +349,7 @@ export function replayScene(M, w, h, o) {
         const x2 = t.open ? box.w : G.xOf(t.fills[t.fills.length - 1].t);
         const yEnd = t.open ? y1 : G.yOf(outs.length ? outs[outs.length - 1].px : t.exitPx);
         const zA = G.yOf(t.entryPx != null ? t.entryPx : ins[0].px), zB = t.open ? G.yOf(lastBar[4]) : G.yOf(t.exitPx != null ? t.exitPx : outs[outs.length - 1].px);
-        const sIn = stepOf(t.fills[0].t), sOut = t.open ? sIn : stepOf(t.fills[t.fills.length - 1].t);
+        const sIn = stepOf(t.fills[0].t), sOut = t.open ? sIn : stepOf(t.fills[t.fills.length - 1].t); /* Copyright (c) 2026 Astral. Better Vest 9.2.6 is licensed to its users only to run it, never to copy it. bv-4a94ce7a */
         const zc = t.open ? 'zo' : win ? 'zw' : 'zl';
         const zx = Math.min(x1, x2), zy = Math.min(zA, zB), zw = Math.max(1, Math.abs(x2 - x1)), zh = Math.max(1, Math.abs(zB - zA));
         const isBest = best === t;
@@ -369,7 +369,7 @@ export function replayScene(M, w, h, o) {
         if (opt.prices) {
             const fIn = t.fills[0], fOut = t.open ? null : t.fills[t.fills.length - 1];
             for (const f of [fIn, fOut]) {
-                /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-9062f61c */ if (!f) continue;
+                if (!f) continue;
                 const x = G.xOf(f.t) + 8, y = G.yOf(f.px) + (f.entry ? (t.side === 'long' ? 12 : -6) : 3.5);
                 const s = priceTxt(f.px);
                 it(marks, `<text class="px" x="${f2(x)}" y="${f2(y)}">${s}</text>`, stepOf(f.t), { t: 'text', c: 'px', x, y, s }, f.t);
@@ -402,7 +402,7 @@ export function replayScene(M, w, h, o) {
         const y0 = box.y + box.h + 8, y1 = y0 + PANE;
         const seq = closed.slice().sort((a, b) => a.closeT - b.closeT);
         let run = 0, lo = 0, hi = 0;
-        /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-19f1253c */ const pts = seq.map((t) => { run += t.net; lo = Math.min(lo, run); hi = Math.max(hi, run); return { t, v: run }; });
+        const pts = seq.map((t) => { run += t.net; lo = Math.min(lo, run); hi = Math.max(hi, run); return { t, v: run }; });
         const span = (hi - lo) || 1;
         const Y = (v) => y1 - 6 - ((v - lo) / span) * (PANE - 16);
         const zy = Y(0);
@@ -415,7 +415,7 @@ export function replayScene(M, w, h, o) {
             it(pane, `<path class="pn ${p.v >= 0 ? 'pnu' : 'pnd'}" d="${d}"/>`, stepOf(p.t.closeT), { t: 'path', c: 'pn ' + (p.v >= 0 ? 'pnu' : 'pnd'), d }, p.t.closeT);
             px = x; py = y;
         }
-        if (pts.length) {
+        if (pts.length) { /* @license Better Vest 9.2.6. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-10d4fb48 */
             const fin = pts[pts.length - 1].v;
             const s0 = stepOf(pts[pts.length - 1].t.closeT), at0 = pts[pts.length - 1].t.closeT;
             it(pane, `<path class="pn ${fin >= 0 ? 'pnu' : 'pnd'}" d="M${f2(px)} ${f2(py)}H${f2(box.w)}"/>`, s0, { t: 'path', c: 'pn ' + (fin >= 0 ? 'pnu' : 'pnd'), d: `M${f2(px)} ${f2(py)}H${f2(box.w)}` }, at0);
@@ -446,7 +446,7 @@ export function replayHtml(snap, p) {
     const M = RT && !RT.err ? replayModel(RT, p.rsel) : null;
     if (!M) return { html: '', n: 0, err: (R && R.err) || 'none' };
     const f = REPLAY_CHART[p.format] ? p.format : 'feed';
-    const show = p.show || {};
+    const show = p.show || {}; /* Better Vest (c) 2026 Astral. All rights reserved. bv-f911be36 */
     const acc = (snap.accounts || []).find((a) => a.id === R.accountId);
     const accName = acc ? (p.list && p.list.mask ? maskName(acc.name) : acc.name) : '';
     const style = ['vest', 'silver', 'oled', 'neon'].includes(p.style) ? p.style : 'vest';
@@ -457,7 +457,7 @@ export function replayHtml(snap, p) {
     const tf = tfLabel(M.res);
     const sample = snap.demo || M.sample ? '<span class="badge sample">Sample</span>' : '';
     const chip = show.market && mkt ? `<span class="badge rp-mkt">${esc(mkt)} · ${tf}</span>` : `<span class="badge rp-mkt">${tf}</span>`;
-    /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-ce7c0bbe */ const day = M.day || snap.day;
+    const day = M.day || snap.day;
     const date = show.date && day ? `<span class="date">${esc(dayLong(day))}</span>` : '';
     const counts = M.n + ' trade' + (M.n === 1 ? '' : 's') + ' · ' + M.wins + ' won' + (M.open ? ' · ' + M.open + ' open' : '');
     const G = replayGroup(snap, R, M, p.rpAcc, mkt);
@@ -486,7 +486,7 @@ export function replayHtml(snap, p) {
     const html = `<div class="card ${f} rp s-${style}${p.theme === 'light' ? ' light' : ''}${heroVal < 0 ? ' red' : ''}${L.cls}"${vars ? ` style="${vars}"` : ''}>${L.layer}<div class="in">`
         + `<div class="hd"><span class="vest" style="width:${vestW}px">${VEST_SVG}</span><div class="chips">${sample}${chip}${date}</div></div>`
         + hero + `<div class="rp-chart" style="width:${cw}px;height:${chh}px">${svg}</div>`
-        + `<div class="ft"><div class="rp-left">${name}${legend}</div>${credit}</div></div></div>`; /*! Better Vest (c) 2026 Astral. All rights reserved. bv-f4ffd3ae */
+        + `<div class="ft"><div class="rp-left">${name}${legend}</div>${credit}</div></div></div>`;
     return { html, n: M.n + M.open, err: '', scene, M, group: G, chart: ch };
 }
 
@@ -499,7 +499,7 @@ export function replayGroup(snap, R, M, gid, mkt) {
     const resMs = (Number(M.res) || 1) * 60000;
     const lo = M.bars[0][0] * 1000, hi = M.bars[M.bars.length - 1][0] * 1000 + resMs;
     const others = todayTrades(snap).filter((t) => ids.has(t.accountId) && t.accountId !== R.accountId && canon(mktName(t.symbol)) === canon(mkt) && t.closeTs >= lo && t.closeTs < hi);
-    const mine = ids.has(R.accountId);
+    const mine = ids.has(R.accountId); /* @license Better Vest 9.2.6. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-63bfa981 */
     const net = Math.round(((mine ? M.net : 0) + others.reduce((s, t) => s + t.net, 0)) * 100) / 100;
     const accts = new Set(others.map((t) => t.accountId));
     if (mine) accts.add(R.accountId);

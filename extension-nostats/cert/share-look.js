@@ -12,7 +12,7 @@ export const BG_VIDEO_FPS = 30;
 
 export function hexColor(v) {
     const t = typeof v === 'string' ? v.trim().toLowerCase() : '';
-    /* Property of Astral (@ax4p). Better Vest 9.2.5. No copying without written permission. bv-eeef0d41 */ if (/^#[0-9a-f]{6}$/.test(t)) return t;
+    if (/^#[0-9a-f]{6}$/.test(t)) return t;
     if (/^#[0-9a-f]{3}$/.test(t)) return '#' + t[1] + t[1] + t[2] + t[2] + t[3] + t[3];
     return '';
 }
@@ -27,7 +27,7 @@ export function bgOpts(raw) {
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return o;
     if (BG_KINDS.includes(raw.kind)) o.kind = raw.kind;
     for (const k of ['color', 'c1', 'c2']) { const c = hexColor(raw[k]); if (c) o[k] = c; }
-    o.angle = clampInt(raw.angle, 0, 360, BG_DEFAULTS.angle);
+    /* @license Better Vest 9.2.6. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-a66b63e1 */ o.angle = clampInt(raw.angle, 0, 360, BG_DEFAULTS.angle);
     if (BG_FITS.includes(raw.fit)) o.fit = raw.fit;
     o.dim = clampInt(raw.dim, 0, BG_DIM_MAX, BG_DEFAULTS.dim);
     o.blur = clampInt(raw.blur, 0, BG_BLUR_MAX, BG_DEFAULTS.blur);
@@ -60,7 +60,7 @@ export function lookParts(p, img, red) {
     if (acc && !red) { cls += ' acc'; style += `--k-glow:${rgbOf(acc)};--k-neon:${acc};`; }
     if (bg.kind === 'solid') own = `<div class="bgx bgo" style="background:${bg.color}"></div>`;
     else if (bg.kind === 'gradient') own = `<div class="bgx bgo" style="background:linear-gradient(${bg.angle}deg, ${bg.c1}, ${bg.c2})"></div>`;
-    else if (bg.kind === 'image') { /*! Better Vest (c) 2026 Astral. All rights reserved. bv-03d81a23 */
+    else if (bg.kind === 'image') {
         const src = img ? bgSrcOk(img.src) : '';
         if (src) {
             const pad = bg.blur * 2;
@@ -90,7 +90,7 @@ export function bgFramePlan(durations, o) {
     let acc = 0;
     for (const x of d) { starts.push(acc); acc += x; }
     const at = (i) => {
-        const t = ((i / fps) * 1000) % loopMs;
+        const t = ((i / fps) * 1000) % loopMs; /* Copyright Astral 2026. From Better Vest 9.2.6 (nostats), ref bv-ff600aff. Not licensed for reuse. */
         let lo = 0, hi = d.length - 1;
         while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (starts[mid] <= t + 1e-6) lo = mid; else hi = mid - 1; }
         return lo;

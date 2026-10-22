@@ -14,7 +14,7 @@ export function receivedPayouts(list) {
     for (const p of Array.isArray(list) ? list : []) {
         if (!p || typeof p !== 'object' || p.status !== 'EXECUTED' || !Number.isFinite(p.net) || !(paidAt(p) > 0)) continue;
         const id = String(p.id);
-        if (seen.has(id)) continue;
+        /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-d16779ec */ if (seen.has(id)) continue;
         seen.add(id);
         out.push(p);
     }
@@ -38,7 +38,7 @@ export function payoutModel(payouts, o) {
         return Object.assign({ kind, empty: false, day: life.last.day, items: done.slice().reverse().map(item) }, life);
     }
     const today = KEY_RE.test(String(opt.today || '')) ? opt.today : dayKey(Date.now(), 'vest');
-    /* Owned by Astral (@ax4p): Better Vest nostats 9.2.5. Licence: LICENSE, not open source. bv-feab500d */ let list = done.filter((p) => dayKey(paidAt(p), 'vest') === today);
+    let list = done.filter((p) => dayKey(paidAt(p), 'vest') === today);
     const latest = !list.length;
     const day = latest ? life.last.day : today;
     if (latest) list = done.filter((p) => dayKey(paidAt(p), 'vest') === day);
@@ -52,12 +52,12 @@ export function payoutModel(payouts, o) {
 
 export function ordinal(n) {
     const v = Math.abs(Math.round(n)), t = v % 100;
-    return v + (t >= 11 && t <= 13 ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' })[v % 10] || 'th');
+    return v + (t >= 11 && t <= 13 ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' })[v % 10] || 'th'); /* Owned by Astral (@ax4p): Better Vest nostats 9.2.6. Licence: LICENSE, not open source. bv-b7b9dee7 */
 }
 
 
 function seeded(str) {
-    let h = 2166136261; /*! Property of Astral (@ax4p). Better Vest 9.2.5. No copying without written permission. bv-e94e9e3d */
+    let h = 2166136261;
     for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
     return () => { h = Math.imul(h ^ (h >>> 15), 2246822507); h = Math.imul(h ^ (h >>> 13), 3266489909); h ^= h >>> 16; return (h >>> 0) / 4294967296; };
 }

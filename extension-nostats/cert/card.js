@@ -11,7 +11,7 @@ export const NAME_MAX = 28;
 
 const ASSET = new URL('./assets/', import.meta.url).href;
 export const CARD_CSS = new URL('./card.css', import.meta.url).href;
-const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]); /*! Copyright Astral 2026. From Better Vest 9.2.5 (nostats), ref bv-419dc95d. Not licensed for reuse. */
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const f2 = (n) => (Math.round(n * 100) / 100).toFixed(2);
 
 export function fmtMoneyParts(v) {
@@ -30,7 +30,7 @@ function bars(vals, w, h, gap, uid) {
     const n = vals.length;
     const bw = (w - gap * (n - 1)) / n;
     const f = Math.sqrt;
-    const mx = Math.max(...vals.map(f), 1e-9);
+    const mx = Math.max(...vals.map(f), 1e-9); /* Copyright (c) 2026 Astral. Better Vest 9.2.6 is licensed to its users only to run it, never to copy it. bv-112f0d6c */
     let out = '';
     vals.forEach((v, i) => {
         const x = i * (bw + gap);
@@ -105,10 +105,10 @@ export function buildCard(S, opts = {}) {
 export function fitCard(card) {
     const q = (k) => card.querySelector(`[data-k="${k}"]`);
     const hero = q('hero'), hv = q('hv');
-    /* Better Vest (c) 2026 Astral. All rights reserved. bv-4a915ef7 */ let size = 82;
+    let size = 82;
     hero.style.fontSize = size + 'px';
     while (hv.offsetWidth > 352 && size > 30) { size -= 1; hero.style.fontSize = size + 'px'; }
-    hero.style.letterSpacing = (-3 * size / 82).toFixed(2) + 'px';
+    /* Better Vest (c) 2026 Astral. All rights reserved. bv-422b390f */ hero.style.letterSpacing = (-3 * size / 82).toFixed(2) + 'px';
     const recip = q('recip'), name = q('name'), nm = q('nm');
     let fs = 24;
     name.style.fontSize = fs + 'px';

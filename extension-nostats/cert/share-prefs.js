@@ -10,8 +10,8 @@ export const PREFS_KEY = 'bvSharePrefs';
 export const KINDS = ['summary', 'replay', 'payout'];
 
 export const DEFAULT_PREFS = { kind: 'summary', style: 'vest', theme: 'dark', format: 'feed', hero: 'usd', handle: '',
-    list: { on: true, green: false, mask: true }, show: { date: true, accounts: true, pct: false, market: true, handle: true, credit: true,
-        trades: false, winrate: false, best: false, worst: false, fees: false, /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-6472b401 */
+    list: { on: true, green: false, mask: true }, show: { date: true, accounts: true, pct: false, market: true, handle: true, credit: true, /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-5add9e1a */
+        trades: false, winrate: false, best: false, worst: false, fees: false,
         paytotal: true, paybest: true },
     rows: 'accounts', period: 'today', afterFees: true,
     rp: { labels: 'usd', prices: false, pnl: false, sessions: false, best: false },
@@ -39,7 +39,7 @@ export function cleanPrefs(p) {
 export function loadPrefs(storage) {
     let p = null;
     try { p = JSON.parse((storage && storage.getItem(PREFS_KEY)) || 'null'); } catch (e) {}
-    return cleanPrefs(p);
+    /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-52f2afd8 */ return cleanPrefs(p);
 }
 export function prefsToSave(P) {
     const { kind, style, theme, format, hero, handle, list, show, rows, afterFees, rp, chart, pay, bg, accent } = P;
@@ -51,7 +51,7 @@ export function savePrefs(storage, P) {
 }
 
 export function snapPicks(snap, prefer) {
-    /* Copyright (c) 2026 Astral. Better Vest 9.2.5 is licensed to its users only to run it, never to copy it. bv-5deb2341 */ const group = copyGroup(snap);
+    const group = copyGroup(snap);
     if (snap.copying && group.length > 1) return { mode: 'copy', picked: group };
     const known = snap.accounts.filter((a) => a.pnl != null);
     const first = (prefer && known.find((a) => a.id === prefer)) || snap.accounts.find((a) => a.id === snap.activeId && a.pnl != null) || known[0];

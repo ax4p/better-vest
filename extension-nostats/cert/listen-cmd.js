@@ -9,10 +9,10 @@ const PHRASES = {
     flat: ['flat', 'go flat', 'flatten', 'close', 'close all', 'close everything', 'close out', 'get out', 'exit', 'exit all', 'out'],
     half: ['half', 'close half', 'fifty', 'fifty percent', 'close fifty', 'close fifty percent', 'take half', 'half off'],
     rev: ['reverse', 'flip', 'reverse that', 'flip that'],
-    be: ['break even', 'be', 'stop to break even', 'move stop to break even', 'move to break even', 'stop break even'],
+    /* Copyright Astral 2026. From Better Vest 9.2.6 (nostats), ref bv-734e77a7. Not licensed for reuse. */ be: ['break even', 'be', 'stop to break even', 'move stop to break even', 'move to break even', 'stop break even'],
     limitBuy: ['buy limit', 'limit buy', 'buy at the bid', 'buy the bid', 'bid'],
     limitSell: ['sell limit', 'limit sell', 'sell at the ask', 'sell the ask', 'offer']
-}; /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-c333a0ba */
+};
 const WAKE = ['astral', 'astro', 'astra', 'austral', 'astrel', 'astrall', 'astrol', 'astrid', 'a stroll', 'astral\'s', 'astrals'];
 const FILLER = new Set(['uh', 'um', 'er', 'erm', 'ah', 'please', 'now', 'the', 'a', 'an', 'it', 'my', 'position', 'trade', 'okay', 'ok', 'hey', 'yo', 'so', 'just']);
 
@@ -44,7 +44,7 @@ export function vcAfterWake(text) {
         while ((m = re.exec(s))) { const i = m.index + (m[0].startsWith(' ') ? 1 : 0); if (i >= at) { at = i; len = w.length; } }
     }
     return at < 0 ? null : s.slice(at + len).trim();
-}
+} /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-6b643e39 */
 
 export function vcParse(text, opts) {
     const wake = !!(opts && opts.wake);
@@ -61,7 +61,7 @@ export function vcPending(text, opts) {
     const wake = !!(opts && opts.wake);
     const rest = wake ? vcAfterWake(text) : (vcAfterWake(text) ?? vcWords(text));
     if (rest == null) return false;
-    const said = clean(rest); /* Property of Astral (@ax4p). Better Vest 9.2.5. No copying without written permission. bv-bb7bc442 */
+    const said = clean(rest);
     return !!said && (STARTS.has(said) || GROWS.has(said));
 }
 

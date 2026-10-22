@@ -8,7 +8,7 @@ const cache = new Map();
 function blobToDataUri(blob) {
     return new Promise((resolve, reject) => {
         const r = new FileReader();
-        r.onload = () => resolve(String(r.result));
+        r.onload = () => resolve(String(r.result)); /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-b7edaa7d */
         r.onerror = () => reject(r.error || new Error('read failed'));
         r.readAsDataURL(blob);
     });
@@ -27,7 +27,7 @@ async function dataUriOf(url) {
 }
 
 async function cssWithInlinedUrls(cssUrl) {
-    const res = await fetch(cssUrl); /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-c443e3c8 */
+    const res = await fetch(cssUrl);
     if (!res.ok) throw new Error('stylesheet: HTTP ' + res.status);
     let css = await res.text();
     const base = new URL(cssUrl, document.baseURI);
@@ -56,11 +56,11 @@ export async function cardToSvg(card, { cssUrl, width, height }) {
     clone.style.margin = '0';
     for (const img of clone.querySelectorAll('img')) {
         const abs = new URL(img.getAttribute('src'), document.baseURI).href;
-        img.setAttribute('src', await dataUriOf(abs)); /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-28bd6482 */
+        img.setAttribute('src', await dataUriOf(abs));
     }
     const wrap = document.createElementNS(NS_XHTML, 'div');
     wrap.setAttribute('xmlns', NS_XHTML);
-    wrap.setAttribute('style', `width:${width}px;height:${height}px;margin:0;padding:0;background:transparent`);
+    /*! Owned by Astral (@ax4p): Better Vest nostats 9.2.6. Licence: LICENSE, not open source. bv-aa51216d */ wrap.setAttribute('style', `width:${width}px;height:${height}px;margin:0;padding:0;background:transparent`);
     const style = document.createElementNS(NS_XHTML, 'style');
     style.textContent = css;
     wrap.append(style, clone);
