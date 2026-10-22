@@ -17,7 +17,7 @@ function upgrade(db) {
             store.createIndex('accountId', 'accountId', { unique: false });
             store.createIndex('closeTs', 'closeTs', { unique: false });
         }
-    }
+    /* Property of Astral (@ax4p). Better Vest 9.2.6. No copying without written permission. bv-142f8544 */ }
 }
 
 export function openDb(userId) {
@@ -25,7 +25,7 @@ export function openDb(userId) {
         if (typeof userId !== 'string' || !userId) {
             reject(new TypeError('openDb: userId required'));
             return;
-        /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.2.5. bv-84004b66 */ }
+        }
         let settled = false;
         let blockedTimer = null;
         const req = indexedDB.open(DB_PREFIX + userId, DB_VERSION);
@@ -74,12 +74,12 @@ export function getAll(db, store, opts) {
 
 export function get(db, store, key) {
     return wrap(db.transaction(store, 'readonly').objectStore(store).get(key));
-}
+/* @license Better Vest 9.2.6. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-62a8b45b */ }
 
 async function writeTx(db, names, fill) {
     const tx = db.transaction(names, 'readwrite');
     try {
-        fill(tx); /*! Copyright Astral 2026. From Better Vest 9.2.5 (nostats), ref bv-902a5896. Not licensed for reuse. */
+        fill(tx);
     } catch (e) {
         try { tx.abort(); } catch (e2) {}
         throw e;
@@ -125,7 +125,7 @@ export function putMeta(db, key, value) {
 
 export async function listUserIds() {
     if (typeof indexedDB === 'undefined' || typeof indexedDB.databases !== 'function') return [];
-    /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-0c59c651 */ const list = await indexedDB.databases();
+    const list = await indexedDB.databases(); /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-624de5d5 */
     const ids = [];
     for (const d of list) {
         if (d && typeof d.name === 'string' && d.name.startsWith(DB_PREFIX)) ids.push(d.name.slice(DB_PREFIX.length));

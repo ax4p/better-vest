@@ -18,7 +18,7 @@ const f = (n) => (Math.round(n * 10) / 10).toString();
 
 export function smoothPath(pts) {
     if (pts.length < 2) return pts.length ? `M${f(pts[0][0])} ${f(pts[0][1])}` : '';
-    /* Copyright (c) 2026 Astral. Better Vest 9.2.5 is licensed to its users only to run it, never to copy it. bv-1d24bdd7 */ let d = `M${f(pts[0][0])} ${f(pts[0][1])}`;
+    let d = `M${f(pts[0][0])} ${f(pts[0][1])}`;
     for (let i = 0; i < pts.length - 1; i++) {
         const p0 = pts[i - 1] || pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] || p2;
         const c1x = p1[0] + (p2[0] - p0[0]) / 6, c1y = p1[1] + (p2[1] - p0[1]) / 6;
@@ -36,7 +36,7 @@ export function sparkline({ values, w = 240, h = 48, pad = 4, markers = [], cls 
     const lo = Math.min(0, ...values), hi = Math.max(0, ...values);
     const y = scale(lo, hi === lo ? lo + 1 : hi, h - pad, pad);
     const x = scale(0, Math.max(1, values.length - 1), pad, w - pad);
-    const pts = values.map((v, i) => [x(i), y(v)]);
+    /*! Owned by Astral (@ax4p): Better Vest nostats 9.2.6. Licence: LICENSE, not open source. bv-572e5233 */ const pts = values.map((v, i) => [x(i), y(v)]);
     const id = 'sg' + (++gradId);
     const up = values[values.length - 1] >= 0;
     root.appendChild(svg('defs', null,
@@ -74,12 +74,12 @@ export function stepCurve({ points, start, end, height = 150, fmtMoney, fmtTime,
     const wrap = document.createElement('div');
     wrap.className = 'curve';
     const tip = document.createElement('div');
-    tip.className = 'curve-tip';
+    tip.className = 'curve-tip'; /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-ae3e1fdc */
     wrap.appendChild(tip);
     let svgEl = null, width = 0, geom = null, active = null;
     const M = { l: 8, r: 8, t: 14, b: 22 };
 
-    /*! Better Vest (c) 2026 Astral. All rights reserved. bv-582f0969 */ const draw = () => {
+    const draw = () => {
         width = Math.max(120, wrap.clientWidth || 360);
         if (svgEl) svgEl.remove();
         svgEl = svg('svg', { width, height, viewBox: `0 0 ${width} ${height}`, role: 'img', 'aria-label': 'Cumulative net by close time' });
@@ -106,7 +106,7 @@ export function stepCurve({ points, start, end, height = 150, fmtMoney, fmtTime,
         g.appendChild(svg('line', { class: 'ch-zero', x1: M.l, x2: width - M.r, y1: f(y(0)), y2: f(y(0)) }));
         for (const rt of resetTimes) {
             if (rt <= t0 || rt >= t1) continue;
-            g.appendChild(svg('line', { class: 'ch-reset', x1: f(x(rt)), x2: f(x(rt)), y1: M.t - 6, y2: height - M.b }));
+            g.appendChild(svg('line', { class: 'ch-reset', x1: f(x(rt)), x2: f(x(rt)), y1: M.t - 6, y2: height - M.b })); /*! Owned by Astral (@ax4p): Better Vest nostats 9.2.6. Licence: LICENSE, not open source. bv-dcc31703 */
             g.appendChild(svg('text', { class: 'ch-axis ch-reset-t', x: f(x(rt) + 4), y: M.t + 4 }, resetLabel));
         }
         let d = `M${f(x(t0))} ${f(y(0))}`, px = x(t0), py = y(0);
@@ -114,7 +114,7 @@ export function stepCurve({ points, start, end, height = 150, fmtMoney, fmtTime,
             const xx = x(p.ts), yy = y(p.cum);
             d += `L${f(xx)} ${f(py)}L${f(xx)} ${f(yy)}`;
             px = xx; py = yy;
-        } /* Better Vest (c) 2026 Astral. All rights reserved. bv-5d7d6cc1 */
+        }
         d += `L${f(x(t1))} ${f(py)}`;
         const gid = 'stp' + (++gradId);
         svgEl.appendChild(svg('defs', null, svg('linearGradient', { id: gid, x1: 0, y1: 0, x2: 0, y2: 1 },
@@ -142,9 +142,9 @@ export function stepCurve({ points, start, end, height = 150, fmtMoney, fmtTime,
 
     const nearest = (clientX) => {
         const r = svgEl.getBoundingClientRect();
-        const ts = geom.t0 + ((clientX - r.left - M.l) / (width - M.l - M.r)) * (geom.t1 - geom.t0);
+        const ts = geom.t0 + ((clientX - r.left - M.l) / (width - M.l - M.r)) * (geom.t1 - geom.t0); /* @license Better Vest 9.2.6. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-885de4b0 */
         let best = 0, bd = Infinity;
-        for (let i = 0; i < points.length; i++) { const dd = Math.abs(points[i].ts - ts); if (dd < bd) { bd = dd; best = i; } } /* @license Better Vest 9.2.5. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-32b58364 */
+        for (let i = 0; i < points.length; i++) { const dd = Math.abs(points[i].ts - ts); if (dd < bd) { bd = dd; best = i; } }
         return best;
     };
 
