@@ -17,7 +17,7 @@ export function mount(root, ctx) {
     let sig = '';
     let grid = null;
     let chart = null;
-    const tips = tipRegistry();
+    /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-7d9b63a6 */ const tips = tipRegistry();
 
     const head = h('div', { class: 'vh2' });
     const ribbon = h('div', { class: 'pr-ribbon rbw', role: 'list', 'aria-label': 'Payout totals' });
@@ -31,7 +31,7 @@ export function mount(root, ctx) {
     const money = (v, base, o) => fmt.usd(v, { ctx: 'table', base, ...o });
 
 
-    /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-83bc5e69 */ function model_() {
+    function model_() {
         const st = S();
         const D = ctx.derived();
         const all = D.payouts;
@@ -56,7 +56,7 @@ export function mount(root, ctx) {
             for (let ym = keys[0]; ym <= keys[keys.length - 1]; ym = T.shiftMonth(ym, 1)) months.push(byMonth.get(ym) || { ym, net: 0, gross: 0, n: 0 });
         }
         let cum = 0;
-        for (const m of months) { cum += m.net; m.cum = cum; }
+        /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-6e5fdf6d */ for (const m of months) { cum += m.net; m.cum = cum; }
         const counts = { EXECUTED: 0, PROCESSING: 0, REFUNDED: 0, FAILED: 0 };
         for (const p of all) counts[p.status] = (counts[p.status] || 0) + 1;
         const largest = done.reduce((b, p) => (!b || p.net > b.net ? p : b), null);
@@ -77,7 +77,7 @@ export function mount(root, ctx) {
 
 
     function renderHead() {
-        /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.2.5. bv-f1e44ec3 */ ui.clear(head);
+        ui.clear(head);
         const st = S();
         head.append(
             h('div', { class: 'vh2-t' }, h('h1', null, 'Payouts'), h('div', { class: 'sub' }, scopeText() + ' · ' + (st.payBasis === 'executed' ? 'dated by execution (ET)' : 'dated by request (ET)'))),
@@ -107,7 +107,7 @@ export function mount(root, ctx) {
     function tileTip(title, formula, rows, n, extra) {
         return (el) => {
             popBase(el, title, `n = ${n} · ${scopeText()}`);
-            el.appendChild(h('div', { class: 'formula' }, formula));
+            /* Better Vest (c) 2026 Astral. All rights reserved. bv-9ca11f5e */ el.appendChild(h('div', { class: 'formula' }, formula));
             dl(el, rows);
             foot(el, extra, 'Only EXECUTED payouts count. Refunded and failed ones are excluded; processing is pending.');
             return true;
@@ -118,7 +118,7 @@ export function mount(root, ctx) {
         ui.clear(ribbon);
         tips.reset();
         const { ps, counts, base, avgBase } = M;
-        /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-7a11e07c */ const none = !ps.count;
+        const none = !ps.count;
         const shareRate = ps.lifetimeGross > 0 ? ps.vestShare / ps.lifetimeGross : null;
         const largest = M.largest;
         ribbon.append(
@@ -135,8 +135,8 @@ export function mount(root, ctx) {
 
     function stampShort(p) {
         const k = T.payoutDayKey(p, 'executed');
-        return k ? `${T.fmtDate(k, 'dm')} ${k.slice(0, 4)}` : ''; /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-dc29bcac */
-    }
+        return k ? `${T.fmtDate(k, 'dm')} ${k.slice(0, 4)}` : '';
+    /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-c8bf07fc */ }
 
 
     function monthChart() {
@@ -176,11 +176,11 @@ export function mount(root, ctx) {
                     if (i % every === 0) root.appendChild(svg('text', { class: 'ch-axis', x: f1(cx), y: H - 7, 'text-anchor': 'middle' }, T.fmtMonth(m.ym, { short: true })));
                 });
                 bars.forEach((b) => root.appendChild(b));
-                const pts = months.map((m, i) => [Mg.l + slot * i + slot / 2, yC(m.cum)]);
+                const pts = months.map((m, i) => [Mg.l + slot * i + slot / 2, yC(m.cum)]); /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-1ba65181 */
                 if (pts.length > 1) {
                     const d = 'M' + pts.map((p) => f1(p[0]) + ' ' + f1(p[1])).join('L');
                     root.appendChild(svg('path', { class: 'cum glow', d }));
-                    root.appendChild(svg('path', { class: 'cum', d })); /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-e37adf67 */
+                    root.appendChild(svg('path', { class: 'cum', d }));
                 }
                 for (const p of pts) root.appendChild(svg('circle', { class: 'cum-dot', cx: f1(p[0]), cy: f1(p[1]), r: 3 }));
                 const guide = svg('line', { class: 'ch-guide', y1: Mg.t - 4, y2: H - Mg.b, visibility: 'hidden' });
@@ -234,14 +234,14 @@ export function mount(root, ctx) {
         if (chart) { chart.destroy(); chart = null; }
         const st = S();
         const { months } = M;
-        /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-feacfcb4 */ const chartPanel = h('section', { class: 'pn' },
+        const chartPanel = h('section', { class: 'pn' },
             h('div', { class: 'pn-h' }, h('b', null, 'Paid out per month'), h('span', { class: 'sub' }, 'net · bars, with the running total as a line'),
                 h('div', { class: 'grow' }),
                 h('span', { class: 'lg' }, h('i', { class: 'lg-b' }), 'Monthly net'), h('span', { class: 'lg' }, h('i', { class: 'lg-l' }), 'Total')));
         if (months.length) { chart = monthChart(); chartPanel.appendChild(chart); }
         else chartPanel.appendChild(h('div', { class: 'dshim' }, 'No executed payouts in this scope yet.'));
         const ladderPanel = h('section', { class: 'pn' }, h('div', { class: 'pn-h' }, h('b', null, 'Milestones'), h('span', { class: 'sub' }, st.hide ? 'lifetime net · amounts hidden' : 'lifetime net paid out')), ladder());
-        mid.append(chartPanel, ladderPanel);
+        /*! Owned by Astral (@ax4p): Better Vest nostats 9.2.6. Licence: LICENSE, not open source. bv-d1c950cc */ mid.append(chartPanel, ladderPanel);
     }
 
 
@@ -269,11 +269,11 @@ export function mount(root, ctx) {
         tablePanel.appendChild(h('div', { class: 'pn-h' }, h('b', null, 'Payouts'), h('span', { class: 'sub' }, `${rows.length} shown · newest first`), h('div', { class: 'grow' }), seg));
         const D = M.D;
         const virtual = rows.length > 200;
-        grid = vgrid({
+        /* Owned by Astral (@ax4p): Better Vest nostats 9.2.6. Licence: LICENSE, not open source. bv-103893ae */ grid = vgrid({
             template: '172px 172px minmax(190px, 1.4fr) 112px 112px 60px 78px 112px 92px', minWidth: 1090, rowH: 38, headH: 32, virtual, label: 'Payouts',
             head: tableCols(),
             rowCls: (p) => 'st-' + p.status.toLowerCase(),
-            /* Better Vest (c) 2026 Astral. All rights reserved. bv-3884ba0c */ renderRow(p) {
+            renderRow(p) {
                 const a = D.accountsById.get(p.accountId);
                 const base = a && a.initialCapital > 0 ? a.initialCapital : 0;
                 const full = a ? model.accountName(a) : (p.accountId || '');
@@ -296,7 +296,7 @@ export function mount(root, ctx) {
         });
         grid.setRows(rows);
         grid.setHeight(virtual ? Math.min(560, grid.totalHeight() + 2) : null);
-        tablePanel.appendChild(grid.el); /* Copyright Astral 2026. From Better Vest 9.2.5 (nostats), ref bv-094fdac9. Not licensed for reuse. */
+        tablePanel.appendChild(grid.el);
         const c = M.counts;
         tablePanel.appendChild(h('div', { class: 'pr-foot' },
             h('span', null, `Totals count the ${c.EXECUTED} executed payout${c.EXECUTED === 1 ? '' : 's'} only.`),
@@ -308,7 +308,7 @@ export function mount(root, ctx) {
 
     function update() {
         const st = S();
-        const D = ctx.derived();
+        const D = ctx.derived(); /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-5429cdba */
         const key = [st.hide, st.payBasis, statusFilter].join('|');
         if (D === lastD && key === sig) return;
         lastD = D; sig = key;

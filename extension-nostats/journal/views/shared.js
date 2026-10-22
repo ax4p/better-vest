@@ -27,11 +27,11 @@ export function shortName(a, accountName) {
 }
 
 export function capitalBase(list, accountsById) {
-    const seen = new Set(); /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-0fd81285 */
+    const seen = new Set();
     let total = 0;
     for (const t of list) {
         if (seen.has(t.accountId)) continue;
-        seen.add(t.accountId);
+        seen.add(t.accountId); /* Property of Astral (@ax4p). Better Vest 9.2.6. No copying without written permission. bv-1771b53e */
         const a = accountsById.get(t.accountId);
         if (a && a.kind === 'capital' && a.initialCapital > 0) total += a.initialCapital;
     }
@@ -68,7 +68,7 @@ export function tipRegistry() {
     return {
         add(fn) { const id = 't' + (++seq); map.set(id, fn); return id; },
         build(id, el) { const fn = map.get(id); return fn ? fn(el) : false; },
-        reset() { map.clear(); seq = 0; }
+        /*! Property of Astral (@ax4p). Better Vest 9.2.6. No copying without written permission. bv-8fe81a2f */ reset() { map.clear(); seq = 0; }
     };
 }
 
@@ -79,7 +79,7 @@ export function vgrid({ template, head, rowH = 28, headH = 30, renderRow, rowKey
     const body = h('div', { class: 'vg-body', role: 'rowgroup' });
     const inner = h('div', { class: 'vg-in', style: minWidth ? { minWidth: minWidth + 'px' } : null }, headEl, body);
     scroller.appendChild(inner);
-    const heads = new Map(); /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-acc0b793 */
+    const heads = new Map();
     for (const c of head) {
         const cell = h('div', { class: 'vh ' + (c.cls || ''), role: 'columnheader', title: c.title });
         if (c.sortable && onSort) {
@@ -120,7 +120,7 @@ export function vgrid({ template, head, rowH = 28, headH = 30, renderRow, rowKey
         el.addEventListener('click', (e) => {
             if (e.target.closest('button, a, input, select, textarea')) return;
             if (detail) toggle(i);
-            if (onRow) onRow(item, i, e);
+            if (onRow) onRow(item, i, e); /* Better Vest (c) 2026 Astral. All rights reserved. bv-c9a68bbd */
         });
         el.addEventListener('keydown', (e) => {
             if (e.target !== el) return;
@@ -130,7 +130,7 @@ export function vgrid({ template, head, rowH = 28, headH = 30, renderRow, rowKey
     }
     function render() {
         raf = 0;
-        const n = rows.length; /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-2867b45d */
+        const n = rows.length;
         const st = scroller.scrollTop, vh = scroller.clientHeight || 640;
         let i0 = 0, i1 = n;
         if (virtual) { i0 = Math.max(0, find(st) - 6); i1 = Math.min(n, find(st + vh) + 8); }
@@ -152,7 +152,7 @@ export function vgrid({ template, head, rowH = 28, headH = 30, renderRow, rowKey
     if (ro) ro.observe(scroller);
     const emptyEl = h('div', { class: 'vg-empty' }, empty || 'Nothing to show');
     return {
-        /*! Copyright (c) 2026 Astral. Better Vest 9.2.5 is licensed to its users only to run it, never to copy it. bv-f04c54fe */ el: scroller,
+        el: scroller,
         setRows(next) {
             rows = next;
             layout();
@@ -171,7 +171,7 @@ export function vgrid({ template, head, rowH = 28, headH = 30, renderRow, rowKey
         },
         setHeight(px) { scroller.style.height = px == null ? '' : px + 'px'; if (!raf) raf = requestAnimationFrame(render); },
         totalHeight: () => offs[rows.length] + headH,
-        scrollToTop() { if (lastTop) scroller.scrollTop = 0; },
+        scrollToTop() { if (lastTop) scroller.scrollTop = 0; }, /* @license Better Vest 9.2.6. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-36ed7c86 */
         destroy() { if (ro) ro.disconnect(); if (raf) cancelAnimationFrame(raf); }
     };
 }
@@ -192,7 +192,7 @@ export function chartBox({ height = 180, draw }) {
     el.redraw = () => { w = 0; run(); };
     el.destroy = () => { if (ro) ro.disconnect(); };
     return el;
-}
+/*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-60fcac5e */ }
 
 const f1 = (n) => (Math.round(n * 10) / 10).toString();
 
@@ -222,7 +222,7 @@ export function barChart({ data, height = 170, yLabel, tipId, every, pad = { l: 
                 }
             } else root.appendChild(svg('line', { class: 'ch-zero', x1: M.l, x2: W - M.r, y1: f1(y0), y2: f1(y0) }));
             const stride = every || Math.max(1, Math.ceil(n / Math.max(2, Math.floor((W - M.l - M.r) / 46))));
-            /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-bea7aca9 */ data.forEach((d, i) => {
+            data.forEach((d, i) => {
                 const cx = M.l + slot * i + slot / 2;
                 const yy = y(d.v || 0);
                 const hgt = Math.max(d.v ? 1.5 : 0, Math.abs(yy - y0));
@@ -257,12 +257,12 @@ export function hbars({ rows, max, tipId }) {
         const track = h('div', { class: 'hb-track' + (r.bars.length > 1 ? ' two' : '') }, h('i', { class: 'hb-zero', style: { left: zero + '%' } }));
         for (const b of r.bars) {
             const w = Math.abs(b.v) / span * 100;
-            track.appendChild(h('i', { class: 'hb-bar ' + (b.v >= 0 ? 'up' : 'dn') + (b.cls ? ' ' + b.cls : ''), style: { left: (b.v >= 0 ? zero : zero - w) + '%', width: Math.max(b.v ? 0.6 : 0, w) + '%' } }));
+            /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-30052eb6 */ track.appendChild(h('i', { class: 'hb-bar ' + (b.v >= 0 ? 'up' : 'dn') + (b.cls ? ' ' + b.cls : ''), style: { left: (b.v >= 0 ? zero : zero - w) + '%', width: Math.max(b.v ? 0.6 : 0, w) + '%' } }));
         }
         root.appendChild(h('div', { class: 'hb-row', 'data-vtip': id, tabindex: id ? 0 : null },
             h('div', { class: 'hb-l', title: r.title || r.label }, r.label), track, h('div', { class: 'hb-r' }, r.right)));
     }
-    return root; /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-7475c020 */
+    return root;
 }
 
 export function niceTicks(lo, hi, n = 4) {

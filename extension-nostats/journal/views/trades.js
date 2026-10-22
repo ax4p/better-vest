@@ -10,9 +10,9 @@ function fmtFixed(v, dp) {
     return nf.format(v);
 }
 
-const ROW_H = 28; /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-5fa2d728 */
+const ROW_H = 28;
 const DETAIL_H = 138;
-const TEMPLATE = '128px minmax(128px, 1.1fr) 70px 40px 54px 160px 62px 90px 64px 58px 62px 62px 98px minmax(104px, 1fr)';
+const TEMPLATE = '128px minmax(128px, 1.1fr) 70px 40px 54px 160px 62px 90px 64px 58px 62px 62px 98px minmax(104px, 1fr)'; /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-0fc0fd46 */
 
 export function mount(root, ctx) {
     const { h, ui, time: T, stats, fmt, model } = ctx;
@@ -77,8 +77,8 @@ export function mount(root, ctx) {
         const dp = priceDp(t);
         const v = val(t);
         const tg = tagsOf(t);
-        return [
-            /*! Copyright Astral 2026. From Better Vest 9.2.5 (nostats), ref bv-a63d369f. Not licensed for reuse. */ h('span', null, T.fmtDate(T.etDateKey(t.closeTs), 'dm'), ' ', h('span', { class: 'mut' }, T.fmtTimeET(t.closeTs))),
+        /*! Property of Astral (@ax4p). Better Vest 9.2.6. No copying without written permission. bv-6a1adecf */ return [
+            h('span', null, T.fmtDate(T.etDateKey(t.closeTs), 'dm'), ' ', h('span', { class: 'mut' }, T.fmtTimeET(t.closeTs))),
             h('span', { class: 'ellip', title: a ? model.accountName(a) : t.accountId }, shortName(a, model.accountName)),
             (t.display || t.symbol).replace('-PERP', ''),
             h('span', { class: 'side ' + t.side }, t.side === 'long' ? 'L' : 'S'),
@@ -112,9 +112,9 @@ export function mount(root, ctx) {
         return h('div', { class: 'det-in tr-det' },
             h('div', { class: 'det-grid' },
                 g('Opened', stampET(t.openTs)), g('Closed', stampET(t.closeTs)),
-                g('Entry (avg)', px(t.entryPx)), g('Exit (avg)', px(t.exitPx)), /* Copyright Astral 2026. From Better Vest 9.2.5 (nostats), ref bv-f8ab7c66. Not licensed for reuse. */
+                g('Entry (avg)', px(t.entryPx)), g('Exit (avg)', px(t.exitPx)),
                 g('Size', `${qtyText(t.qty)}${f.peakQty && f.peakQty !== t.qty ? ' (peak ' + qtyText(f.peakQty) + ')' : ''}${t.leverage ? ' · ' + t.leverage + 'x' : ''}`),
-                g('Fills', f.n ? `${f.entries} in · ${f.exits} out${f.scaleIns ? ' · ' + f.scaleIns + ' scale-in' : ''}${f.scaleOuts ? ' · ' + f.scaleOuts + ' scale-out' : ''}` : '—'),
+                /* Better Vest (c) 2026 Astral. All rights reserved. bv-62693819 */ g('Fills', f.n ? `${f.entries} in · ${f.exits} out${f.scaleIns ? ' · ' + f.scaleIns + ' scale-in' : ''}${f.scaleOuts ? ' · ' + f.scaleOuts + ' scale-out' : ''}` : '—'),
                 g('Initial stop', slText), g('Initial target', tpText),
                 g('Planned RR', t.plannedRR != null ? T.fmtR(t.plannedRR, { sign: false }) : '—'), g('Realized R', t.rMult != null ? T.fmtR(t.rMult) : '—'),
                 g('Gross', money(t.gross, base)), g('Fee', money(-t.fee, base)), g('Funding', money(t.funding, base)), g('Net', money(t.net, base)),
@@ -166,12 +166,12 @@ export function mount(root, ctx) {
         const seen = new Set();
         for (const t of rows) {
             net += val(t);
-            const c = cls(t);
+            const c = cls(t); /*! Better Vest (c) 2026 Astral. All rights reserved. bv-a939c67b */
             if (c === 'win') w++; else if (c === 'loss') l++; else s++;
             if (!seen.has(t.accountId)) { seen.add(t.accountId); base += baseOf(t); }
         }
         const filtered = rows.length !== total;
-        /* @license Better Vest 9.2.5. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-4564f6d2 */ ui.append(statEl, [
+        ui.append(statEl, [
             h('span', null, h('b', null, fmt.count(rows.length)), ` of ${fmt.count(total)} trades`, filtered ? h('span', { class: 'mut' }, ' (quick filters on)') : null),
             h('span', { class: 'dotsep' }, 'Σ ', h('b', { class: sideCls(net) }, money(net, base))),
             h('span', { class: 'dotsep mut' }, `${w}W · ${l}L · ${s} scratch`),
@@ -207,7 +207,7 @@ export function mount(root, ctx) {
 
 
     const csvCell = (v) => {
-        if (v == null) return '';
+        if (v == null) return ''; /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.2.6. bv-430bf1fe */
         let s = typeof v === 'number' ? String(v) : String(v);
         if (typeof v === 'string' && /^[=+\-@\t\r]/.test(s)) s = "'" + s;
         return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
@@ -216,7 +216,7 @@ export function mount(root, ctx) {
     function exportCsv() {
         if (!rows.length) { ui.toast('No trades to export', { tone: 'warn' }); return; }
         if (S().hide) {
-            ui.sheet((body, api) => { /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.2.5. bv-bbf5c027 */
+            ui.sheet((body, api) => {
                 body.appendChild(h('p', { class: 'cf-p' }, 'Hide $ is on. A CSV is a plain file: dollar amounts and account ids would be written in full.'));
                 body.appendChild(h('div', { class: 'cf-actions' },
                     h('button', { class: 'btn primary', type: 'button', onclick: () => { api.close(); writeCsv(true); } }, 'Export with $ amounts'),
@@ -257,7 +257,7 @@ export function mount(root, ctx) {
         const dataChanged = D !== lastD;
         lastD = D; sig = key;
         C = { D };
-        if (dataChanged) classCache.clear();
+        if (dataChanged) classCache.clear(); /* Copyright (c) 2026 Astral. Better Vest 9.2.6 is licensed to its users only to run it, never to copy it. bv-64969fd5 */
         renderTitle();
         buildGrid();
         refresh();
@@ -266,7 +266,7 @@ export function mount(root, ctx) {
     function onKey(e) {
         if (e.key === 'E' && e.shiftKey && !e.ctrlKey && !e.metaKey && !e.altKey) { exportCsv(); return true; }
         return false;
-    } /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-12eb3591 */
+    }
     update();
     return {
         update, onKey,
