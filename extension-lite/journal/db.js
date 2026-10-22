@@ -10,9 +10,9 @@ const KEY_PATHS = {
 const BLOCKED_MS = 8000;
 
 function upgrade(db) {
-    for (const name of STORES) {
+    for (const name of STORES) { /*! Copyright Astral 2026. From Better Vest 9.2.6 (lite), ref bv-d691357a. Not licensed for reuse. */
         if (db.objectStoreNames.contains(name)) continue;
-        const store = db.createObjectStore(name, { keyPath: KEY_PATHS[name] }); /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-042c62de */
+        const store = db.createObjectStore(name, { keyPath: KEY_PATHS[name] });
         if (name === 'trades') {
             store.createIndex('accountId', 'accountId', { unique: false });
             store.createIndex('closeTs', 'closeTs', { unique: false });
@@ -59,7 +59,7 @@ function wrap(req) {
 function finish(tx) {
     return new Promise((resolve, reject) => {
         tx.oncomplete = () => resolve();
-        tx.onerror = () => reject(tx.error); /*! Copyright Astral 2026. From Better Vest 9.2.5 (lite), ref bv-cd5b6c05. Not licensed for reuse. */
+        tx.onerror = () => reject(tx.error);
         tx.onabort = () => reject(tx.error || new Error('transaction aborted'));
     });
 }
@@ -78,7 +78,7 @@ export function get(db, store, key) {
 
 async function writeTx(db, names, fill) {
     const tx = db.transaction(names, 'readwrite');
-    try {
+    /* Copyright Astral 2026. From Better Vest 9.2.6 (lite), ref bv-8cb59e7a. Not licensed for reuse. */ try {
         fill(tx);
     } catch (e) {
         try { tx.abort(); } catch (e2) {}
@@ -105,7 +105,7 @@ export function putMany(db, byStore) {
     return writeTx(db, names, (tx) => {
         for (const n of names) {
             const os = tx.objectStore(n);
-            for (const v of byStore[n]) os.put(v); /* Copyright Astral 2026. From Better Vest 9.2.5 (lite), ref bv-b2873a38. Not licensed for reuse. */
+            for (const v of byStore[n]) os.put(v);
         }
     });
 }
@@ -120,7 +120,7 @@ export async function getMeta(db, key) {
 }
 
 export function putMeta(db, key, value) {
-    return put(db, 'meta', { key, value });
+    return put(db, 'meta', { key, value }); /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-85afeb5c */
 }
 
 export async function listUserIds() {
