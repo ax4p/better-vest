@@ -26,9 +26,9 @@ Each [release](https://github.com/ax4p/better-vest/releases/latest) has three zi
 
 | Zip | What's in it |
 |---|---|
-| `better-vest-9.2.5.zip` | **Standard.** Everything. Take this one if you're not sure. |
-| `better-vest-lite-9.2.5.zip` | **Lite.** Everything but the spoken voice lines, under 1 MB. |
-| `better-vest-nostats-9.2.5.zip` | **No stats.** Standard without the usage stats. See [Security](SECURITY.md#the-usage-stats). |
+| `better-vest-9.2.6.zip` | **Standard.** Everything. Take this one if you're not sure. |
+| `better-vest-lite-9.2.6.zip` | **Lite.** Everything but the spoken voice lines, under 1 MB. |
+| `better-vest-nostats-9.2.6.zip` | **No stats.** Standard without the usage stats. See [Security](SECURITY.md#the-usage-stats). |
 
 Then load it in Chrome: the [video and steps](https://bv.astrals.dev/#install) on the site, or the [install guide](CONTRIBUTING.md) here. After that it updates itself.
 
@@ -48,7 +48,7 @@ Then load it in Chrome: the [video and steps](https://bv.astrals.dev/#install) o
 
 ## Is it safe?
 
-- **Scanned.** `better-vest-9.2.5.zip` comes back clean from all 64 antivirus engines on VirusTotal ([report](https://www.virustotal.com/gui/file/2b3c52c0268673186d90662083ef224270d47d54c08c19cf5b8c400aaba05aa9)).
+- **Scanned.** `better-vest-9.2.6.zip` comes back clean from all 65 antivirus engines on VirusTotal ([report](https://www.virustotal.com/gui/file/5cae906d0a7e833ede473825212c10bc57d4e04d7c1a9e7b84b9e3df2a06feb2)).
 - **Readable.** The [`extension`](extension) folder is the Standard zip, file for file, not minified.
 - **Signed updates.** Your copy checks my signature and every file before it writes anything.
 - **Safety switches.** If Vest changes something, I can pause one feature for everyone until it's fixed ([how](SECURITY.md#safety-switches)).
@@ -62,7 +62,7 @@ Vest's [terms](https://next.vestmarkets.com/terms) don't mention browser extensi
 
 ## Support
 
-Better Vest is free. If you buy a Vest account, the code **WICK** costs you nothing extra and keeps this going. The extension offers it when you press a button that buys, and only uses it if you say yes. If you'd rather tip, my EVM address is `0x9F308B10780f9b8FD65C6B94071529b75a3A9dA4`.
+Better Vest is free. If you buy a Vest account, the code **WICK** costs you nothing extra and keeps this going. When Vest's code box is empty, the extension puts it in for you and says so. It never replaces a code you have on, and you can switch that off in Settings > More > Support Astral. When another code is on, it asks first. If you'd rather tip, my EVM address is `0x9F308B10780f9b8FD65C6B94071529b75a3A9dA4`.
 
 Bugs and ideas: Discord **@ax4p**.
 

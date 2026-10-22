@@ -13,7 +13,7 @@ It comes in three editions: Standard, Lite (Standard without the voice) and No s
 - It never withdraws, never changes account settings, never creates anything. The one account action it has is **Request payouts**: when you press it and confirm, it claims profit from your funded accounts to your Primary account through Vest's own Claim profit window. See [Request payouts](#request-payouts).
 - The copy trader is off until you switch it on. Then it copies your leader account's trades to your other Vest accounts through Vest's own order code. See [The copy trader](#the-copy-trader).
 - Some tools act on their own once you switch them on: the copy trader, a trailing stop or auto breakeven moving your stop (only ever tighter), and a stop order you armed sending its order when the price gets there. See [How it places orders](#how-it-places-orders).
-- At checkout it does nothing until you press a button that buys. Then, if the code on isn't my code WICK, it asks you first, and only keeps WICK when you get the same discount or more. See [The WICK code](#the-wick-code).
+- At checkout, when Vest's code box is empty, it puts my code WICK in as the purchase screen opens, so you get the discount, and tells you it did. It never replaces a code you have on, and you can switch it off. When another code is on, it asks you first at the button that buys, and only keeps WICK when you get the same discount or more. See [The WICK code](#the-wick-code).
 - Multi-chart opens hidden Vest tabs, one for each extra market, in a group called Charts. They're Vest's own page, logged in like yours. See [Multi-chart's tabs](#multi-charts-tabs).
 - Voice commands (beta, off until you switch them on) use your microphone only in their own small window, and Chrome turns what you say into words on your computer. Your voice never leaves it. See [Voice commands](#voice-commands-beta).
 - Orders go through Vest's own buttons, the same ones you click.
@@ -68,10 +68,11 @@ Standard and Lite send me anonymous usage stats, so I know how many people use B
 
 ## Safety switches
 
-If Vest changes something a feature depends on, or I find a bug, I can pause that one feature for everyone until it's fixed: the copy trader, Turbo, LONG / SHORT, FLAT / 50% / REV, stop orders, limit orders, TP / SL on the chart, the trailing stop, auto breakeven, account switching and payouts, the loss limit's "Close my positions", or voice commands.
+If Vest changes something a feature depends on, or I find a bug, I can pause that one feature for everyone until it's fixed: the copy trader, Turbo, LONG / SHORT, FLAT / 50% / REV, stop orders, limit orders, TP / SL on the chart, the trailing stop, auto breakeven, account switching and payouts, the loss limit's "Close my positions", voice commands, or code WICK going into an empty code box.
 
 - **How it works:** every 3 minutes while a Vest tab is open, the extension asks `bv.astrals.dev/api/flags` which features are paused. Nothing about you is in that request: no number, no account, no cookies.
 - **What comes back:** a short list of feature names, my note on why, and the version the Chrome Web Store has. It's data, never code: Better Vest only reads names it knows and shows my note as plain text.
+- **News from me** (since 9.2.6): the same answer can carry one short note, a title, a line of text and the times it shows. Better Vest shows it as plain text in a small card at the bottom right of Vest's page, only while you're flat and never over a Vest window. Its button can only open a page on Vest's own site. x closes it for good.
 - **What you see:** a message with my note. A paused feature does nothing when you press it, and if it was running, it stops: copying stops (your followers keep their positions), armed stop orders pause and don't fire, and the trailing stop and auto breakeven stop moving your stop. You can always trade on Vest itself.
 - **If my site is down:** nothing changes. Better Vest keeps the last answer it got.
 - **What it never touches:** the order code itself, and the loss limit's lock.
@@ -155,15 +156,16 @@ It's in Manage accounts, in the account menu, and does nothing until you press i
 
 ## The WICK code
 
-This is how Better Vest stays free. Since 9.0 it does nothing at checkout until you press a button that buys.
+This is how Better Vest stays free.
 
-- It only shows up when you press Purchase Evaluation Account, Buy Your Bespoke Account, Add Funded Account or Buy Without a Discount, while you're logged in and the code on isn't WICK. Your press waits, and a pop-up asks.
+- **An empty code box** (since 9.2.6): when a purchase screen opens and Vest's code box has no code in it, Better Vest puts WICK in through Vest's own box and Vest's own button, once per purchase, and a note says so. Nothing is bought by it. It never replaces a code that is on, and if you press into the code box first, the box is yours. Switch it off with **Put code WICK in when Vest's code box is empty** in Settings > More > Support Astral. It's also off if you turned the question off. In the Chrome Web Store version it waits for your yes: that switch, or Always use code WICK.
+- **The question:** when you press Purchase Evaluation Account, Buy Your Bespoke Account, Add Funded Account or Buy Without a Discount, while you're logged in and another code is on. Your press waits, and a pop-up asks.
 - **Use code WICK** puts WICK in Vest's own code box and presses Vest's own button for it. If Vest takes it and the discount is the same or more, your purchase goes on: Better Vest presses your button once more. If not, your code goes back, the pop-up says so, and nothing goes on until you press again.
 - **No thanks**, or pressing the button again, goes on at once, as it was.
 - **Always use code WICK** (off until you switch it on) skips the question: your press puts WICK in and goes on. It never replaces a code you typed or picked in that purchase, and never keeps WICK when it gives less off.
 - When something is unsure (no code box, or no answer from Vest within a few seconds), your press goes through as it was.
 - The pop-up has one of three looks, picked once on each computer: your month with Better Vest (counted on this computer only), the plan's price from Vest's own card with and without WICK, or a short note from me.
-- **Settings > More > Support Astral** has both switches: **Ask about code WICK when I buy** and **Always use code WICK**.
+- **Settings > More > Support Astral** has the switches: **Ask about code WICK when I buy**, **Put code WICK in when Vest's code box is empty** and **Always use code WICK**.
 
 With WICK you pay the same or less, and the purchase supports me.
 
@@ -209,15 +211,15 @@ When a new version is out and you're flat, a small panel at the bottom right of 
 ## Check it yourself
 
 1. **Read the code.** The [`extension`](extension) folder in this repo is the Standard zip, file for file ([`extension-lite`](extension-lite) and [`extension-nostats`](extension-nostats) are the other two). It isn't minified or obfuscated, so you can read it in your browser.
-2. **Check the zip is that code.** The SHA-256 of `better-vest-9.2.5.zip` is:
+2. **Check the zip is that code.** The SHA-256 of `better-vest-9.2.6.zip` is:
 
-   `2b3c52c0268673186d90662083ef224270d47d54c08c19cf5b8c400aaba05aa9`
+   `5cae906d0a7e833ede473825212c10bc57d4e04d7c1a9e7b84b9e3df2a06feb2`
 
-   Lite: `5d3d9b201f9a4125d4fc530a5eecd9351209c73ad5497d82d07d67d2c87b824c`. No stats: `384f0afd706b47cf444524baf41d424103e99d61d18526aa92aa56964ca5d72c`.
+   Lite: `53f7e655763cf00b1e537e6fcbef4d4e2f6b0a145853bb30e39016a8c84ab766`. No stats: `b46d8d5aebe16f4d667afbb08a3cfca89f0ebbf2d71c6dff019bb07c561f5947`.
 
-   - On Mac: `shasum -a 256 better-vest-9.2.5.zip`
-   - On Windows: `certutil -hashfile better-vest-9.2.5.zip SHA256`
-3. **Scan it.** VirusTotal checks a file with more than 60 antivirus engines. Upload the zip at [virustotal.com](https://www.virustotal.com) and you get the result for that exact file. The last version I scanned there, 9.2.5, came back with no engine flagging it: Standard 0 of 64 ([report](https://www.virustotal.com/gui/file/2b3c52c0268673186d90662083ef224270d47d54c08c19cf5b8c400aaba05aa9)), Lite 0 of 66 ([report](https://www.virustotal.com/gui/file/5d3d9b201f9a4125d4fc530a5eecd9351209c73ad5497d82d07d67d2c87b824c)), No stats 0 of 66 ([report](https://www.virustotal.com/gui/file/384f0afd706b47cf444524baf41d424103e99d61d18526aa92aa56964ca5d72c)). The one released before, 9.0.9, was 0 of 65 ([report](https://www.virustotal.com/gui/file/e2591207358e9e20dbb494778361c1e8a69a6d4c9540f22a6bf55ca70270a347)).
+   - On Mac: `shasum -a 256 better-vest-9.2.6.zip`
+   - On Windows: `certutil -hashfile better-vest-9.2.6.zip SHA256`
+3. **Scan it.** VirusTotal checks a file with more than 60 antivirus engines. Upload the zip at [virustotal.com](https://www.virustotal.com) and you get the result for that exact file. The last version I scanned there, 9.2.6, came back with no engine flagging it: Standard 0 of 65 ([report](https://www.virustotal.com/gui/file/5cae906d0a7e833ede473825212c10bc57d4e04d7c1a9e7b84b9e3df2a06feb2)), Lite 0 of 65 ([report](https://www.virustotal.com/gui/file/53f7e655763cf00b1e537e6fcbef4d4e2f6b0a145853bb30e39016a8c84ab766)), No stats 0 of 66 ([report](https://www.virustotal.com/gui/file/b46d8d5aebe16f4d667afbb08a3cfca89f0ebbf2d71c6dff019bb07c561f5947)). The one released before, 9.2.5, was 0 of 64 ([report](https://www.virustotal.com/gui/file/2b3c52c0268673186d90662083ef224270d47d54c08c19cf5b8c400aaba05aa9)).
 
    Reports for earlier versions also had an AI summary, "Code insights", which marked two things as suspicious. Both are on this page: the WICK code switch ([The WICK code](#the-wick-code)) and the updater writing its own files ([Updates are signed](#updates-are-signed)).
 4. **Watch it work.** Open Chrome's DevTools on the Vest tab (F12), go to Network, and use Better Vest. You'll only see the addresses listed above.
