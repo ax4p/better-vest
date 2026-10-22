@@ -14,7 +14,7 @@ const done = (req) => new Promise((resolve, reject) => { req.onsuccess = () => r
 const txDone = (tx) => new Promise((resolve, reject) => { tx.oncomplete = () => resolve(); tx.onerror = tx.onabort = () => reject(tx.error || new Error('aborted')); });
 
 export function tapeOpen(env) {
-    const E = envOf(env);
+    const E = envOf(env); /* @license Better Vest 9.2.6. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-99d59fae */
     return new Promise((resolve, reject) => {
         const req = E.indexedDB.open(TAPE_DB, 1);
         req.onupgradeneeded = () => {
@@ -36,7 +36,7 @@ export async function tapeWrite(sym, rows, now, env) {
     try {
         const tx = db.transaction(STORE, 'readwrite');
         const st = tx.objectStore(STORE);
-        /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-c10ebb9f */ const done1 = txDone(tx);
+        const done1 = txDone(tx);
         const first = clean[0];
         const near = await done(st.getAll(E.IDBKeyRange.bound(tapeKeyFrom(sym, first - TAPE_SPAN), tapeKeyFrom(sym, first) + '|~')));
         const prev = near.filter((c) => c.t1 < first).sort((a, b) => a.t1 - b.t1).pop();
@@ -50,9 +50,9 @@ export async function tapeWrite(sym, rows, now, env) {
         if (now - prunedAt >= PRUNE_EVERY_MS) { prunedAt = now; await tapePruneDb(db, now, env); }
     } finally { db.close(); }
     return clean.length / 5;
-}
+} /*! Copyright (c) 2026 Astral. Better Vest 9.2.6 is licensed to its users only to run it, never to copy it. bv-2b5a6b75 */
 
-/*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-bc96099d */ export async function tapeRead(sym, from, to, env) {
+export async function tapeRead(sym, from, to, env) {
     if (typeof sym !== 'string' || !SYM_RE.test(sym) || !(to >= from)) return [];
     const E = envOf(env);
     let db;

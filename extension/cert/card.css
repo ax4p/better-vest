@@ -9,8 +9,8 @@
     background: linear-gradient(to top, var(--surface) 0%, var(--shadow) 112.26%);
 }
 .bvc .bvc-bg { position: absolute; inset: 0; z-index: -10; overflow: hidden; border-radius: inherit; pointer-events: none; }
-.bvc .bvc-bg img { position: absolute; max-width: none; } /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-11873771 */
-.bvc .bvc-a { position: absolute; }
+.bvc .bvc-bg img { position: absolute; max-width: none; }
+.bvc .bvc-a { position: absolute; } /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-5e9bf712 */
 .bvc p, .bvc dl, .bvc dd, .bvc dt { margin: 0; padding: 0; }
 .bvc .bvc-lbl { font-size: 9px; line-height: 11px; letter-spacing: .18px; color: var(--mut); white-space: nowrap; font-weight: 400; }
 .bvc .bvc-val { font-size: 17px; line-height: 20px; font-weight: 600; letter-spacing: -.3px; white-space: nowrap; }
@@ -28,7 +28,7 @@
 }
 .bvc .bvc-div { height: .75px; background: rgb(255 255 255 / .1); }
 .bvc .bvc-prov { font-size: 7.5px; line-height: 9px; letter-spacing: .15px; color: var(--mut); text-align: center; white-space: nowrap; }
-.bvc .bvc-vw { font-size: 11px; line-height: 15px; font-weight: 700; letter-spacing: .2em; color: #F5F5F5; white-space: nowrap; } /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-7f187897 */
+.bvc .bvc-vw { font-size: 11px; line-height: 15px; font-weight: 700; letter-spacing: .2em; color: #F5F5F5; white-space: nowrap; }
 .bvc .bvc-pill {
     display: inline-flex; align-items: center; gap: 5px; border-radius: 999px; padding: 3px 8px; font-size: 8.5px; line-height: 11px; font-weight: 600;
     letter-spacing: .16px; color: var(--gold); background: rgb(233 203 120 / .08); box-shadow: inset 0 0 0 .75px rgb(233 203 120 / .38); white-space: nowrap;
@@ -36,6 +36,6 @@
 .bvc .bvc-pill b { width: 5px; height: 5px; transform: rotate(45deg); background: linear-gradient(135deg, #FDE9A7, #B08D2A); display: block; }
 .bvc .bvc-stat { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1; }
 .bvc .bvc-sep { width: .75px; background: rgb(255 255 255 / .1); align-self: stretch; }
-.bvc .bvc-recip { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.bvc .bvc-recip { display: flex; flex-direction: column; align-items: center; gap: 8px; } /*! Owned by Astral (@ax4p): Better Vest standard 9.2.6. Licence: LICENSE, not open source. bv-1294cde4 */
 .bvc .bvc-recip img { position: absolute; }
 .bvc svg { display: block; overflow: visible; }

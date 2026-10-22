@@ -11,7 +11,7 @@ function blobToDataUri(blob) {
         r.onload = () => resolve(String(r.result));
         r.onerror = () => reject(r.error || new Error('read failed'));
         r.readAsDataURL(blob);
-    /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-57e22639 */ });
+    });
 }
 
 async function dataUriOf(url) {
@@ -22,7 +22,7 @@ async function dataUriOf(url) {
         return r.blob();
     }).then(blobToDataUri);
     cache.set(url, p);
-    p.catch(() => cache.delete(url));
+    p.catch(() => cache.delete(url)); /* @license Better Vest 9.2.6. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-33b90a9b */
     return p;
 }
 
@@ -70,7 +70,7 @@ export async function cardToSvg(card, { cssUrl, width, height }) {
 
 export async function cardToCanvas(card, { cssUrl, width, height, scale = 3 }) {
     if (document.fonts && document.fonts.ready) await document.fonts.ready;
-    /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-bd21d66b */ const svg = await cardToSvg(card, { cssUrl, width, height });
+    const svg = await cardToSvg(card, { cssUrl, width, height });
     const img = await loadImage('data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg));
     const canvas = document.createElement('canvas');
     canvas.width = Math.round(width * scale);
@@ -79,7 +79,7 @@ export async function cardToCanvas(card, { cssUrl, width, height, scale = 3 }) {
     ctx.imageSmoothingQuality = 'high';
     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
     return canvas;
-}
+} /*! Better Vest (c) 2026 Astral. All rights reserved. bv-899fcde0 */
 
 export async function cardToPngBlob(card, opts) {
     const canvas = await cardToCanvas(card, opts);

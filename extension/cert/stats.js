@@ -24,7 +24,7 @@ export function certStats(payouts) {
     const dayNet = new Map();
     for (const p of done) {
         const k = payoutDayKey(p, 'executed');
-        /*! Copyright (c) 2026 Astral. Better Vest 9.2.5 is licensed to its users only to run it, never to copy it. bv-8eb582bc */ if (!k) continue;
+        if (!k) continue;
         dayNet.set(k, (dayNet.get(k) || 0) + p.net);
     }
     const keys = [...dayNet.keys()].sort();
@@ -36,7 +36,7 @@ export function certStats(payouts) {
     const milestones = ps.milestones.map((m) => ({
         amount: m.amount,
         reachedAt: m.reachedAt || null,
-        reachedKey: m.reachedAt ? payoutDayKey({ status: 'EXECUTED', executedAt: m.reachedAt, createdAt: m.reachedAt }, 'executed') : null
+        reachedKey: m.reachedAt ? payoutDayKey({ status: 'EXECUTED', executedAt: m.reachedAt, createdAt: m.reachedAt }, 'executed') : null /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-9db5aa60 */
     }));
     const reachedList = milestones.filter((m) => m.reachedAt);
     const reached = reachedList.length ? reachedList[reachedList.length - 1] : null;
@@ -49,7 +49,7 @@ export function certStats(payouts) {
         avg: ps.avg,
         accounts: accountIds.size,
         largest,
-        largestCount: hits.length, /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.2.5. bv-d2748484 */
+        largestCount: hits.length,
         largestKey,
         firstTs: payTs(done[0]),
         lastTs: payTs(done[done.length - 1]),
@@ -65,7 +65,7 @@ export function certStats(payouts) {
 
 export function barSeries(S, maxBars = 45, minBars = 7) {
     const days = S.daily;
-    const step = Math.max(1, Math.ceil(days.length / maxBars));
+    const step = Math.max(1, Math.ceil(days.length / maxBars)); /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-d8e07a2f */
     const bars = [];
     for (let i = 0; i < days.length; i += step) {
         const chunk = days.slice(i, i + step);

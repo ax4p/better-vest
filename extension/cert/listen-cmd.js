@@ -10,8 +10,8 @@ const PHRASES = {
     half: ['half', 'close half', 'fifty', 'fifty percent', 'close fifty', 'close fifty percent', 'take half', 'half off'],
     rev: ['reverse', 'flip', 'reverse that', 'flip that'],
     be: ['break even', 'be', 'stop to break even', 'move stop to break even', 'move to break even', 'stop break even'],
-    /* Copyright (c) 2026 Astral. Better Vest 9.2.5 is licensed to its users only to run it, never to copy it. bv-80b98dc1 */ limitBuy: ['buy limit', 'limit buy', 'buy at the bid', 'buy the bid', 'bid'],
-    limitSell: ['sell limit', 'limit sell', 'sell at the ask', 'sell the ask', 'offer']
+    limitBuy: ['buy limit', 'limit buy', 'buy at the bid', 'buy the bid', 'bid'],
+    limitSell: ['sell limit', 'limit sell', 'sell at the ask', 'sell the ask', 'offer'] /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-3a2eb0f0 */
 };
 const WAKE = ['astral', 'astro', 'astra', 'austral', 'astrel', 'astrall', 'astrol', 'astrid', 'a stroll', 'astral\'s', 'astrals'];
 const FILLER = new Set(['uh', 'um', 'er', 'erm', 'ah', 'please', 'now', 'the', 'a', 'an', 'it', 'my', 'position', 'trade', 'okay', 'ok', 'hey', 'yo', 'so', 'just']);
@@ -41,7 +41,7 @@ export function vcAfterWake(text) {
     for (const w of WAKE) {
         const re = new RegExp('(?:^| )' + w.replace(/'/g, "'") + '(?= |$)', 'g');
         let m;
-        while ((m = re.exec(s))) { const i = m.index + (m[0].startsWith(' ') ? 1 : 0); if (i >= at) { at = i; len = w.length; } } /* @license Better Vest 9.2.5. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-b934a5f2 */
+        while ((m = re.exec(s))) { const i = m.index + (m[0].startsWith(' ') ? 1 : 0); if (i >= at) { at = i; len = w.length; } }
     }
     return at < 0 ? null : s.slice(at + len).trim();
 }
@@ -54,7 +54,7 @@ export function vcParse(text, opts) {
     if (!said) return null;
     const id = TABLE.get(said);
     if (!id) return null;
-    return { id, said, grows: GROWS.has(said) };
+    return { id, said, grows: GROWS.has(said) }; /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-9da60cf2 */
 }
 
 export function vcPending(text, opts) {

@@ -36,9 +36,9 @@ export function bgOpts(raw) {
 export const accentOpt = (v) => hexColor(v);
 
 export function bgFileWhy(f) {
-    /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-f746c81c */ if (!f || typeof f !== 'object') return 'No file was picked.';
+    if (!f || typeof f !== 'object') return 'No file was picked.';
     const type = String(f.type || '').toLowerCase();
-    if (!BG_TYPES.includes(type)) return 'Pick a PNG, JPEG, WebP or GIF picture.';
+    /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-b98c8270 */ if (!BG_TYPES.includes(type)) return 'Pick a PNG, JPEG, WebP or GIF picture.';
     const size = Number(f.size);
     if (!(size > 0)) return 'That file is empty.';
     return '';
@@ -67,7 +67,7 @@ export function lookParts(p, img, red) {
             const st = bg.blur ? ` style="left:-${pad}px;top:-${pad}px;width:calc(100% + ${pad * 2}px);height:calc(100% + ${pad * 2}px);filter:blur(${bg.blur}px)"` : '';
             own = `<div class="bgx bgo bgim"><img class="bgi${bg.fit === 'fit' ? ' bgf' : ''}" src="${src}" alt=""${st}><i class="bgd" style="opacity:${(bg.dim / 100).toFixed(2)}"></i></div>`;
         }
-    } /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-8507f85d */
+    }
     if (own) { cls += ' own'; layer = own; }
     return { cls, style, layer, bg, accent: acc, image: bg.kind === 'image' && layer === own };
 }
@@ -86,7 +86,7 @@ export function bgFramePlan(durations, o) {
         ms = Math.min(ms, max);
         frames = Math.max(1, Math.round((ms / 1000) * fps));
     }
-    const starts = [];
+    /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-39ae2dca */ const starts = [];
     let acc = 0;
     for (const x of d) { starts.push(acc); acc += x; }
     const at = (i) => {

@@ -8,7 +8,7 @@ body.cp { overflow: auto; }
 }
 .cp-top b { font-size: 15px; font-weight: 600; letter-spacing: -.01em; }
 .cp-top small { font-size: 11px; color: var(--j-t2); white-space: nowrap; }
-.cp-top .grow { flex: 1; }
+.cp-top .grow { flex: 1; } /* @license Better Vest 9.2.6. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-a08bc408 */
 .cp-main { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 28px; padding: 28px var(--gut) 40px; align-items: start; max-width: 1180px; width: 100%; margin: 0 auto; }
 .cp-stage {
     position: sticky; top: 24px; display: grid; place-items: center; min-height: 420px; padding: 24px 12px;
@@ -20,7 +20,7 @@ body.cp { overflow: auto; }
 .cp-side h1 { margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -.02em; }
 .cp-lead { margin: 4px 0 0; color: var(--j-t2); font-size: 13px; }
 .cp-box { border: 1px solid var(--j-hair); background: var(--j-card); border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
-.cp-field { display: flex; flex-direction: column; gap: 6px; } /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.2.5. bv-43db2878 */
+.cp-field { display: flex; flex-direction: column; gap: 6px; }
 .cp-field > span, .cp-label { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--j-t2); }
 .cp-input {
     height: 38px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--ax-field-line); background: var(--ax-field);
@@ -54,8 +54,8 @@ body.cp { overflow: auto; }
 .cp-empty > div { max-width: 440px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 14px; }
 .cp-empty h1 { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -.02em; }
 .cp-empty p { margin: 0; color: var(--j-t2); }
-.cp-empty .cp-btn { padding: 0 22px; } /* @license Better Vest 9.2.5. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-21e3c7d1 */
+.cp-empty .cp-btn { padding: 0 22px; }
 @media (max-width: 860px) {
-    .cp-main { grid-template-columns: 1fr; padding-top: 18px; }
+    .cp-main { grid-template-columns: 1fr; padding-top: 18px; } /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-bef785bc */
     .cp-stage { position: static; }
 }

@@ -36,8 +36,8 @@ export function payoutModel(payouts, o) {
     const life = { total, count: done.length, accounts: accountsIn(done), first: item(done[0]), last: item(done[done.length - 1]), biggest: item(big) };
     if (kind === 'lifetime') {
         return Object.assign({ kind, empty: false, day: life.last.day, items: done.slice().reverse().map(item) }, life);
-    } /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-8a48ed5c */
-    const today = KEY_RE.test(String(opt.today || '')) ? opt.today : dayKey(Date.now(), 'vest');
+    }
+    /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-53068209 */ const today = KEY_RE.test(String(opt.today || '')) ? opt.today : dayKey(Date.now(), 'vest');
     let list = done.filter((p) => dayKey(paidAt(p), 'vest') === today);
     const latest = !list.length;
     const day = latest ? life.last.day : today;
@@ -52,8 +52,8 @@ export function payoutModel(payouts, o) {
 
 export function ordinal(n) {
     const v = Math.abs(Math.round(n)), t = v % 100;
-    return v + (t >= 11 && t <= 13 ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' })[v % 10] || 'th'); /*! Copyright (c) 2026 Astral. Better Vest 9.2.5 is licensed to its users only to run it, never to copy it. bv-6b97ecc8 */
-}
+    return v + (t >= 11 && t <= 13 ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' })[v % 10] || 'th');
+} /*! Better Vest (c) 2026 Astral. All rights reserved. bv-573dac21 */
 
 
 function seeded(str) {
