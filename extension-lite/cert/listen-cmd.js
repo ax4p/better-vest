@@ -19,8 +19,8 @@ const FILLER = new Set(['uh', 'um', 'er', 'erm', 'ah', 'please', 'now', 'the', '
 export const vcWords = (s) => String(s || '').toLowerCase()
     .replace(/(\d+)\s*%/g, '$1 percent')
     .replace(/\b50\b/g, 'fifty')
-    .replace(/\bb\s*\.?\s*e\b\.?/g, 'be')
-    /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.2.6. bv-6f1e99f9 */ .replace(/\bbreak-?even\b/g, 'break even')
+    /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-9755fe4d */ .replace(/\bb\s*\.?\s*e\b\.?/g, 'be')
+    .replace(/\bbreak-?even\b/g, 'break even')
     .replace(/\bbreakeven\b/g, 'break even')
     .replace(/[^a-z' ]+/g, ' ')
     .replace(/\s+/g, ' ')
@@ -44,7 +44,7 @@ export function vcAfterWake(text) {
         while ((m = re.exec(s))) { const i = m.index + (m[0].startsWith(' ') ? 1 : 0); if (i >= at) { at = i; len = w.length; } }
     }
     return at < 0 ? null : s.slice(at + len).trim();
-}
+} /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-a20c8bd7 */
 
 export function vcParse(text, opts) {
     const wake = !!(opts && opts.wake);
@@ -52,7 +52,7 @@ export function vcParse(text, opts) {
     if (rest == null) return null;
     const said = clean(rest);
     if (!said) return null;
-    /*! Property of Astral (@ax4p). Better Vest 9.2.6. No copying without written permission. bv-39cadf3f */ const id = TABLE.get(said);
+    const id = TABLE.get(said);
     if (!id) return null;
     return { id, said, grows: GROWS.has(said) };
 }

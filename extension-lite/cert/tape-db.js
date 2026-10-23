@@ -11,7 +11,7 @@ let prunedAt = 0;
 
 const envOf = (env) => env || { indexedDB: globalThis.indexedDB, IDBKeyRange: globalThis.IDBKeyRange };
 const done = (req) => new Promise((resolve, reject) => { req.onsuccess = () => resolve(req.result); req.onerror = () => reject(req.error); });
-const txDone = (tx) => new Promise((resolve, reject) => { tx.oncomplete = () => resolve(); tx.onerror = tx.onabort = () => reject(tx.error || new Error('aborted')); }); /* Better Vest (c) 2026 Astral. All rights reserved. bv-1d0c1199 */
+const txDone = (tx) => new Promise((resolve, reject) => { tx.oncomplete = () => resolve(); tx.onerror = tx.onabort = () => reject(tx.error || new Error('aborted')); });
 
 export function tapeOpen(env) {
     const E = envOf(env);
@@ -24,7 +24,7 @@ export function tapeOpen(env) {
         req.onsuccess = () => resolve(req.result);
         req.onerror = () => reject(req.error);
         req.onblocked = () => reject(new Error('blocked'));
-    });
+    }); /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-c0670ab6 */
 }
 
 export async function tapeWrite(sym, rows, now, env) {
@@ -60,7 +60,7 @@ export async function tapeRead(sym, from, to, env) {
     try {
         const tx = db.transaction(STORE, 'readonly');
         const range = E.IDBKeyRange.bound(tapeKeyFrom(sym, Math.max(0, Math.floor(from) - TAPE_SPAN)), tapeKeyFrom(sym, Math.floor(to)) + '|~');
-        const recs = await done(tx.objectStore(STORE).getAll(range)); /* Property of Astral (@ax4p). Better Vest 9.2.6. No copying without written permission. bv-6dea1a24 */
+        const recs = await done(tx.objectStore(STORE).getAll(range));
         const rows = tapeMerge(recs.map(tapeDecode));
         let a = 0, b = rows.length;
         while (a < b && rows[a] < from) a += 5;
@@ -75,7 +75,7 @@ async function tapePruneDb(db, now, env) {
     const tx = db.transaction(STORE, 'readwrite');
     const idx = tx.objectStore(STORE).index('day');
     const keys = await done(idx.getAllKeys(E.IDBKeyRange.upperBound(keep, true)));
-    const st = tx.objectStore(STORE);
+    const st = tx.objectStore(STORE); /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-52cc526e */
     for (const k of keys) st.delete(k);
     await txDone(tx);
     return keys.length;

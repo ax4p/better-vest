@@ -37,7 +37,7 @@ export function gifSpeedPlan(n, resS, speed, fps, wins) {
     if (len(0, n) > room) {
         const w = ws.find((x) => len(x.a, x.b) <= room);
         if (!w) {
-            /*! Copyright Astral 2026. From Better Vest 9.2.6 (lite), ref bv-6cde70ef. Not licensed for reuse. */ const z = ws[ws.length - 1];
+            /*! Better Vest (c) 2026 Astral. All rights reserved. bv-66cdfcd3 */ const z = ws[ws.length - 1];
             return { speed: String(k), ok: false, need: r.intro + len(z ? z.a : 0, z ? z.b : n) + r.hold, a: z ? z.a : 0, b: z ? z.b : n, window: z ? z.kind || 'trades' : false };
         }
         a = w.a; b = w.b; window = w.kind || 'trades';
@@ -67,14 +67,14 @@ export const GIF_WIN = { lead: 60, tail: 30 };
 export function gifTradeWindow(bars, resS, trades) {
     const ts = [];
     for (const t of trades || []) for (const f of (t && t.fills) || []) if (f && f.t > 0) ts.push(f.t / 1000);
-    if (!ts.length || !bars || !bars.length) return null; /*! Property of Astral (@ax4p). Better Vest 9.2.6. No copying without written permission. bv-08abe4cf */
+    if (!ts.length || !bars || !bars.length) return null;
     const pOf = (s) => {
         if (s < bars[0][0]) return 0;
         let a = 0, b = bars.length - 1;
         while (a < b) { const m = (a + b + 1) >> 1; if (bars[m][0] <= s) a = m; else b = m - 1; }
         return a + Math.max(0, Math.min(1, (s - bars[a][0]) / resS));
     };
-    return { a: pOf(Math.min(...ts) - GIF_WIN.lead), b: pOf(Math.max(...ts) + GIF_WIN.tail) };
+    return { a: pOf(Math.min(...ts) - GIF_WIN.lead), b: pOf(Math.max(...ts) + GIF_WIN.tail) }; /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-a427fcf0 */
 }
 
 export function gifFrames(kind, scene, img, mode, plan) {
@@ -101,7 +101,7 @@ export async function makeGif(o) {
     const animated = plan.length > 1;
     const stop = () => !!(o.cancelled && o.cancelled());
     const halt = () => { if (stop()) { const e = new Error('cancelled'); e.cancelled = true; throw e; } };
-    const tell = (f, what) => { if (o.onProgress) o.onProgress(Math.max(0, Math.min(1, f)), what); };
+    const tell = (f, what) => { if (o.onProgress) o.onProgress(Math.max(0, Math.min(1, f)), what); }; /* Better Vest (c) 2026 Astral. All rights reserved. bv-fdd3c616 */
     let frames = null, worker = null;
     try {
         let canvas, draw;
@@ -115,7 +115,7 @@ export async function makeGif(o) {
             if (o.img && o.img.animated) {
                 const used = [];
                 const seen = new Set();
-                for (const p of plan) if (!seen.has(p.bg)) { seen.add(p.bg); used.push(p.bg); } /*! Copyright (c) 2026 Astral. Better Vest 9.2.6 is licensed to its users only to run it, never to copy it. bv-ffcfcffd */
+                for (const p of plan) if (!seen.has(p.bg)) { seen.add(p.bg); used.push(p.bg); }
                 at = 0.15;
                 frames = await bgFrames(o.img, { used, at: (k) => plan[k].bg }, W, H, scale, o.bg, g.base, (f) => tell(f * at, 'picture'), { cancelled: stop });
                 bg = { at: frames.at };
@@ -151,7 +151,7 @@ export async function makeGif(o) {
         const pick = sampleFrames(plan.length, SAMPLE_FRAMES);
         const step = Math.max(1, Math.ceil((pick.length * W * H) / SAMPLE_PIXELS));
         const span1 = animated ? 0.15 : 0.3;
-        for (const [i, k] of pick.entries()) {
+        for (const [i, k] of pick.entries()) { /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-9f8d08f5 */
             halt();
             const px = pixels(k);
             await call({ type: 'sample', buf: px.buffer, step, offset: i }, [px.buffer]);
@@ -163,7 +163,7 @@ export async function makeGif(o) {
 
         const inflight = [];
         for (let k = 0; k < plan.length; k++) {
-            /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-a31228da */ halt();
+            halt();
             const px = pixels(k);
             inflight.push(call({ type: 'frame', buf: px.buffer, delay: plan[k].delay }, [px.buffer]));
             if (inflight.length >= 2) await inflight.shift();

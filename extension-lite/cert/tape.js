@@ -26,7 +26,7 @@ function tapeMergeRecs(recs) {
     const out = [];
     for (const r of recs) {
         const k = out.length - 5;
-        if (k >= 0 && out[k] === r[0]) {
+        /* Copyright Astral 2026. From Better Vest 9.3.0 (lite), ref bv-75e65c61. Not licensed for reuse. */ if (k >= 0 && out[k] === r[0]) {
             if (r[2] > out[k + 2]) out[k + 2] = r[2];
             if (r[3] < out[k + 3]) out[k + 3] = r[3];
             out[k + 4] = r[4];
@@ -36,7 +36,7 @@ function tapeMergeRecs(recs) {
 }
 export function tapeMerge(runs) {
     const recs = [];
-    let n = 0; /* @license Better Vest 9.2.6. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-c6f4777a */
+    let n = 0;
     for (const rows of runs) for (let i = 0; i + 4 < rows.length; i += 5) recs.push([rows[i], rows[i + 1], rows[i + 2], rows[i + 3], rows[i + 4], n++]);
     return tapeMergeRecs(recs);
 }
@@ -65,7 +65,7 @@ export function tapeEncode(rows) {
     let ps = rows[0], pc = 0;
     for (let i = 0; i + 4 < rows.length; i += 5) {
         const o = u(rows[i + 1]), h = u(rows[i + 2]), l = u(rows[i + 3]), c = u(rows[i + 4]);
-        putU(out, rows[i] - ps);
+        putU(out, rows[i] - ps); /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-57d1f0ba */
         putU(out, zig(o - pc));
         putU(out, Math.max(0, h - Math.max(o, c)));
         putU(out, Math.max(0, Math.min(o, c) - l));
@@ -81,7 +81,7 @@ export function tapeDecode(rec) {
     const b = rec.x, m = Math.pow(10, rec.d);
     let p = 0;
     const getU = () => {
-        let v = 0, mul = 1, x; /*! Property of Astral (@ax4p). Better Vest 9.2.6. No copying without written permission. bv-31f2dead */
+        let v = 0, mul = 1, x;
         do { x = b[p++]; v += (x & 127) * mul; mul *= 128; } while (x >= 128 && p < b.length);
         return v;
     };
@@ -102,7 +102,7 @@ export const tapeKeyFrom = (sym, t) => sym + '|' + pad(t);
 export function tapeChunks(sym, rows) {
     const out = [];
     let a = 0, day = '';
-    /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-0c2e5391 */ const cut = (from, to) => {
+    const cut = (from, to) => {
         if (to <= from) return;
         const part = rows.slice(from, to);
         const e = tapeEncode(part);
@@ -122,7 +122,7 @@ export function tapeTol(bars) {
     for (const b of bars.slice(0, 200)) rows.push(0, b[1], b[2], b[3], b[4]);
     return 1.5 * Math.pow(10, -tapeDecimals(rows));
 }
-export function tapeBars(bars, resS, rows, tol) {
+/*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-64204f05 */ export function tapeBars(bars, resS, rows, tol) {
     const out = new Array(bars.length).fill(null);
     const n = Math.floor(rows.length / 5);
     const t0 = tol == null ? tapeTol(bars) : tol;
@@ -149,7 +149,7 @@ export function tapeFormAt(bar, path, f, resS) {
     let h = o, l = o, c = o;
     const tau = Math.max(0, Math.min(1, f)) * resS;
     if (path && path.secs) {
-        for (const s of path.secs) { /* @license Better Vest 9.2.6. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-2630a693 */
+        for (const s of path.secs) {
             if (s[0] >= tau) break;
             if (s[2] > h) h = s[2];
             if (s[3] < l) l = s[3];
@@ -157,7 +157,7 @@ export function tapeFormAt(bar, path, f, resS) {
         }
     }
     return { o, h, l, c };
-}
+/* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.0. bv-72c3e6c9 */ }
 
 function rng(seed) {
     let a = seed >>> 0;
@@ -182,7 +182,7 @@ export function tapeSample(bar, resS) {
     const step = Math.max(1, Math.round(resS / 600));
     const N = Math.max(2, Math.floor(resS / step));
     const r = rng(seedOf(bar));
-    const vals = new Array(N);
+    const vals = new Array(N); /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-09bd2241 */
     if (!(H > L)) {
         vals.fill(C);
     } else {
@@ -191,7 +191,7 @@ export function tapeSample(bar, resS) {
         for (let g = 0; g < 8 && tB === tA; g++) tB = pick();
         if (tB === tA) tB = Math.min(N - 1, tA + 1);
         const hiFirst = r() < 0.5;
-        const anchors = [[0, O], [Math.min(tA, tB), hiFirst ? H : L], [Math.max(tA, tB), hiFirst ? L : H], [N - 1, C]]; /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-4195998f */
+        const anchors = [[0, O], [Math.min(tA, tB), hiFirst ? H : L], [Math.max(tA, tB), hiFirst ? L : H], [N - 1, C]];
         const sig = (H - L) * 0.55 / Math.sqrt(N);
         const gauss = () => { let u = 0; while (!u) u = r(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * r()); };
         for (let k = 0; k + 1 < anchors.length; k++) {

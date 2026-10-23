@@ -17,13 +17,13 @@ const f2 = (n) => (Math.round(n * 100) / 100).toFixed(2);
 export function fmtMoneyParts(v) {
     const cents = Math.round(Math.abs(v) * 100);
     const whole = Math.floor(cents / 100);
-    /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-4f7d299e */ return {
+    return {
         int: (v < 0 ? '-' : '') + '$' + whole.toLocaleString('en-US'),
         cents: String(cents % 100).padStart(2, '0')
     };
 }
 export const fmtMoney = (v) => { const p = fmtMoneyParts(v); return p.int + '.' + p.cents; };
-export const fmtMilestone = (amount) => '$' + (amount >= 1000 ? amount / 1000 + 'K' : amount);
+export const fmtMilestone = (amount) => '$' + (amount >= 1000 ? amount / 1000 + 'K' : amount); /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.0. bv-ba22416e */
 const dm = (key) => fmtDate(key, 'dm');
 
 function bars(vals, w, h, gap, uid) {
@@ -103,7 +103,7 @@ export function buildCard(S, opts = {}) {
 }
 
 export function fitCard(card) {
-    const q = (k) => card.querySelector(`[data-k="${k}"]`); /*! Better Vest (c) 2026 Astral. All rights reserved. bv-1c99d1ab */
+    const q = (k) => card.querySelector(`[data-k="${k}"]`);
     const hero = q('hero'), hv = q('hv');
     let size = 82;
     hero.style.fontSize = size + 'px';
@@ -111,7 +111,7 @@ export function fitCard(card) {
     hero.style.letterSpacing = (-3 * size / 82).toFixed(2) + 'px';
     const recip = q('recip'), name = q('name'), nm = q('nm');
     let fs = 24;
-    name.style.fontSize = fs + 'px';
+    name.style.fontSize = fs + 'px'; /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-34ce26a0 */
     const room = 330 - 2 * 28;
     while (nm.offsetWidth > room && fs > 12) { fs -= 1; name.style.fontSize = fs + 'px'; }
     const w = Math.min(330, Math.max(173, Math.ceil(nm.offsetWidth) + 2 * 28));

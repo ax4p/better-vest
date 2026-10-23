@@ -8,8 +8,8 @@ const cents = (v) => Math.round(v * 100);
 
 export function certStats(payouts) {
     const list = Array.isArray(payouts) ? payouts : [];
-    const ps = payoutStats(list);
-    /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-0b4d8bff */ if (!ps.count) return null;
+    const ps = payoutStats(list); /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-6fd0fb35 */
+    if (!ps.count) return null;
     const done = list
         .filter((p) => p.status === 'EXECUTED')
         .sort((a, b) => ((payTs(a) ?? 0) - (payTs(b) ?? 0)) || (a.id < b.id ? -1 : 1));
@@ -51,7 +51,7 @@ export function certStats(payouts) {
         largest,
         largestCount: hits.length,
         largestKey,
-        /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-1d611078 */ firstTs: payTs(done[0]),
+        firstTs: payTs(done[0]),
         lastTs: payTs(done[done.length - 1]),
         firstKey,
         lastKey,
@@ -65,7 +65,7 @@ export function certStats(payouts) {
 
 export function barSeries(S, maxBars = 45, minBars = 7) {
     const days = S.daily;
-    const step = Math.max(1, Math.ceil(days.length / maxBars));
+    const step = Math.max(1, Math.ceil(days.length / maxBars)); /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-478b67b6 */
     const bars = [];
     for (let i = 0; i < days.length; i += step) {
         const chunk = days.slice(i, i + step);

@@ -6,7 +6,7 @@ let enc = null;
 let size = null;
 
 function on(m) {
-    if (m.type === 'begin') { /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.2.6. bv-61960107 */
+    if (m.type === 'begin') {
         size = { w: m.w, h: m.h };
         pb = new PaletteBuilder();
         enc = null;
@@ -14,7 +14,7 @@ function on(m) {
     }
     if (m.type === 'sample') {
         pb.add(new Uint8ClampedArray(m.buf), m.step, m.offset);
-        return { type: 'ok' };
+        /* @license Better Vest 9.3.0. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-bff05e63 */ return { type: 'ok' };
     }
     if (m.type === 'palette') {
         const clear = pb.clear || !!m.animated;
@@ -32,14 +32,14 @@ function on(m) {
         const frames = enc.frames;
         enc = null;
         return { type: 'done', parts, frames, transfer: parts.map((p) => p.buffer) };
-    } /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-59de113a */
+    }
     throw new Error('unknown message ' + m.type);
 }
 
 self.onmessage = (e) => {
     let out;
     try { out = on(e.data || {}); } catch (err) { out = { type: 'error', message: String((err && err.message) || err) }; }
-    const transfer = out.transfer || [];
+    /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-c1da3d29 */ const transfer = out.transfer || [];
     delete out.transfer;
     self.postMessage(out, transfer);
 };
