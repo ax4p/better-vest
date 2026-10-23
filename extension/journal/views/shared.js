@@ -8,7 +8,7 @@ export const median = (arr) => {
     if (!a.length) return null;
     const m = a.length >> 1;
     return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2;
-}; /* @license Better Vest 9.2.6. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-2510158f */
+};
 export const pctOf = (x) => (x == null ? '—' : Math.round(x * 100) + '%');
 export const sideCls = (v) => (v > 0 ? 'up' : v < 0 ? 'dn' : '');
 
@@ -34,7 +34,7 @@ export function capitalBase(list, accountsById) {
         seen.add(t.accountId);
         const a = accountsById.get(t.accountId);
         if (a && a.kind === 'capital' && a.initialCapital > 0) total += a.initialCapital;
-    }
+    } /*! Owned by Astral (@ax4p): Better Vest standard 9.3.0. Licence: LICENSE, not open source. bv-8894a8d0 */
     return { total, n: seen.size, avg: seen.size && total ? total / seen.size : 0 };
 }
 
@@ -70,14 +70,14 @@ export function tipRegistry() {
         build(id, el) { const fn = map.get(id); return fn ? fn(el) : false; },
         reset() { map.clear(); seq = 0; }
     };
-}
+} /*! Owned by Astral (@ax4p): Better Vest standard 9.3.0. Licence: LICENSE, not open source. bv-3f7e8e78 */
 
 
 export function vgrid({ template, head, rowH = 28, headH = 30, renderRow, rowKey, detail, detailH = 0, rowCls, onRow, onSort, virtual = true, label, empty, minWidth }) {
     const scroller = h('div', { class: 'vg', role: 'table', 'aria-label': label });
     const headEl = h('div', { class: 'vg-head', role: 'row', style: { gridTemplateColumns: template, height: headH + 'px' } });
     const body = h('div', { class: 'vg-body', role: 'rowgroup' });
-    /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-9b2e3493 */ const inner = h('div', { class: 'vg-in', style: minWidth ? { minWidth: minWidth + 'px' } : null }, headEl, body);
+    const inner = h('div', { class: 'vg-in', style: minWidth ? { minWidth: minWidth + 'px' } : null }, headEl, body);
     scroller.appendChild(inner);
     const heads = new Map();
     for (const c of head) {
@@ -104,14 +104,14 @@ export function vgrid({ template, head, rowH = 28, headH = 30, renderRow, rowKey
         while (lo < hi) { const mid = (lo + hi) >> 1; if (offs[mid + 1] <= y) lo = mid + 1; else hi = mid; }
         return lo;
     }
-    function buildRow(i) {
+    /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-4ff188fa */ function buildRow(i) {
         const item = rows[i];
         const open = !!(detail && expanded.has(keyOf(i)));
         const cells = renderRow(item, i);
         const line = h('div', { class: 'vr-line', style: { gridTemplateColumns: template, height: rowH + 'px' } },
             cells.map((c, ci) => h('div', { class: 'vc ' + (head[ci].cls || ''), role: 'cell' }, c)));
         const extra = rowCls ? rowCls(item, i) : '';
-        /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-a59c8904 */ const el = h('div', {
+        const el = h('div', {
             class: 'vr' + (i % 2 ? ' alt' : '') + (open ? ' open' : '') + (extra ? ' ' + extra : ''), role: 'row', tabindex: detail || onRow ? 0 : null,
             'aria-expanded': detail ? String(open) : null,
             style: { transform: `translateY(${offs[i]}px)`, height: (offs[i + 1] - offs[i]) + 'px' }
@@ -149,7 +149,7 @@ export function vgrid({ template, head, rowH = 28, headH = 30, renderRow, rowKey
     let lastTop = 0;
     scroller.addEventListener('scroll', () => { lastTop = scroller.scrollTop; if (!raf) raf = requestAnimationFrame(render); }, { passive: true });
     const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(() => { if (!raf) raf = requestAnimationFrame(render); }) : null;
-    if (ro) ro.observe(scroller);
+    if (ro) ro.observe(scroller); /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-e1bd0016 */
     const emptyEl = h('div', { class: 'vg-empty' }, empty || 'Nothing to show');
     return {
         el: scroller,
@@ -162,7 +162,7 @@ export function vgrid({ template, head, rowH = 28, headH = 30, renderRow, rowKey
             body.style.minHeight = rows.length ? '' : '96px';
         },
         refresh: repaint,
-        setSort(key, dir) { /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-2059095e */
+        setSort(key, dir) {
             for (const [k, cell] of heads) {
                 cell.classList.toggle('sorted', k === key);
                 cell.setAttribute('aria-sort', k === key ? (dir > 0 ? 'ascending' : 'descending') : 'none');
@@ -204,8 +204,8 @@ export function barChart({ data, height = 170, yLabel, tipId, every, pad = { l: 
             const M = { ...pad, l: hasY ? 46 : pad.l };
             const vals = data.map((d) => d.v || 0);
             const lo = Math.min(0, ...vals), hi = Math.max(0, ...vals);
-            const span = hi - lo || 1; /* @license Better Vest 9.2.6. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-d34fe030 */
-            const y = scale(lo - (lo < 0 ? span * 0.04 : 0), hi + span * 0.06, H - M.b, M.t);
+            const span = hi - lo || 1;
+            const y = scale(lo - (lo < 0 ? span * 0.04 : 0), hi + span * 0.06, H - M.b, M.t); /* Copyright Astral 2026. From Better Vest 9.3.0 (standard), ref bv-42967b1a. Not licensed for reuse. */
             const n = data.length;
             const slot = (W - M.l - M.r) / Math.max(1, n);
             const bw = Math.max(2, Math.min(46, slot * (1 - gapRatio)));
@@ -256,11 +256,11 @@ export function hbars({ rows, max, tipId }) {
         const id = tipId ? tipId(r) : null;
         const track = h('div', { class: 'hb-track' + (r.bars.length > 1 ? ' two' : '') }, h('i', { class: 'hb-zero', style: { left: zero + '%' } }));
         for (const b of r.bars) {
-            const w = Math.abs(b.v) / span * 100;
+            /*! Copyright (c) 2026 Astral. Better Vest 9.3.0 is licensed to its users only to run it, never to copy it. bv-8a0e6837 */ const w = Math.abs(b.v) / span * 100;
             track.appendChild(h('i', { class: 'hb-bar ' + (b.v >= 0 ? 'up' : 'dn') + (b.cls ? ' ' + b.cls : ''), style: { left: (b.v >= 0 ? zero : zero - w) + '%', width: Math.max(b.v ? 0.6 : 0, w) + '%' } }));
         }
         root.appendChild(h('div', { class: 'hb-row', 'data-vtip': id, tabindex: id ? 0 : null },
-            /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-ddac7cd8 */ h('div', { class: 'hb-l', title: r.title || r.label }, r.label), track, h('div', { class: 'hb-r' }, r.right)));
+            h('div', { class: 'hb-l', title: r.title || r.label }, r.label), track, h('div', { class: 'hb-r' }, r.right)));
     }
     return root;
 }
