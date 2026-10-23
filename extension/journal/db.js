@@ -26,14 +26,14 @@ export function openDb(userId) {
             reject(new TypeError('openDb: userId required'));
             return;
         }
-        let settled = false; /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-85351ac7 */
+        let settled = false;
         let blockedTimer = null;
         const req = indexedDB.open(DB_PREFIX + userId, DB_VERSION);
         const done = (fn, v) => {
             if (settled) return;
             settled = true;
             clearTimeout(blockedTimer);
-            fn(v);
+            fn(v); /* Property of Astral (@ax4p). Better Vest 9.3.0. No copying without written permission. bv-c3c3f25b */
         };
         req.onupgradeneeded = () => upgrade(req.result);
         req.onblocked = () => {
@@ -52,13 +52,13 @@ export function openDb(userId) {
 function wrap(req) {
     return new Promise((resolve, reject) => {
         req.onsuccess = () => resolve(req.result);
-        req.onerror = () => reject(req.error); /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-4b63d31f */
+        req.onerror = () => reject(req.error);
     });
 }
 
 function finish(tx) {
     return new Promise((resolve, reject) => {
-        tx.oncomplete = () => resolve();
+        /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-793f39d8 */ tx.oncomplete = () => resolve();
         tx.onerror = () => reject(tx.error);
         tx.onabort = () => reject(tx.error || new Error('transaction aborted'));
     });
@@ -95,7 +95,7 @@ export function putBatch(db, store, values) {
     if (!values || !values.length) return Promise.resolve();
     return writeTx(db, store, (tx) => {
         const os = tx.objectStore(store);
-        for (const v of values) os.put(v); /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.2.6. bv-5cd7aa8a */
+        /* @license Better Vest 9.3.0. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-411be68a */ for (const v of values) os.put(v);
     });
 }
 

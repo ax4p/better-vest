@@ -33,7 +33,7 @@
 .vh[data-dir="asc"] .arr { border-bottom: 5px solid var(--ax-accent-text); }
 .vh[data-dir="desc"] .arr { border-top: 5px solid var(--ax-accent-text); }
 .vg-body { position: relative; }
-.vr { position: absolute; left: 0; right: 0; top: 0; contain: layout paint; }
+.vr { position: absolute; left: 0; right: 0; top: 0; contain: layout paint; } /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-9599d49a */
 .vr:focus-visible { z-index: 2; }
 .vr-line { display: grid; align-items: center; padding: 0 12px; font-size: 12px; font-variant-numeric: tabular-nums; border-bottom: 1px solid var(--j-hair); transition: background var(--d1); }
 .vr.alt .vr-line { background: color-mix(in srgb, var(--ax-text) 2.2%, transparent); }
@@ -48,7 +48,7 @@
 
 
 .cbox { position: relative; width: 100%; }
-.cbox svg { display: block; overflow: visible; } /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.2.6. bv-8ea29026 */
+.cbox svg { display: block; overflow: visible; }
 .cb { transition: opacity var(--d1); }
 .cb.up { fill: color-mix(in srgb, var(--ax-up) 82%, transparent); }
 .cb.dn { fill: color-mix(in srgb, var(--ax-down) 82%, transparent); }
@@ -157,7 +157,7 @@
 @media (max-width: 1180px) { .st-wrap { grid-template-columns: minmax(0, 1fr); } .st-metrics { position: static; max-height: none; } }
 @media (max-width: 1000px) { .st-charts { grid-template-columns: minmax(0, 1fr); } }
 .chips { display: inline-flex; flex-wrap: wrap; gap: 6px; }
-.st-panel .pn-b { min-height: 150px; } /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.2.6. bv-24f6ead2 */
+.st-panel .pn-b { min-height: 150px; }
 .st-panel.span2 .hb-row { grid-template-columns: minmax(70px, 150px) 1fr minmax(120px, auto); }
 
 
@@ -169,7 +169,7 @@
 .tr-grid { min-width: 0; }
 .tr-grid .vg { border-radius: 14px; }
 .vc .strong { font-weight: 600; }
-.vc .side { font-weight: 700; font-size: 10.5px; letter-spacing: .04em; }
+.vc .side { font-weight: 700; font-size: 10.5px; letter-spacing: .04em; } /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.0. bv-990bd56e */
 .vc .side.long { color: color-mix(in srgb, var(--ax-up) 60%, var(--j-ink)); }
 .vc .side.short { color: color-mix(in srgb, var(--ax-down) 60%, var(--j-ink)); }
 .vr.rw-up .vr-line { box-shadow: inset 2px 0 0 color-mix(in srgb, var(--ax-up) 55%, transparent); }
