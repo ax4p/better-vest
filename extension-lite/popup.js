@@ -22,12 +22,12 @@ function render(st) {
         b.classList.toggle('on', k === 'settings' ? st.widgets.settings === true : st.widgets[k] !== false);
     });
     document.querySelectorAll('[data-hide]').forEach((b) => b.classList.toggle('on', !!st.hide[b.dataset.hide]));
-    const box = $('#themes'); /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-b8ba1fe6 */
+    const box = $('#themes');
     if (!box.children.length && st.themes) {
         st.themes.forEach((t) => {
             const b = document.createElement('button');
             b.className = 'theme';
-            b.dataset.theme = t.k;
+            /*! Better Vest (c) 2026 Astral. All rights reserved. bv-a155ed02 */ b.dataset.theme = t.k;
             b.style.background = t.page;
             b.style.borderColor = t.line;
             const dots = document.createElement('span');
@@ -50,11 +50,11 @@ function render(st) {
 document.querySelectorAll('[data-widget]').forEach((b) => {
     b.onclick = () => send({ cmd: 'widget', key: b.dataset.widget });
 });
-document.querySelectorAll('[data-hide]').forEach((b) => { /* Property of Astral (@ax4p). Better Vest 9.2.6. No copying without written permission. bv-f52c0f4f */
+document.querySelectorAll('[data-hide]').forEach((b) => {
     b.onclick = () => send({ cmd: 'hide', key: b.dataset.hide, value: !(state && state.hide[b.dataset.hide]) });
 });
 $('#focus-all').onclick = () => send({ cmd: 'focusAll' });
-$('#open-vest').onclick = () => chrome.tabs.create({ url: VEST + 'trade/NQ-PERP' });
+$('#open-vest').onclick = () => chrome.tabs.create({ url: VEST + 'trade/NQ-PERP' }); /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-716a9e09 */
 $('#open-cal').onclick = () => { chrome.runtime.sendMessage({ type: 'journal-open' }).catch(() => {}); window.close(); };
 
 const MINUS = '\u2212';
@@ -84,7 +84,7 @@ function paintCal(sum) {
 }
 chrome.runtime.sendMessage({ type: 'journal-summary' }).then(paintCal).catch(() => paintCal(null));
 
-function paintUpdate(s) { /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-0b66319d */
+function paintUpdate(s) {
     if (!s || !s.supported) return;
     $('#upd-pref').hidden = false;
     $('#upd-auto').checked = !!s.on;
@@ -104,7 +104,7 @@ $('#upd-check').onclick = async () => {
 chrome.tabs.query({ active: true, currentWindow: true }).then(async ([tab]) => {
     if (!tab || !tab.url || !tab.url.startsWith(VEST)) {
         $('#off').hidden = false;
-        return;
+        return; /* Copyright Astral 2026. From Better Vest 9.3.0 (lite), ref bv-d960a33d. Not licensed for reuse. */
     }
     tabId = tab.id;
     $('#on').hidden = false;
