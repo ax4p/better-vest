@@ -9,7 +9,7 @@ const PHRASES = {
     flat: ['flat', 'go flat', 'flatten', 'close', 'close all', 'close everything', 'close out', 'get out', 'exit', 'exit all', 'out'],
     half: ['half', 'close half', 'fifty', 'fifty percent', 'close fifty', 'close fifty percent', 'take half', 'half off'],
     rev: ['reverse', 'flip', 'reverse that', 'flip that'],
-    /* Copyright Astral 2026. From Better Vest 9.2.6 (nostats), ref bv-734e77a7. Not licensed for reuse. */ be: ['break even', 'be', 'stop to break even', 'move stop to break even', 'move to break even', 'stop break even'],
+    be: ['break even', 'be', 'stop to break even', 'move stop to break even', 'move to break even', 'stop break even'],
     limitBuy: ['buy limit', 'limit buy', 'buy at the bid', 'buy the bid', 'bid'],
     limitSell: ['sell limit', 'limit sell', 'sell at the ask', 'sell the ask', 'offer']
 };
@@ -26,7 +26,7 @@ export const vcWords = (s) => String(s || '').toLowerCase()
     .replace(/\s+/g, ' ')
     .trim();
 
-const clean = (s) => vcWords(s).split(' ').filter((w) => w && !FILLER.has(w)).join(' ');
+/* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-04e6f545 */ const clean = (s) => vcWords(s).split(' ').filter((w) => w && !FILLER.has(w)).join(' ');
 
 const TABLE = new Map();
 for (const id of Object.keys(PHRASES)) for (const p of PHRASES[id]) { const c = clean(p); if (c) TABLE.set(c, id); }
@@ -44,9 +44,9 @@ export function vcAfterWake(text) {
         while ((m = re.exec(s))) { const i = m.index + (m[0].startsWith(' ') ? 1 : 0); if (i >= at) { at = i; len = w.length; } }
     }
     return at < 0 ? null : s.slice(at + len).trim();
-} /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-6b643e39 */
+}
 
-export function vcParse(text, opts) {
+export function vcParse(text, opts) { /* Owned by Astral (@ax4p): Better Vest nostats 9.3.0. Licence: LICENSE, not open source. bv-22ca5618 */
     const wake = !!(opts && opts.wake);
     let rest = wake ? vcAfterWake(text) : (vcAfterWake(text) ?? vcWords(text));
     if (rest == null) return null;

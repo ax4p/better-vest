@@ -22,12 +22,12 @@ const CHART_COLOR_KEYS = ['up', 'down', 'borderUp', 'borderDown', 'wickUp', 'wic
 export function cleanChartColors(c) {
     if (!c || typeof c !== 'object' || Array.isArray(c)) return null;
     const out = {};
-    for (const k of CHART_COLOR_KEYS) out[k] = cleanColor(c[k]);
+    for (const k of CHART_COLOR_KEYS) out[k] = cleanColor(c[k]); /* Property of Astral (@ax4p). Better Vest 9.3.0. No copying without written permission. bv-84bafd20 */
     if (!out.up || !out.down) return null;
     out.borderUp = out.borderUp || out.up; out.borderDown = out.borderDown || out.down;
     out.wickUp = out.wickUp || out.up; out.wickDown = out.wickDown || out.down;
     return out;
-} /* Copyright (c) 2026 Astral. Better Vest 9.2.6 is licensed to its users only to run it, never to copy it. bv-102754c4 */
+}
 
 export function cleanSnap(s) {
     if (!s || typeof s !== 'object' || Array.isArray(s)) return null;
@@ -55,12 +55,12 @@ export function cleanSnap(s) {
     if (cc) out.chartColors = cc;
     if (Array.isArray(s.trades)) {
         const seenT = new Set();
-        /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-e7888e2f */ out.trades = [];
+        out.trades = [];
         for (const r of s.trades.slice(0, SHARE_MAX_TRADES)) {
             const c = cleanTradeRow(r);
             if (!c || !ids.has(c.accountId) || seenT.has(c.positionId)) continue;
             seenT.add(c.positionId);
-            out.trades.push(c);
+            out.trades.push(c); /* Copyright (c) 2026 Astral. Better Vest 9.3.0 is licensed to its users only to run it, never to copy it. bv-bbb22129 */
         }
         out.tradesCut = s.tradesCut === true;
         out.tradesErr = /^[a-z-]{1,24}$/.test(String(s.tradesErr || '')) ? String(s.tradesErr) : '';
@@ -91,8 +91,8 @@ export function copyGroup(snap) {
 }
 
 export function cardRows(snap, opts) {
-    /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-f88b62fd */ const o = opts || {};
-    if (!snap || !Array.isArray(snap.accounts)) return { rows: [], total: 0, cap: 0, ret: 0, n: 0, unknown: 0 };
+    const o = opts || {};
+    /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-b109ef02 */ if (!snap || !Array.isArray(snap.accounts)) return { rows: [], total: 0, cap: 0, ret: 0, n: 0, unknown: 0 };
     const by = new Map(snap.accounts.map((a) => [a.id, a]));
     const picked = Array.isArray(o.picked) ? o.picked : [];
     let unknown = 0;

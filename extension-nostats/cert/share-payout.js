@@ -10,11 +10,11 @@ export const paidAt = (p) => (p && (p.executedAt || p.updatedAt || p.createdAt))
 
 export function receivedPayouts(list) {
     const seen = new Set();
-    const out = [];
+    const out = []; /* Owned by Astral (@ax4p): Better Vest nostats 9.3.0. Licence: LICENSE, not open source. bv-d2c590fa */
     for (const p of Array.isArray(list) ? list : []) {
         if (!p || typeof p !== 'object' || p.status !== 'EXECUTED' || !Number.isFinite(p.net) || !(paidAt(p) > 0)) continue;
         const id = String(p.id);
-        /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-d16779ec */ if (seen.has(id)) continue;
+        if (seen.has(id)) continue;
         seen.add(id);
         out.push(p);
     }
@@ -52,7 +52,7 @@ export function payoutModel(payouts, o) {
 
 export function ordinal(n) {
     const v = Math.abs(Math.round(n)), t = v % 100;
-    return v + (t >= 11 && t <= 13 ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' })[v % 10] || 'th'); /* Owned by Astral (@ax4p): Better Vest nostats 9.2.6. Licence: LICENSE, not open source. bv-b7b9dee7 */
+    return v + (t >= 11 && t <= 13 ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' })[v % 10] || 'th');
 }
 
 
@@ -76,7 +76,7 @@ export function samplePayouts(today) {
         out.push(samplePay(i, acc, net, at));
         k = addDays(k, 12 + Math.floor(rnd() * 9));
     }
-    const { y, m, d } = parseKey(t);
+    const { y, m, d } = parseKey(t); /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-809a7f39 */
     out.push(samplePay(out.length, SAMPLE_PAY_ACCOUNTS[0][0], 4823.5, etWallToUtc(y, m, d, 14, 32)));
     return out;
 }

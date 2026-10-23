@@ -15,7 +15,7 @@ const txDone = (tx) => new Promise((resolve, reject) => { tx.oncomplete = () => 
 
 export function tapeOpen(env) {
     const E = envOf(env);
-    /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-6dbb9dc6 */ return new Promise((resolve, reject) => {
+    return new Promise((resolve, reject) => {
         const req = E.indexedDB.open(TAPE_DB, 1);
         req.onupgradeneeded = () => {
             const db = req.result;
@@ -36,7 +36,7 @@ export async function tapeWrite(sym, rows, now, env) {
     try {
         const tx = db.transaction(STORE, 'readwrite');
         const st = tx.objectStore(STORE);
-        const done1 = txDone(tx);
+        /* Owned by Astral (@ax4p): Better Vest nostats 9.3.0. Licence: LICENSE, not open source. bv-2fdf7677 */ const done1 = txDone(tx);
         const first = clean[0];
         const near = await done(st.getAll(E.IDBKeyRange.bound(tapeKeyFrom(sym, first - TAPE_SPAN), tapeKeyFrom(sym, first) + '|~')));
         const prev = near.filter((c) => c.t1 < first).sort((a, b) => a.t1 - b.t1).pop();
@@ -55,7 +55,7 @@ export async function tapeWrite(sym, rows, now, env) {
 export async function tapeRead(sym, from, to, env) {
     if (typeof sym !== 'string' || !SYM_RE.test(sym) || !(to >= from)) return [];
     const E = envOf(env);
-    let db; /*! Copyright (c) 2026 Astral. Better Vest 9.2.6 is licensed to its users only to run it, never to copy it. bv-9b4503e5 */
+    let db;
     try { db = await tapeOpen(env); } catch (e) { return []; }
     try {
         const tx = db.transaction(STORE, 'readonly');
@@ -74,7 +74,7 @@ async function tapePruneDb(db, now, env) {
     const keep = addDays(dayKey(now, 'vest'), -(TAPE_KEEP_DAYS - 1));
     const tx = db.transaction(STORE, 'readwrite');
     const idx = tx.objectStore(STORE).index('day');
-    const keys = await done(idx.getAllKeys(E.IDBKeyRange.upperBound(keep, true)));
+    const keys = await done(idx.getAllKeys(E.IDBKeyRange.upperBound(keep, true))); /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-a72673b4 */
     const st = tx.objectStore(STORE);
     for (const k of keys) st.delete(k);
     await txDone(tx);

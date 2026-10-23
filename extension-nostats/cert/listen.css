@@ -9,9 +9,9 @@
 * { box-sizing: border-box; }
 html, body { height: 100%; margin: 0; }
 body { background: var(--ax-page, var(--ax-base)); color: var(--ax-text); font: 14px/1.4 Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-    -webkit-font-smoothing: antialiased; user-select: none; overflow: hidden; } /*! Property of Astral (@ax4p). Better Vest 9.2.6. No copying without written permission. bv-ae9f653c */
+    -webkit-font-smoothing: antialiased; user-select: none; overflow: hidden; }
 .app { height: 100%; display: flex; flex-direction: column; align-items: center; padding: 14px 16px 12px; gap: 6px; }
-.top { width: 100%; display: flex; align-items: center; gap: 9px; }
+.top { width: 100%; display: flex; align-items: center; gap: 9px; } /* Property of Astral (@ax4p). Better Vest 9.3.0. No copying without written permission. bv-1c8e1ca1 */
 .top b { font-size: 13.5px; letter-spacing: .01em; }
 .grow { flex: 1; }
 .beta { font-size: 9.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; padding: 2px 7px; border-radius: 999px;
@@ -21,8 +21,8 @@ body { background: var(--ax-page, var(--ax-base)); color: var(--ax-text); font: 
 .talk { position: relative; margin: 22px 0 8px; width: 112px; height: 112px; border-radius: 50%; border: 0; padding: 0; cursor: pointer;
     background: color-mix(in srgb, var(--ax-inset) 80%, transparent); color: var(--ax-muted);
     box-shadow: 0 0 0 1px color-mix(in srgb, var(--ax-line) 80%, transparent) inset, 0 14px 36px -18px rgba(0, 0, 0, .8); transition: color .15s, background .15s; }
-.talk .mic { position: absolute; inset: 0; display: grid; place-items: center; } /* Copyright Astral 2026. From Better Vest 9.2.6 (nostats), ref bv-fb054424. Not licensed for reuse. */
-.talk .ring { position: absolute; inset: -6px; border-radius: 50%; border: 2px solid transparent; transition: border-color .15s, transform .15s; }
+.talk .mic { position: absolute; inset: 0; display: grid; place-items: center; }
+.talk .ring { position: absolute; inset: -6px; border-radius: 50%; border: 2px solid transparent; transition: border-color .15s, transform .15s; } /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-bf084643 */
 body[data-state="idle"] .talk { color: var(--ax-text); }
 body[data-state="idle"][data-mode="wake"] .talk .ring { border-color: color-mix(in srgb, var(--ax-accent) 45%, transparent); animation: vcBreathe 2.6s ease-in-out infinite; }
 body[data-state="talk"] .talk { color: #fff; background: color-mix(in srgb, var(--ax-accent) 30%, var(--ax-inset)); }

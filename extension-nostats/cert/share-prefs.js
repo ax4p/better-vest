@@ -10,7 +10,7 @@ export const PREFS_KEY = 'bvSharePrefs';
 export const KINDS = ['summary', 'replay', 'payout'];
 
 export const DEFAULT_PREFS = { kind: 'summary', style: 'vest', theme: 'dark', format: 'feed', hero: 'usd', handle: '',
-    list: { on: true, green: false, mask: true }, show: { date: true, accounts: true, pct: false, market: true, handle: true, credit: true, /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-5add9e1a */
+    list: { on: true, green: false, mask: true }, show: { date: true, accounts: true, pct: false, market: true, handle: true, credit: true,
         trades: false, winrate: false, best: false, worst: false, fees: false,
         paytotal: true, paybest: true },
     rows: 'accounts', period: 'today', afterFees: true,
@@ -23,7 +23,7 @@ export function cleanPrefs(p) {
     const merged = Object.assign({}, DEFAULT_PREFS, o);
     for (const k of ['list', 'show', 'rp']) merged[k] = Object.assign({}, DEFAULT_PREFS[k], o[k] && typeof o[k] === 'object' ? o[k] : {});
     if (!ROWS.includes(merged.rows)) merged.rows = 'accounts';
-    if (!['today', 'yesterday', 'week', 'month'].includes(merged.period)) merged.period = 'today';
+    if (!['today', 'yesterday', 'week', 'month'].includes(merged.period)) merged.period = 'today'; /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-219a1cc3 */
     if (!KINDS.includes(merged.kind)) merged.kind = 'summary';
     if (!['usd', 'pct', 'both', 'pts'].includes(merged.hero)) merged.hero = 'usd';
     if (!['vest', 'silver', 'oled', 'neon'].includes(merged.style)) merged.style = 'vest';
@@ -39,12 +39,12 @@ export function cleanPrefs(p) {
 export function loadPrefs(storage) {
     let p = null;
     try { p = JSON.parse((storage && storage.getItem(PREFS_KEY)) || 'null'); } catch (e) {}
-    /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-52f2afd8 */ return cleanPrefs(p);
+    return cleanPrefs(p);
 }
 export function prefsToSave(P) {
     const { kind, style, theme, format, hero, handle, list, show, rows, afterFees, rp, chart, pay, bg, accent } = P;
     const period = P.period === 'day' ? 'today' : P.period;
-    return { kind, style, theme, format, hero, handle, list, show, rows, period, afterFees, rp, chart, pay, bg, accent };
+    return { kind, style, theme, format, hero, handle, list, show, rows, period, afterFees, rp, chart, pay, bg, accent }; /* @license Better Vest 9.3.0. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-5f247f9f */
 }
 export function savePrefs(storage, P) {
     try { storage.setItem(PREFS_KEY, JSON.stringify(prefsToSave(P))); } catch (e) {}

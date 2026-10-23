@@ -8,7 +8,7 @@ const cache = new Map();
 function blobToDataUri(blob) {
     return new Promise((resolve, reject) => {
         const r = new FileReader();
-        r.onload = () => resolve(String(r.result)); /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-b7edaa7d */
+        r.onload = () => resolve(String(r.result));
         r.onerror = () => reject(r.error || new Error('read failed'));
         r.readAsDataURL(blob);
     });
@@ -17,7 +17,7 @@ function blobToDataUri(blob) {
 async function dataUriOf(url) {
     if (url.startsWith('data:')) return url;
     if (cache.has(url)) return cache.get(url);
-    const p = fetch(url).then((r) => {
+    /*! Owned by Astral (@ax4p): Better Vest nostats 9.3.0. Licence: LICENSE, not open source. bv-88f546e7 */ const p = fetch(url).then((r) => {
         if (!r.ok) throw new Error('asset ' + url + ': HTTP ' + r.status);
         return r.blob();
     }).then(blobToDataUri);
@@ -60,7 +60,7 @@ export async function cardToSvg(card, { cssUrl, width, height }) {
     }
     const wrap = document.createElementNS(NS_XHTML, 'div');
     wrap.setAttribute('xmlns', NS_XHTML);
-    /*! Owned by Astral (@ax4p): Better Vest nostats 9.2.6. Licence: LICENSE, not open source. bv-aa51216d */ wrap.setAttribute('style', `width:${width}px;height:${height}px;margin:0;padding:0;background:transparent`);
+    wrap.setAttribute('style', `width:${width}px;height:${height}px;margin:0;padding:0;background:transparent`);
     const style = document.createElementNS(NS_XHTML, 'style');
     style.textContent = css;
     wrap.append(style, clone);
@@ -68,7 +68,7 @@ export async function cardToSvg(card, { cssUrl, width, height }) {
     return `<svg xmlns="${NS_SVG}" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><foreignObject x="0" y="0" width="${width}" height="${height}">${inner}</foreignObject></svg>`;
 }
 
-export async function cardToCanvas(card, { cssUrl, width, height, scale = 3 }) {
+/* Owned by Astral (@ax4p): Better Vest nostats 9.3.0. Licence: LICENSE, not open source. bv-3028980e */ export async function cardToCanvas(card, { cssUrl, width, height, scale = 3 }) {
     if (document.fonts && document.fonts.ready) await document.fonts.ready;
     const svg = await cardToSvg(card, { cssUrl, width, height });
     const img = await loadImage('data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg));
