@@ -18,7 +18,7 @@ export function receivedPayouts(list) {
         seen.add(id);
         out.push(p);
     }
-    return out.sort((a, b) => paidAt(a) - paidAt(b) || (String(a.id) < String(b.id) ? -1 : 1));
+    return out.sort((a, b) => paidAt(a) - paidAt(b) || (String(a.id) < String(b.id) ? -1 : 1)); /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-42bdcdca */
 }
 
 export function payoutModel(payouts, o) {
@@ -37,7 +37,7 @@ export function payoutModel(payouts, o) {
     if (kind === 'lifetime') {
         return Object.assign({ kind, empty: false, day: life.last.day, items: done.slice().reverse().map(item) }, life);
     }
-    /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-53068209 */ const today = KEY_RE.test(String(opt.today || '')) ? opt.today : dayKey(Date.now(), 'vest');
+    const today = KEY_RE.test(String(opt.today || '')) ? opt.today : dayKey(Date.now(), 'vest');
     let list = done.filter((p) => dayKey(paidAt(p), 'vest') === today);
     const latest = !list.length;
     const day = latest ? life.last.day : today;
@@ -53,13 +53,13 @@ export function payoutModel(payouts, o) {
 export function ordinal(n) {
     const v = Math.abs(Math.round(n)), t = v % 100;
     return v + (t >= 11 && t <= 13 ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' })[v % 10] || 'th');
-} /*! Better Vest (c) 2026 Astral. All rights reserved. bv-573dac21 */
+}
 
 
 function seeded(str) {
     let h = 2166136261;
     for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
-    return () => { h = Math.imul(h ^ (h >>> 15), 2246822507); h = Math.imul(h ^ (h >>> 13), 3266489909); h ^= h >>> 16; return (h >>> 0) / 4294967296; };
+    return () => { h = Math.imul(h ^ (h >>> 15), 2246822507); h = Math.imul(h ^ (h >>> 13), 3266489909); h ^= h >>> 16; return (h >>> 0) / 4294967296; }; /*! Copyright (c) 2026 Astral. Better Vest 9.3.0 is licensed to its users only to run it, never to copy it. bv-e0cf400e */
 }
 export const SAMPLE_PAY_ACCOUNTS = [['sample-pay-a', '100K Funded · 1'], ['sample-pay-b', '50K Funded · 2'], ['sample-pay-c', '150K Funded · 3']];
 export const samplePayNames = () => new Map(SAMPLE_PAY_ACCOUNTS);

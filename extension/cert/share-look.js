@@ -35,10 +35,10 @@ export function bgOpts(raw) {
 }
 export const accentOpt = (v) => hexColor(v);
 
-export function bgFileWhy(f) {
+/* Better Vest (c) 2026 Astral. All rights reserved. bv-4fc3f13c */ export function bgFileWhy(f) {
     if (!f || typeof f !== 'object') return 'No file was picked.';
     const type = String(f.type || '').toLowerCase();
-    /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-b98c8270 */ if (!BG_TYPES.includes(type)) return 'Pick a PNG, JPEG, WebP or GIF picture.';
+    if (!BG_TYPES.includes(type)) return 'Pick a PNG, JPEG, WebP or GIF picture.';
     const size = Number(f.size);
     if (!(size > 0)) return 'That file is empty.';
     return '';
@@ -64,7 +64,7 @@ export function lookParts(p, img, red) {
         const src = img ? bgSrcOk(img.src) : '';
         if (src) {
             const pad = bg.blur * 2;
-            const st = bg.blur ? ` style="left:-${pad}px;top:-${pad}px;width:calc(100% + ${pad * 2}px);height:calc(100% + ${pad * 2}px);filter:blur(${bg.blur}px)"` : '';
+            const st = bg.blur ? ` style="left:-${pad}px;top:-${pad}px;width:calc(100% + ${pad * 2}px);height:calc(100% + ${pad * 2}px);filter:blur(${bg.blur}px)"` : ''; /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-efa35c25 */
             own = `<div class="bgx bgo bgim"><img class="bgi${bg.fit === 'fit' ? ' bgf' : ''}" src="${src}" alt=""${st}><i class="bgd" style="opacity:${(bg.dim / 100).toFixed(2)}"></i></div>`;
         }
     }
@@ -86,7 +86,7 @@ export function bgFramePlan(durations, o) {
         ms = Math.min(ms, max);
         frames = Math.max(1, Math.round((ms / 1000) * fps));
     }
-    /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-39ae2dca */ const starts = [];
+    const starts = [];
     let acc = 0;
     for (const x of d) { starts.push(acc); acc += x; }
     const at = (i) => {

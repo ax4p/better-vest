@@ -22,12 +22,12 @@ export function fmtMoneyParts(v) {
         cents: String(cents % 100).padStart(2, '0')
     };
 }
-export const fmtMoney = (v) => { const p = fmtMoneyParts(v); return p.int + '.' + p.cents; };
+/* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.0. bv-2e6ae771 */ export const fmtMoney = (v) => { const p = fmtMoneyParts(v); return p.int + '.' + p.cents; };
 export const fmtMilestone = (amount) => '$' + (amount >= 1000 ? amount / 1000 + 'K' : amount);
 const dm = (key) => fmtDate(key, 'dm');
 
 function bars(vals, w, h, gap, uid) {
-    const n = vals.length; /*! Better Vest (c) 2026 Astral. All rights reserved. bv-f2966a81 */
+    const n = vals.length;
     const bw = (w - gap * (n - 1)) / n;
     const f = Math.sqrt;
     const mx = Math.max(...vals.map(f), 1e-9);
@@ -69,8 +69,8 @@ export function buildCard(S, opts = {}) {
     let strip = '';
     if (chart) {
         const series = barSeries(S, 40, 7);
-        const n = series.bars.length;
-        /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-743a3a67 */ const gap = n > 24 ? 3 : n > 14 ? 4.5 : 6;
+        const n = series.bars.length; /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.0. bv-e2c8e1c2 */
+        const gap = n > 24 ? 3 : n > 14 ? 4.5 : 6;
         const dayLabel = S.days === 1 ? '1 day' : S.days + ' days';
         strip = `<div class="bvc-a" style="left:46px;top:${Y.strip}px;width:323px">${bars(series.bars.map((b) => b.net), 323, 52, gap, uid)}
   <div style="display:flex;justify-content:space-between;margin-top:7px"><span class="bvc-lbl">${esc(dm(S.firstKey))}</span><span class="bvc-lbl" style="color:#fff">${dayLabel}</span><span class="bvc-lbl">${esc(dm(S.lastKey))}</span></div></div>`;

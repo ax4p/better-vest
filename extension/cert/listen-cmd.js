@@ -10,8 +10,8 @@ const PHRASES = {
     half: ['half', 'close half', 'fifty', 'fifty percent', 'close fifty', 'close fifty percent', 'take half', 'half off'],
     rev: ['reverse', 'flip', 'reverse that', 'flip that'],
     be: ['break even', 'be', 'stop to break even', 'move stop to break even', 'move to break even', 'stop break even'],
-    limitBuy: ['buy limit', 'limit buy', 'buy at the bid', 'buy the bid', 'bid'],
-    limitSell: ['sell limit', 'limit sell', 'sell at the ask', 'sell the ask', 'offer'] /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-3a2eb0f0 */
+    /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.0. bv-f9291559 */ limitBuy: ['buy limit', 'limit buy', 'buy at the bid', 'buy the bid', 'bid'],
+    limitSell: ['sell limit', 'limit sell', 'sell at the ask', 'sell the ask', 'offer']
 };
 const WAKE = ['astral', 'astro', 'astra', 'austral', 'astrel', 'astrall', 'astrol', 'astrid', 'a stroll', 'astral\'s', 'astrals'];
 const FILLER = new Set(['uh', 'um', 'er', 'erm', 'ah', 'please', 'now', 'the', 'a', 'an', 'it', 'my', 'position', 'trade', 'okay', 'ok', 'hey', 'yo', 'so', 'just']);
@@ -54,13 +54,13 @@ export function vcParse(text, opts) {
     if (!said) return null;
     const id = TABLE.get(said);
     if (!id) return null;
-    return { id, said, grows: GROWS.has(said) }; /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-9da60cf2 */
+    return { id, said, grows: GROWS.has(said) };
 }
 
 export function vcPending(text, opts) {
     const wake = !!(opts && opts.wake);
     const rest = wake ? vcAfterWake(text) : (vcAfterWake(text) ?? vcWords(text));
-    if (rest == null) return false;
+    if (rest == null) return false; /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-1bf9dfe9 */
     const said = clean(rest);
     return !!said && (STARTS.has(said) || GROWS.has(said));
 }

@@ -19,7 +19,7 @@ export function cleanColor(v) {
     return m[4] == null ? `rgb(${+m[1]}, ${+m[2]}, ${+m[3]})` : `rgba(${+m[1]}, ${+m[2]}, ${+m[3]}, ${+m[4]})`;
 }
 const CHART_COLOR_KEYS = ['up', 'down', 'borderUp', 'borderDown', 'wickUp', 'wickDown'];
-export function cleanChartColors(c) {
+/* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-b9fbe806 */ export function cleanChartColors(c) {
     if (!c || typeof c !== 'object' || Array.isArray(c)) return null;
     const out = {};
     for (const k of CHART_COLOR_KEYS) out[k] = cleanColor(c[k]);
@@ -33,7 +33,7 @@ export function cleanSnap(s) {
     if (!s || typeof s !== 'object' || Array.isArray(s)) return null;
     if (!Array.isArray(s.accounts)) return null;
     const accounts = [];
-    const seen = new Set(); /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-86935558 */
+    const seen = new Set();
     for (const a of s.accounts.slice(0, SHARE_MAX_ACCOUNTS)) {
         if (!a || typeof a !== 'object' || !idOk(a.id) || seen.has(a.id)) continue;
         seen.add(a.id);
@@ -48,8 +48,8 @@ export function cleanSnap(s) {
     const out = {
         v: 1, at: num(s.at) || 0, day, market: /^[A-Z0-9]{1,12}$/.test(String(s.market || '')) ? String(s.market) : '',
         copying: s.copying === true && !!leaderId && followerIds.length > 0, leaderId, followerIds,
-        activeId: idOk(s.activeId) && ids.has(s.activeId) ? s.activeId : '', demo: s.demo === true, accounts,
-        /* @license Better Vest 9.2.6. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-81623f25 */ replay: cleanReplay(s.replay)
+        /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-281b94b0 */ activeId: idOk(s.activeId) && ids.has(s.activeId) ? s.activeId : '', demo: s.demo === true, accounts,
+        replay: cleanReplay(s.replay)
     };
     const cc = cleanChartColors(s.chartColors);
     if (cc) out.chartColors = cc;
@@ -100,7 +100,7 @@ export function cardRows(snap, opts) {
     for (const id of picked) {
         const a = by.get(id);
         if (!a) continue;
-        /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-4bebf6fe */ if (a.pnl == null) { unknown++; continue; }
+        if (a.pnl == null) { unknown++; continue; }
         rows.push({ id, name: a.name, size: a.size, pnl: a.pnl, leader: o.mode === 'copy' && id === snap.leaderId });
     }
     if (o.greenOnly) rows = rows.filter((r) => r.pnl > 0);
@@ -115,7 +115,7 @@ export function dayLong(day) {
     const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(day || ''));
     if (!m) return '';
     const d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));
-    return d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).replace(/^(\w+) /, '$1, ');
+    return d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).replace(/^(\w+) /, '$1, '); /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-7d28f24a */
 }
 
 export function money(v, sign = true) {

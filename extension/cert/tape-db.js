@@ -14,7 +14,7 @@ const done = (req) => new Promise((resolve, reject) => { req.onsuccess = () => r
 const txDone = (tx) => new Promise((resolve, reject) => { tx.oncomplete = () => resolve(); tx.onerror = tx.onabort = () => reject(tx.error || new Error('aborted')); });
 
 export function tapeOpen(env) {
-    const E = envOf(env); /* @license Better Vest 9.2.6. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-99d59fae */
+    const E = envOf(env);
     return new Promise((resolve, reject) => {
         const req = E.indexedDB.open(TAPE_DB, 1);
         req.onupgradeneeded = () => {
@@ -25,7 +25,7 @@ export function tapeOpen(env) {
         req.onerror = () => reject(req.error);
         req.onblocked = () => reject(new Error('blocked'));
     });
-}
+} /*! Property of Astral (@ax4p). Better Vest 9.3.0. No copying without written permission. bv-5e8d4d16 */
 
 export async function tapeWrite(sym, rows, now, env) {
     if (typeof sym !== 'string' || !SYM_RE.test(sym)) return 0;
@@ -50,7 +50,7 @@ export async function tapeWrite(sym, rows, now, env) {
         if (now - prunedAt >= PRUNE_EVERY_MS) { prunedAt = now; await tapePruneDb(db, now, env); }
     } finally { db.close(); }
     return clean.length / 5;
-} /*! Copyright (c) 2026 Astral. Better Vest 9.2.6 is licensed to its users only to run it, never to copy it. bv-2b5a6b75 */
+}
 
 export async function tapeRead(sym, from, to, env) {
     if (typeof sym !== 'string' || !SYM_RE.test(sym) || !(to >= from)) return [];
@@ -60,7 +60,7 @@ export async function tapeRead(sym, from, to, env) {
     try {
         const tx = db.transaction(STORE, 'readonly');
         const range = E.IDBKeyRange.bound(tapeKeyFrom(sym, Math.max(0, Math.floor(from) - TAPE_SPAN)), tapeKeyFrom(sym, Math.floor(to)) + '|~');
-        const recs = await done(tx.objectStore(STORE).getAll(range));
+        const recs = await done(tx.objectStore(STORE).getAll(range)); /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-03c7b3ae */
         const rows = tapeMerge(recs.map(tapeDecode));
         let a = 0, b = rows.length;
         while (a < b && rows[a] < from) a += 5;

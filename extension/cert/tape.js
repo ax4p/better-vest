@@ -19,13 +19,13 @@ export function tapeClean(rows, now, max) {
         if (!Number.isInteger(s) || s < lo || s > hi || !isPx(o) || !isPx(h) || !isPx(l) || !isPx(c)) continue;
         recs.push([s, o, Math.max(h, o, c), Math.min(l, o, c), c, recs.length]);
     }
-    /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-bb794bee */ return tapeMergeRecs(recs);
+    return tapeMergeRecs(recs);
 }
 function tapeMergeRecs(recs) {
     recs.sort((a, b) => a[0] - b[0] || a[5] - b[5]);
     const out = [];
     for (const r of recs) {
-        const k = out.length - 5;
+        const k = out.length - 5; /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-4f85997c */
         if (k >= 0 && out[k] === r[0]) {
             if (r[2] > out[k + 2]) out[k + 2] = r[2];
             if (r[3] < out[k + 3]) out[k + 3] = r[3];
@@ -71,7 +71,7 @@ export function tapeEncode(rows) {
         putU(out, Math.max(0, Math.min(o, c) - l));
         putU(out, zig(c - o));
         ps = rows[i];
-        pc = c;
+        /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-5357d37f */ pc = c;
     }
     return { t: rows[0], t1: rows[rows.length - 5], n: rows.length / 5, d, x: Uint8Array.from(out) };
 }
@@ -79,7 +79,7 @@ export function tapeDecode(rec) {
     const out = [];
     if (!rec || !(rec.x instanceof Uint8Array) || !Number.isInteger(rec.n) || !Number.isInteger(rec.t) || !(rec.d >= 0 && rec.d <= MAX_DEC)) return out;
     const b = rec.x, m = Math.pow(10, rec.d);
-    /* Property of Astral (@ax4p). Better Vest 9.2.6. No copying without written permission. bv-0a748c1d */ let p = 0;
+    let p = 0;
     const getU = () => {
         let v = 0, mul = 1, x;
         do { x = b[p++]; v += (x & 127) * mul; mul *= 128; } while (x >= 128 && p < b.length);
@@ -103,7 +103,7 @@ export function tapeChunks(sym, rows) {
     const out = [];
     let a = 0, day = '';
     const cut = (from, to) => {
-        if (to <= from) return;
+        /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-77bcbc8c */ if (to <= from) return;
         const part = rows.slice(from, to);
         const e = tapeEncode(part);
         out.push(Object.assign({ k: tapeKey(sym, e.t, e.t1), sym, day }, e));
@@ -115,7 +115,7 @@ export function tapeChunks(sym, rows) {
     }
     cut(a, rows.length);
     return out;
-/*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-efe3f2f7 */ }
+}
 
 export function tapeTol(bars) {
     const rows = [];
@@ -139,7 +139,7 @@ export function tapeBars(bars, resS, rows, tol) {
             if (rows[q + 3] < l) l = rows[q + 3];
         }
         if (!secs.length) continue;
-        const near = (x, y) => Math.abs(x - y) <= t0;
+        /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-3cf332a8 */ const near = (x, y) => Math.abs(x - y) <= t0;
         if (near(secs[0][1], b[1]) && near(h, b[2]) && near(l, b[3]) && near(secs[secs.length - 1][4], b[4])) out[i] = { secs };
     }
     return out;
@@ -147,7 +147,7 @@ export function tapeBars(bars, resS, rows, tol) {
 export function tapeFormAt(bar, path, f, resS) {
     const o = bar[1];
     let h = o, l = o, c = o;
-    /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-990a4e26 */ const tau = Math.max(0, Math.min(1, f)) * resS;
+    const tau = Math.max(0, Math.min(1, f)) * resS;
     if (path && path.secs) {
         for (const s of path.secs) {
             if (s[0] >= tau) break;
@@ -201,9 +201,9 @@ export function tapeSample(bar, resS) {
             for (let s = 1; s <= b - a; s++) w.push(w[s - 1] + gauss() * sig);
             const end = w[b - a];
             for (let s = 0; s <= b - a; s++) {
-                const lin = va + ((vb - va) * s) / (b - a);
+                const lin = va + ((vb - va) * s) / (b - a); /*! Property of Astral (@ax4p). Better Vest 9.3.0. No copying without written permission. bv-b5c7bdd8 */
                 vals[a + s] = Math.max(L, Math.min(H, lin + w[s] - (end * s) / (b - a)));
-            } /*! Copyright (c) 2026 Astral. Better Vest 9.2.6 is licensed to its users only to run it, never to copy it. bv-6aea6580 */
+            }
         }
         for (const [t, v] of anchors) vals[t] = v;
     }
