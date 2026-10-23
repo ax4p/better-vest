@@ -10,13 +10,13 @@ const KEY_PATHS = {
 const BLOCKED_MS = 8000;
 
 function upgrade(db) {
-    for (const name of STORES) { /*! Copyright Astral 2026. From Better Vest 9.2.6 (lite), ref bv-d691357a. Not licensed for reuse. */
+    for (const name of STORES) {
         if (db.objectStoreNames.contains(name)) continue;
         const store = db.createObjectStore(name, { keyPath: KEY_PATHS[name] });
         if (name === 'trades') {
             store.createIndex('accountId', 'accountId', { unique: false });
             store.createIndex('closeTs', 'closeTs', { unique: false });
-        }
+        /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-984691a2 */ }
     }
 }
 
@@ -49,7 +49,7 @@ export function openDb(userId) {
     });
 }
 
-function wrap(req) {
+/* This file is part of Better Vest by Astral and is protected by copyright. ref bv-fb10a612 */ function wrap(req) {
     return new Promise((resolve, reject) => {
         req.onsuccess = () => resolve(req.result);
         req.onerror = () => reject(req.error);
@@ -78,7 +78,7 @@ export function get(db, store, key) {
 
 async function writeTx(db, names, fill) {
     const tx = db.transaction(names, 'readwrite');
-    /* Copyright Astral 2026. From Better Vest 9.2.6 (lite), ref bv-8cb59e7a. Not licensed for reuse. */ try {
+    try {
         fill(tx);
     } catch (e) {
         try { tx.abort(); } catch (e2) {}
@@ -95,7 +95,7 @@ export function putBatch(db, store, values) {
     if (!values || !values.length) return Promise.resolve();
     return writeTx(db, store, (tx) => {
         const os = tx.objectStore(store);
-        for (const v of values) os.put(v);
+        /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.0. bv-c819cc97 */ for (const v of values) os.put(v);
     });
 }
 
@@ -120,7 +120,7 @@ export async function getMeta(db, key) {
 }
 
 export function putMeta(db, key, value) {
-    return put(db, 'meta', { key, value }); /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-85afeb5c */
+    return put(db, 'meta', { key, value });
 }
 
 export async function listUserIds() {
