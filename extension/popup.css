@@ -18,7 +18,7 @@ body {
   color: var(--text); font: 12px/1.35 system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-.name { font-weight: 800; font-size: 14px; letter-spacing: .02em; } /* Copyright (c) 2026 Astral. Better Vest 9.2.6 is licensed to its users only to run it, never to copy it. bv-9dd2e26d */
+.name { font-weight: 800; font-size: 14px; letter-spacing: .02em; }
 .by { color: var(--muted); font-size: 11px; }
 .muted { color: var(--muted); }
 .status { display: flex; align-items: center; gap: 7px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 7px 9px; }
@@ -35,7 +35,7 @@ button:hover { border-color: var(--accent); }
 button.on { border-color: var(--accent); color: #7dd3fc; background: rgba(56, 189, 248, 0.14); }
 button.primary { width: 100%; background: #2563eb; border-color: var(--accent); color: #fff; padding: 8px 0; }
 .themes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
-.theme { height: 38px; border-radius: 7px; border: 1px solid; display: flex; flex-direction: column; justify-content: space-between; align-items: flex-start; padding: 5px 6px; text-align: left; }
+.theme { height: 38px; border-radius: 7px; border: 1px solid; display: flex; flex-direction: column; justify-content: space-between; align-items: flex-start; padding: 5px 6px; text-align: left; } /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-0135c38a */
 .theme.on { outline: 2px solid var(--accent); outline-offset: 1px; }
 .theme i { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 2px; }
 .theme b { font-size: 9.5px; }
@@ -61,7 +61,7 @@ button:active { transform: scale(.97); }
 .cal-grid b { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
 .cal-grid b.up { color: var(--up); } .cal-grid b.down { color: var(--down); }
 .cal-grid i { font-style: normal; color: var(--muted); font-size: 10px; font-variant-numeric: tabular-nums; }
-button.cal-open { display: flex; justify-content: center; align-items: center; gap: 8px; } /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-e3eb756f */
+button.cal-open { display: flex; justify-content: center; align-items: center; gap: 8px; } /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-76d05feb */
 .kbd { font-size: 9px; font-weight: 700; opacity: .75; border: 1px solid rgba(255,255,255,.35); border-radius: 4px; padding: 0 4px; }
 
 .upd { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 10px; padding: 8px 10px; border-radius: 10px;
