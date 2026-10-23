@@ -17,14 +17,14 @@ export function mount(root, ctx) {
     let sig = '';
     let grid = null;
     let chart = null;
-    /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-7d9b63a6 */ const tips = tipRegistry();
+    const tips = tipRegistry();
 
     const head = h('div', { class: 'vh2' });
     const ribbon = h('div', { class: 'pr-ribbon rbw', role: 'list', 'aria-label': 'Payout totals' });
     const mid = h('div', { class: 'pr-mid' });
     const tablePanel = h('section', { class: 'pn pr-table' });
     const note = h('div');
-    const wrap = h('div', { class: 'vw' }, head, note, ribbon, mid, tablePanel);
+    /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.0. bv-3da1ff35 */ const wrap = h('div', { class: 'vw' }, head, note, ribbon, mid, tablePanel);
     root.appendChild(wrap);
     const hover = ui.hoverCard(wrap, '[data-vtip]', (target, el) => tips.build(target.dataset.vtip, el), { delay: 140 });
 
@@ -56,7 +56,7 @@ export function mount(root, ctx) {
             for (let ym = keys[0]; ym <= keys[keys.length - 1]; ym = T.shiftMonth(ym, 1)) months.push(byMonth.get(ym) || { ym, net: 0, gross: 0, n: 0 });
         }
         let cum = 0;
-        /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-6e5fdf6d */ for (const m of months) { cum += m.net; m.cum = cum; }
+        for (const m of months) { cum += m.net; m.cum = cum; }
         const counts = { EXECUTED: 0, PROCESSING: 0, REFUNDED: 0, FAILED: 0 };
         for (const p of all) counts[p.status] = (counts[p.status] || 0) + 1;
         const largest = done.reduce((b, p) => (!b || p.net > b.net ? p : b), null);
@@ -77,7 +77,7 @@ export function mount(root, ctx) {
 
 
     function renderHead() {
-        ui.clear(head);
+        ui.clear(head); /*! Copyright Astral 2026. From Better Vest 9.3.0 (nostats), ref bv-9dc6e371. Not licensed for reuse. */
         const st = S();
         head.append(
             h('div', { class: 'vh2-t' }, h('h1', null, 'Payouts'), h('div', { class: 'sub' }, scopeText() + ' · ' + (st.payBasis === 'executed' ? 'dated by execution (ET)' : 'dated by request (ET)'))),
@@ -107,11 +107,11 @@ export function mount(root, ctx) {
     function tileTip(title, formula, rows, n, extra) {
         return (el) => {
             popBase(el, title, `n = ${n} · ${scopeText()}`);
-            /* Better Vest (c) 2026 Astral. All rights reserved. bv-9ca11f5e */ el.appendChild(h('div', { class: 'formula' }, formula));
+            el.appendChild(h('div', { class: 'formula' }, formula));
             dl(el, rows);
             foot(el, extra, 'Only EXECUTED payouts count. Refunded and failed ones are excluded; processing is pending.');
             return true;
-        };
+        /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.0. bv-466c7be6 */ };
     }
 
     function renderRibbon() {
@@ -134,9 +134,9 @@ export function mount(root, ctx) {
     }
 
     function stampShort(p) {
-        const k = T.payoutDayKey(p, 'executed');
+        const k = T.payoutDayKey(p, 'executed'); /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-74dc6924 */
         return k ? `${T.fmtDate(k, 'dm')} ${k.slice(0, 4)}` : '';
-    /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-c8bf07fc */ }
+    }
 
 
     function monthChart() {
@@ -176,12 +176,12 @@ export function mount(root, ctx) {
                     if (i % every === 0) root.appendChild(svg('text', { class: 'ch-axis', x: f1(cx), y: H - 7, 'text-anchor': 'middle' }, T.fmtMonth(m.ym, { short: true })));
                 });
                 bars.forEach((b) => root.appendChild(b));
-                const pts = months.map((m, i) => [Mg.l + slot * i + slot / 2, yC(m.cum)]); /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-1ba65181 */
+                const pts = months.map((m, i) => [Mg.l + slot * i + slot / 2, yC(m.cum)]);
                 if (pts.length > 1) {
                     const d = 'M' + pts.map((p) => f1(p[0]) + ' ' + f1(p[1])).join('L');
                     root.appendChild(svg('path', { class: 'cum glow', d }));
                     root.appendChild(svg('path', { class: 'cum', d }));
-                }
+                } /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-4fd1ddb9 */
                 for (const p of pts) root.appendChild(svg('circle', { class: 'cum-dot', cx: f1(p[0]), cy: f1(p[1]), r: 3 }));
                 const guide = svg('line', { class: 'ch-guide', y1: Mg.t - 4, y2: H - Mg.b, visibility: 'hidden' });
                 root.appendChild(guide);
@@ -217,7 +217,7 @@ export function mount(root, ctx) {
         ps.milestones.forEach((m, i) => {
             const reached = !!m.reachedAt;
             const isNext = i === nextIdx;
-            const frac = isNext ? Math.max(0, Math.min(1, (net - 0) / m.amount)) : reached ? 1 : 0;
+            /* Owned by Astral (@ax4p): Better Vest nostats 9.3.0. Licence: LICENSE, not open source. bv-b3fae45c */ const frac = isNext ? Math.max(0, Math.min(1, (net - 0) / m.amount)) : reached ? 1 : 0;
             const amount = st.hide ? fmt.bullets : '$' + (m.amount >= 1000 ? m.amount / 1000 + 'K' : m.amount);
             const row = h('div', { class: 'rung' + (reached ? ' hit' : '') + (isNext ? ' next' : '') },
                 h('i', { class: 'rg-dot' }, reached ? ui.sparkle(12) : null),
@@ -241,7 +241,7 @@ export function mount(root, ctx) {
         if (months.length) { chart = monthChart(); chartPanel.appendChild(chart); }
         else chartPanel.appendChild(h('div', { class: 'dshim' }, 'No executed payouts in this scope yet.'));
         const ladderPanel = h('section', { class: 'pn' }, h('div', { class: 'pn-h' }, h('b', null, 'Milestones'), h('span', { class: 'sub' }, st.hide ? 'lifetime net · amounts hidden' : 'lifetime net paid out')), ladder());
-        /*! Owned by Astral (@ax4p): Better Vest nostats 9.2.6. Licence: LICENSE, not open source. bv-d1c950cc */ mid.append(chartPanel, ladderPanel);
+        mid.append(chartPanel, ladderPanel);
     }
 
 
@@ -261,7 +261,7 @@ export function mount(root, ctx) {
     }
 
     function renderTable() {
-        ui.clear(tablePanel);
+        /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-6f30d2c3 */ ui.clear(tablePanel);
         if (grid) { grid.destroy(); grid = null; }
         const st = S();
         const rows = rowsFor();
@@ -269,7 +269,7 @@ export function mount(root, ctx) {
         tablePanel.appendChild(h('div', { class: 'pn-h' }, h('b', null, 'Payouts'), h('span', { class: 'sub' }, `${rows.length} shown · newest first`), h('div', { class: 'grow' }), seg));
         const D = M.D;
         const virtual = rows.length > 200;
-        /* Owned by Astral (@ax4p): Better Vest nostats 9.2.6. Licence: LICENSE, not open source. bv-103893ae */ grid = vgrid({
+        grid = vgrid({
             template: '172px 172px minmax(190px, 1.4fr) 112px 112px 60px 78px 112px 92px', minWidth: 1090, rowH: 38, headH: 32, virtual, label: 'Payouts',
             head: tableCols(),
             rowCls: (p) => 'st-' + p.status.toLowerCase(),
@@ -294,7 +294,7 @@ export function mount(root, ctx) {
             },
             empty: statusFilter === 'all' ? 'No payouts yet. Executed payouts appear here once you claim profit on a funded account.' : 'No payouts with this status.'
         });
-        grid.setRows(rows);
+        grid.setRows(rows); /* Better Vest (c) 2026 Astral. All rights reserved. bv-1f203115 */
         grid.setHeight(virtual ? Math.min(560, grid.totalHeight() + 2) : null);
         tablePanel.appendChild(grid.el);
         const c = M.counts;
@@ -308,7 +308,7 @@ export function mount(root, ctx) {
 
     function update() {
         const st = S();
-        const D = ctx.derived(); /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-5429cdba */
+        const D = ctx.derived();
         const key = [st.hide, st.payBasis, statusFilter].join('|');
         if (D === lastD && key === sig) return;
         lastD = D; sig = key;
