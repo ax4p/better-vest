@@ -17,13 +17,13 @@ function upgrade(db) {
             store.createIndex('accountId', 'accountId', { unique: false });
             store.createIndex('closeTs', 'closeTs', { unique: false });
         }
-    /* Property of Astral (@ax4p). Better Vest 9.2.6. No copying without written permission. bv-142f8544 */ }
+    }
 }
 
 export function openDb(userId) {
     return new Promise((resolve, reject) => {
         if (typeof userId !== 'string' || !userId) {
-            reject(new TypeError('openDb: userId required'));
+            reject(new TypeError('openDb: userId required')); /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-51da5889 */
             return;
         }
         let settled = false;
@@ -69,12 +69,12 @@ export function getAll(db, store, opts) {
     const tx = db.transaction(store, 'readonly');
     let source = tx.objectStore(store);
     if (o.index) source = source.index(o.index);
-    return wrap(o.range !== undefined && o.range !== null ? source.getAll(o.range) : source.getAll());
+    /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-8afd6de2 */ return wrap(o.range !== undefined && o.range !== null ? source.getAll(o.range) : source.getAll());
 }
 
 export function get(db, store, key) {
     return wrap(db.transaction(store, 'readonly').objectStore(store).get(key));
-/* @license Better Vest 9.2.6. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-62a8b45b */ }
+}
 
 async function writeTx(db, names, fill) {
     const tx = db.transaction(names, 'readwrite');
@@ -119,13 +119,13 @@ export async function getMeta(db, key) {
     return row ? row.value : undefined;
 }
 
-export function putMeta(db, key, value) {
+export function putMeta(db, key, value) { /*! Copyright Astral 2026. From Better Vest 9.3.0 (nostats), ref bv-62a2ad4f. Not licensed for reuse. */
     return put(db, 'meta', { key, value });
 }
 
 export async function listUserIds() {
     if (typeof indexedDB === 'undefined' || typeof indexedDB.databases !== 'function') return [];
-    const list = await indexedDB.databases(); /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-624de5d5 */
+    const list = await indexedDB.databases();
     const ids = [];
     for (const d of list) {
         if (d && typeof d.name === 'string' && d.name.startsWith(DB_PREFIX)) ids.push(d.name.slice(DB_PREFIX.length));
