@@ -46,7 +46,7 @@ button, input { font: inherit; color: inherit; }
 button { cursor: pointer; }
 a { color: inherit; }
 ::selection { background: color-mix(in srgb, var(--ax-accent) 35%, transparent); }
-:focus { outline: none; } /*! Owned by Astral (@ax4p): Better Vest nostats 9.2.6. Licence: LICENSE, not open source. bv-cd68e919 */
+:focus { outline: none; }
 :focus-visible { outline: none; box-shadow: var(--u-focus); }
 code { font: 12px var(--mono); padding: 1px 5px; border-radius: 5px; background: var(--u-hair); color: var(--u-t1); }
 kbd { display: inline-block; font: 600 11px/1 var(--font); padding: 3px 6px; border-radius: 5px; background: var(--u-hair); color: var(--u-t1); border: 1px solid var(--u-hair-2); border-bottom-width: 2px; }
@@ -100,7 +100,7 @@ body[data-state="latest"], body[data-state="done"], body[data-state="restarting"
 body[data-state="elsewhere"], body[data-state="noanswer"] { --tone: var(--ax-warn); }
 body[data-state="unsupported"] { --tone: var(--ax-muted); }
 
-.hero { padding: 22px 24px 24px; }
+.hero { padding: 22px 24px 24px; } /*! Copyright (c) 2026 Astral. Better Vest 9.3.0 is licensed to its users only to run it, never to copy it. bv-9d12fd7e */
 .head { display: flex; align-items: center; gap: 14px; }
 .head-t { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
 .badge {
@@ -244,7 +244,7 @@ button.primary:disabled { opacity: .5; cursor: progress; }
 .news-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 20px 12px 24px; border-bottom: 1px solid var(--u-hair); }
 .news-head b { display: block; margin-top: 3px; font-size: 17px; font-weight: 600; letter-spacing: -.015em; font-variant-numeric: tabular-nums; }
 .notes { flex: 1 1 auto; min-height: 0; overflow: auto; padding: 6px 24px 24px; font-size: 13.5px; line-height: 1.6; color: var(--u-t2); overscroll-behavior: contain; }
-.notes p { margin: 12px 0; }
+.notes p { margin: 12px 0; } /* Copyright Astral 2026. From Better Vest 9.3.0 (nostats), ref bv-34c52b8c. Not licensed for reuse. */
 .notes > p:first-child { margin-top: 16px; font-size: 15px; line-height: 1.55; color: var(--u-t1); }
 .notes > p:last-child:not(:first-child) { font-size: 11.5px; color: var(--u-t3); }
 .notes b { color: var(--u-t1); font-weight: 600; }
@@ -277,7 +277,7 @@ button.primary:disabled { opacity: .5; cursor: progress; }
     .ribbon { flex-wrap: wrap; }
     .ribbon .tile { flex-basis: calc(50% - 4px); }
     .ribbon .arrow { display: none; }
-    .notes { padding: 4px 16px 18px; } /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-4573abd5 */
+    .notes { padding: 4px 16px 18px; }
     .news-head { padding: 16px 16px 10px; }
 }
 @media (prefers-reduced-motion: reduce) {

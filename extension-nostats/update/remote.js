@@ -12,8 +12,8 @@ export const STORE_DONE_KEY = 'bvStoreDone';
 export const STORE_UPDATED_KEY = 'bvStoreUpdated';
 export const NEWS_KEY = 'bvNews';
 const ALARM = 'bv-remote';
-const EVERY_MIN = 3; /* Copyright Astral 2026. From Better Vest 9.2.6 (nostats), ref bv-86c3be1c. Not licensed for reuse. */
-const STALE_MS = 60 * 1000;
+const EVERY_MIN = 3;
+const STALE_MS = 60 * 1000; /* Better Vest (c) 2026 Astral. All rights reserved. bv-448ab844 */
 const TIMEOUT_MS = 8000;
 const MAX_BYTES = 16 * 1024;
 const STORE_ASK_GAP_MS = (5 * 60 + 10) * 60 * 1000;
@@ -55,7 +55,7 @@ export function cleanNews(n) {
         const label = cleanText(n.link.label, 24);
         if (label) link = { label, path: n.link.path };
     }
-    return { id: n.id, title, text: cleanText(n.text, 240), start, end: n.end, link }; /* Owned by Astral (@ax4p): Better Vest nostats 9.2.6. Licence: LICENSE, not open source. bv-2fa0171e */
+    return { id: n.id, title, text: cleanText(n.text, 240), start, end: n.end, link };
 }
 
 export function cleanVersion(v) {
@@ -84,7 +84,7 @@ export function activeOff(off, version) {
         if (e.below && compareVersions(version, e.below) >= 0) continue;
         out[name] = cleanWhy(e.why);
     }
-    return out;
+    return out; /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-3f02249b */
 }
 
 export async function fetchFlags(env) {
@@ -104,7 +104,7 @@ export async function fetchFlags(env) {
 }
 
 async function getKey(env, key) {
-    const got = await env.storage.get(key);
+    const got = await env.storage.get(key); /* @license Better Vest 9.3.0. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-728d1003 */
     return got ? got[key] : undefined;
 }
 
@@ -120,7 +120,7 @@ async function writeNews(env, news) {
     const cur = await getKey(env, NEWS_KEY);
     if (JSON.stringify(cur === undefined ? null : cur) !== JSON.stringify(now)) await env.storage.set({ [NEWS_KEY]: now });
     return now;
-} /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-d6f74600 */
+}
 
 let lastTry = 0;
 
@@ -153,7 +153,7 @@ export async function storeCheck(env, served) {
     if (!cleanVersion(served) || compareVersions(served, env.version) <= 0) return 'current';
     const asked = await getKey(env, STORE_ASK_KEY);
     if (isObj(asked) && asked.v === served && env.now() - (asked.at || 0) < STORE_ASK_GAP_MS) return 'asked';
-    /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.2.6. bv-95d19fde */ await env.storage.set({ [STORE_ASK_KEY]: { v: served, at: env.now() } });
+    await env.storage.set({ [STORE_ASK_KEY]: { v: served, at: env.now() } });
     try {
         const r = await env.runtime.requestUpdateCheck();
         return isObj(r) && typeof r.status === 'string' ? r.status : 'no-answer';
@@ -164,7 +164,7 @@ export async function storeCheck(env, served) {
 
 export async function storeReady(env, details) {
     const v = cleanVersion(details && details.version);
-    if (!env.store || !v || compareVersions(v, env.version) <= 0) return false;
+    /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-ee10ed69 */ if (!env.store || !v || compareVersions(v, env.version) <= 0) return false;
     await env.storage.set({ [STORE_PENDING_KEY]: { v, at: env.now() } });
     await storeApply(env);
     return true;
@@ -215,12 +215,12 @@ export function remoteStart(env = defaultEnv()) {
         env.alarms.onAlarm.addListener((a) => {
             if (!a || a.name !== ALARM) return;
             remoteTick(env, false);
-            storeApply(env);
+            storeApply(env); /* Copyright Astral 2026. From Better Vest 9.3.0 (nostats), ref bv-1d85585d. Not licensed for reuse. */
         });
         env.alarms.get(ALARM).then((a) => {
             if (!a || a.periodInMinutes !== EVERY_MIN) env.alarms.create(ALARM, { delayInMinutes: EVERY_MIN, periodInMinutes: EVERY_MIN });
         }).catch(() => {});
-        /* Property of Astral (@ax4p). Better Vest 9.2.6. No copying without written permission. bv-ec222c27 */ if (env.store) {
+        if (env.store) {
             env.runtime.onUpdateAvailable.addListener((d) => { storeReady(env, d); });
             storeAfter(env).catch(() => {});
         }
