@@ -24,8 +24,8 @@ function render(st) {
     document.querySelectorAll('[data-hide]').forEach((b) => b.classList.toggle('on', !!st.hide[b.dataset.hide]));
     const box = $('#themes');
     if (!box.children.length && st.themes) {
-        st.themes.forEach((t) => {
-            /* Copyright Astral 2026. From Better Vest 9.2.6 (nostats), ref bv-4a3836d2. Not licensed for reuse. */ const b = document.createElement('button');
+        st.themes.forEach((t) => { /*! Better Vest (c) 2026 Astral. All rights reserved. bv-94f401b3 */
+            const b = document.createElement('button');
             b.className = 'theme';
             b.dataset.theme = t.k;
             b.style.background = t.page;
@@ -50,12 +50,12 @@ function render(st) {
 document.querySelectorAll('[data-widget]').forEach((b) => {
     b.onclick = () => send({ cmd: 'widget', key: b.dataset.widget });
 });
-document.querySelectorAll('[data-hide]').forEach((b) => {
+/* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-11420509 */ document.querySelectorAll('[data-hide]').forEach((b) => {
     b.onclick = () => send({ cmd: 'hide', key: b.dataset.hide, value: !(state && state.hide[b.dataset.hide]) });
 });
 $('#focus-all').onclick = () => send({ cmd: 'focusAll' });
 $('#open-vest').onclick = () => chrome.tabs.create({ url: VEST + 'trade/NQ-PERP' });
-$('#open-cal').onclick = () => { chrome.runtime.sendMessage({ type: 'journal-open' }).catch(() => {}); window.close(); }; /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-0e9c9c27 */
+$('#open-cal').onclick = () => { chrome.runtime.sendMessage({ type: 'journal-open' }).catch(() => {}); window.close(); };
 
 const MINUS = '\u2212';
 function usd(v) {
@@ -84,7 +84,7 @@ function paintCal(sum) {
 }
 chrome.runtime.sendMessage({ type: 'journal-summary' }).then(paintCal).catch(() => paintCal(null));
 
-/* Owned by Astral (@ax4p): Better Vest nostats 9.2.6. Licence: LICENSE, not open source. bv-3aa61926 */ function paintUpdate(s) {
+function paintUpdate(s) {
     if (!s || !s.supported) return;
     $('#upd-pref').hidden = false;
     $('#upd-auto').checked = !!s.on;
@@ -99,7 +99,7 @@ $('#upd-check').onclick = async () => {
     const s = await chrome.runtime.sendMessage({ type: 'update-check' }).catch(() => null);
     paintUpdate(s);
     $('#upd-msg').textContent = !s ? 'no answer' : s.available ? '' : 'up to date';
-};
+/* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-f61d2fe5 */ };
 
 chrome.tabs.query({ active: true, currentWindow: true }).then(async ([tab]) => {
     if (!tab || !tab.url || !tab.url.startsWith(VEST)) {
