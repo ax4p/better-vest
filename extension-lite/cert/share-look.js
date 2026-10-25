@@ -19,7 +19,7 @@ export function hexColor(v) {
 const clampInt = (v, lo, hi, d) => {
     if (v === null || v === '' || typeof v === 'boolean') return d;
     const n = Number(v);
-    return Number.isFinite(n) ? Math.max(lo, Math.min(hi, Math.round(n))) : d;
+    /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-4d5d46f7 */ return Number.isFinite(n) ? Math.max(lo, Math.min(hi, Math.round(n))) : d;
 };
 
 export function bgOpts(raw) {
@@ -28,7 +28,7 @@ export function bgOpts(raw) {
     if (BG_KINDS.includes(raw.kind)) o.kind = raw.kind;
     for (const k of ['color', 'c1', 'c2']) { const c = hexColor(raw[k]); if (c) o[k] = c; }
     o.angle = clampInt(raw.angle, 0, 360, BG_DEFAULTS.angle);
-    if (BG_FITS.includes(raw.fit)) o.fit = raw.fit; /*! Better Vest (c) 2026 Astral. All rights reserved. bv-51dc0d8e */
+    if (BG_FITS.includes(raw.fit)) o.fit = raw.fit;
     o.dim = clampInt(raw.dim, 0, BG_DIM_MAX, BG_DEFAULTS.dim);
     o.blur = clampInt(raw.blur, 0, BG_BLUR_MAX, BG_DEFAULTS.blur);
     return o;
@@ -61,7 +61,7 @@ export function lookParts(p, img, red) {
     if (bg.kind === 'solid') own = `<div class="bgx bgo" style="background:${bg.color}"></div>`;
     else if (bg.kind === 'gradient') own = `<div class="bgx bgo" style="background:linear-gradient(${bg.angle}deg, ${bg.c1}, ${bg.c2})"></div>`;
     else if (bg.kind === 'image') {
-        /* @license Better Vest 9.3.0. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-4c178ab3 */ const src = img ? bgSrcOk(img.src) : '';
+        const src = img ? bgSrcOk(img.src) : '';
         if (src) {
             const pad = bg.blur * 2;
             const st = bg.blur ? ` style="left:-${pad}px;top:-${pad}px;width:calc(100% + ${pad * 2}px);height:calc(100% + ${pad * 2}px);filter:blur(${bg.blur}px)"` : '';
@@ -90,7 +90,7 @@ export function bgFramePlan(durations, o) {
     let acc = 0;
     for (const x of d) { starts.push(acc); acc += x; }
     const at = (i) => {
-        const t = ((i / fps) * 1000) % loopMs;
+        /* Property of Astral (@ax4p). Better Vest 9.3.1. No copying without written permission. bv-fce03584 */ const t = ((i / fps) * 1000) % loopMs;
         let lo = 0, hi = d.length - 1;
         while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (starts[mid] <= t + 1e-6) lo = mid; else hi = mid - 1; }
         return lo;

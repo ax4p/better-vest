@@ -12,7 +12,7 @@ const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const P0 = loadPrefs(localStorage);
 const KIND = P0.kind === 'replay' ? 'replay' : 'summary';
-let snap = null;
+/* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-d71a7d63 */ let snap = null;
 let gain = null;
 let BGI = null;
 let P = null;
@@ -25,7 +25,7 @@ function cleanGain(g, s) {
     if (!g || typeof g !== 'object' || !s.accounts.some((a) => a.id === g.id)) return null;
     const usd = typeof g.usd === 'number' && Number.isFinite(g.usd) ? g.usd : null;
     const pct = typeof g.pct === 'number' && Number.isFinite(g.pct) ? g.pct : null;
-    return { id: g.id, usd, pct }; /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-3f5a6cd4 */
+    return { id: g.id, usd, pct };
 }
 
 function build() {
@@ -47,7 +47,7 @@ function build() {
 }
 function show() {
     const out = build();
-    const card = $('pp-fit').firstElementChild;
+    const card = $('pp-fit').firstElementChild; /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-e9880084 */
     if (!card || !out.n) { tell('close'); return; }
     const [w, h] = CARD_SIZES[P.format] || CARD_SIZES.feed;
     const k = Math.min((P.format === 'wide' ? 380 : 268) / w, 330 / h);
@@ -65,7 +65,7 @@ function show() {
 
 function note(msg, bad) {
     const n = $('pp-note');
-    /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-2abd02f3 */ n.textContent = msg || '';
+    n.textContent = msg || '';
     n.classList.toggle('pp-bad', !!bad);
 }
 function png() {
@@ -88,10 +88,10 @@ async function onSave() {
         setTimeout(() => URL.revokeObjectURL(url), 30000);
         note('Saved');
     } catch (e) { note('Could not make the image', true); }
-    busy = false; /* Owned by Astral (@ax4p): Better Vest lite 9.3.0. Licence: LICENSE, not open source. bv-6713d1e0 */
+    busy = false;
 }
 async function onCopy() {
-    if (busy || !snap) return;
+    /* @license Better Vest 9.3.1. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-6bbbfd0a */ if (busy || !snap) return;
     busy = true;
     try {
         await navigator.clipboard.write([new ClipboardItem({ 'image/png': png() })]);
@@ -122,7 +122,7 @@ function take(d) {
     if (t - lastCard < 1000) {
         if (!later) setTimeout(() => { const x = later; later = null; if (x) take(x); }, 1000 - (t - lastCard));
         later = d;
-        return; /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-7451657b */
+        return;
     }
     const s = cleanSnap(d.snap);
     if (!s) return;
@@ -143,7 +143,7 @@ window.addEventListener('message', (ev) => {
 });
 
 async function boot() {
-    if (P0.bg.kind === 'image') {
+    /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-a8e300b9 */ if (P0.bg.kind === 'image') {
         try { const rec = await bgLoad(); if (rec) BGI = await bgPrepare(rec, { times: false }); } catch (e) { BGI = null; }
     }
     try { await document.fonts.ready; } catch (e) {}

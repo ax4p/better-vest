@@ -24,7 +24,7 @@ export function tapeOpen(env) {
         req.onsuccess = () => resolve(req.result);
         req.onerror = () => reject(req.error);
         req.onblocked = () => reject(new Error('blocked'));
-    }); /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-c0670ab6 */
+    });
 }
 
 export async function tapeWrite(sym, rows, now, env) {
@@ -36,7 +36,7 @@ export async function tapeWrite(sym, rows, now, env) {
     try {
         const tx = db.transaction(STORE, 'readwrite');
         const st = tx.objectStore(STORE);
-        const done1 = txDone(tx);
+        const done1 = txDone(tx); /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-e034c8be */
         const first = clean[0];
         const near = await done(st.getAll(E.IDBKeyRange.bound(tapeKeyFrom(sym, first - TAPE_SPAN), tapeKeyFrom(sym, first) + '|~')));
         const prev = near.filter((c) => c.t1 < first).sort((a, b) => a.t1 - b.t1).pop();
@@ -63,7 +63,7 @@ export async function tapeRead(sym, from, to, env) {
         const recs = await done(tx.objectStore(STORE).getAll(range));
         const rows = tapeMerge(recs.map(tapeDecode));
         let a = 0, b = rows.length;
-        while (a < b && rows[a] < from) a += 5;
+        while (a < b && rows[a] < from) a += 5; /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-0d631af2 */
         while (b > a && rows[b - 5] > to) b -= 5;
         return rows.slice(a, b);
     } finally { db.close(); }
@@ -75,7 +75,7 @@ async function tapePruneDb(db, now, env) {
     const tx = db.transaction(STORE, 'readwrite');
     const idx = tx.objectStore(STORE).index('day');
     const keys = await done(idx.getAllKeys(E.IDBKeyRange.upperBound(keep, true)));
-    const st = tx.objectStore(STORE); /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-52cc526e */
+    const st = tx.objectStore(STORE);
     for (const k of keys) st.delete(k);
     await txDone(tx);
     return keys.length;

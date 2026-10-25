@@ -19,8 +19,8 @@ export const DEFAULT_PREFS = { kind: 'summary', style: 'vest', theme: 'dark', fo
     pay: 'today', bg: Object.assign({}, BG_DEFAULTS), accent: '' };
 
 export function cleanPrefs(p) {
-    /*! Property of Astral (@ax4p). Better Vest 9.3.0. No copying without written permission. bv-49ac343c */ const o = p && typeof p === 'object' && !Array.isArray(p) ? p : {};
-    const merged = Object.assign({}, DEFAULT_PREFS, o);
+    const o = p && typeof p === 'object' && !Array.isArray(p) ? p : {};
+    const merged = Object.assign({}, DEFAULT_PREFS, o); /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-a394e255 */
     for (const k of ['list', 'show', 'rp']) merged[k] = Object.assign({}, DEFAULT_PREFS[k], o[k] && typeof o[k] === 'object' ? o[k] : {});
     if (!ROWS.includes(merged.rows)) merged.rows = 'accounts';
     if (!['today', 'yesterday', 'week', 'month'].includes(merged.period)) merged.period = 'today';
@@ -43,7 +43,7 @@ export function loadPrefs(storage) {
 }
 export function prefsToSave(P) {
     const { kind, style, theme, format, hero, handle, list, show, rows, afterFees, rp, chart, pay, bg, accent } = P;
-    const period = P.period === 'day' ? 'today' : P.period; /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-2cc60b37 */
+    const period = P.period === 'day' ? 'today' : P.period;
     return { kind, style, theme, format, hero, handle, list, show, rows, period, afterFees, rp, chart, pay, bg, accent };
 }
 export function savePrefs(storage, P) {
@@ -55,7 +55,7 @@ export function snapPicks(snap, prefer) {
     if (snap.copying && group.length > 1) return { mode: 'copy', picked: group };
     const known = snap.accounts.filter((a) => a.pnl != null);
     const first = (prefer && known.find((a) => a.id === prefer)) || snap.accounts.find((a) => a.id === snap.activeId && a.pnl != null) || known[0];
-    return { mode: 'accounts', picked: first ? [first.id] : [] };
+    return { mode: 'accounts', picked: first ? [first.id] : [] }; /* @license Better Vest 9.3.1. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-90e85e68 */
 }
 
 export function popNeed(p) {

@@ -32,7 +32,7 @@ button { font: inherit; color: inherit; }
 .btn:disabled { opacity: .4; cursor: not-allowed; }
 
 .opts { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 18px; padding: 10px 22px; background: rgba(10, 10, 10, .85); border-bottom: 1px solid var(--line); position: relative; z-index: 2; }
-.grp { display: flex; align-items: center; gap: 8px; } /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-684ab38c */
+.grp { display: flex; align-items: center; gap: 8px; }
 .grp .k { font-size: 10.5px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--dim); }
 .vsep { width: 1px; height: 22px; background: var(--line2); }
 .toggles { display: flex; gap: 6px; }
@@ -72,7 +72,7 @@ button { font: inherit; color: inherit; }
 .dd .row .qt { color: var(--dim); font-size: 12px; }
 .dd .row.out .tm::after { content: " · outside the time"; color: var(--dim); font-size: 11px; }
 .dd.tlp { width: 420px; max-width: 420px; }
-.tl { position: relative; height: 74px; margin: 4px 8px 0; }
+.tl { position: relative; height: 74px; margin: 4px 8px 0; } /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.1. bv-5c96fd65 */
 .tl .spark { position: absolute; inset: 0 0 14px; border-radius: 8px; background: #0b0b0b; box-shadow: inset 0 0 0 1px var(--line); overflow: hidden; }
 .tl .spark svg { display: block; width: 100%; height: 100%; }
 .tl input[type="range"] { position: absolute; left: 0; right: 0; bottom: 0; width: 100%; margin: 0; height: 74px; background: none; pointer-events: none; -webkit-appearance: none; appearance: none; }
@@ -127,7 +127,7 @@ button { font: inherit; color: inherit; }
 .cx-pick { display: flex; gap: 14px; padding: 10px 2px 0; }
 .cx-pick label { display: flex; align-items: center; gap: 8px; color: var(--mut); font-size: 12px; font-weight: 600; }
 .cx-pick input[type="color"] { width: 34px; height: 24px; padding: 0; border: 0; border-radius: 6px; background: none; cursor: pointer; }
-.cx-pick[hidden] { display: none; } /* @license Better Vest 9.3.0. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-c7254ab3 */
+.cx-pick[hidden] { display: none; }
 .cx-tfs { display: flex; flex-wrap: wrap; gap: 5px; }
 .cx-tfs button { min-width: 40px; height: 28px; padding: 0 9px; border: 0; border-radius: 7px; background: var(--ctl); box-shadow: inset 0 0 0 1px var(--line); color: var(--mut); font-size: 12px; font-weight: 600; cursor: pointer; font-variant-numeric: tabular-nums; }
 .cx-tfs button:hover:not(:disabled) { color: var(--text); }
@@ -151,7 +151,7 @@ button { font: inherit; color: inherit; }
 .vm-stage { min-height: 0; display: grid; place-items: center; padding: 16px; background: #070707; }
 .vm-stage video { display: block; max-width: 100%; max-height: calc(100vh - 240px); border-radius: 10px; background: #000; cursor: pointer; }
 .vm-bar { display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-top: 1px solid var(--line); }
-.vm-play { display: grid; place-items: center; width: 36px; height: 36px; flex: none; border: 0; border-radius: 50%; background: #fafafa; color: #000; cursor: pointer; }
+.vm-play { display: grid; place-items: center; width: 36px; height: 36px; flex: none; border: 0; border-radius: 50%; background: #fafafa; color: #000; cursor: pointer; } /*! Copyright (c) 2026 Astral. Better Vest 9.3.1 is licensed to its users only to run it, never to copy it. bv-cc7edbff */
 .vm-play svg { width: 16px; height: 16px; fill: currentColor; }
 .vm-play .vm-pp, .vm-play.on .vm-pi { display: none; }
 .vm-play.on .vm-pp { display: inline; }

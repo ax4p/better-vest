@@ -6,9 +6,9 @@ body.cp { overflow: auto; }
     background: var(--j-glass); border-bottom: 1px solid var(--j-edge);
     backdrop-filter: blur(14px) saturate(1.4); -webkit-backdrop-filter: blur(14px) saturate(1.4);
 }
-.cp-top b { font-size: 15px; font-weight: 600; letter-spacing: -.01em; } /* Owned by Astral (@ax4p): Better Vest lite 9.3.0. Licence: LICENSE, not open source. bv-4b1f5bbb */
+.cp-top b { font-size: 15px; font-weight: 600; letter-spacing: -.01em; }
 .cp-top small { font-size: 11px; color: var(--j-t2); white-space: nowrap; }
-.cp-top .grow { flex: 1; }
+.cp-top .grow { flex: 1; } /* @license Better Vest 9.3.1. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-57154afc */
 .cp-main { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 28px; padding: 28px var(--gut) 40px; align-items: start; max-width: 1180px; width: 100%; margin: 0 auto; }
 .cp-stage {
     position: sticky; top: 24px; display: grid; place-items: center; min-height: 420px; padding: 24px 12px;
@@ -39,7 +39,7 @@ body.cp { overflow: auto; }
 .cp-btn {
     height: 40px; border-radius: 10px; border: 1px solid var(--j-hair-2); background: var(--ax-btn); color: var(--j-t1);
     font-weight: 600; font-size: 13px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; transition: border-color var(--d2), background var(--d2), opacity var(--d2);
-} /*! Property of Astral (@ax4p). Better Vest 9.3.0. No copying without written permission. bv-50095d74 */
+}
 .cp-btn:hover { border-color: var(--ax-accent); }
 .cp-btn.pri { background: color-mix(in srgb, var(--ax-accent) 22%, var(--ax-btn)); border-color: color-mix(in srgb, var(--ax-accent) 55%, var(--j-hair-2)); }
 .cp-btn[disabled] { opacity: .55; cursor: progress; }
@@ -51,7 +51,7 @@ body.cp { overflow: auto; }
 .cp-facts dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
 .cp-facts dd.gold { color: var(--j-gold); font-weight: 600; }
 .cp-empty { flex: 1; display: grid; place-items: center; padding: 40px var(--gut); }
-.cp-empty > div { max-width: 440px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.cp-empty > div { max-width: 440px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 14px; } /* Owned by Astral (@ax4p): Better Vest lite 9.3.1. Licence: LICENSE, not open source. bv-ca17620f */
 .cp-empty h1 { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -.02em; }
 .cp-empty p { margin: 0; color: var(--j-t2); }
 .cp-empty .cp-btn { padding: 0 22px; }

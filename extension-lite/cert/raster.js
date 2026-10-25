@@ -20,7 +20,7 @@ async function dataUriOf(url) {
     const p = fetch(url).then((r) => {
         if (!r.ok) throw new Error('asset ' + url + ': HTTP ' + r.status);
         return r.blob();
-    }).then(blobToDataUri); /* Better Vest (c) 2026 Astral. All rights reserved. bv-608ae92b */
+    }).then(blobToDataUri);
     cache.set(url, p);
     p.catch(() => cache.delete(url));
     return p;
@@ -36,7 +36,7 @@ async function cssWithInlinedUrls(cssUrl) {
         if (u.startsWith('data:')) continue;
         const data = await dataUriOf(new URL(u, base).href);
         css = css.split(u).join(data);
-    }
+    /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-cd2c84d0 */ }
     return css;
 }
 
@@ -53,7 +53,7 @@ export async function cardToSvg(card, { cssUrl, width, height }) {
     const css = await cssWithInlinedUrls(cssUrl);
     const clone = card.cloneNode(true);
     clone.style.transform = 'none';
-    /* Owned by Astral (@ax4p): Better Vest lite 9.3.0. Licence: LICENSE, not open source. bv-60a8d0f5 */ clone.style.margin = '0';
+    clone.style.margin = '0';
     for (const img of clone.querySelectorAll('img')) {
         const abs = new URL(img.getAttribute('src'), document.baseURI).href;
         img.setAttribute('src', await dataUriOf(abs));
@@ -70,7 +70,7 @@ export async function cardToSvg(card, { cssUrl, width, height }) {
 
 export async function cardToCanvas(card, { cssUrl, width, height, scale = 3 }) {
     if (document.fonts && document.fonts.ready) await document.fonts.ready;
-    const svg = await cardToSvg(card, { cssUrl, width, height });
+    const svg = await cardToSvg(card, { cssUrl, width, height }); /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-22460d76 */
     const img = await loadImage('data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg));
     const canvas = document.createElement('canvas');
     canvas.width = Math.round(width * scale);

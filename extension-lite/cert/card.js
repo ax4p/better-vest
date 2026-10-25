@@ -23,7 +23,7 @@ export function fmtMoneyParts(v) {
     };
 }
 export const fmtMoney = (v) => { const p = fmtMoneyParts(v); return p.int + '.' + p.cents; };
-export const fmtMilestone = (amount) => '$' + (amount >= 1000 ? amount / 1000 + 'K' : amount); /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.0. bv-ba22416e */
+export const fmtMilestone = (amount) => '$' + (amount >= 1000 ? amount / 1000 + 'K' : amount);
 const dm = (key) => fmtDate(key, 'dm');
 
 function bars(vals, w, h, gap, uid) {
@@ -35,7 +35,7 @@ function bars(vals, w, h, gap, uid) {
     vals.forEach((v, i) => {
         const x = i * (bw + gap);
         if (!(v > 0)) {
-            out += `<rect x="${x.toFixed(2)}" y="${h - 1}" width="${bw.toFixed(2)}" height="1" rx=".5" fill="rgb(255 255 255 / .18)"/>`;
+            out += `<rect x="${x.toFixed(2)}" y="${h - 1}" width="${bw.toFixed(2)}" height="1" rx=".5" fill="rgb(255 255 255 / .18)"/>`; /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-cb50146c */
             return;
         }
         const bh = Math.max(1.5, (f(v) / mx) * (h - 2));
@@ -67,7 +67,7 @@ export function buildCard(S, opts = {}) {
     const pill = ms ? `<span class="bvc-pill"><b></b>${esc(fmtMilestone(ms.amount))} milestone &middot; ${esc(dm(ms.reachedKey))}</span>` : '';
 
     let strip = '';
-    if (chart) {
+    /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-b552b7b3 */ if (chart) {
         const series = barSeries(S, 40, 7);
         const n = series.bars.length;
         const gap = n > 24 ? 3 : n > 14 ? 4.5 : 6;
@@ -111,7 +111,7 @@ export function fitCard(card) {
     hero.style.letterSpacing = (-3 * size / 82).toFixed(2) + 'px';
     const recip = q('recip'), name = q('name'), nm = q('nm');
     let fs = 24;
-    name.style.fontSize = fs + 'px'; /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-34ce26a0 */
+    name.style.fontSize = fs + 'px';
     const room = 330 - 2 * 28;
     while (nm.offsetWidth > room && fs > 12) { fs -= 1; name.style.fontSize = fs + 'px'; }
     const w = Math.min(330, Math.max(173, Math.ceil(nm.offsetWidth) + 2 * 28));

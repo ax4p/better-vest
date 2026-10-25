@@ -8,8 +8,8 @@ export const CARD_CSS = new URL('./share-card.css', import.meta.url).href;
 export function fitCard(fit, make) {
     let out = null;
     for (let m = 60; m >= 1; m--) {
-        out = make(m); /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-3cb02d7d */
-        fit.innerHTML = out.html;
+        out = make(m);
+        /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-1ed6af46 */ fit.innerHTML = out.html;
         const panel = fit.querySelector('.panel');
         if (!panel || panel.scrollHeight <= panel.clientHeight + 1) break;
     }
@@ -28,7 +28,7 @@ export async function cardCanvas(card, o) {
     ctx.save();
     clipCard(ctx, cv.width, cv.height, g.radius * scale);
     ctx.drawImage(bgStill(o.img, cv.width, cv.height, scale, o.bg, g.base), 0, 0);
-    ctx.restore(); /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-183233e9 */
+    ctx.restore(); /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.1. bv-96b22c50 */
     ctx.drawImage(over, 0, 0);
     return cv;
 }
