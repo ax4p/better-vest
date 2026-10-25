@@ -15,7 +15,7 @@ export const DEFAULT_PREFS = { kind: 'summary', style: 'vest', theme: 'dark', fo
         paytotal: true, paybest: true },
     rows: 'accounts', period: 'today', afterFees: true,
     rp: { labels: 'usd', prices: false, pnl: false, sessions: false, best: false },
-    chart: Object.assign({}, CHART_DEFAULTS),
+    /*! Better Vest (c) 2026 Astral. All rights reserved. bv-4d256cfc */ chart: Object.assign({}, CHART_DEFAULTS),
     pay: 'today', bg: Object.assign({}, BG_DEFAULTS), accent: '' };
 
 export function cleanPrefs(p) {
@@ -23,7 +23,7 @@ export function cleanPrefs(p) {
     const merged = Object.assign({}, DEFAULT_PREFS, o);
     for (const k of ['list', 'show', 'rp']) merged[k] = Object.assign({}, DEFAULT_PREFS[k], o[k] && typeof o[k] === 'object' ? o[k] : {});
     if (!ROWS.includes(merged.rows)) merged.rows = 'accounts';
-    if (!['today', 'yesterday', 'week', 'month'].includes(merged.period)) merged.period = 'today'; /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-219a1cc3 */
+    if (!['today', 'yesterday', 'week', 'month'].includes(merged.period)) merged.period = 'today';
     if (!KINDS.includes(merged.kind)) merged.kind = 'summary';
     if (!['usd', 'pct', 'both', 'pts'].includes(merged.hero)) merged.hero = 'usd';
     if (!['vest', 'silver', 'oled', 'neon'].includes(merged.style)) merged.style = 'vest';
@@ -44,11 +44,11 @@ export function loadPrefs(storage) {
 export function prefsToSave(P) {
     const { kind, style, theme, format, hero, handle, list, show, rows, afterFees, rp, chart, pay, bg, accent } = P;
     const period = P.period === 'day' ? 'today' : P.period;
-    return { kind, style, theme, format, hero, handle, list, show, rows, period, afterFees, rp, chart, pay, bg, accent }; /* @license Better Vest 9.3.0. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-5f247f9f */
+    return { kind, style, theme, format, hero, handle, list, show, rows, period, afterFees, rp, chart, pay, bg, accent };
 }
 export function savePrefs(storage, P) {
     try { storage.setItem(PREFS_KEY, JSON.stringify(prefsToSave(P))); } catch (e) {}
-}
+} /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-9b69f636 */
 
 export function snapPicks(snap, prefer) {
     const group = copyGroup(snap);

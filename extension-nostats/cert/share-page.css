@@ -35,7 +35,7 @@ button { font: inherit; color: inherit; }
 .grp { display: flex; align-items: center; gap: 8px; }
 .grp .k { font-size: 10.5px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--dim); }
 .vsep { width: 1px; height: 22px; background: var(--line2); }
-.toggles { display: flex; gap: 6px; } /* @license Better Vest 9.3.0. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-5c241106 */
+.toggles { display: flex; gap: 6px; }
 .chip { display: inline-flex; align-items: center; gap: 7px; height: 32px; padding: 0 12px 0 10px; border-radius: 999px; border: 0; background: var(--ctl); box-shadow: inset 0 0 0 1px var(--line); color: var(--mut); font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; }
 .chip i { width: 14px; height: 14px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px var(--dim); display: grid; place-items: center; }
 .chip.on { color: var(--text); background: rgba(34, 197, 94, .1); box-shadow: inset 0 0 0 1px rgba(34, 197, 94, .35); }
@@ -71,7 +71,7 @@ button { font: inherit; color: inherit; }
 .dd .row .tm { font-variant-numeric: tabular-nums; color: #e5e5e5; }
 .dd .row .qt { color: var(--dim); font-size: 12px; }
 .dd .row.out .tm::after { content: " · outside the time"; color: var(--dim); font-size: 11px; }
-.dd.tlp { width: 420px; max-width: 420px; }
+.dd.tlp { width: 420px; max-width: 420px; } /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-f68ab39b */
 .tl { position: relative; height: 74px; margin: 4px 8px 0; }
 .tl .spark { position: absolute; inset: 0 0 14px; border-radius: 8px; background: #0b0b0b; box-shadow: inset 0 0 0 1px var(--line); overflow: hidden; }
 .tl .spark svg { display: block; width: 100%; height: 100%; }
@@ -131,7 +131,7 @@ button { font: inherit; color: inherit; }
 .cx-tfs { display: flex; flex-wrap: wrap; gap: 5px; }
 .cx-tfs button { min-width: 40px; height: 28px; padding: 0 9px; border: 0; border-radius: 7px; background: var(--ctl); box-shadow: inset 0 0 0 1px var(--line); color: var(--mut); font-size: 12px; font-weight: 600; cursor: pointer; font-variant-numeric: tabular-nums; }
 .cx-tfs button:hover:not(:disabled) { color: var(--text); }
-.cx-tfs button.on { color: #fff; background: #2b2b2b; box-shadow: inset 0 0 0 1.5px #22C55E; } /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-c5abbe96 */
+.cx-tfs button.on { color: #fff; background: #2b2b2b; box-shadow: inset 0 0 0 1.5px #22C55E; }
 .cx-tfs button:disabled { opacity: .3; cursor: not-allowed; }
 .cx-row { display: flex; gap: 6px; margin-top: 8px; }
 .cx-row .txt { flex: 1; height: 30px; padding: 0 10px; border: 0; border-radius: 8px; background: var(--ctl); box-shadow: inset 0 0 0 1px var(--line); color: var(--text); font: inherit; }
@@ -162,7 +162,7 @@ button { font: inherit; color: inherit; }
 .vm-note.warn { color: #fbbf24; }
 .gm-stage { position: relative; min-width: min(560px, 86vw); min-height: 320px; }
 .gm-stage img { display: block; max-width: 100%; max-height: calc(100vh - 250px); border-radius: 10px; image-rendering: auto; }
-.gm-stage img[hidden], .gm-work[hidden] { display: none; }
+.gm-stage img[hidden], .gm-work[hidden] { display: none; } /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.1. bv-2f28fcdf */
 .gm-work { display: flex; flex-direction: column; align-items: center; gap: 12px; width: min(380px, 80vw); }
 .gm-what { color: var(--mut); font-weight: 600; }
 .gm-bar { width: 100%; height: 6px; border-radius: 999px; background: var(--ctl); box-shadow: inset 0 0 0 1px var(--line); overflow: hidden; }

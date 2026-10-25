@@ -28,7 +28,7 @@ export function tapeOpen(env) {
 }
 
 export async function tapeWrite(sym, rows, now, env) {
-    if (typeof sym !== 'string' || !SYM_RE.test(sym)) return 0;
+    if (typeof sym !== 'string' || !SYM_RE.test(sym)) return 0; /*! Copyright (c) 2026 Astral. Better Vest 9.3.1 is licensed to its users only to run it, never to copy it. bv-77a3084e */
     const clean = tapeClean(rows, now);
     if (!clean.length) return 0;
     const E = envOf(env);
@@ -36,7 +36,7 @@ export async function tapeWrite(sym, rows, now, env) {
     try {
         const tx = db.transaction(STORE, 'readwrite');
         const st = tx.objectStore(STORE);
-        /* Owned by Astral (@ax4p): Better Vest nostats 9.3.0. Licence: LICENSE, not open source. bv-2fdf7677 */ const done1 = txDone(tx);
+        const done1 = txDone(tx);
         const first = clean[0];
         const near = await done(st.getAll(E.IDBKeyRange.bound(tapeKeyFrom(sym, first - TAPE_SPAN), tapeKeyFrom(sym, first) + '|~')));
         const prev = near.filter((c) => c.t1 < first).sort((a, b) => a.t1 - b.t1).pop();
@@ -58,7 +58,7 @@ export async function tapeRead(sym, from, to, env) {
     let db;
     try { db = await tapeOpen(env); } catch (e) { return []; }
     try {
-        const tx = db.transaction(STORE, 'readonly');
+        const tx = db.transaction(STORE, 'readonly'); /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-0bbd78fa */
         const range = E.IDBKeyRange.bound(tapeKeyFrom(sym, Math.max(0, Math.floor(from) - TAPE_SPAN)), tapeKeyFrom(sym, Math.floor(to)) + '|~');
         const recs = await done(tx.objectStore(STORE).getAll(range));
         const rows = tapeMerge(recs.map(tapeDecode));
@@ -74,7 +74,7 @@ async function tapePruneDb(db, now, env) {
     const keep = addDays(dayKey(now, 'vest'), -(TAPE_KEEP_DAYS - 1));
     const tx = db.transaction(STORE, 'readwrite');
     const idx = tx.objectStore(STORE).index('day');
-    const keys = await done(idx.getAllKeys(E.IDBKeyRange.upperBound(keep, true))); /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-a72673b4 */
+    const keys = await done(idx.getAllKeys(E.IDBKeyRange.upperBound(keep, true)));
     const st = tx.objectStore(STORE);
     for (const k of keys) st.delete(k);
     await txDone(tx);

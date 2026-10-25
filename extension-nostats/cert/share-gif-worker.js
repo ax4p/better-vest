@@ -7,7 +7,7 @@ let size = null;
 
 function on(m) {
     if (m.type === 'begin') {
-        size = { w: m.w, h: m.h };
+        /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-01738838 */ size = { w: m.w, h: m.h };
         pb = new PaletteBuilder();
         enc = null;
         return { type: 'ok' };
@@ -16,7 +16,7 @@ function on(m) {
         pb.add(new Uint8ClampedArray(m.buf), m.step, m.offset);
         return { type: 'ok' };
     }
-    /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-e35b4de3 */ if (m.type === 'palette') {
+    if (m.type === 'palette') {
         const clear = pb.clear || !!m.animated;
         const pal = pb.build(clear ? 255 : 256);
         pb = null;
@@ -30,10 +30,10 @@ function on(m) {
     if (m.type === 'end') {
         const parts = enc.finish();
         const frames = enc.frames;
-        /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-73b2c1d5 */ enc = null;
+        enc = null;
         return { type: 'done', parts, frames, transfer: parts.map((p) => p.buffer) };
     }
-    throw new Error('unknown message ' + m.type);
+    throw new Error('unknown message ' + m.type); /*! Better Vest (c) 2026 Astral. All rights reserved. bv-ad088102 */
 }
 
 self.onmessage = (e) => {

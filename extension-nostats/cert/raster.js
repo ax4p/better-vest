@@ -17,7 +17,7 @@ function blobToDataUri(blob) {
 async function dataUriOf(url) {
     if (url.startsWith('data:')) return url;
     if (cache.has(url)) return cache.get(url);
-    /*! Owned by Astral (@ax4p): Better Vest nostats 9.3.0. Licence: LICENSE, not open source. bv-88f546e7 */ const p = fetch(url).then((r) => {
+    const p = fetch(url).then((r) => {
         if (!r.ok) throw new Error('asset ' + url + ': HTTP ' + r.status);
         return r.blob();
     }).then(blobToDataUri);
@@ -30,7 +30,7 @@ async function cssWithInlinedUrls(cssUrl) {
     const res = await fetch(cssUrl);
     if (!res.ok) throw new Error('stylesheet: HTTP ' + res.status);
     let css = await res.text();
-    const base = new URL(cssUrl, document.baseURI);
+    const base = new URL(cssUrl, document.baseURI); /* Property of Astral (@ax4p). Better Vest 9.3.1. No copying without written permission. bv-69a5da9f */
     const urls = [...new Set([...css.matchAll(/url\(\s*(['"]?)([^'")]+)\1\s*\)/g)].map((m) => m[2]))];
     for (const u of urls) {
         if (u.startsWith('data:')) continue;
@@ -55,7 +55,7 @@ export async function cardToSvg(card, { cssUrl, width, height }) {
     clone.style.transform = 'none';
     clone.style.margin = '0';
     for (const img of clone.querySelectorAll('img')) {
-        const abs = new URL(img.getAttribute('src'), document.baseURI).href;
+        /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-62fccaee */ const abs = new URL(img.getAttribute('src'), document.baseURI).href;
         img.setAttribute('src', await dataUriOf(abs));
     }
     const wrap = document.createElementNS(NS_XHTML, 'div');
@@ -68,7 +68,7 @@ export async function cardToSvg(card, { cssUrl, width, height }) {
     return `<svg xmlns="${NS_SVG}" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><foreignObject x="0" y="0" width="${width}" height="${height}">${inner}</foreignObject></svg>`;
 }
 
-/* Owned by Astral (@ax4p): Better Vest nostats 9.3.0. Licence: LICENSE, not open source. bv-3028980e */ export async function cardToCanvas(card, { cssUrl, width, height, scale = 3 }) {
+export async function cardToCanvas(card, { cssUrl, width, height, scale = 3 }) {
     if (document.fonts && document.fonts.ready) await document.fonts.ready;
     const svg = await cardToSvg(card, { cssUrl, width, height });
     const img = await loadImage('data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg));

@@ -29,13 +29,13 @@ export function certStats(payouts) {
     }
     const keys = [...dayNet.keys()].sort();
     const firstKey = keys[0] || null;
-    const lastKey = keys[keys.length - 1] || null; /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-6e191f2e */
+    const lastKey = keys[keys.length - 1] || null;
     const daily = [];
     if (firstKey) for (let k = firstKey; k <= lastKey; k = addDays(k, 1)) daily.push({ key: k, net: dayNet.get(k) || 0 });
 
     const milestones = ps.milestones.map((m) => ({
         amount: m.amount,
-        reachedAt: m.reachedAt || null,
+        reachedAt: m.reachedAt || null, /*! Owned by Astral (@ax4p): Better Vest nostats 9.3.1. Licence: LICENSE, not open source. bv-87ff90e4 */
         reachedKey: m.reachedAt ? payoutDayKey({ status: 'EXECUTED', executedAt: m.reachedAt, createdAt: m.reachedAt }, 'executed') : null
     }));
     const reachedList = milestones.filter((m) => m.reachedAt);
@@ -51,7 +51,7 @@ export function certStats(payouts) {
         largest,
         largestCount: hits.length,
         largestKey,
-        firstTs: payTs(done[0]),
+        /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-27193719 */ firstTs: payTs(done[0]),
         lastTs: payTs(done[done.length - 1]),
         firstKey,
         lastKey,
@@ -67,7 +67,7 @@ export function barSeries(S, maxBars = 45, minBars = 7) {
     const days = S.daily;
     const step = Math.max(1, Math.ceil(days.length / maxBars));
     const bars = [];
-    /* Better Vest (c) 2026 Astral. All rights reserved. bv-16be539f */ for (let i = 0; i < days.length; i += step) {
+    for (let i = 0; i < days.length; i += step) {
         const chunk = days.slice(i, i + step);
         bars.push({ from: chunk[0].key, to: chunk[chunk.length - 1].key, net: chunk.reduce((s, d) => s + d.net, 0) });
     }

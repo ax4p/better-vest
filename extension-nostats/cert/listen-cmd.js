@@ -26,10 +26,10 @@ export const vcWords = (s) => String(s || '').toLowerCase()
     .replace(/\s+/g, ' ')
     .trim();
 
-/* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-04e6f545 */ const clean = (s) => vcWords(s).split(' ').filter((w) => w && !FILLER.has(w)).join(' ');
+const clean = (s) => vcWords(s).split(' ').filter((w) => w && !FILLER.has(w)).join(' ');
 
 const TABLE = new Map();
-for (const id of Object.keys(PHRASES)) for (const p of PHRASES[id]) { const c = clean(p); if (c) TABLE.set(c, id); }
+/*! Owned by Astral (@ax4p): Better Vest nostats 9.3.1. Licence: LICENSE, not open source. bv-836970e6 */ for (const id of Object.keys(PHRASES)) for (const p of PHRASES[id]) { const c = clean(p); if (c) TABLE.set(c, id); }
 
 const GROWS = new Set([...TABLE.keys()].filter((t) => [...TABLE.keys()].some((p) => p !== t && p.startsWith(t + ' ') && TABLE.get(p) !== TABLE.get(t))));
 const STARTS = new Set();
@@ -46,7 +46,7 @@ export function vcAfterWake(text) {
     return at < 0 ? null : s.slice(at + len).trim();
 }
 
-export function vcParse(text, opts) { /* Owned by Astral (@ax4p): Better Vest nostats 9.3.0. Licence: LICENSE, not open source. bv-22ca5618 */
+export function vcParse(text, opts) {
     const wake = !!(opts && opts.wake);
     let rest = wake ? vcAfterWake(text) : (vcAfterWake(text) ?? vcWords(text));
     if (rest == null) return null;
@@ -55,7 +55,7 @@ export function vcParse(text, opts) { /* Owned by Astral (@ax4p): Better Vest no
     const id = TABLE.get(said);
     if (!id) return null;
     return { id, said, grows: GROWS.has(said) };
-}
+} /* Property of Astral (@ax4p). Better Vest 9.3.1. No copying without written permission. bv-4aa72956 */
 
 export function vcPending(text, opts) {
     const wake = !!(opts && opts.wake);

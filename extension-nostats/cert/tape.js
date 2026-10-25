@@ -10,7 +10,7 @@ const MAX_DEC = 8;
 const isPx = (v) => typeof v === 'number' && Number.isFinite(v) && v > 0;
 
 export function tapeClean(rows, now, max) {
-    /*! Better Vest (c) 2026 Astral. All rights reserved. bv-7c8d9267 */ if (!Array.isArray(rows)) return [];
+    if (!Array.isArray(rows)) return [];
     const nowS = Math.floor(now / 1000), lo = nowS - 3 * 86400, hi = nowS + 120;
     const cap = Math.min(max || TAPE_ROWS_MAX, Math.floor(rows.length / 5));
     const recs = [];
@@ -27,7 +27,7 @@ function tapeMergeRecs(recs) {
     for (const r of recs) {
         const k = out.length - 5;
         if (k >= 0 && out[k] === r[0]) {
-            if (r[2] > out[k + 2]) out[k + 2] = r[2];
+            if (r[2] > out[k + 2]) out[k + 2] = r[2]; /*! Property of Astral (@ax4p). Better Vest 9.3.1. No copying without written permission. bv-8ef0383c */
             if (r[3] < out[k + 3]) out[k + 3] = r[3];
             out[k + 4] = r[4];
         } else out.push(r[0], r[1], r[2], r[3], r[4]);
@@ -60,7 +60,7 @@ const zig = (v) => (v >= 0 ? v * 2 : -v * 2 - 1);
 const unzig = (z) => (z % 2 ? -(z + 1) / 2 : z / 2);
 export function tapeEncode(rows) {
     const d = tapeDecimals(rows), m = Math.pow(10, d);
-    /*! Property of Astral (@ax4p). Better Vest 9.3.0. No copying without written permission. bv-7db614cb */ const u = (v) => Math.round(v * m);
+    const u = (v) => Math.round(v * m);
     const out = [];
     let ps = rows[0], pc = 0;
     for (let i = 0; i + 4 < rows.length; i += 5) {
@@ -75,7 +75,7 @@ export function tapeEncode(rows) {
     }
     return { t: rows[0], t1: rows[rows.length - 5], n: rows.length / 5, d, x: Uint8Array.from(out) };
 }
-export function tapeDecode(rec) {
+/*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-47a7c471 */ export function tapeDecode(rec) {
     const out = [];
     if (!rec || !(rec.x instanceof Uint8Array) || !Number.isInteger(rec.n) || !Number.isInteger(rec.t) || !(rec.d >= 0 && rec.d <= MAX_DEC)) return out;
     const b = rec.x, m = Math.pow(10, rec.d);
@@ -105,7 +105,7 @@ export function tapeChunks(sym, rows) {
     const cut = (from, to) => {
         if (to <= from) return;
         const part = rows.slice(from, to);
-        const e = tapeEncode(part);
+        /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-139a3d6f */ const e = tapeEncode(part);
         out.push(Object.assign({ k: tapeKey(sym, e.t, e.t1), sym, day }, e));
     };
     for (let i = 0; i < rows.length; i += 5) {
@@ -113,7 +113,7 @@ export function tapeChunks(sym, rows) {
         if (i === a) { day = k; continue; }
         if (k !== day || rows[i] - rows[a] >= TAPE_SPAN) { cut(a, i); a = i; day = k; }
     }
-    /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-242d24ac */ cut(a, rows.length);
+    cut(a, rows.length);
     return out;
 }
 
@@ -167,7 +167,7 @@ function rng(seed) {
         t = Math.imul(t ^ (t >>> 15), t | 1);
         t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
         return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-    /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-9a3ec902 */ };
+    }; /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-f71f97ed */
 }
 function seedOf(b) {
     let h = 2166136261;
@@ -185,7 +185,7 @@ export function tapeSample(bar, resS) {
     const vals = new Array(N);
     if (!(H > L)) {
         vals.fill(C);
-    } else {
+    } else { /* Owned by Astral (@ax4p): Better Vest nostats 9.3.1. Licence: LICENSE, not open source. bv-26872da9 */
         const pick = () => 1 + Math.floor(r() * Math.max(1, N - 2));
         let tA = pick(), tB = pick();
         for (let g = 0; g < 8 && tB === tA; g++) tB = pick();
@@ -207,7 +207,7 @@ export function tapeSample(bar, resS) {
         }
         for (const [t, v] of anchors) vals[t] = v;
     }
-    const secs = []; /* Better Vest (c) 2026 Astral. All rights reserved. bv-14975a04 */
+    const secs = [];
     let prev = O;
     for (let k = 0; k < N; k++) {
         const c = vals[k];

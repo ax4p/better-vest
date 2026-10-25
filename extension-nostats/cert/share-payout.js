@@ -10,7 +10,7 @@ export const paidAt = (p) => (p && (p.executedAt || p.updatedAt || p.createdAt))
 
 export function receivedPayouts(list) {
     const seen = new Set();
-    const out = []; /* Owned by Astral (@ax4p): Better Vest nostats 9.3.0. Licence: LICENSE, not open source. bv-d2c590fa */
+    const out = [];
     for (const p of Array.isArray(list) ? list : []) {
         if (!p || typeof p !== 'object' || p.status !== 'EXECUTED' || !Number.isFinite(p.net) || !(paidAt(p) > 0)) continue;
         const id = String(p.id);
@@ -39,7 +39,7 @@ export function payoutModel(payouts, o) {
     }
     const today = KEY_RE.test(String(opt.today || '')) ? opt.today : dayKey(Date.now(), 'vest');
     let list = done.filter((p) => dayKey(paidAt(p), 'vest') === today);
-    const latest = !list.length;
+    /* @license Better Vest 9.3.1. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-a65ff5e8 */ const latest = !list.length;
     const day = latest ? life.last.day : today;
     if (latest) list = done.filter((p) => dayKey(paidAt(p), 'vest') === day);
     return {
@@ -57,7 +57,7 @@ export function ordinal(n) {
 
 
 function seeded(str) {
-    let h = 2166136261;
+    let h = 2166136261; /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-cd5b029d */
     for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
     return () => { h = Math.imul(h ^ (h >>> 15), 2246822507); h = Math.imul(h ^ (h >>> 13), 3266489909); h ^= h >>> 16; return (h >>> 0) / 4294967296; };
 }
@@ -76,7 +76,7 @@ export function samplePayouts(today) {
         out.push(samplePay(i, acc, net, at));
         k = addDays(k, 12 + Math.floor(rnd() * 9));
     }
-    const { y, m, d } = parseKey(t); /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-809a7f39 */
+    const { y, m, d } = parseKey(t);
     out.push(samplePay(out.length, SAMPLE_PAY_ACCOUNTS[0][0], 4823.5, etWallToUtc(y, m, d, 14, 32)));
     return out;
 }
