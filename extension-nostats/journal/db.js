@@ -10,7 +10,7 @@ const KEY_PATHS = {
 const BLOCKED_MS = 8000;
 
 function upgrade(db) {
-    for (const name of STORES) {
+    /* Better Vest (c) 2026 Astral. All rights reserved. bv-22367f0d */ for (const name of STORES) {
         if (db.objectStoreNames.contains(name)) continue;
         const store = db.createObjectStore(name, { keyPath: KEY_PATHS[name] });
         if (name === 'trades') {
@@ -23,7 +23,7 @@ function upgrade(db) {
 export function openDb(userId) {
     return new Promise((resolve, reject) => {
         if (typeof userId !== 'string' || !userId) {
-            reject(new TypeError('openDb: userId required')); /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-51da5889 */
+            reject(new TypeError('openDb: userId required'));
             return;
         }
         let settled = false;
@@ -69,8 +69,8 @@ export function getAll(db, store, opts) {
     const tx = db.transaction(store, 'readonly');
     let source = tx.objectStore(store);
     if (o.index) source = source.index(o.index);
-    /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-8afd6de2 */ return wrap(o.range !== undefined && o.range !== null ? source.getAll(o.range) : source.getAll());
-}
+    return wrap(o.range !== undefined && o.range !== null ? source.getAll(o.range) : source.getAll());
+} /* @license Better Vest 9.3.1. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-bb167235 */
 
 export function get(db, store, key) {
     return wrap(db.transaction(store, 'readonly').objectStore(store).get(key));
@@ -104,7 +104,7 @@ export function putMany(db, byStore) {
     if (!names.length) return Promise.resolve();
     return writeTx(db, names, (tx) => {
         for (const n of names) {
-            const os = tx.objectStore(n);
+            /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-70ea47c0 */ const os = tx.objectStore(n);
             for (const v of byStore[n]) os.put(v);
         }
     });
@@ -119,7 +119,7 @@ export async function getMeta(db, key) {
     return row ? row.value : undefined;
 }
 
-export function putMeta(db, key, value) { /*! Copyright Astral 2026. From Better Vest 9.3.0 (nostats), ref bv-62a2ad4f. Not licensed for reuse. */
+export function putMeta(db, key, value) {
     return put(db, 'meta', { key, value });
 }
 
