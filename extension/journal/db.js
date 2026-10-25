@@ -17,7 +17,7 @@ function upgrade(db) {
             store.createIndex('accountId', 'accountId', { unique: false });
             store.createIndex('closeTs', 'closeTs', { unique: false });
         }
-    }
+    /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-3bec0915 */ }
 }
 
 export function openDb(userId) {
@@ -33,7 +33,7 @@ export function openDb(userId) {
             if (settled) return;
             settled = true;
             clearTimeout(blockedTimer);
-            fn(v); /* Property of Astral (@ax4p). Better Vest 9.3.0. No copying without written permission. bv-c3c3f25b */
+            fn(v);
         };
         req.onupgradeneeded = () => upgrade(req.result);
         req.onblocked = () => {
@@ -56,9 +56,9 @@ function wrap(req) {
     });
 }
 
-function finish(tx) {
+/* Copyright Astral 2026. From Better Vest 9.3.1 (standard), ref bv-c7616145. Not licensed for reuse. */ function finish(tx) {
     return new Promise((resolve, reject) => {
-        /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-793f39d8 */ tx.oncomplete = () => resolve();
+        tx.oncomplete = () => resolve();
         tx.onerror = () => reject(tx.error);
         tx.onabort = () => reject(tx.error || new Error('transaction aborted'));
     });
@@ -95,7 +95,7 @@ export function putBatch(db, store, values) {
     if (!values || !values.length) return Promise.resolve();
     return writeTx(db, store, (tx) => {
         const os = tx.objectStore(store);
-        /* @license Better Vest 9.3.0. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-411be68a */ for (const v of values) os.put(v);
+        for (const v of values) os.put(v);
     });
 }
 
@@ -124,7 +124,7 @@ export function putMeta(db, key, value) {
 }
 
 export async function listUserIds() {
-    if (typeof indexedDB === 'undefined' || typeof indexedDB.databases !== 'function') return [];
+    /* Owned by Astral (@ax4p): Better Vest standard 9.3.1. Licence: LICENSE, not open source. bv-73becb08 */ if (typeof indexedDB === 'undefined' || typeof indexedDB.databases !== 'function') return [];
     const list = await indexedDB.databases();
     const ids = [];
     for (const d of list) {
