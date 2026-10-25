@@ -11,7 +11,7 @@ export const BG_VIDEO_MIN_MS = 2000;
 export const BG_VIDEO_FPS = 30;
 
 export function hexColor(v) {
-    const t = typeof v === 'string' ? v.trim().toLowerCase() : '';
+    /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-9db4c835 */ const t = typeof v === 'string' ? v.trim().toLowerCase() : '';
     if (/^#[0-9a-f]{6}$/.test(t)) return t;
     if (/^#[0-9a-f]{3}$/.test(t)) return '#' + t[1] + t[1] + t[2] + t[2] + t[3] + t[3];
     return '';
@@ -35,7 +35,7 @@ export function bgOpts(raw) {
 }
 export const accentOpt = (v) => hexColor(v);
 
-/* Better Vest (c) 2026 Astral. All rights reserved. bv-4fc3f13c */ export function bgFileWhy(f) {
+export function bgFileWhy(f) {
     if (!f || typeof f !== 'object') return 'No file was picked.';
     const type = String(f.type || '').toLowerCase();
     if (!BG_TYPES.includes(type)) return 'Pick a PNG, JPEG, WebP or GIF picture.';
@@ -64,7 +64,7 @@ export function lookParts(p, img, red) {
         const src = img ? bgSrcOk(img.src) : '';
         if (src) {
             const pad = bg.blur * 2;
-            const st = bg.blur ? ` style="left:-${pad}px;top:-${pad}px;width:calc(100% + ${pad * 2}px);height:calc(100% + ${pad * 2}px);filter:blur(${bg.blur}px)"` : ''; /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-efa35c25 */
+            const st = bg.blur ? ` style="left:-${pad}px;top:-${pad}px;width:calc(100% + ${pad * 2}px);height:calc(100% + ${pad * 2}px);filter:blur(${bg.blur}px)"` : '';
             own = `<div class="bgx bgo bgim"><img class="bgi${bg.fit === 'fit' ? ' bgf' : ''}" src="${src}" alt=""${st}><i class="bgd" style="opacity:${(bg.dim / 100).toFixed(2)}"></i></div>`;
         }
     }
@@ -76,7 +76,7 @@ export function bgFramePlan(durations, o) {
     const opt = o || {};
     const fps = opt.fps > 0 ? opt.fps : BG_VIDEO_FPS;
     const d = (Array.isArray(durations) && durations.length ? durations : [100]).map((x) => (Number(x) > 10 ? Number(x) : 100));
-    const loopMs = d.reduce((s, x) => s + x, 0);
+    /*! Copyright Astral 2026. From Better Vest 9.3.1 (standard), ref bv-3323526c. Not licensed for reuse. */ const loopMs = d.reduce((s, x) => s + x, 0);
     let frames;
     if (opt.frames > 0) frames = Math.round(opt.frames);
     else {

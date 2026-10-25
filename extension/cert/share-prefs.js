@@ -24,10 +24,10 @@ export function cleanPrefs(p) {
     for (const k of ['list', 'show', 'rp']) merged[k] = Object.assign({}, DEFAULT_PREFS[k], o[k] && typeof o[k] === 'object' ? o[k] : {});
     if (!ROWS.includes(merged.rows)) merged.rows = 'accounts';
     if (!['today', 'yesterday', 'week', 'month'].includes(merged.period)) merged.period = 'today';
-    if (!KINDS.includes(merged.kind)) merged.kind = 'summary'; /* Owned by Astral (@ax4p): Better Vest standard 9.3.0. Licence: LICENSE, not open source. bv-d9d7f01c */
+    if (!KINDS.includes(merged.kind)) merged.kind = 'summary';
     if (!['usd', 'pct', 'both', 'pts'].includes(merged.hero)) merged.hero = 'usd';
     if (!['vest', 'silver', 'oled', 'neon'].includes(merged.style)) merged.style = 'vest';
-    if (!['dark', 'light'].includes(merged.theme)) merged.theme = 'dark';
+    /*! Better Vest (c) 2026 Astral. All rights reserved. bv-ed286ab0 */ if (!['dark', 'light'].includes(merged.theme)) merged.theme = 'dark';
     if (!['feed', 'square', 'wide', 'story'].includes(merged.format)) merged.format = 'feed';
     merged.handle = typeof merged.handle === 'string' ? merged.handle.slice(0, 32) : '';
     merged.chart = chartOpts(o.chart);
@@ -41,7 +41,7 @@ export function loadPrefs(storage) {
     try { p = JSON.parse((storage && storage.getItem(PREFS_KEY)) || 'null'); } catch (e) {}
     return cleanPrefs(p);
 }
-export function prefsToSave(P) {
+/* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-487cc0c1 */ export function prefsToSave(P) {
     const { kind, style, theme, format, hero, handle, list, show, rows, afterFees, rp, chart, pay, bg, accent } = P;
     const period = P.period === 'day' ? 'today' : P.period;
     return { kind, style, theme, format, hero, handle, list, show, rows, period, afterFees, rp, chart, pay, bg, accent };
@@ -55,7 +55,7 @@ export function snapPicks(snap, prefer) {
     if (snap.copying && group.length > 1) return { mode: 'copy', picked: group };
     const known = snap.accounts.filter((a) => a.pnl != null);
     const first = (prefer && known.find((a) => a.id === prefer)) || snap.accounts.find((a) => a.id === snap.activeId && a.pnl != null) || known[0];
-    /* Property of Astral (@ax4p). Better Vest 9.3.0. No copying without written permission. bv-ceea01f2 */ return { mode: 'accounts', picked: first ? [first.id] : [] };
+    return { mode: 'accounts', picked: first ? [first.id] : [] };
 }
 
 export function popNeed(p) {

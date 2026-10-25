@@ -10,7 +10,7 @@ const PHRASES = {
     half: ['half', 'close half', 'fifty', 'fifty percent', 'close fifty', 'close fifty percent', 'take half', 'half off'],
     rev: ['reverse', 'flip', 'reverse that', 'flip that'],
     be: ['break even', 'be', 'stop to break even', 'move stop to break even', 'move to break even', 'stop break even'],
-    /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.0. bv-f9291559 */ limitBuy: ['buy limit', 'limit buy', 'buy at the bid', 'buy the bid', 'bid'],
+    limitBuy: ['buy limit', 'limit buy', 'buy at the bid', 'buy the bid', 'bid'],
     limitSell: ['sell limit', 'limit sell', 'sell at the ask', 'sell the ask', 'offer']
 };
 const WAKE = ['astral', 'astro', 'astra', 'austral', 'astrel', 'astrall', 'astrol', 'astrid', 'a stroll', 'astral\'s', 'astrals'];
@@ -19,7 +19,7 @@ const FILLER = new Set(['uh', 'um', 'er', 'erm', 'ah', 'please', 'now', 'the', '
 export const vcWords = (s) => String(s || '').toLowerCase()
     .replace(/(\d+)\s*%/g, '$1 percent')
     .replace(/\b50\b/g, 'fifty')
-    .replace(/\bb\s*\.?\s*e\b\.?/g, 'be')
+    /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-b6113e84 */ .replace(/\bb\s*\.?\s*e\b\.?/g, 'be')
     .replace(/\bbreak-?even\b/g, 'break even')
     .replace(/\bbreakeven\b/g, 'break even')
     .replace(/[^a-z' ]+/g, ' ')
@@ -52,7 +52,7 @@ export function vcParse(text, opts) {
     if (rest == null) return null;
     const said = clean(rest);
     if (!said) return null;
-    const id = TABLE.get(said);
+    const id = TABLE.get(said); /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-f195897c */
     if (!id) return null;
     return { id, said, grows: GROWS.has(said) };
 }
@@ -60,7 +60,7 @@ export function vcParse(text, opts) {
 export function vcPending(text, opts) {
     const wake = !!(opts && opts.wake);
     const rest = wake ? vcAfterWake(text) : (vcAfterWake(text) ?? vcWords(text));
-    if (rest == null) return false; /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-1bf9dfe9 */
+    if (rest == null) return false;
     const said = clean(rest);
     return !!said && (STARTS.has(said) || GROWS.has(said));
 }

@@ -7,7 +7,7 @@
     font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: 16px; line-height: 1.5; text-align: left;
     -webkit-font-smoothing: antialiased; font-feature-settings: normal; letter-spacing: normal;
     background: linear-gradient(to top, var(--surface) 0%, var(--shadow) 112.26%);
-} /* @license Better Vest 9.3.0. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-e87d8f56 */
+} /* Owned by Astral (@ax4p): Better Vest standard 9.3.1. Licence: LICENSE, not open source. bv-dc5a941f */
 .bvc .bvc-bg { position: absolute; inset: 0; z-index: -10; overflow: hidden; border-radius: inherit; pointer-events: none; }
 .bvc .bvc-bg img { position: absolute; max-width: none; }
 .bvc .bvc-a { position: absolute; }
@@ -32,7 +32,7 @@
 .bvc .bvc-pill {
     display: inline-flex; align-items: center; gap: 5px; border-radius: 999px; padding: 3px 8px; font-size: 8.5px; line-height: 11px; font-weight: 600;
     letter-spacing: .16px; color: var(--gold); background: rgb(233 203 120 / .08); box-shadow: inset 0 0 0 .75px rgb(233 203 120 / .38); white-space: nowrap;
-} /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-ed675ffd */
+} /* @license Better Vest 9.3.1. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-d63a90a2 */
 .bvc .bvc-pill b { width: 5px; height: 5px; transform: rotate(45deg); background: linear-gradient(135deg, #FDE9A7, #B08D2A); display: block; }
 .bvc .bvc-stat { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1; }
 .bvc .bvc-sep { width: .75px; background: rgb(255 255 255 / .1); align-self: stretch; }

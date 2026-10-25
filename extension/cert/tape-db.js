@@ -13,7 +13,7 @@ const envOf = (env) => env || { indexedDB: globalThis.indexedDB, IDBKeyRange: gl
 const done = (req) => new Promise((resolve, reject) => { req.onsuccess = () => resolve(req.result); req.onerror = () => reject(req.error); });
 const txDone = (tx) => new Promise((resolve, reject) => { tx.oncomplete = () => resolve(); tx.onerror = tx.onabort = () => reject(tx.error || new Error('aborted')); });
 
-export function tapeOpen(env) {
+/* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-b8d3f002 */ export function tapeOpen(env) {
     const E = envOf(env);
     return new Promise((resolve, reject) => {
         const req = E.indexedDB.open(TAPE_DB, 1);
@@ -25,7 +25,7 @@ export function tapeOpen(env) {
         req.onerror = () => reject(req.error);
         req.onblocked = () => reject(new Error('blocked'));
     });
-} /*! Property of Astral (@ax4p). Better Vest 9.3.0. No copying without written permission. bv-5e8d4d16 */
+}
 
 export async function tapeWrite(sym, rows, now, env) {
     if (typeof sym !== 'string' || !SYM_RE.test(sym)) return 0;
@@ -60,7 +60,7 @@ export async function tapeRead(sym, from, to, env) {
     try {
         const tx = db.transaction(STORE, 'readonly');
         const range = E.IDBKeyRange.bound(tapeKeyFrom(sym, Math.max(0, Math.floor(from) - TAPE_SPAN)), tapeKeyFrom(sym, Math.floor(to)) + '|~');
-        const recs = await done(tx.objectStore(STORE).getAll(range)); /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-03c7b3ae */
+        const recs = await done(tx.objectStore(STORE).getAll(range));
         const rows = tapeMerge(recs.map(tapeDecode));
         let a = 0, b = rows.length;
         while (a < b && rows[a] < from) a += 5;
@@ -76,7 +76,7 @@ async function tapePruneDb(db, now, env) {
     const idx = tx.objectStore(STORE).index('day');
     const keys = await done(idx.getAllKeys(E.IDBKeyRange.upperBound(keep, true)));
     const st = tx.objectStore(STORE);
-    for (const k of keys) st.delete(k);
+    /*! Copyright Astral 2026. From Better Vest 9.3.1 (standard), ref bv-557f198d. Not licensed for reuse. */ for (const k of keys) st.delete(k);
     await txDone(tx);
     return keys.length;
 }

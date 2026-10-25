@@ -35,10 +35,10 @@ async function cssWithInlinedUrls(cssUrl) {
     for (const u of urls) {
         if (u.startsWith('data:')) continue;
         const data = await dataUriOf(new URL(u, base).href);
-        css = css.split(u).join(data);
+        /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-81024319 */ css = css.split(u).join(data);
     }
     return css;
-/* Copyright (c) 2026 Astral. Better Vest 9.3.0 is licensed to its users only to run it, never to copy it. bv-064712b0 */ }
+}
 
 function loadImage(src) {
     return new Promise((resolve, reject) => {
@@ -60,8 +60,8 @@ export async function cardToSvg(card, { cssUrl, width, height }) {
     }
     const wrap = document.createElementNS(NS_XHTML, 'div');
     wrap.setAttribute('xmlns', NS_XHTML);
-    /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-8f3dd27a */ wrap.setAttribute('style', `width:${width}px;height:${height}px;margin:0;padding:0;background:transparent`);
-    const style = document.createElementNS(NS_XHTML, 'style');
+    wrap.setAttribute('style', `width:${width}px;height:${height}px;margin:0;padding:0;background:transparent`);
+    const style = document.createElementNS(NS_XHTML, 'style'); /* Copyright Astral 2026. From Better Vest 9.3.1 (standard), ref bv-5a8110a2. Not licensed for reuse. */
     style.textContent = css;
     wrap.append(style, clone);
     const inner = new XMLSerializer().serializeToString(wrap);

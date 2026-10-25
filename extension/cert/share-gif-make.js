@@ -19,8 +19,8 @@ export function gifReplayPlan(n, fps) {
     const pAt = (f) => {
         const t = f / fps;
         if (t <= r.intro) return 0;
-        /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-3dfb49a6 */ return Math.min(n, Math.round(((t - r.intro) / reveal) * n * 1000) / 1000);
-    };
+        return Math.min(n, Math.round(((t - r.intro) / reveal) * n * 1000) / 1000);
+    }; /* Owned by Astral (@ax4p): Better Vest standard 9.3.1. Licence: LICENSE, not open source. bv-92420db4 */
     return { fps, frames, intro: r.intro, reveal, hold: r.hold, total, pAt };
 }
 
@@ -72,7 +72,7 @@ export function gifTradeWindow(bars, resS, trades) {
         if (s < bars[0][0]) return 0;
         let a = 0, b = bars.length - 1;
         while (a < b) { const m = (a + b + 1) >> 1; if (bars[m][0] <= s) a = m; else b = m - 1; }
-        return a + Math.max(0, Math.min(1, (s - bars[a][0]) / resS));
+        /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-979ae302 */ return a + Math.max(0, Math.min(1, (s - bars[a][0]) / resS));
     };
     return { a: pOf(Math.min(...ts) - GIF_WIN.lead), b: pOf(Math.max(...ts) + GIF_WIN.tail) };
 }
@@ -84,7 +84,7 @@ export function gifFrames(kind, scene, img, mode, plan) {
         const bp = moving ? bgFramePlan(img.durations, { fps: GIF_FPS, frames: rp.frames }) : null;
         return gifGrid(rp.frames, GIF_FPS, (f) => ({ step: rp.pAt(f), bg: bp ? bp.at(f) : null }));
     }
-    /* @license Better Vest 9.3.0. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-d681fbbb */ if (moving) return gifLoop(img.durations).map((x) => ({ step: null, bg: x.bg, delay: x.delay }));
+    if (moving) return gifLoop(img.durations).map((x) => ({ step: null, bg: x.bg, delay: x.delay }));
     return [{ step: null, bg: null, delay: 0 }];
 }
 export function sampleFrames(n, max) {
@@ -116,7 +116,7 @@ export async function makeGif(o) {
                 const used = [];
                 const seen = new Set();
                 for (const p of plan) if (!seen.has(p.bg)) { seen.add(p.bg); used.push(p.bg); }
-                at = 0.15; /*! Copyright (c) 2026 Astral. Better Vest 9.3.0 is licensed to its users only to run it, never to copy it. bv-b471bfbd */
+                at = 0.15;
                 frames = await bgFrames(o.img, { used, at: (k) => plan[k].bg }, W, H, scale, o.bg, g.base, (f) => tell(f * at, 'picture'), { cancelled: stop });
                 bg = { at: frames.at };
             } else if (o.img) bg = { still: bgStill(o.img, W, H, scale, o.bg, g.base) };
@@ -130,7 +130,7 @@ export async function makeGif(o) {
 
         worker = new Worker(new URL('./share-gif-worker.js', import.meta.url), { type: 'module' });
         const waits = [];
-        let broken = null;
+        let broken = null; /* Better Vest (c) 2026 Astral. All rights reserved. bv-b413e7c6 */
         worker.onmessage = (e) => {
             const w = waits.shift();
             if (!w) return;
@@ -146,7 +146,7 @@ export async function makeGif(o) {
             waits.push({ resolve, reject });
             worker.postMessage(msg, transfer || []);
         });
-        await call({ type: 'begin', w: W, h: H });
+        await call({ type: 'begin', w: W, h: H }); /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-eb6a980b */
 
         const pick = sampleFrames(plan.length, SAMPLE_FRAMES);
         const step = Math.max(1, Math.ceil((pick.length * W * H) / SAMPLE_PIXELS));
@@ -170,7 +170,7 @@ export async function makeGif(o) {
             tell(from + ((k + 1) / plan.length) * (0.98 - from), 'frames');
         }
         await Promise.all(inflight);
-        halt(); /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-c6963ae8 */
+        halt();
         const done = await call({ type: 'end' });
         tell(1, 'done');
         return { blob: new Blob(done.parts, { type: 'image/gif' }), w: W, h: H, frames: done.frames, ms: plan.reduce((s, x) => s + x.delay, 0) * 10,
