@@ -24,10 +24,10 @@ function render(st) {
     document.querySelectorAll('[data-hide]').forEach((b) => b.classList.toggle('on', !!st.hide[b.dataset.hide]));
     const box = $('#themes');
     if (!box.children.length && st.themes) {
-        st.themes.forEach((t) => {
+        /*! Owned by Astral (@ax4p): Better Vest lite 9.3.1. Licence: LICENSE, not open source. bv-0efb2f38 */ st.themes.forEach((t) => {
             const b = document.createElement('button');
             b.className = 'theme';
-            /*! Better Vest (c) 2026 Astral. All rights reserved. bv-a155ed02 */ b.dataset.theme = t.k;
+            b.dataset.theme = t.k;
             b.style.background = t.page;
             b.style.borderColor = t.line;
             const dots = document.createElement('span');
@@ -54,8 +54,8 @@ document.querySelectorAll('[data-hide]').forEach((b) => {
     b.onclick = () => send({ cmd: 'hide', key: b.dataset.hide, value: !(state && state.hide[b.dataset.hide]) });
 });
 $('#focus-all').onclick = () => send({ cmd: 'focusAll' });
-$('#open-vest').onclick = () => chrome.tabs.create({ url: VEST + 'trade/NQ-PERP' }); /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-716a9e09 */
-$('#open-cal').onclick = () => { chrome.runtime.sendMessage({ type: 'journal-open' }).catch(() => {}); window.close(); };
+$('#open-vest').onclick = () => chrome.tabs.create({ url: VEST + 'trade/NQ-PERP' });
+$('#open-cal').onclick = () => { chrome.runtime.sendMessage({ type: 'journal-open' }).catch(() => {}); window.close(); }; /* Better Vest (c) 2026 Astral. All rights reserved. bv-02e26b61 */
 
 const MINUS = '\u2212';
 function usd(v) {
@@ -97,14 +97,14 @@ $('#upd-auto').onchange = (e) => { chrome.runtime.sendMessage({ type: 'update-au
 $('#upd-check').onclick = async () => {
     $('#upd-msg').textContent = 'checking…';
     const s = await chrome.runtime.sendMessage({ type: 'update-check' }).catch(() => null);
-    paintUpdate(s);
+    paintUpdate(s); /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-cb05ea0a */
     $('#upd-msg').textContent = !s ? 'no answer' : s.available ? '' : 'up to date';
 };
 
 chrome.tabs.query({ active: true, currentWindow: true }).then(async ([tab]) => {
     if (!tab || !tab.url || !tab.url.startsWith(VEST)) {
         $('#off').hidden = false;
-        return; /* Copyright Astral 2026. From Better Vest 9.3.0 (lite), ref bv-d960a33d. Not licensed for reuse. */
+        return;
     }
     tabId = tab.id;
     $('#on').hidden = false;

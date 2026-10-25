@@ -16,8 +16,8 @@ body {
   margin: 0; width: 300px; padding: 12px;
   background: radial-gradient(circle at 50% 0%, #0e172a 0%, var(--bg) 70%);
   color: var(--text); font: 12px/1.35 system-ui, -apple-system, "Segoe UI", sans-serif;
-} /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-9c6bfe33 */
-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+}
+header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; } /* @license Better Vest 9.3.1. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-237296cf */
 .name { font-weight: 800; font-size: 14px; letter-spacing: .02em; }
 .by { color: var(--muted); font-size: 11px; }
 .muted { color: var(--muted); }
@@ -53,7 +53,7 @@ button:active { transform: scale(.97); }
 
 .cal { background: linear-gradient(180deg, rgba(56, 189, 248, 0.07), transparent 70%), var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 9px 10px 10px; margin-bottom: 10px; }
 .cal-head { display: flex; justify-content: space-between; align-items: baseline; }
-.cal-label { margin: 0 0 7px; }
+.cal-label { margin: 0 0 7px; } /* @license Better Vest 9.3.1. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-7cf30769 */
 .cal-sync { color: var(--muted); font-size: 10px; }
 .cal-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 9px; }
 .cal-grid div { display: flex; flex-direction: column; gap: 1px; }
@@ -61,7 +61,7 @@ button:active { transform: scale(.97); }
 .cal-grid b { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
 .cal-grid b.up { color: var(--up); } .cal-grid b.down { color: var(--down); }
 .cal-grid i { font-style: normal; color: var(--muted); font-size: 10px; font-variant-numeric: tabular-nums; }
-button.cal-open { display: flex; justify-content: center; align-items: center; gap: 8px; } /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-7de78069 */
+button.cal-open { display: flex; justify-content: center; align-items: center; gap: 8px; }
 .kbd { font-size: 9px; font-weight: 700; opacity: .75; border: 1px solid rgba(255,255,255,.35); border-radius: 4px; padding: 0 4px; }
 
 .upd { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 10px; padding: 8px 10px; border-radius: 10px;
