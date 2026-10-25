@@ -30,12 +30,12 @@ header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
 button {
   background: var(--btn); color: var(--text); border: 1px solid var(--line); border-radius: 6px;
   padding: 6px 0; font: 700 11px system-ui, sans-serif; cursor: pointer;
-}
+} /* Better Vest (c) 2026 Astral. All rights reserved. bv-8037f9fc */
 button:hover { border-color: var(--accent); }
 button.on { border-color: var(--accent); color: #7dd3fc; background: rgba(56, 189, 248, 0.14); }
 button.primary { width: 100%; background: #2563eb; border-color: var(--accent); color: #fff; padding: 8px 0; }
 .themes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
-.theme { height: 38px; border-radius: 7px; border: 1px solid; display: flex; flex-direction: column; justify-content: space-between; align-items: flex-start; padding: 5px 6px; text-align: left; } /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-0135c38a */
+.theme { height: 38px; border-radius: 7px; border: 1px solid; display: flex; flex-direction: column; justify-content: space-between; align-items: flex-start; padding: 5px 6px; text-align: left; }
 .theme.on { outline: 2px solid var(--accent); outline-offset: 1px; }
 .theme i { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 2px; }
 .theme b { font-size: 9.5px; }
@@ -56,12 +56,12 @@ button:active { transform: scale(.97); }
 .cal-label { margin: 0 0 7px; }
 .cal-sync { color: var(--muted); font-size: 10px; }
 .cal-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 9px; }
-.cal-grid div { display: flex; flex-direction: column; gap: 1px; }
+.cal-grid div { display: flex; flex-direction: column; gap: 1px; } /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.1. bv-b7e78bfc */
 .cal-grid small { color: var(--muted); font-size: 9px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
 .cal-grid b { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
 .cal-grid b.up { color: var(--up); } .cal-grid b.down { color: var(--down); }
 .cal-grid i { font-style: normal; color: var(--muted); font-size: 10px; font-variant-numeric: tabular-nums; }
-button.cal-open { display: flex; justify-content: center; align-items: center; gap: 8px; } /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-76d05feb */
+button.cal-open { display: flex; justify-content: center; align-items: center; gap: 8px; }
 .kbd { font-size: 9px; font-weight: 700; opacity: .75; border: 1px solid rgba(255,255,255,.35); border-radius: 4px; padding: 0 4px; }
 
 .upd { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 10px; padding: 8px 10px; border-radius: 10px;

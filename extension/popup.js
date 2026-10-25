@@ -15,12 +15,12 @@ function send(cmd) {
 function render(st) {
     if (!st) return;
     state = st;
-    $('#dot').className = 'dot ' + (st.feed ? 'live' : 'bad');
+    $('#dot').className = 'dot ' + (st.feed ? 'live' : 'bad'); /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-55f81610 */
     $('#status-text').textContent = `${st.symbol || '—'} · ${st.feed ? 'tape live' : 'tape reconnecting'} · v${st.version}`;
     document.querySelectorAll('[data-widget]').forEach((b) => {
         const k = b.dataset.widget;
         b.classList.toggle('on', k === 'settings' ? st.widgets.settings === true : st.widgets[k] !== false);
-    }); /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-e2012f5b */
+    });
     document.querySelectorAll('[data-hide]').forEach((b) => b.classList.toggle('on', !!st.hide[b.dataset.hide]));
     const box = $('#themes');
     if (!box.children.length && st.themes) {
@@ -48,7 +48,7 @@ function render(st) {
 }
 
 document.querySelectorAll('[data-widget]').forEach((b) => {
-    b.onclick = () => send({ cmd: 'widget', key: b.dataset.widget });
+    b.onclick = () => send({ cmd: 'widget', key: b.dataset.widget }); /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-bbb39629 */
 });
 document.querySelectorAll('[data-hide]').forEach((b) => {
     b.onclick = () => send({ cmd: 'hide', key: b.dataset.hide, value: !(state && state.hide[b.dataset.hide]) });
@@ -64,7 +64,7 @@ function usd(v) {
     if (r === 0) return '$0';
     const body = a < 10 ? r.toFixed(2) : a < 9999.5 ? Math.round(a).toLocaleString('en-US') : (a / 1e3).toFixed(1) + 'k';
     return (v > 0 ? '+' : MINUS) + '$' + body;
-} /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-43d6c10c */
+}
 function paintCal(sum) {
     const set = (id, nId, row, extra) => {
         const b = $(id);
@@ -82,7 +82,7 @@ function paintCal(sum) {
     const ago = sum.lastSync ? Math.max(0, Math.round((Date.now() - sum.lastSync) / 60000)) : null;
     $('#cal-sync').textContent = ago == null ? '' : ago < 1 ? 'synced just now' : ago < 60 ? 'synced ' + ago + 'm ago' : 'synced ' + Math.round(ago / 60) + 'h ago';
 }
-chrome.runtime.sendMessage({ type: 'journal-summary' }).then(paintCal).catch(() => paintCal(null)); /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-8f6fe309 */
+chrome.runtime.sendMessage({ type: 'journal-summary' }).then(paintCal).catch(() => paintCal(null));
 
 function paintUpdate(s) {
     if (!s || !s.supported) return;
@@ -104,7 +104,7 @@ $('#upd-check').onclick = async () => {
 chrome.tabs.query({ active: true, currentWindow: true }).then(async ([tab]) => {
     if (!tab || !tab.url || !tab.url.startsWith(VEST)) {
         $('#off').hidden = false;
-        return;
+        /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-2965df88 */ return;
     }
     tabId = tab.id;
     $('#on').hidden = false;
