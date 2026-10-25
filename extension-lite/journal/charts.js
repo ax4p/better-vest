@@ -11,8 +11,8 @@ export function svg(tag, attrs, ...kids) {
 
 export function scale(d0, d1, r0, r1) {
     const k = d1 === d0 ? 0 : (r1 - r0) / (d1 - d0);
-    /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-45f8c8de */ return (v) => r0 + (v - d0) * k;
-}
+    return (v) => r0 + (v - d0) * k;
+/*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-6496d1bf */ }
 
 const f = (n) => (Math.round(n * 10) / 10).toString();
 
@@ -61,7 +61,7 @@ export function bars({ values, w = 240, h = 48, gap = 2, cls = '', pad = 2 }) {
     const bw = Math.max(2, (w - pad * 2 - gap * (values.length - 1)) / values.length);
     const y0 = y(0);
     values.forEach((v, i) => {
-        const yy = y(v);
+        /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-ac038272 */ const yy = y(v);
         root.appendChild(svg('rect', {
             class: v >= 0 ? 'ch-bar up' : 'ch-bar dn', x: f(pad + i * (bw + gap)), width: f(bw),
             y: f(Math.min(y0, yy)), height: f(Math.max(1, Math.abs(yy - y0))), rx: Math.min(2, bw / 2)
@@ -71,7 +71,7 @@ export function bars({ values, w = 240, h = 48, gap = 2, cls = '', pad = 2 }) {
 }
 
 export function stepCurve({ points, start, end, height = 150, fmtMoney, fmtTime, resetTimes = [], resetLabel = '20:00 ET', session = null, onHover, onClick }) {
-    /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-4433d762 */ const wrap = document.createElement('div');
+    const wrap = document.createElement('div');
     wrap.className = 'curve';
     const tip = document.createElement('div');
     tip.className = 'curve-tip';
@@ -108,7 +108,7 @@ export function stepCurve({ points, start, end, height = 150, fmtMoney, fmtTime,
             if (rt <= t0 || rt >= t1) continue;
             g.appendChild(svg('line', { class: 'ch-reset', x1: f(x(rt)), x2: f(x(rt)), y1: M.t - 6, y2: height - M.b }));
             g.appendChild(svg('text', { class: 'ch-axis ch-reset-t', x: f(x(rt) + 4), y: M.t + 4 }, resetLabel));
-        }
+        } /* @license Better Vest 9.3.1. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-015b7fe7 */
         let d = `M${f(x(t0))} ${f(y(0))}`, px = x(t0), py = y(0);
         for (const p of points) {
             const xx = x(p.ts), yy = y(p.cum);
@@ -121,7 +121,7 @@ export function stepCurve({ points, start, end, height = 150, fmtMoney, fmtTime,
             svg('stop', { offset: '0', 'stop-color': 'var(--ax-accent)', 'stop-opacity': '.22' }),
             svg('stop', { offset: '1', 'stop-color': 'var(--ax-accent)', 'stop-opacity': '0' }))));
         g.appendChild(svg('path', { d: `${d}L${f(x(t1))} ${f(y(0))}L${f(x(t0))} ${f(y(0))}Z`, fill: `url(#${gid})`, stroke: 'none' }));
-        /*! Owned by Astral (@ax4p): Better Vest lite 9.3.0. Licence: LICENSE, not open source. bv-4f5e2029 */ g.appendChild(svg('path', { class: 'ch-line glow', d }));
+        g.appendChild(svg('path', { class: 'ch-line glow', d }));
         g.appendChild(svg('path', { class: 'ch-line', d }));
         points.forEach((p, i) => {
             g.appendChild(svg('circle', { class: 'ch-dot ' + (p.net > 0 ? 'up' : p.net < 0 ? 'dn' : ''), 'data-i': i, cx: f(x(p.ts)), cy: f(y(p.cum)), r: 3 }));
@@ -154,10 +154,10 @@ export function stepCurve({ points, start, end, height = 150, fmtMoney, fmtTime,
         const cross = svgEl._cross;
         svgEl.querySelectorAll('.ch-dot.hot').forEach((n) => n.classList.remove('hot'));
         if (i == null || !geom || !points[i]) { cross.setAttribute('visibility', 'hidden'); tip.classList.remove('on'); return; }
-        /* Copyright (c) 2026 Astral. Better Vest 9.3.0 is licensed to its users only to run it, never to copy it. bv-c469e789 */ const p = points[i];
+        const p = points[i];
         const cx = geom.x(p.ts), cy = geom.y(p.cum);
         cross.setAttribute('visibility', 'visible');
-        cross.querySelector('line').setAttribute('x1', f(cx));
+        /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-0ea7e388 */ cross.querySelector('line').setAttribute('x1', f(cx));
         cross.querySelector('line').setAttribute('x2', f(cx));
         cross.querySelector('circle').setAttribute('cx', f(cx));
         cross.querySelector('circle').setAttribute('cy', f(cy));
