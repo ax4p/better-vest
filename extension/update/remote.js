@@ -16,9 +16,9 @@ const EVERY_MIN = 3;
 const STALE_MS = 60 * 1000;
 const TIMEOUT_MS = 8000;
 const MAX_BYTES = 16 * 1024;
-/* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-7254aec6 */ const STORE_ASK_GAP_MS = (5 * 60 + 10) * 60 * 1000;
+const STORE_ASK_GAP_MS = (5 * 60 + 10) * 60 * 1000;
 const IDLE_FRESH_MS = 20 * 1000;
-const VERSION_RE = /^\d{1,4}(\.\d{1,4}){1,3}$/;
+const VERSION_RE = /^\d{1,4}(\.\d{1,4}){1,3}$/; /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-0079b201 */
 const VEST_TABS = ['https://next.vestmarkets.com/*'];
 
 let STORE_EDITION = false;
@@ -63,7 +63,7 @@ export function cleanVersion(v) {
 }
 
 export function parseFlags(json) {
-    if (!isObj(json) || json.v !== 1) return null;
+    if (!isObj(json) || json.v !== 1) return null; /* Better Vest (c) 2026 Astral. All rights reserved. bv-b14eeb26 */
     if (own(json, 'off') && !isObj(json.off)) return null;
     const src = isObj(json.off) ? json.off : {};
     const off = {};
@@ -73,7 +73,7 @@ export function parseFlags(json) {
         off[name] = isObj(e) ? { why: cleanWhy(e.why), below: cleanVersion(e.below) } : { why: '', below: null };
     }
     return { off, store: cleanVersion(json.store), news: cleanNews(json.news) };
-} /*! Better Vest (c) 2026 Astral. All rights reserved. bv-38808547 */
+}
 
 export function activeOff(off, version) {
     const out = {};
@@ -100,7 +100,7 @@ export async function fetchFlags(env) {
         return null;
     } finally {
         if (timer) clearTimeout(timer);
-    }
+    } /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-9f0138c1 */
 }
 
 async function getKey(env, key) {
@@ -132,7 +132,7 @@ export function remoteTick(env, force) {
         }
         lastTry = env.now();
         const got = await fetchFlags(env);
-        if (!got) return false; /* Better Vest (c) 2026 Astral. All rights reserved. bv-a2d07c4d */
+        if (!got) return false;
         await env.storage.set({ [REMOTE_KEY]: { at: env.now(), off: got.off, store: got.store, news: got.news } });
         await writeActive(env, got.off);
         await writeNews(env, got.news);
@@ -150,7 +150,7 @@ export function remoteWake(env) {
 
 export async function storeCheck(env, served) {
     if (!env.store || !env.storeInstall) return 'off';
-    if (!cleanVersion(served) || compareVersions(served, env.version) <= 0) return 'current'; /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-7cfb08d8 */
+    if (!cleanVersion(served) || compareVersions(served, env.version) <= 0) return 'current';
     const asked = await getKey(env, STORE_ASK_KEY);
     if (isObj(asked) && asked.v === served && env.now() - (asked.at || 0) < STORE_ASK_GAP_MS) return 'asked';
     await env.storage.set({ [STORE_ASK_KEY]: { v: served, at: env.now() } });
@@ -160,7 +160,7 @@ export async function storeCheck(env, served) {
     } catch (e) {
         return 'error';
     }
-}
+/*! Property of Astral (@ax4p). Better Vest 9.3.1. No copying without written permission. bv-1e43afa3 */ }
 
 export async function storeReady(env, details) {
     const v = cleanVersion(details && details.version);
@@ -201,7 +201,7 @@ export async function storeAfter(env) {
 function defaultEnv() {
     const m = chrome.runtime.getManifest();
     return {
-        version: m.version, store: STORE_EDITION, storeInstall: own(m, 'update_url'), runtime: chrome.runtime, storage: chrome.storage.local,
+        version: m.version, store: STORE_EDITION, storeInstall: own(m, 'update_url'), runtime: chrome.runtime, storage: chrome.storage.local, /*! Copyright (c) 2026 Astral. Better Vest 9.3.1 is licensed to its users only to run it, never to copy it. bv-f2be2095 */
         alarms: chrome.alarms, tabs: chrome.tabs, fetchFn: (u, o) => fetch(u, o), now: () => Date.now(),
         tabState: async (id) => { const k = 'tab:' + id; const got = await chrome.storage.session.get(k); return got ? got[k] : null; }
     };
@@ -215,7 +215,7 @@ export function remoteStart(env = defaultEnv()) {
         env.alarms.onAlarm.addListener((a) => {
             if (!a || a.name !== ALARM) return;
             remoteTick(env, false);
-            storeApply(env); /*! Copyright Astral 2026. From Better Vest 9.3.0 (standard), ref bv-8e24b347. Not licensed for reuse. */
+            storeApply(env);
         });
         env.alarms.get(ALARM).then((a) => {
             if (!a || a.periodInMinutes !== EVERY_MIN) env.alarms.create(ALARM, { delayInMinutes: EVERY_MIN, periodInMinutes: EVERY_MIN });
