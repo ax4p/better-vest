@@ -14,7 +14,7 @@ const LS_CHART = 'bv-cert-chart';
 const EXPORT_SCALE = 3;
 
 const ls = {
-    /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-a80d3d55 */ get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
     set(k, v) { try { localStorage.setItem(k, v); } catch (e) {  } }
 };
 
@@ -24,7 +24,7 @@ function h(tag, attrs, ...kids) {
     const el = document.createElement(tag);
     for (const [k, v] of Object.entries(attrs || {})) {
         if (v == null || v === false) continue;
-        if (k === 'class') el.className = v;
+        /*! Owned by Astral (@ax4p): Better Vest lite 9.3.2. Licence: LICENSE, not open source. bv-45d0075b */ if (k === 'class') el.className = v;
         else if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
         else el.setAttribute(k, v === true ? '' : v);
     }
@@ -63,7 +63,7 @@ function syncTheme() {
     const css = ls.get('bv-journal-themecss');
     if (name) document.documentElement.setAttribute('data-theme', name);
     if (css) {
-        let s = document.getElementById('theme-vars'); /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-107fe124 */
+        let s = document.getElementById('theme-vars');
         if (!s) { s = document.createElement('style'); s.id = 'theme-vars'; document.head.appendChild(s); }
         s.textContent = css;
     }
@@ -78,7 +78,7 @@ function openCalendar() {
 
 function topbar() {
     return h('header', { class: 'cp-top' },
-        h('b', null, 'Better Vest'), h('small', null, 'by Astral · Total payouts certificate'), h('div', { class: 'grow' }),
+        /*! Owned by Astral (@ax4p): Better Vest lite 9.3.2. Licence: LICENSE, not open source. bv-d62f897c */ h('b', null, 'Better Vest'), h('small', null, 'by Astral · Total payouts certificate'), h('div', { class: 'grow' }),
         h('button', { class: 'cp-btn', type: 'button', onclick: openCalendar, style: 'height:30px;padding:0 12px' }, 'Open Calendar'));
 }
 
@@ -99,13 +99,13 @@ function fileStamp() {
     return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
 }
 
-function renderPage(S) { /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-112b21d3 */
+function renderPage(S) {
     const state = { name: (ls.get(LS_NAME) || '').slice(0, NAME_MAX), chart: ls.get(LS_CHART) === '1' };
     let card = null;
     let seq = 0;
 
     const stage = h('div', { class: 'cp-stage', 'data-state': 'ready' });
-    const frame = h('div', { class: 'cp-card' });
+    const frame = h('div', { class: 'cp-card' }); /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.2. bv-b9195619 */
     stage.append(frame);
     const status = h('div', { class: 'cp-status', role: 'status', 'aria-live': 'polite' });
     const say = (text, kind) => { status.textContent = text || ''; status.className = 'cp-status' + (kind ? ' ' + kind : ''); };
@@ -150,7 +150,7 @@ function renderPage(S) { /* Better Vest, written by Astral. Copyright (c) 2026. 
             a.remove();
             setTimeout(() => URL.revokeObjectURL(url), 30000);
             say(`Saved ${Math.round(CARD_W * EXPORT_SCALE)} × ${Math.round(CARD_H * EXPORT_SCALE)} PNG.`, 'ok');
-        } catch (e) {
+        /* Copyright Astral 2026. From Better Vest 9.3.2 (lite), ref bv-4aa90c08. Not licensed for reuse. */ } catch (e) {
             console.warn('certificate: export failed', e);
             say('Could not render the image: ' + (e && e.message ? e.message : e), 'err');
         } finally { busy([download, copy], false); }
@@ -162,7 +162,7 @@ function renderPage(S) { /* Better Vest, written by Astral. Copyright (c) 2026. 
             await navigator.clipboard.write([new ClipboardItem({ 'image/png': makePng() })]);
             say('Image copied to the clipboard.', 'ok');
         } catch (e) {
-            /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-de5459f9 */ console.warn('certificate: copy failed', e);
+            console.warn('certificate: copy failed', e);
             say('Could not copy the image: ' + (e && e.message ? e.message : e) + '. Use Download PNG instead.', 'err');
         } finally { busy([download, copy], false); }
     });
@@ -179,7 +179,7 @@ function renderPage(S) { /* Better Vest, written by Astral. Copyright (c) 2026. 
         h('dt', null, 'Net paid out'), h('dd', { class: 'gold' }, fmtMoney(S.total)),
         h('dt', null, 'Executed payouts'), h('dd', null, S.count),
         h('dt', null, 'Funded accounts paid'), h('dd', null, S.accounts),
-        /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.1. bv-67db4ff0 */ h('dt', null, 'Largest'), h('dd', null, fmtMoney(S.largest) + (S.largestCount > 1 ? ` × ${S.largestCount}` : '')),
+        h('dt', null, 'Largest'), h('dd', null, fmtMoney(S.largest) + (S.largestCount > 1 ? ` × ${S.largestCount}` : '')),
         h('dt', null, 'First → latest'), h('dd', null, `${stamp(S.firstKey)} → ${stamp(S.lastKey)}`),
         h('dt', null, 'Milestone'), h('dd', null, ms ? `${fmtMilestone(ms.amount)} · ${stamp(ms.reachedKey)}` : (S.next ? `next ${fmtMilestone(S.next.amount)}` : '—')));
 
@@ -192,7 +192,7 @@ function renderPage(S) { /* Better Vest, written by Astral. Copyright (c) 2026. 
             h('label', { class: 'cp-toggle', for: 'cp-chart' }, chartBox, h('span', { class: 'cp-switch' }), h('span', null, 'Show daily chart')),
             h('div', { class: 'cp-actions' }, download, copy),
             status),
-        h('div', { class: 'cp-box' }, h('div', { class: 'cp-label' }, 'Based on your Calendar data'), facts,
+        /* Better Vest (c) 2026 Astral. All rights reserved. bv-7f082400 */ h('div', { class: 'cp-box' }, h('div', { class: 'cp-label' }, 'Based on your Calendar data'), facts,
             h('div', { class: 'cp-hint' }, 'Executed payouts only, trader net amount: the same total as the Payouts tab.')));
 
     root.replaceChildren(h('div', { class: 'cp-app' }, topbar(), h('main', { class: 'cp-main' }, stage, side)));

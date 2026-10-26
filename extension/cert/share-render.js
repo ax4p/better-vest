@@ -13,8 +13,8 @@ export function fitCard(fit, make) {
         const panel = fit.querySelector('.panel');
         if (!panel || panel.scrollHeight <= panel.clientHeight + 1) break;
     }
-    return out; /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-298ae78a */
-}
+    return out;
+/*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-9b12ef07 */ }
 
 export async function cardCanvas(card, o) {
     const scale = o.scale || 2;
@@ -28,10 +28,10 @@ export async function cardCanvas(card, o) {
     ctx.save();
     clipCard(ctx, cv.width, cv.height, g.radius * scale);
     ctx.drawImage(bgStill(o.img, cv.width, cv.height, scale, o.bg, g.base), 0, 0);
-    /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-50d2f96b */ ctx.restore();
+    ctx.restore();
     ctx.drawImage(over, 0, 0);
     return cv;
-}
+/* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-2b44c3c9 */ }
 export async function cardPng(card, o) {
     const cv = await cardCanvas(card, o);
     return new Promise((resolve, reject) => cv.toBlob((b) => (b ? resolve(b) : reject(new Error('PNG export failed'))), 'image/png'));

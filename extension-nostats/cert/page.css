@@ -13,7 +13,7 @@ body.cp { overflow: auto; }
 .cp-stage {
     position: sticky; top: 24px; display: grid; place-items: center; min-height: 420px; padding: 24px 12px;
     border-radius: 16px; border: 1px solid var(--j-hair); background: var(--j-card);
-} /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-31ec396c */
+} /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-44d739c0 */
 .cp-card { position: relative; border-radius: 12px; box-shadow: 0 30px 80px var(--ax-shadow), 0 0 0 1px rgb(255 255 255 / .06); }
 .cp-card .bvc { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
 .cp-side { display: flex; flex-direction: column; gap: 18px; }
@@ -46,7 +46,7 @@ body.cp { overflow: auto; }
 .cp-status { min-height: 18px; font-size: 12px; color: var(--j-t2); }
 .cp-status.err { color: color-mix(in srgb, var(--ax-down) 70%, var(--j-t1)); }
 .cp-status.ok { color: color-mix(in srgb, var(--ax-up) 70%, var(--j-t1)); }
-.cp-facts { display: grid; grid-template-columns: auto 1fr; gap: 5px 14px; margin: 0; font-size: 12.5px; }
+.cp-facts { display: grid; grid-template-columns: auto 1fr; gap: 5px 14px; margin: 0; font-size: 12.5px; } /*! Copyright (c) 2026 Astral. Better Vest 9.3.2 is licensed to its users only to run it, never to copy it. bv-b519d966 */
 .cp-facts dt { color: var(--j-t2); }
 .cp-facts dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
 .cp-facts dd.gold { color: var(--j-gold); font-weight: 600; }
@@ -54,7 +54,7 @@ body.cp { overflow: auto; }
 .cp-empty > div { max-width: 440px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 14px; }
 .cp-empty h1 { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -.02em; }
 .cp-empty p { margin: 0; color: var(--j-t2); }
-.cp-empty .cp-btn { padding: 0 22px; } /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-7fde0247 */
+.cp-empty .cp-btn { padding: 0 22px; }
 @media (max-width: 860px) {
     .cp-main { grid-template-columns: 1fr; padding-top: 18px; }
     .cp-stage { position: static; }

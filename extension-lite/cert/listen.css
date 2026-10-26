@@ -6,8 +6,8 @@
     color-scheme: dark;
 }
 :root[data-theme="light"] { color-scheme: light; }
-* { box-sizing: border-box; } /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-a9966777 */
-html, body { height: 100%; margin: 0; }
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; } /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-d0fd938e */
 body { background: var(--ax-page, var(--ax-base)); color: var(--ax-text); font: 14px/1.4 Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
     -webkit-font-smoothing: antialiased; user-select: none; overflow: hidden; }
 .app { height: 100%; display: flex; flex-direction: column; align-items: center; padding: 14px 16px 12px; gap: 6px; }
@@ -30,7 +30,7 @@ body[data-state="talk"] .talk .ring { border-color: var(--ax-accent); transform:
 body[data-heard="1"] .talk .ring { border-color: var(--ax-accent-text); }
 body[data-state="off"] .talk, body[data-state="load"] .talk, body[data-state="boot"] .talk { opacity: .45; cursor: default; }
 @keyframes vcBreathe { 0%, 100% { opacity: .35; } 50% { opacity: 1; } }
-.state { margin: 6px 0 0; font-weight: 700; font-size: 14px; text-align: center; } /* Property of Astral (@ax4p). Better Vest 9.3.1. No copying without written permission. bv-962d8447 */
+.state { margin: 6px 0 0; font-weight: 700; font-size: 14px; text-align: center; } /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.2. bv-d9d088d9 */
 .heard { margin: 0; min-height: 19px; max-width: 100%; color: var(--ax-muted); font-size: 13px; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .did { margin: 2px 0 0; min-height: 19px; font-size: 13px; font-weight: 700; text-align: center; color: var(--ax-text); }
 .did[data-level="ok"] { color: var(--ax-up); } .did[data-level="bad"] { color: var(--ax-down); } .did[data-level="warn"] { color: var(--ax-warn); }

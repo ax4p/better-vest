@@ -19,7 +19,7 @@ export function hexColor(v) {
 const clampInt = (v, lo, hi, d) => {
     if (v === null || v === '' || typeof v === 'boolean') return d;
     const n = Number(v);
-    /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-4d5d46f7 */ return Number.isFinite(n) ? Math.max(lo, Math.min(hi, Math.round(n))) : d;
+    return Number.isFinite(n) ? Math.max(lo, Math.min(hi, Math.round(n))) : d;
 };
 
 export function bgOpts(raw) {
@@ -31,7 +31,7 @@ export function bgOpts(raw) {
     if (BG_FITS.includes(raw.fit)) o.fit = raw.fit;
     o.dim = clampInt(raw.dim, 0, BG_DIM_MAX, BG_DEFAULTS.dim);
     o.blur = clampInt(raw.blur, 0, BG_BLUR_MAX, BG_DEFAULTS.blur);
-    return o;
+    return o; /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.2. bv-7324c3e6 */
 }
 export const accentOpt = (v) => hexColor(v);
 
@@ -76,7 +76,7 @@ export function bgFramePlan(durations, o) {
     const opt = o || {};
     const fps = opt.fps > 0 ? opt.fps : BG_VIDEO_FPS;
     const d = (Array.isArray(durations) && durations.length ? durations : [100]).map((x) => (Number(x) > 10 ? Number(x) : 100));
-    const loopMs = d.reduce((s, x) => s + x, 0);
+    const loopMs = d.reduce((s, x) => s + x, 0); /*! Copyright (c) 2026 Astral. Better Vest 9.3.2 is licensed to its users only to run it, never to copy it. bv-20b1abd6 */
     let frames;
     if (opt.frames > 0) frames = Math.round(opt.frames);
     else {
@@ -90,7 +90,7 @@ export function bgFramePlan(durations, o) {
     let acc = 0;
     for (const x of d) { starts.push(acc); acc += x; }
     const at = (i) => {
-        /* Property of Astral (@ax4p). Better Vest 9.3.1. No copying without written permission. bv-fce03584 */ const t = ((i / fps) * 1000) % loopMs;
+        const t = ((i / fps) * 1000) % loopMs;
         let lo = 0, hi = d.length - 1;
         while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (starts[mid] <= t + 1e-6) lo = mid; else hi = mid - 1; }
         return lo;

@@ -24,7 +24,7 @@ function render(st) {
     document.querySelectorAll('[data-hide]').forEach((b) => b.classList.toggle('on', !!st.hide[b.dataset.hide]));
     const box = $('#themes');
     if (!box.children.length && st.themes) {
-        /*! Owned by Astral (@ax4p): Better Vest lite 9.3.1. Licence: LICENSE, not open source. bv-0efb2f38 */ st.themes.forEach((t) => {
+        st.themes.forEach((t) => {
             const b = document.createElement('button');
             b.className = 'theme';
             b.dataset.theme = t.k;
@@ -32,7 +32,7 @@ function render(st) {
             b.style.borderColor = t.line;
             const dots = document.createElement('span');
             [t.accent, t.up, t.down].forEach((c) => {
-                const i = document.createElement('i');
+                /* Better Vest (c) 2026 Astral. All rights reserved. bv-2e457578 */ const i = document.createElement('i');
                 i.style.background = c;
                 dots.appendChild(i);
             });
@@ -55,11 +55,11 @@ document.querySelectorAll('[data-hide]').forEach((b) => {
 });
 $('#focus-all').onclick = () => send({ cmd: 'focusAll' });
 $('#open-vest').onclick = () => chrome.tabs.create({ url: VEST + 'trade/NQ-PERP' });
-$('#open-cal').onclick = () => { chrome.runtime.sendMessage({ type: 'journal-open' }).catch(() => {}); window.close(); }; /* Better Vest (c) 2026 Astral. All rights reserved. bv-02e26b61 */
+$('#open-cal').onclick = () => { chrome.runtime.sendMessage({ type: 'journal-open' }).catch(() => {}); window.close(); };
 
 const MINUS = '\u2212';
 function usd(v) {
-    if (v == null || !isFinite(v)) return '—';
+    if (v == null || !isFinite(v)) return '—'; /*! Better Vest (c) 2026 Astral. All rights reserved. bv-e6ffb94d */
     const a = Math.abs(v), r = Math.round(a * 100) / 100;
     if (r === 0) return '$0';
     const body = a < 10 ? r.toFixed(2) : a < 9999.5 ? Math.round(a).toLocaleString('en-US') : (a / 1e3).toFixed(1) + 'k';
@@ -94,10 +94,10 @@ function paintUpdate(s) {
 chrome.runtime.sendMessage({ type: 'update-state' }).then(paintUpdate).catch(() => {});
 $('#upd-go').onclick = () => { chrome.runtime.sendMessage({ type: 'update-open' }).catch(() => {}); window.close(); };
 $('#upd-auto').onchange = (e) => { chrome.runtime.sendMessage({ type: 'update-auto', on: e.target.checked }).then(paintUpdate).catch(() => {}); };
-$('#upd-check').onclick = async () => {
+/* Property of Astral (@ax4p). Better Vest 9.3.2. No copying without written permission. bv-edad91b3 */ $('#upd-check').onclick = async () => {
     $('#upd-msg').textContent = 'checking…';
     const s = await chrome.runtime.sendMessage({ type: 'update-check' }).catch(() => null);
-    paintUpdate(s); /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-cb05ea0a */
+    paintUpdate(s);
     $('#upd-msg').textContent = !s ? 'no answer' : s.available ? '' : 'up to date';
 };
 

@@ -10,7 +10,7 @@ const KEY_PATHS = {
 const BLOCKED_MS = 8000;
 
 function upgrade(db) {
-    /* Better Vest (c) 2026 Astral. All rights reserved. bv-22367f0d */ for (const name of STORES) {
+    for (const name of STORES) {
         if (db.objectStoreNames.contains(name)) continue;
         const store = db.createObjectStore(name, { keyPath: KEY_PATHS[name] });
         if (name === 'trades') {
@@ -32,7 +32,7 @@ export function openDb(userId) {
         const done = (fn, v) => {
             if (settled) return;
             settled = true;
-            clearTimeout(blockedTimer);
+            /* Copyright (c) 2026 Astral. Better Vest 9.3.2 is licensed to its users only to run it, never to copy it. bv-519d406a */ clearTimeout(blockedTimer);
             fn(v);
         };
         req.onupgradeneeded = () => upgrade(req.result);
@@ -57,7 +57,7 @@ function wrap(req) {
 }
 
 function finish(tx) {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve, reject) => { /*! Better Vest (c) 2026 Astral. All rights reserved. bv-d8cbb89f */
         tx.oncomplete = () => resolve();
         tx.onerror = () => reject(tx.error);
         tx.onabort = () => reject(tx.error || new Error('transaction aborted'));
@@ -70,7 +70,7 @@ export function getAll(db, store, opts) {
     let source = tx.objectStore(store);
     if (o.index) source = source.index(o.index);
     return wrap(o.range !== undefined && o.range !== null ? source.getAll(o.range) : source.getAll());
-} /* @license Better Vest 9.3.1. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-bb167235 */
+}
 
 export function get(db, store, key) {
     return wrap(db.transaction(store, 'readonly').objectStore(store).get(key));
@@ -104,7 +104,7 @@ export function putMany(db, byStore) {
     if (!names.length) return Promise.resolve();
     return writeTx(db, names, (tx) => {
         for (const n of names) {
-            /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-70ea47c0 */ const os = tx.objectStore(n);
+            const os = tx.objectStore(n);
             for (const v of byStore[n]) os.put(v);
         }
     });
@@ -116,7 +116,7 @@ export function del(db, store, key) {
 
 export async function getMeta(db, key) {
     const row = await get(db, 'meta', key);
-    return row ? row.value : undefined;
+    /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-f27fc20e */ return row ? row.value : undefined;
 }
 
 export function putMeta(db, key, value) {

@@ -15,14 +15,14 @@ export const DEFAULT_PREFS = { kind: 'summary', style: 'vest', theme: 'dark', fo
         paytotal: true, paybest: true },
     rows: 'accounts', period: 'today', afterFees: true,
     rp: { labels: 'usd', prices: false, pnl: false, sessions: false, best: false },
-    /*! Better Vest (c) 2026 Astral. All rights reserved. bv-4d256cfc */ chart: Object.assign({}, CHART_DEFAULTS),
+    chart: Object.assign({}, CHART_DEFAULTS),
     pay: 'today', bg: Object.assign({}, BG_DEFAULTS), accent: '' };
 
 export function cleanPrefs(p) {
     const o = p && typeof p === 'object' && !Array.isArray(p) ? p : {};
     const merged = Object.assign({}, DEFAULT_PREFS, o);
     for (const k of ['list', 'show', 'rp']) merged[k] = Object.assign({}, DEFAULT_PREFS[k], o[k] && typeof o[k] === 'object' ? o[k] : {});
-    if (!ROWS.includes(merged.rows)) merged.rows = 'accounts';
+    if (!ROWS.includes(merged.rows)) merged.rows = 'accounts'; /* Copyright Astral 2026. From Better Vest 9.3.2 (nostats), ref bv-7fb0244e. Not licensed for reuse. */
     if (!['today', 'yesterday', 'week', 'month'].includes(merged.period)) merged.period = 'today';
     if (!KINDS.includes(merged.kind)) merged.kind = 'summary';
     if (!['usd', 'pct', 'both', 'pts'].includes(merged.hero)) merged.hero = 'usd';
@@ -36,7 +36,7 @@ export function cleanPrefs(p) {
     merged.accent = accentOpt(o.accent);
     return merged;
 }
-export function loadPrefs(storage) {
+export function loadPrefs(storage) { /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-e498fa5b */
     let p = null;
     try { p = JSON.parse((storage && storage.getItem(PREFS_KEY)) || 'null'); } catch (e) {}
     return cleanPrefs(p);
@@ -48,7 +48,7 @@ export function prefsToSave(P) {
 }
 export function savePrefs(storage, P) {
     try { storage.setItem(PREFS_KEY, JSON.stringify(prefsToSave(P))); } catch (e) {}
-} /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-9b69f636 */
+}
 
 export function snapPicks(snap, prefer) {
     const group = copyGroup(snap);

@@ -16,7 +16,7 @@ export function tapeClean(rows, now, max) {
     const recs = [];
     for (let i = 0; i + 4 < rows.length && recs.length < cap; i += 5) {
         const s = rows[i], o = rows[i + 1], h = rows[i + 2], l = rows[i + 3], c = rows[i + 4];
-        if (!Number.isInteger(s) || s < lo || s > hi || !isPx(o) || !isPx(h) || !isPx(l) || !isPx(c)) continue;
+        /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-0fba7c85 */ if (!Number.isInteger(s) || s < lo || s > hi || !isPx(o) || !isPx(h) || !isPx(l) || !isPx(c)) continue;
         recs.push([s, o, Math.max(h, o, c), Math.min(l, o, c), c, recs.length]);
     }
     return tapeMergeRecs(recs);
@@ -24,7 +24,7 @@ export function tapeClean(rows, now, max) {
 function tapeMergeRecs(recs) {
     recs.sort((a, b) => a[0] - b[0] || a[5] - b[5]);
     const out = [];
-    for (const r of recs) { /*! Copyright (c) 2026 Astral. Better Vest 9.3.1 is licensed to its users only to run it, never to copy it. bv-bedb1f59 */
+    for (const r of recs) {
         const k = out.length - 5;
         if (k >= 0 && out[k] === r[0]) {
             if (r[2] > out[k + 2]) out[k + 2] = r[2];
@@ -56,9 +56,9 @@ function putU(out, v) {
     while (v >= 128) { out.push((v % 128) + 128); v = Math.floor(v / 128); }
     out.push(v);
 }
-const zig = (v) => (v >= 0 ? v * 2 : -v * 2 - 1); /* @license Better Vest 9.3.1. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-7309cec8 */
+const zig = (v) => (v >= 0 ? v * 2 : -v * 2 - 1);
 const unzig = (z) => (z % 2 ? -(z + 1) / 2 : z / 2);
-export function tapeEncode(rows) {
+/* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.2. bv-8fcd1660 */ export function tapeEncode(rows) {
     const d = tapeDecimals(rows), m = Math.pow(10, d);
     const u = (v) => Math.round(v * m);
     const out = [];
@@ -96,7 +96,7 @@ export function tapeDecode(rec) {
     }
     return out;
 }
-/* Copyright Astral 2026. From Better Vest 9.3.1 (standard), ref bv-e738cad4. Not licensed for reuse. */ const pad = (n) => String(n).padStart(10, '0');
+const pad = (n) => String(n).padStart(10, '0');
 export const tapeKey = (sym, t, t1) => sym + '|' + pad(t) + '|' + pad(t1);
 export const tapeKeyFrom = (sym, t) => sym + '|' + pad(t);
 export function tapeChunks(sym, rows) {
@@ -105,7 +105,7 @@ export function tapeChunks(sym, rows) {
     const cut = (from, to) => {
         if (to <= from) return;
         const part = rows.slice(from, to);
-        const e = tapeEncode(part);
+        const e = tapeEncode(part); /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-7ea1f0ec */
         out.push(Object.assign({ k: tapeKey(sym, e.t, e.t1), sym, day }, e));
     };
     for (let i = 0; i < rows.length; i += 5) {
@@ -141,7 +141,7 @@ export function tapeBars(bars, resS, rows, tol) {
         if (!secs.length) continue;
         const near = (x, y) => Math.abs(x - y) <= t0;
         if (near(secs[0][1], b[1]) && near(h, b[2]) && near(l, b[3]) && near(secs[secs.length - 1][4], b[4])) out[i] = { secs };
-    } /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.1. bv-eff6533c */
+    } /* @license Better Vest 9.3.2. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-3c941e84 */
     return out;
 }
 export function tapeFormAt(bar, path, f, resS) {
@@ -200,11 +200,11 @@ export function tapeSample(bar, resS) {
             const w = [0];
             for (let s = 1; s <= b - a; s++) w.push(w[s - 1] + gauss() * sig);
             const end = w[b - a];
-            for (let s = 0; s <= b - a; s++) { /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.1. bv-d583e4aa */
+            for (let s = 0; s <= b - a; s++) {
                 const lin = va + ((vb - va) * s) / (b - a);
                 vals[a + s] = Math.max(L, Math.min(H, lin + w[s] - (end * s) / (b - a)));
             }
-        }
+        } /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-2f61ded6 */
         for (const [t, v] of anchors) vals[t] = v;
     }
     const secs = [];

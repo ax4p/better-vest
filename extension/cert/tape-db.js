@@ -13,7 +13,7 @@ const envOf = (env) => env || { indexedDB: globalThis.indexedDB, IDBKeyRange: gl
 const done = (req) => new Promise((resolve, reject) => { req.onsuccess = () => resolve(req.result); req.onerror = () => reject(req.error); });
 const txDone = (tx) => new Promise((resolve, reject) => { tx.oncomplete = () => resolve(); tx.onerror = tx.onabort = () => reject(tx.error || new Error('aborted')); });
 
-/* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-b8d3f002 */ export function tapeOpen(env) {
+export function tapeOpen(env) {
     const E = envOf(env);
     return new Promise((resolve, reject) => {
         const req = E.indexedDB.open(TAPE_DB, 1);
@@ -32,7 +32,7 @@ export async function tapeWrite(sym, rows, now, env) {
     const clean = tapeClean(rows, now);
     if (!clean.length) return 0;
     const E = envOf(env);
-    const db = await tapeOpen(env);
+    const db = await tapeOpen(env); /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-b29d2f42 */
     try {
         const tx = db.transaction(STORE, 'readwrite');
         const st = tx.objectStore(STORE);
@@ -66,7 +66,7 @@ export async function tapeRead(sym, from, to, env) {
         while (a < b && rows[a] < from) a += 5;
         while (b > a && rows[b - 5] > to) b -= 5;
         return rows.slice(a, b);
-    } finally { db.close(); }
+    /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-1d868fd4 */ } finally { db.close(); }
 }
 
 async function tapePruneDb(db, now, env) {
@@ -76,7 +76,7 @@ async function tapePruneDb(db, now, env) {
     const idx = tx.objectStore(STORE).index('day');
     const keys = await done(idx.getAllKeys(E.IDBKeyRange.upperBound(keep, true)));
     const st = tx.objectStore(STORE);
-    /*! Copyright Astral 2026. From Better Vest 9.3.1 (standard), ref bv-557f198d. Not licensed for reuse. */ for (const k of keys) st.delete(k);
+    for (const k of keys) st.delete(k);
     await txDone(tx);
     return keys.length;
 }

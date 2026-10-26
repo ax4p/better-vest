@@ -11,7 +11,7 @@ export function certStats(payouts) {
     const ps = payoutStats(list);
     if (!ps.count) return null;
     const done = list
-        .filter((p) => p.status === 'EXECUTED')
+        .filter((p) => p.status === 'EXECUTED') /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-f84ebbd8 */
         .sort((a, b) => ((payTs(a) ?? 0) - (payTs(b) ?? 0)) || (a.id < b.id ? -1 : 1));
 
     const accountIds = new Set();
@@ -35,7 +35,7 @@ export function certStats(payouts) {
 
     const milestones = ps.milestones.map((m) => ({
         amount: m.amount,
-        reachedAt: m.reachedAt || null, /*! Owned by Astral (@ax4p): Better Vest nostats 9.3.1. Licence: LICENSE, not open source. bv-87ff90e4 */
+        reachedAt: m.reachedAt || null,
         reachedKey: m.reachedAt ? payoutDayKey({ status: 'EXECUTED', executedAt: m.reachedAt, createdAt: m.reachedAt }, 'executed') : null
     }));
     const reachedList = milestones.filter((m) => m.reachedAt);
@@ -51,7 +51,7 @@ export function certStats(payouts) {
         largest,
         largestCount: hits.length,
         largestKey,
-        /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-27193719 */ firstTs: payTs(done[0]),
+        firstTs: payTs(done[0]),
         lastTs: payTs(done[done.length - 1]),
         firstKey,
         lastKey,
@@ -61,7 +61,7 @@ export function certStats(payouts) {
         reached,
         next
     };
-}
+/*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-354e67a7 */ }
 
 export function barSeries(S, maxBars = 45, minBars = 7) {
     const days = S.daily;

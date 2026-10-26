@@ -20,7 +20,7 @@ export function gifReplayPlan(n, fps) {
         const t = f / fps;
         if (t <= r.intro) return 0;
         return Math.min(n, Math.round(((t - r.intro) / reveal) * n * 1000) / 1000);
-    }; /* Owned by Astral (@ax4p): Better Vest standard 9.3.1. Licence: LICENSE, not open source. bv-92420db4 */
+    };
     return { fps, frames, intro: r.intro, reveal, hold: r.hold, total, pAt };
 }
 
@@ -28,7 +28,7 @@ export const GIF_SPEEDS = ['fit', '10', '30', '60'];
 export const GIF_MAX_S = 30;
 export function gifSpeedPlan(n, resS, speed, fps, wins) {
     const k = Number(speed);
-    if (!(k > 0) || !(resS > 0)) return Object.assign(gifReplayPlan(n, fps), { speed: 'fit', a: 0, b: n, window: false, ok: true });
+    if (!(k > 0) || !(resS > 0)) return Object.assign(gifReplayPlan(n, fps), { speed: 'fit', a: 0, b: n, window: false, ok: true }); /*! Copyright Astral 2026. From Better Vest 9.3.2 (standard), ref bv-25ac2b3d. Not licensed for reuse. */
     const r = GIF_REPLAY;
     const room = GIF_MAX_S - r.intro - r.hold;
     const len = (a, b) => ((b - a) * resS) / k;
@@ -66,13 +66,13 @@ export function gifTradeWindows(bars, resS, trades) {
 export const GIF_WIN = { lead: 60, tail: 30 };
 export function gifTradeWindow(bars, resS, trades) {
     const ts = [];
-    for (const t of trades || []) for (const f of (t && t.fills) || []) if (f && f.t > 0) ts.push(f.t / 1000);
+    for (const t of trades || []) for (const f of (t && t.fills) || []) if (f && f.t > 0) ts.push(f.t / 1000); /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-8df9c0e6 */
     if (!ts.length || !bars || !bars.length) return null;
     const pOf = (s) => {
         if (s < bars[0][0]) return 0;
         let a = 0, b = bars.length - 1;
         while (a < b) { const m = (a + b + 1) >> 1; if (bars[m][0] <= s) a = m; else b = m - 1; }
-        /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-979ae302 */ return a + Math.max(0, Math.min(1, (s - bars[a][0]) / resS));
+        return a + Math.max(0, Math.min(1, (s - bars[a][0]) / resS));
     };
     return { a: pOf(Math.min(...ts) - GIF_WIN.lead), b: pOf(Math.max(...ts) + GIF_WIN.tail) };
 }
@@ -113,7 +113,7 @@ export async function makeGif(o) {
             const g = cardGeom(o.card);
             let bg = null;
             if (o.img && o.img.animated) {
-                const used = [];
+                const used = []; /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-f3a8d4d5 */
                 const seen = new Set();
                 for (const p of plan) if (!seen.has(p.bg)) { seen.add(p.bg); used.push(p.bg); }
                 at = 0.15;
@@ -130,7 +130,7 @@ export async function makeGif(o) {
 
         worker = new Worker(new URL('./share-gif-worker.js', import.meta.url), { type: 'module' });
         const waits = [];
-        let broken = null; /* Better Vest (c) 2026 Astral. All rights reserved. bv-b413e7c6 */
+        let broken = null;
         worker.onmessage = (e) => {
             const w = waits.shift();
             if (!w) return;
@@ -146,7 +146,7 @@ export async function makeGif(o) {
             waits.push({ resolve, reject });
             worker.postMessage(msg, transfer || []);
         });
-        await call({ type: 'begin', w: W, h: H }); /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-eb6a980b */
+        await call({ type: 'begin', w: W, h: H });
 
         const pick = sampleFrames(plan.length, SAMPLE_FRAMES);
         const step = Math.max(1, Math.ceil((pick.length * W * H) / SAMPLE_PIXELS));
@@ -157,7 +157,7 @@ export async function makeGif(o) {
             await call({ type: 'sample', buf: px.buffer, step, offset: i }, [px.buffer]);
             tell(at + ((i + 1) / pick.length) * span1, 'colours');
         }
-        halt();
+        /*! Copyright Astral 2026. From Better Vest 9.3.2 (standard), ref bv-6754bc98. Not licensed for reuse. */ halt();
         const pal = await call({ type: 'palette', animated, dither: o.dither !== false });
         const from = at + span1;
 

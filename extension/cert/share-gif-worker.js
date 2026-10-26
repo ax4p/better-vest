@@ -5,10 +5,10 @@ let pb = null;
 let enc = null;
 let size = null;
 
-function on(m) { /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-7a0204fb */
+function on(m) {
     if (m.type === 'begin') {
         size = { w: m.w, h: m.h };
-        pb = new PaletteBuilder();
+        /*! Copyright (c) 2026 Astral. Better Vest 9.3.2 is licensed to its users only to run it, never to copy it. bv-df889fa6 */ pb = new PaletteBuilder();
         enc = null;
         return { type: 'ok' };
     }
@@ -29,7 +29,7 @@ function on(m) { /* All rights reserved by Astral (@ax4p), the author of Better 
     }
     if (m.type === 'end') {
         const parts = enc.finish();
-        const frames = enc.frames;
+        const frames = enc.frames; /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-5d38f7c8 */
         enc = null;
         return { type: 'done', parts, frames, transfer: parts.map((p) => p.buffer) };
     }
@@ -37,7 +37,7 @@ function on(m) { /* All rights reserved by Astral (@ax4p), the author of Better 
 }
 
 self.onmessage = (e) => {
-    let out; /*! Copyright Astral 2026. From Better Vest 9.3.1 (standard), ref bv-c8db179b. Not licensed for reuse. */
+    let out;
     try { out = on(e.data || {}); } catch (err) { out = { type: 'error', message: String((err && err.message) || err) }; }
     const transfer = out.transfer || [];
     delete out.transfer;

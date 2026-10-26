@@ -20,7 +20,7 @@ export function cleanColor(v) {
 }
 const CHART_COLOR_KEYS = ['up', 'down', 'borderUp', 'borderDown', 'wickUp', 'wickDown'];
 export function cleanChartColors(c) {
-    /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-7665c77e */ if (!c || typeof c !== 'object' || Array.isArray(c)) return null;
+    if (!c || typeof c !== 'object' || Array.isArray(c)) return null;
     const out = {};
     for (const k of CHART_COLOR_KEYS) out[k] = cleanColor(c[k]);
     if (!out.up || !out.down) return null;
@@ -29,7 +29,7 @@ export function cleanChartColors(c) {
     return out;
 }
 
-export function cleanSnap(s) {
+export function cleanSnap(s) { /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-9c3b66a0 */
     if (!s || typeof s !== 'object' || Array.isArray(s)) return null;
     if (!Array.isArray(s.accounts)) return null;
     const accounts = [];
@@ -65,10 +65,10 @@ export function cleanSnap(s) {
         out.tradesCut = s.tradesCut === true;
         out.tradesErr = /^[a-z-]{1,24}$/.test(String(s.tradesErr || '')) ? String(s.tradesErr) : '';
     }
-    if (Array.isArray(s.groups)) { /* Copyright (c) 2026 Astral. Better Vest 9.3.1 is licensed to its users only to run it, never to copy it. bv-2dbb2c90 */
+    if (Array.isArray(s.groups)) {
         const used = new Set();
         out.groups = [];
-        for (const g of s.groups.slice(0, SHARE_MAX_GROUPS)) {
+        /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-e44219b2 */ for (const g of s.groups.slice(0, SHARE_MAX_GROUPS)) {
             if (!g || typeof g !== 'object' || !/^[A-Z]$/.test(String(g.id || '')) || used.has(g.id)) continue;
             const lead = idOk(g.leaderId) && ids.has(g.leaderId) ? g.leaderId : '';
             const fol = Array.isArray(g.followerIds) ? [...new Set(g.followerIds.filter((x) => idOk(x) && ids.has(x) && x !== lead))].slice(0, SHARE_MAX_ACCOUNTS) : [];
@@ -92,10 +92,10 @@ export function copyGroup(snap) {
 
 export function cardRows(snap, opts) {
     const o = opts || {};
-    /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.1. bv-f71feedb */ if (!snap || !Array.isArray(snap.accounts)) return { rows: [], total: 0, cap: 0, ret: 0, n: 0, unknown: 0 };
+    if (!snap || !Array.isArray(snap.accounts)) return { rows: [], total: 0, cap: 0, ret: 0, n: 0, unknown: 0 };
     const by = new Map(snap.accounts.map((a) => [a.id, a]));
     const picked = Array.isArray(o.picked) ? o.picked : [];
-    let unknown = 0;
+    let unknown = 0; /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-ad31102e */
     let rows = [];
     for (const id of picked) {
         const a = by.get(id);

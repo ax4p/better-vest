@@ -12,7 +12,7 @@ export const KINDS = ['summary', 'replay', 'payout'];
 export const DEFAULT_PREFS = { kind: 'summary', style: 'vest', theme: 'dark', format: 'feed', hero: 'usd', handle: '',
     list: { on: true, green: false, mask: true }, show: { date: true, accounts: true, pct: false, market: true, handle: true, credit: true,
         trades: false, winrate: false, best: false, worst: false, fees: false,
-        paytotal: true, paybest: true },
+        paytotal: true, paybest: true }, /*! Copyright Astral 2026. From Better Vest 9.3.2 (standard), ref bv-ea1ae2c7. Not licensed for reuse. */
     rows: 'accounts', period: 'today', afterFees: true,
     rp: { labels: 'usd', prices: false, pnl: false, sessions: false, best: false },
     chart: Object.assign({}, CHART_DEFAULTS),
@@ -27,7 +27,7 @@ export function cleanPrefs(p) {
     if (!KINDS.includes(merged.kind)) merged.kind = 'summary';
     if (!['usd', 'pct', 'both', 'pts'].includes(merged.hero)) merged.hero = 'usd';
     if (!['vest', 'silver', 'oled', 'neon'].includes(merged.style)) merged.style = 'vest';
-    /*! Better Vest (c) 2026 Astral. All rights reserved. bv-ed286ab0 */ if (!['dark', 'light'].includes(merged.theme)) merged.theme = 'dark';
+    if (!['dark', 'light'].includes(merged.theme)) merged.theme = 'dark';
     if (!['feed', 'square', 'wide', 'story'].includes(merged.format)) merged.format = 'feed';
     merged.handle = typeof merged.handle === 'string' ? merged.handle.slice(0, 32) : '';
     merged.chart = chartOpts(o.chart);
@@ -41,7 +41,7 @@ export function loadPrefs(storage) {
     try { p = JSON.parse((storage && storage.getItem(PREFS_KEY)) || 'null'); } catch (e) {}
     return cleanPrefs(p);
 }
-/* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-487cc0c1 */ export function prefsToSave(P) {
+export function prefsToSave(P) {
     const { kind, style, theme, format, hero, handle, list, show, rows, afterFees, rp, chart, pay, bg, accent } = P;
     const period = P.period === 'day' ? 'today' : P.period;
     return { kind, style, theme, format, hero, handle, list, show, rows, period, afterFees, rp, chart, pay, bg, accent };
@@ -56,7 +56,7 @@ export function snapPicks(snap, prefer) {
     const known = snap.accounts.filter((a) => a.pnl != null);
     const first = (prefer && known.find((a) => a.id === prefer)) || snap.accounts.find((a) => a.id === snap.activeId && a.pnl != null) || known[0];
     return { mode: 'accounts', picked: first ? [first.id] : [] };
-}
+/*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-8735bc17 */ }
 
 export function popNeed(p) {
     const kind = p && p.kind === 'replay' ? 'replay' : 'summary';

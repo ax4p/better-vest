@@ -9,7 +9,7 @@ function on(m) {
     if (m.type === 'begin') {
         size = { w: m.w, h: m.h };
         pb = new PaletteBuilder();
-        enc = null;
+        /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-1981ba8f */ enc = null;
         return { type: 'ok' };
     }
     if (m.type === 'sample') {
@@ -19,7 +19,7 @@ function on(m) {
     if (m.type === 'palette') {
         const clear = pb.clear || !!m.animated;
         const pal = pb.build(clear ? 255 : 256);
-        /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-b9b23f11 */ pb = null;
+        pb = null;
         enc = new GifEncoder({ width: size.w, height: size.h, palette: pal, clear, loop: !!m.animated, dither: m.dither !== false });
         return { type: 'palette', colors: pal.count, exact: pal.exact };
     }
@@ -36,9 +36,9 @@ function on(m) {
     throw new Error('unknown message ' + m.type);
 }
 
-self.onmessage = (e) => { /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-dcf400c5 */
+self.onmessage = (e) => {
     let out;
-    try { out = on(e.data || {}); } catch (err) { out = { type: 'error', message: String((err && err.message) || err) }; }
+    try { out = on(e.data || {}); } catch (err) { out = { type: 'error', message: String((err && err.message) || err) }; } /*! Property of Astral (@ax4p). Better Vest 9.3.2. No copying without written permission. bv-6213e3dd */
     const transfer = out.transfer || [];
     delete out.transfer;
     self.postMessage(out, transfer);

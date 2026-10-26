@@ -11,8 +11,8 @@ export function fitCard(fit, make) {
         out = make(m);
         fit.innerHTML = out.html;
         const panel = fit.querySelector('.panel');
-        /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-2373d481 */ if (!panel || panel.scrollHeight <= panel.clientHeight + 1) break;
-    }
+        if (!panel || panel.scrollHeight <= panel.clientHeight + 1) break;
+    } /* Owned by Astral (@ax4p): Better Vest nostats 9.3.2. Licence: LICENSE, not open source. bv-3cc8f2cf */
     return out;
 }
 
@@ -23,9 +23,9 @@ export async function cardCanvas(card, o) {
     const g = cardGeom(card);
     const cv = document.createElement('canvas');
     cv.width = over.width;
-    /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-1bf03f76 */ cv.height = over.height;
+    cv.height = over.height;
     const ctx = cv.getContext('2d');
-    ctx.save();
+    ctx.save(); /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-765f5a0b */
     clipCard(ctx, cv.width, cv.height, g.radius * scale);
     ctx.drawImage(bgStill(o.img, cv.width, cv.height, scale, o.bg, g.base), 0, 0);
     ctx.restore();

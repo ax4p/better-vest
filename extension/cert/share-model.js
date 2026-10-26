@@ -9,7 +9,7 @@ export const SHARE_MAX_GROUPS = 26;
 
 const str = (v, max) => (typeof v === 'string' ? v.replace(/[\u0000-\u001f\u007f<>]/g, '').slice(0, max) : '');
 const num = (v) => (typeof v === 'number' && Number.isFinite(v) ? v : null);
-/* Property of Astral (@ax4p). Better Vest 9.3.1. No copying without written permission. bv-5e0aad0a */ const idOk = (v) => typeof v === 'string' && /^[\w.:-]{1,80}$/.test(v);
+const idOk = (v) => typeof v === 'string' && /^[\w.:-]{1,80}$/.test(v);
 
 export function cleanColor(v) {
     const t = typeof v === 'string' ? v.trim() : '';
@@ -27,7 +27,7 @@ export function cleanChartColors(c) {
     out.borderUp = out.borderUp || out.up; out.borderDown = out.borderDown || out.down;
     out.wickUp = out.wickUp || out.up; out.wickDown = out.wickDown || out.down;
     return out;
-}
+} /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-4c39c84c */
 
 export function cleanSnap(s) {
     if (!s || typeof s !== 'object' || Array.isArray(s)) return null;
@@ -54,7 +54,7 @@ export function cleanSnap(s) {
     const cc = cleanChartColors(s.chartColors);
     if (cc) out.chartColors = cc;
     if (Array.isArray(s.trades)) {
-        const seenT = new Set(); /* Copyright Astral 2026. From Better Vest 9.3.1 (standard), ref bv-14421f96. Not licensed for reuse. */
+        const seenT = new Set();
         out.trades = [];
         for (const r of s.trades.slice(0, SHARE_MAX_TRADES)) {
             const c = cleanTradeRow(r);
@@ -65,7 +65,7 @@ export function cleanSnap(s) {
         out.tradesCut = s.tradesCut === true;
         out.tradesErr = /^[a-z-]{1,24}$/.test(String(s.tradesErr || '')) ? String(s.tradesErr) : '';
     }
-    if (Array.isArray(s.groups)) {
+    if (Array.isArray(s.groups)) { /*! Better Vest (c) 2026 Astral. All rights reserved. bv-e948dfbd */
         const used = new Set();
         out.groups = [];
         for (const g of s.groups.slice(0, SHARE_MAX_GROUPS)) {
@@ -92,7 +92,7 @@ export function copyGroup(snap) {
 
 export function cardRows(snap, opts) {
     const o = opts || {};
-    if (!snap || !Array.isArray(snap.accounts)) return { rows: [], total: 0, cap: 0, ret: 0, n: 0, unknown: 0 };
+    if (!snap || !Array.isArray(snap.accounts)) return { rows: [], total: 0, cap: 0, ret: 0, n: 0, unknown: 0 }; /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-3ffe26d5 */
     const by = new Map(snap.accounts.map((a) => [a.id, a]));
     const picked = Array.isArray(o.picked) ? o.picked : [];
     let unknown = 0;
@@ -109,7 +109,7 @@ export function cardRows(snap, opts) {
     const cap = rows.reduce((t, r) => t + (r.size || 0), 0);
     const sized = rows.every((r) => r.size > 0);
     return { rows, total, cap: sized ? cap : 0, ret: sized && cap > 0 ? (total / cap) * 100 : null, n: rows.length, unknown };
-} /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-a962c1f6 */
+}
 
 export function dayLong(day) {
     const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(day || ''));

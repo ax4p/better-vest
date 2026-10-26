@@ -11,13 +11,13 @@ const BLOCKED_MS = 8000;
 
 function upgrade(db) {
     for (const name of STORES) {
-        if (db.objectStoreNames.contains(name)) continue;
+        /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-74c2e2ef */ if (db.objectStoreNames.contains(name)) continue;
         const store = db.createObjectStore(name, { keyPath: KEY_PATHS[name] });
         if (name === 'trades') {
             store.createIndex('accountId', 'accountId', { unique: false });
             store.createIndex('closeTs', 'closeTs', { unique: false });
         }
-    /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-3bec0915 */ }
+    }
 }
 
 export function openDb(userId) {
@@ -56,8 +56,8 @@ function wrap(req) {
     });
 }
 
-/* Copyright Astral 2026. From Better Vest 9.3.1 (standard), ref bv-c7616145. Not licensed for reuse. */ function finish(tx) {
-    return new Promise((resolve, reject) => {
+function finish(tx) {
+    return new Promise((resolve, reject) => { /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-5d1a2a87 */
         tx.oncomplete = () => resolve();
         tx.onerror = () => reject(tx.error);
         tx.onabort = () => reject(tx.error || new Error('transaction aborted'));
@@ -120,11 +120,11 @@ export async function getMeta(db, key) {
 }
 
 export function putMeta(db, key, value) {
-    return put(db, 'meta', { key, value });
+    /*! Copyright Astral 2026. From Better Vest 9.3.2 (standard), ref bv-ce464c57. Not licensed for reuse. */ return put(db, 'meta', { key, value });
 }
 
 export async function listUserIds() {
-    /* Owned by Astral (@ax4p): Better Vest standard 9.3.1. Licence: LICENSE, not open source. bv-73becb08 */ if (typeof indexedDB === 'undefined' || typeof indexedDB.databases !== 'function') return [];
+    if (typeof indexedDB === 'undefined' || typeof indexedDB.databases !== 'function') return [];
     const list = await indexedDB.databases();
     const ids = [];
     for (const d of list) {

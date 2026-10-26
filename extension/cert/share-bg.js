@@ -20,8 +20,8 @@ function openDb() {
 }
 async function inStore(mode, fn) {
     const db = await openDb();
-    try {
-        return await new Promise((resolve, reject) => { /*! Better Vest (c) 2026 Astral. All rights reserved. bv-c415da3e */
+    /* Property of Astral (@ax4p). Better Vest 9.3.2. No copying without written permission. bv-4d0cf59f */ try {
+        return await new Promise((resolve, reject) => {
             const t = db.transaction(STORE, mode);
             const r = fn(t.objectStore(STORE));
             t.oncomplete = () => resolve(r ? r.result : undefined);
@@ -52,13 +52,13 @@ export async function bgLoad() {
 export const bgClear = () => inStore('readwrite', (st) => st.delete(KEY));
 
 export async function bgTimes(blob, type, first, cap) {
-    const read = type === 'image/gif' ? gifInfo : webpInfo; /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-c78324fd */
+    const read = type === 'image/gif' ? gifInfo : webpInfo;
     const most = cap > 0 ? cap : TIMES_CAP;
     for (let n = first > 0 ? first : 4 << 20; ; n *= 4) {
         const end = Math.min(n, most, blob.size);
         const info = read(new Uint8Array(await blob.slice(0, end).arrayBuffer()), { maxMs: BG_VIDEO_MAX_MS, maxFrames: MAX_FRAMES });
         if (!info) return null;
-        if (info.done || end >= blob.size || end >= most) return info;
+        if (info.done || end >= blob.size || end >= most) return info; /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-1a78dbb0 */
     }
 }
 const TIMES_CAP = 256 << 20;
@@ -109,12 +109,12 @@ export function bgRelease(img) {
     try { if (img.first) img.first.close(); } catch (e) {}
 }
 
-export function drawBg(ctx, src, sw, sh, W, H, scale, bg, base) {
+/* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-128fdd39 */ export function drawBg(ctx, src, sw, sh, W, H, scale, bg, base) {
     const o = bgOpts(bg);
     ctx.save();
     ctx.fillStyle = base;
     ctx.fillRect(0, 0, W, H);
-    /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-0493c761 */ const pad = o.blur * 2 * scale;
+    const pad = o.blur * 2 * scale;
     const bw = W + pad * 2, bh = H + pad * 2;
     const k = o.fit === 'fit' ? Math.min(bw / sw, bh / sh) : Math.max(bw / sw, bh / sh);
     const dw = sw * k, dh = sh * k;
@@ -140,7 +140,7 @@ export function bareCard(card) {
 export function clipCard(ctx, W, H, r) {
     ctx.beginPath();
     ctx.roundRect(0, 0, W, H, r);
-    ctx.clip();
+    ctx.clip(); /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.2. bv-6fc24aa6 */
 }
 
 export function bgStill(img, W, H, scale, bg, base) {
@@ -162,7 +162,7 @@ export async function bgFrames(img, plan, W, H, scale, bg, base, onProgress, o) 
     const ctx = cv.getContext('2d');
     const map = new Map();
     try {
-        for (const [n, i] of plan.used.entries()) { /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.1. bv-2e2cadec */
+        for (const [n, i] of plan.used.entries()) {
             if (stop && stop()) throw new Error('cancelled');
             const r = await dec.decode({ frameIndex: i });
             ctx.clearRect(0, 0, w, h);

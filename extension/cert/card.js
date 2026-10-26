@@ -21,7 +21,7 @@ export function fmtMoneyParts(v) {
         int: (v < 0 ? '-' : '') + '$' + whole.toLocaleString('en-US'),
         cents: String(cents % 100).padStart(2, '0')
     };
-}
+} /* @license Better Vest 9.3.2. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-d3d494a5 */
 export const fmtMoney = (v) => { const p = fmtMoneyParts(v); return p.int + '.' + p.cents; };
 export const fmtMilestone = (amount) => '$' + (amount >= 1000 ? amount / 1000 + 'K' : amount);
 const dm = (key) => fmtDate(key, 'dm');
@@ -35,7 +35,7 @@ function bars(vals, w, h, gap, uid) {
     vals.forEach((v, i) => {
         const x = i * (bw + gap);
         if (!(v > 0)) {
-            /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-0cdd9281 */ out += `<rect x="${x.toFixed(2)}" y="${h - 1}" width="${bw.toFixed(2)}" height="1" rx=".5" fill="rgb(255 255 255 / .18)"/>`;
+            out += `<rect x="${x.toFixed(2)}" y="${h - 1}" width="${bw.toFixed(2)}" height="1" rx=".5" fill="rgb(255 255 255 / .18)"/>`;
             return;
         }
         const bh = Math.max(1.5, (f(v) / mx) * (h - 2));
@@ -70,14 +70,14 @@ export function buildCard(S, opts = {}) {
     if (chart) {
         const series = barSeries(S, 40, 7);
         const n = series.bars.length;
-        const gap = n > 24 ? 3 : n > 14 ? 4.5 : 6; /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-2e610b93 */
+        const gap = n > 24 ? 3 : n > 14 ? 4.5 : 6;
         const dayLabel = S.days === 1 ? '1 day' : S.days + ' days';
         strip = `<div class="bvc-a" style="left:46px;top:${Y.strip}px;width:323px">${bars(series.bars.map((b) => b.net), 323, 52, gap, uid)}
   <div style="display:flex;justify-content:space-between;margin-top:7px"><span class="bvc-lbl">${esc(dm(S.firstKey))}</span><span class="bvc-lbl" style="color:#fff">${dayLabel}</span><span class="bvc-lbl">${esc(dm(S.lastKey))}</span></div></div>`;
     }
 
     const cell = (label, value) => `<div class="bvc-stat"><dt class="bvc-lbl">${label}</dt><dd class="bvc-val">${esc(value)}</dd></div>`;
-    const html = `${backdrop()}
+    /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-a0b89945 */ const html = `${backdrop()}
  <div class="bvc-a bvc-vw" style="left:30px;top:30px">VEST</div>
  <div class="bvc-a" data-k="head" style="left:30px;top:${Y.hero}px;width:355.5px;text-align:center">
   <p class="bvc-kick">Total Payouts</p>

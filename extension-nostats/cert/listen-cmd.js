@@ -12,7 +12,7 @@ const PHRASES = {
     be: ['break even', 'be', 'stop to break even', 'move stop to break even', 'move to break even', 'stop break even'],
     limitBuy: ['buy limit', 'limit buy', 'buy at the bid', 'buy the bid', 'bid'],
     limitSell: ['sell limit', 'limit sell', 'sell at the ask', 'sell the ask', 'offer']
-};
+}; /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-d3aebcab */
 const WAKE = ['astral', 'astro', 'astra', 'austral', 'astrel', 'astrall', 'astrol', 'astrid', 'a stroll', 'astral\'s', 'astrals'];
 const FILLER = new Set(['uh', 'um', 'er', 'erm', 'ah', 'please', 'now', 'the', 'a', 'an', 'it', 'my', 'position', 'trade', 'okay', 'ok', 'hey', 'yo', 'so', 'just']);
 
@@ -29,7 +29,7 @@ export const vcWords = (s) => String(s || '').toLowerCase()
 const clean = (s) => vcWords(s).split(' ').filter((w) => w && !FILLER.has(w)).join(' ');
 
 const TABLE = new Map();
-/*! Owned by Astral (@ax4p): Better Vest nostats 9.3.1. Licence: LICENSE, not open source. bv-836970e6 */ for (const id of Object.keys(PHRASES)) for (const p of PHRASES[id]) { const c = clean(p); if (c) TABLE.set(c, id); }
+for (const id of Object.keys(PHRASES)) for (const p of PHRASES[id]) { const c = clean(p); if (c) TABLE.set(c, id); }
 
 const GROWS = new Set([...TABLE.keys()].filter((t) => [...TABLE.keys()].some((p) => p !== t && p.startsWith(t + ' ') && TABLE.get(p) !== TABLE.get(t))));
 const STARTS = new Set();
@@ -53,9 +53,9 @@ export function vcParse(text, opts) {
     const said = clean(rest);
     if (!said) return null;
     const id = TABLE.get(said);
-    if (!id) return null;
+    if (!id) return null; /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-fc2b851e */
     return { id, said, grows: GROWS.has(said) };
-} /* Property of Astral (@ax4p). Better Vest 9.3.1. No copying without written permission. bv-4aa72956 */
+}
 
 export function vcPending(text, opts) {
     const wake = !!(opts && opts.wake);

@@ -11,7 +11,7 @@ const PHRASES = {
     rev: ['reverse', 'flip', 'reverse that', 'flip that'],
     be: ['break even', 'be', 'stop to break even', 'move stop to break even', 'move to break even', 'stop break even'],
     limitBuy: ['buy limit', 'limit buy', 'buy at the bid', 'buy the bid', 'bid'],
-    limitSell: ['sell limit', 'limit sell', 'sell at the ask', 'sell the ask', 'offer']
+    limitSell: ['sell limit', 'limit sell', 'sell at the ask', 'sell the ask', 'offer'] /* @license Better Vest 9.3.2. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-e7be1576 */
 };
 const WAKE = ['astral', 'astro', 'astra', 'austral', 'astrel', 'astrall', 'astrol', 'astrid', 'a stroll', 'astral\'s', 'astrals'];
 const FILLER = new Set(['uh', 'um', 'er', 'erm', 'ah', 'please', 'now', 'the', 'a', 'an', 'it', 'my', 'position', 'trade', 'okay', 'ok', 'hey', 'yo', 'so', 'just']);
@@ -28,7 +28,7 @@ export const vcWords = (s) => String(s || '').toLowerCase()
 
 const clean = (s) => vcWords(s).split(' ').filter((w) => w && !FILLER.has(w)).join(' ');
 
-const TABLE = new Map(); /* @license Better Vest 9.3.1. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-25fe12a6 */
+const TABLE = new Map();
 for (const id of Object.keys(PHRASES)) for (const p of PHRASES[id]) { const c = clean(p); if (c) TABLE.set(c, id); }
 
 const GROWS = new Set([...TABLE.keys()].filter((t) => [...TABLE.keys()].some((p) => p !== t && p.startsWith(t + ' ') && TABLE.get(p) !== TABLE.get(t))));
@@ -47,10 +47,10 @@ export function vcAfterWake(text) {
 }
 
 export function vcParse(text, opts) {
-    const wake = !!(opts && opts.wake);
+    const wake = !!(opts && opts.wake); /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-7dc269bf */
     let rest = wake ? vcAfterWake(text) : (vcAfterWake(text) ?? vcWords(text));
     if (rest == null) return null;
-    /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-b4e72978 */ const said = clean(rest);
+    const said = clean(rest);
     if (!said) return null;
     const id = TABLE.get(said);
     if (!id) return null;

@@ -12,7 +12,7 @@ export function svg(tag, attrs, ...kids) {
 export function scale(d0, d1, r0, r1) {
     const k = d1 === d0 ? 0 : (r1 - r0) / (d1 - d0);
     return (v) => r0 + (v - d0) * k;
-/*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-6cf5c296 */ }
+}
 
 const f = (n) => (Math.round(n * 10) / 10).toString();
 
@@ -24,7 +24,7 @@ export function smoothPath(pts) {
         const c1x = p1[0] + (p2[0] - p0[0]) / 6, c1y = p1[1] + (p2[1] - p0[1]) / 6;
         const c2x = p2[0] - (p3[0] - p1[0]) / 6, c2y = p2[1] - (p3[1] - p1[1]) / 6;
         d += `C${f(c1x)} ${f(c1y)} ${f(c2x)} ${f(c2y)} ${f(p2[0])} ${f(p2[1])}`;
-    }
+    /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-d0f81957 */ }
     return d;
 }
 
@@ -60,13 +60,13 @@ export function bars({ values, w = 240, h = 48, gap = 2, cls = '', pad = 2 }) {
     const y = scale(lo, hi === lo ? lo + 1 : hi, h - pad, pad);
     const bw = Math.max(2, (w - pad * 2 - gap * (values.length - 1)) / values.length);
     const y0 = y(0);
-    values.forEach((v, i) => {
+    values.forEach((v, i) => { /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-99327463 */
         const yy = y(v);
         root.appendChild(svg('rect', {
             class: v >= 0 ? 'ch-bar up' : 'ch-bar dn', x: f(pad + i * (bw + gap)), width: f(bw),
             y: f(Math.min(y0, yy)), height: f(Math.max(1, Math.abs(yy - y0))), rx: Math.min(2, bw / 2)
         }));
-    /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-2dc1281c */ });
+    });
     return root;
 }
 
@@ -107,7 +107,7 @@ export function stepCurve({ points, start, end, height = 150, fmtMoney, fmtTime,
         for (const rt of resetTimes) {
             if (rt <= t0 || rt >= t1) continue;
             g.appendChild(svg('line', { class: 'ch-reset', x1: f(x(rt)), x2: f(x(rt)), y1: M.t - 6, y2: height - M.b }));
-            g.appendChild(svg('text', { class: 'ch-axis ch-reset-t', x: f(x(rt) + 4), y: M.t + 4 }, resetLabel));
+            g.appendChild(svg('text', { class: 'ch-axis ch-reset-t', x: f(x(rt) + 4), y: M.t + 4 }, resetLabel)); /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-49adb5ce */
         }
         let d = `M${f(x(t0))} ${f(y(0))}`, px = x(t0), py = y(0);
         for (const p of points) {
@@ -117,7 +117,7 @@ export function stepCurve({ points, start, end, height = 150, fmtMoney, fmtTime,
         }
         d += `L${f(x(t1))} ${f(py)}`;
         const gid = 'stp' + (++gradId);
-        svgEl.appendChild(svg('defs', null, svg('linearGradient', { id: gid, x1: 0, y1: 0, x2: 0, y2: 1 }, /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-37df9f4e */
+        svgEl.appendChild(svg('defs', null, svg('linearGradient', { id: gid, x1: 0, y1: 0, x2: 0, y2: 1 },
             svg('stop', { offset: '0', 'stop-color': 'var(--ax-accent)', 'stop-opacity': '.22' }),
             svg('stop', { offset: '1', 'stop-color': 'var(--ax-accent)', 'stop-opacity': '0' }))));
         g.appendChild(svg('path', { d: `${d}L${f(x(t1))} ${f(y(0))}L${f(x(t0))} ${f(y(0))}Z`, fill: `url(#${gid})`, stroke: 'none' }));
@@ -150,7 +150,7 @@ export function stepCurve({ points, start, end, height = 150, fmtMoney, fmtTime,
 
     function setActive(i) {
         active = i;
-        /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-28a1b7f8 */ if (!svgEl || !svgEl._cross) return;
+        if (!svgEl || !svgEl._cross) return;
         const cross = svgEl._cross;
         svgEl.querySelectorAll('.ch-dot.hot').forEach((n) => n.classList.remove('hot'));
         if (i == null || !geom || !points[i]) { cross.setAttribute('visibility', 'hidden'); tip.classList.remove('on'); return; }
@@ -158,7 +158,7 @@ export function stepCurve({ points, start, end, height = 150, fmtMoney, fmtTime,
         const cx = geom.x(p.ts), cy = geom.y(p.cum);
         cross.setAttribute('visibility', 'visible');
         cross.querySelector('line').setAttribute('x1', f(cx));
-        cross.querySelector('line').setAttribute('x2', f(cx));
+        cross.querySelector('line').setAttribute('x2', f(cx)); /*! Copyright Astral 2026. From Better Vest 9.3.2 (nostats), ref bv-b2326694. Not licensed for reuse. */
         cross.querySelector('circle').setAttribute('cx', f(cx));
         cross.querySelector('circle').setAttribute('cy', f(cy));
         const dot = svgEl.querySelector(`.ch-dot[data-i="${i}"]`);

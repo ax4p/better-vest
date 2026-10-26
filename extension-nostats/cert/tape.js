@@ -14,7 +14,7 @@ export function tapeClean(rows, now, max) {
     const nowS = Math.floor(now / 1000), lo = nowS - 3 * 86400, hi = nowS + 120;
     const cap = Math.min(max || TAPE_ROWS_MAX, Math.floor(rows.length / 5));
     const recs = [];
-    for (let i = 0; i + 4 < rows.length && recs.length < cap; i += 5) {
+    for (let i = 0; i + 4 < rows.length && recs.length < cap; i += 5) { /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-d191f03b */
         const s = rows[i], o = rows[i + 1], h = rows[i + 2], l = rows[i + 3], c = rows[i + 4];
         if (!Number.isInteger(s) || s < lo || s > hi || !isPx(o) || !isPx(h) || !isPx(l) || !isPx(c)) continue;
         recs.push([s, o, Math.max(h, o, c), Math.min(l, o, c), c, recs.length]);
@@ -27,7 +27,7 @@ function tapeMergeRecs(recs) {
     for (const r of recs) {
         const k = out.length - 5;
         if (k >= 0 && out[k] === r[0]) {
-            if (r[2] > out[k + 2]) out[k + 2] = r[2]; /*! Property of Astral (@ax4p). Better Vest 9.3.1. No copying without written permission. bv-8ef0383c */
+            if (r[2] > out[k + 2]) out[k + 2] = r[2];
             if (r[3] < out[k + 3]) out[k + 3] = r[3];
             out[k + 4] = r[4];
         } else out.push(r[0], r[1], r[2], r[3], r[4]);
@@ -61,7 +61,7 @@ const unzig = (z) => (z % 2 ? -(z + 1) / 2 : z / 2);
 export function tapeEncode(rows) {
     const d = tapeDecimals(rows), m = Math.pow(10, d);
     const u = (v) => Math.round(v * m);
-    const out = [];
+    const out = []; /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-13e868f8 */
     let ps = rows[0], pc = 0;
     for (let i = 0; i + 4 < rows.length; i += 5) {
         const o = u(rows[i + 1]), h = u(rows[i + 2]), l = u(rows[i + 3]), c = u(rows[i + 4]);
@@ -75,7 +75,7 @@ export function tapeEncode(rows) {
     }
     return { t: rows[0], t1: rows[rows.length - 5], n: rows.length / 5, d, x: Uint8Array.from(out) };
 }
-/*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-47a7c471 */ export function tapeDecode(rec) {
+export function tapeDecode(rec) {
     const out = [];
     if (!rec || !(rec.x instanceof Uint8Array) || !Number.isInteger(rec.n) || !Number.isInteger(rec.t) || !(rec.d >= 0 && rec.d <= MAX_DEC)) return out;
     const b = rec.x, m = Math.pow(10, rec.d);
@@ -96,7 +96,7 @@ export function tapeEncode(rows) {
     }
     return out;
 }
-const pad = (n) => String(n).padStart(10, '0');
+const pad = (n) => String(n).padStart(10, '0'); /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-de0ee7cf */
 export const tapeKey = (sym, t, t1) => sym + '|' + pad(t) + '|' + pad(t1);
 export const tapeKeyFrom = (sym, t) => sym + '|' + pad(t);
 export function tapeChunks(sym, rows) {
@@ -105,7 +105,7 @@ export function tapeChunks(sym, rows) {
     const cut = (from, to) => {
         if (to <= from) return;
         const part = rows.slice(from, to);
-        /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-139a3d6f */ const e = tapeEncode(part);
+        const e = tapeEncode(part);
         out.push(Object.assign({ k: tapeKey(sym, e.t, e.t1), sym, day }, e));
     };
     for (let i = 0; i < rows.length; i += 5) {
@@ -140,7 +140,7 @@ export function tapeBars(bars, resS, rows, tol) {
         }
         if (!secs.length) continue;
         const near = (x, y) => Math.abs(x - y) <= t0;
-        if (near(secs[0][1], b[1]) && near(h, b[2]) && near(l, b[3]) && near(secs[secs.length - 1][4], b[4])) out[i] = { secs };
+        if (near(secs[0][1], b[1]) && near(h, b[2]) && near(l, b[3]) && near(secs[secs.length - 1][4], b[4])) out[i] = { secs }; /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-39c0a948 */
     }
     return out;
 }
@@ -167,7 +167,7 @@ function rng(seed) {
         t = Math.imul(t ^ (t >>> 15), t | 1);
         t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
         return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-    }; /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-f71f97ed */
+    };
 }
 function seedOf(b) {
     let h = 2166136261;
@@ -185,14 +185,14 @@ export function tapeSample(bar, resS) {
     const vals = new Array(N);
     if (!(H > L)) {
         vals.fill(C);
-    } else { /* Owned by Astral (@ax4p): Better Vest nostats 9.3.1. Licence: LICENSE, not open source. bv-26872da9 */
+    } else {
         const pick = () => 1 + Math.floor(r() * Math.max(1, N - 2));
         let tA = pick(), tB = pick();
         for (let g = 0; g < 8 && tB === tA; g++) tB = pick();
         if (tB === tA) tB = Math.min(N - 1, tA + 1);
         const hiFirst = r() < 0.5;
         const anchors = [[0, O], [Math.min(tA, tB), hiFirst ? H : L], [Math.max(tA, tB), hiFirst ? L : H], [N - 1, C]];
-        const sig = (H - L) * 0.55 / Math.sqrt(N);
+        const sig = (H - L) * 0.55 / Math.sqrt(N); /*! Owned by Astral (@ax4p): Better Vest nostats 9.3.2. Licence: LICENSE, not open source. bv-4ff646ee */
         const gauss = () => { let u = 0; while (!u) u = r(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * r()); };
         for (let k = 0; k + 1 < anchors.length; k++) {
             const [a, va] = anchors[k], [b, vb] = anchors[k + 1];

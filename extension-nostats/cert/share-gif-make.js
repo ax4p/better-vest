@@ -20,7 +20,7 @@ export function gifReplayPlan(n, fps) {
         const t = f / fps;
         if (t <= r.intro) return 0;
         return Math.min(n, Math.round(((t - r.intro) / reveal) * n * 1000) / 1000);
-    };
+    /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-801e9fca */ };
     return { fps, frames, intro: r.intro, reveal, hold: r.hold, total, pAt };
 }
 
@@ -36,7 +36,7 @@ export function gifSpeedPlan(n, resS, speed, fps, wins) {
     let a = 0, b = n, window = false;
     if (len(0, n) > room) {
         const w = ws.find((x) => len(x.a, x.b) <= room);
-        if (!w) { /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-d0fa7d0f */
+        if (!w) {
             const z = ws[ws.length - 1];
             return { speed: String(k), ok: false, need: r.intro + len(z ? z.a : 0, z ? z.b : n) + r.hold, a: z ? z.a : 0, b: z ? z.b : n, window: z ? z.kind || 'trades' : false };
         }
@@ -64,7 +64,7 @@ export function gifTradeWindows(bars, resS, trades) {
     return out;
 }
 export const GIF_WIN = { lead: 60, tail: 30 };
-export function gifTradeWindow(bars, resS, trades) {
+export function gifTradeWindow(bars, resS, trades) { /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-50bf220f */
     const ts = [];
     for (const t of trades || []) for (const f of (t && t.fills) || []) if (f && f.t > 0) ts.push(f.t / 1000);
     if (!ts.length || !bars || !bars.length) return null;
@@ -75,7 +75,7 @@ export function gifTradeWindow(bars, resS, trades) {
         return a + Math.max(0, Math.min(1, (s - bars[a][0]) / resS));
     };
     return { a: pOf(Math.min(...ts) - GIF_WIN.lead), b: pOf(Math.max(...ts) + GIF_WIN.tail) };
-} /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.1. bv-6f5fe0cd */
+}
 
 export function gifFrames(kind, scene, img, mode, plan) {
     const moving = !!(img && img.animated && img.durations && img.durations.length > 1);
@@ -101,7 +101,7 @@ export async function makeGif(o) {
     const animated = plan.length > 1;
     const stop = () => !!(o.cancelled && o.cancelled());
     const halt = () => { if (stop()) { const e = new Error('cancelled'); e.cancelled = true; throw e; } };
-    const tell = (f, what) => { if (o.onProgress) o.onProgress(Math.max(0, Math.min(1, f)), what); };
+    const tell = (f, what) => { if (o.onProgress) o.onProgress(Math.max(0, Math.min(1, f)), what); }; /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-927652a9 */
     let frames = null, worker = null;
     try {
         let canvas, draw;
@@ -128,7 +128,7 @@ export async function makeGif(o) {
         const ctx = canvas.getContext('2d');
         const pixels = (k) => { draw(k); return ctx.getImageData(0, 0, W, H).data; };
 
-        /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-f2fa1d9b */ worker = new Worker(new URL('./share-gif-worker.js', import.meta.url), { type: 'module' });
+        worker = new Worker(new URL('./share-gif-worker.js', import.meta.url), { type: 'module' });
         const waits = [];
         let broken = null;
         worker.onmessage = (e) => {
@@ -154,7 +154,7 @@ export async function makeGif(o) {
         for (const [i, k] of pick.entries()) {
             halt();
             const px = pixels(k);
-            /* @license Better Vest 9.3.1. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-4c3390cc */ await call({ type: 'sample', buf: px.buffer, step, offset: i }, [px.buffer]);
+            await call({ type: 'sample', buf: px.buffer, step, offset: i }, [px.buffer]);
             tell(at + ((i + 1) / pick.length) * span1, 'colours');
         }
         halt();
@@ -176,7 +176,7 @@ export async function makeGif(o) {
         return { blob: new Blob(done.parts, { type: 'image/gif' }), w: W, h: H, frames: done.frames, ms: plan.reduce((s, x) => s + x.delay, 0) * 10,
             colors: pal.colors, took: Math.round(performance.now() - t0), size: o.size };
     } catch (e) {
-        if (stop() || (e && e.message === 'cancelled')) { const c = new Error('cancelled'); c.cancelled = true; throw c; }
+        if (stop() || (e && e.message === 'cancelled')) { const c = new Error('cancelled'); c.cancelled = true; throw c; } /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-455b781f */
         throw e;
     } finally {
         if (worker) worker.terminate();

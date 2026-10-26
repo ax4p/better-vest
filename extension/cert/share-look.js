@@ -11,12 +11,12 @@ export const BG_VIDEO_MIN_MS = 2000;
 export const BG_VIDEO_FPS = 30;
 
 export function hexColor(v) {
-    /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-9db4c835 */ const t = typeof v === 'string' ? v.trim().toLowerCase() : '';
+    const t = typeof v === 'string' ? v.trim().toLowerCase() : '';
     if (/^#[0-9a-f]{6}$/.test(t)) return t;
     if (/^#[0-9a-f]{3}$/.test(t)) return '#' + t[1] + t[1] + t[2] + t[2] + t[3] + t[3];
     return '';
 }
-const clampInt = (v, lo, hi, d) => {
+/* @license Better Vest 9.3.2. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-bb665825 */ const clampInt = (v, lo, hi, d) => {
     if (v === null || v === '' || typeof v === 'boolean') return d;
     const n = Number(v);
     return Number.isFinite(n) ? Math.max(lo, Math.min(hi, Math.round(n))) : d;
@@ -75,8 +75,8 @@ export function lookParts(p, img, red) {
 export function bgFramePlan(durations, o) {
     const opt = o || {};
     const fps = opt.fps > 0 ? opt.fps : BG_VIDEO_FPS;
-    const d = (Array.isArray(durations) && durations.length ? durations : [100]).map((x) => (Number(x) > 10 ? Number(x) : 100));
-    /*! Copyright Astral 2026. From Better Vest 9.3.1 (standard), ref bv-3323526c. Not licensed for reuse. */ const loopMs = d.reduce((s, x) => s + x, 0);
+    /* Owned by Astral (@ax4p): Better Vest standard 9.3.2. Licence: LICENSE, not open source. bv-a7f919b5 */ const d = (Array.isArray(durations) && durations.length ? durations : [100]).map((x) => (Number(x) > 10 ? Number(x) : 100));
+    const loopMs = d.reduce((s, x) => s + x, 0);
     let frames;
     if (opt.frames > 0) frames = Math.round(opt.frames);
     else {

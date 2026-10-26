@@ -31,11 +31,11 @@ function bars(vals, w, h, gap, uid) {
     const bw = (w - gap * (n - 1)) / n;
     const f = Math.sqrt;
     const mx = Math.max(...vals.map(f), 1e-9);
-    let out = '';
+    /*! Better Vest (c) 2026 Astral. All rights reserved. bv-bda5e88e */ let out = '';
     vals.forEach((v, i) => {
         const x = i * (bw + gap);
         if (!(v > 0)) {
-            out += `<rect x="${x.toFixed(2)}" y="${h - 1}" width="${bw.toFixed(2)}" height="1" rx=".5" fill="rgb(255 255 255 / .18)"/>`; /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-cb50146c */
+            out += `<rect x="${x.toFixed(2)}" y="${h - 1}" width="${bw.toFixed(2)}" height="1" rx=".5" fill="rgb(255 255 255 / .18)"/>`;
             return;
         }
         const bh = Math.max(1.5, (f(v) / mx) * (h - 2));
@@ -64,10 +64,10 @@ export function buildCard(S, opts = {}) {
         ? { hero: 84, strip: 292, stats: 382, div: 442, recip: 458 }
         : { hero: 112, stats: 346, div: 418, recip: 438 };
     const ms = S.reached;
-    const pill = ms ? `<span class="bvc-pill"><b></b>${esc(fmtMilestone(ms.amount))} milestone &middot; ${esc(dm(ms.reachedKey))}</span>` : '';
+    const pill = ms ? `<span class="bvc-pill"><b></b>${esc(fmtMilestone(ms.amount))} milestone &middot; ${esc(dm(ms.reachedKey))}</span>` : ''; /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-d94395d5 */
 
     let strip = '';
-    /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-b552b7b3 */ if (chart) {
+    if (chart) {
         const series = barSeries(S, 40, 7);
         const n = series.bars.length;
         const gap = n > 24 ? 3 : n > 14 ? 4.5 : 6;

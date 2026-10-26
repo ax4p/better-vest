@@ -22,7 +22,7 @@
 
 
 .vg { position: relative; overflow: auto; border-radius: 12px; border: 1px solid var(--j-hair); background: color-mix(in srgb, var(--ax-inset) 38%, transparent); }
-.vg-in { min-width: 100%; }
+.vg-in { min-width: 100%; } /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-c78a17bd */
 .vg-head { position: sticky; top: 0; z-index: 3; display: grid; align-items: center; padding: 0 12px; background: color-mix(in srgb, var(--ax-raised) 97%, transparent); border-bottom: 1px solid var(--j-hair-2); }
 .vh { padding: 0 6px; min-width: 0; text-align: right; font-size: 10px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--j-t2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .vh.l { text-align: left; }
@@ -79,7 +79,7 @@
 .hb-track.two .hb-bar:nth-of-type(3) { top: 12px; }
 .hb-bar.up { background: color-mix(in srgb, var(--ax-up) 82%, transparent); }
 .hb-bar.dn { background: color-mix(in srgb, var(--ax-down) 82%, transparent); }
-.hb-bar.short { opacity: .62; } /* Owned by Astral (@ax4p): Better Vest standard 9.3.1. Licence: LICENSE, not open source. bv-1b7c9e03 */
+.hb-bar.short { opacity: .62; }
 
 
 .pr-ribbon { display: grid; grid-template-columns: minmax(0, 1.7fr) repeat(6, minmax(0, 1fr)); gap: 10px; margin-bottom: 10px; }
@@ -156,7 +156,7 @@
 .tg-cost .mut { font-size: 12px; }
 @media (max-width: 1180px) { .st-wrap { grid-template-columns: minmax(0, 1fr); } .st-metrics { position: static; max-height: none; } }
 @media (max-width: 1000px) { .st-charts { grid-template-columns: minmax(0, 1fr); } }
-.chips { display: inline-flex; flex-wrap: wrap; gap: 6px; }
+.chips { display: inline-flex; flex-wrap: wrap; gap: 6px; } /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-d2cf92a8 */
 .st-panel .pn-b { min-height: 150px; }
 .st-panel.span2 .hb-row { grid-template-columns: minmax(70px, 150px) 1fr minmax(120px, auto); }
 
@@ -179,7 +179,7 @@
 .tr-det { padding: 10px 14px; height: 100%; overflow: auto; align-content: start; gap: 6px; }
 .tr-det .det-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
 .cf-p { margin: 0 0 16px; font-size: 13px; line-height: 1.55; color: var(--j-meta); }
-.cf-actions { display: flex; gap: 8px; flex-wrap: wrap; } /*! Better Vest (c) 2026 Astral. All rights reserved. bv-450744ee */
+.cf-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 
 
 .ac-ribbon { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; margin-bottom: 10px; }

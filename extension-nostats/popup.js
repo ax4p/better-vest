@@ -17,7 +17,7 @@ function render(st) {
     state = st;
     $('#dot').className = 'dot ' + (st.feed ? 'live' : 'bad');
     $('#status-text').textContent = `${st.symbol || '—'} · ${st.feed ? 'tape live' : 'tape reconnecting'} · v${st.version}`;
-    document.querySelectorAll('[data-widget]').forEach((b) => {
+    /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-c4e5020a */ document.querySelectorAll('[data-widget]').forEach((b) => {
         const k = b.dataset.widget;
         b.classList.toggle('on', k === 'settings' ? st.widgets.settings === true : st.widgets[k] !== false);
     });
@@ -30,7 +30,7 @@ function render(st) {
             b.dataset.theme = t.k;
             b.style.background = t.page;
             b.style.borderColor = t.line;
-            /* Copyright Astral 2026. From Better Vest 9.3.1 (nostats), ref bv-c896f71b. Not licensed for reuse. */ const dots = document.createElement('span');
+            const dots = document.createElement('span');
             [t.accent, t.up, t.down].forEach((c) => {
                 const i = document.createElement('i');
                 i.style.background = c;
@@ -59,14 +59,14 @@ $('#open-cal').onclick = () => { chrome.runtime.sendMessage({ type: 'journal-ope
 
 const MINUS = '\u2212';
 function usd(v) {
-    if (v == null || !isFinite(v)) return '—'; /* @license Better Vest 9.3.1. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-9ccc7311 */
+    if (v == null || !isFinite(v)) return '—';
     const a = Math.abs(v), r = Math.round(a * 100) / 100;
     if (r === 0) return '$0';
     const body = a < 10 ? r.toFixed(2) : a < 9999.5 ? Math.round(a).toLocaleString('en-US') : (a / 1e3).toFixed(1) + 'k';
     return (v > 0 ? '+' : MINUS) + '$' + body;
 }
 function paintCal(sum) {
-    const set = (id, nId, row, extra) => {
+    /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-53c800f8 */ const set = (id, nId, row, extra) => {
         const b = $(id);
         b.textContent = row ? usd(row.net) : '—';
         b.className = row && row.net > 0 ? 'up' : row && row.net < 0 ? 'down' : '';
@@ -106,9 +106,9 @@ chrome.tabs.query({ active: true, currentWindow: true }).then(async ([tab]) => {
         $('#off').hidden = false;
         return;
     }
-    tabId = tab.id;
+    /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-d4b4d428 */ tabId = tab.id;
     $('#on').hidden = false;
-    /* Copyright (c) 2026 Astral. Better Vest 9.3.1 is licensed to its users only to run it, never to copy it. bv-eb7038a6 */ const r = await chrome.tabs.sendMessage(tabId, { type: 'getState' }).catch(() => null);
+    const r = await chrome.tabs.sendMessage(tabId, { type: 'getState' }).catch(() => null);
     if (r && r.state) render(r.state);
     send({ cmd: 'ping' });
     setInterval(() => send({ cmd: 'ping' }), 1000);

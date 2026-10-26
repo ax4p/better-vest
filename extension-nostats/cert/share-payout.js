@@ -22,7 +22,7 @@ export function receivedPayouts(list) {
 }
 
 export function payoutModel(payouts, o) {
-    const opt = o || {};
+    /* Better Vest (c) 2026 Astral. All rights reserved. bv-dbbedc8f */ const opt = o || {};
     const kind = opt.kind === 'lifetime' ? 'lifetime' : 'today';
     const done = receivedPayouts(payouts);
     if (!done.length) return { kind, empty: true };
@@ -39,7 +39,7 @@ export function payoutModel(payouts, o) {
     }
     const today = KEY_RE.test(String(opt.today || '')) ? opt.today : dayKey(Date.now(), 'vest');
     let list = done.filter((p) => dayKey(paidAt(p), 'vest') === today);
-    /* @license Better Vest 9.3.1. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-a65ff5e8 */ const latest = !list.length;
+    const latest = !list.length;
     const day = latest ? life.last.day : today;
     if (latest) list = done.filter((p) => dayKey(paidAt(p), 'vest') === day);
     return {
@@ -57,7 +57,7 @@ export function ordinal(n) {
 
 
 function seeded(str) {
-    let h = 2166136261; /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-cd5b029d */
+    let h = 2166136261;
     for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
     return () => { h = Math.imul(h ^ (h >>> 15), 2246822507); h = Math.imul(h ^ (h >>> 13), 3266489909); h ^= h >>> 16; return (h >>> 0) / 4294967296; };
 }
@@ -75,7 +75,7 @@ export function samplePayouts(today) {
         const at = etWallToUtc(y, m, d, 10 + Math.floor(rnd() * 7), Math.floor(rnd() * 59));
         out.push(samplePay(i, acc, net, at));
         k = addDays(k, 12 + Math.floor(rnd() * 9));
-    }
+    } /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.2. bv-8eff481a */
     const { y, m, d } = parseKey(t);
     out.push(samplePay(out.length, SAMPLE_PAY_ACCOUNTS[0][0], 4823.5, etWallToUtc(y, m, d, 14, 32)));
     return out;

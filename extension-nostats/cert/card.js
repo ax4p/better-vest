@@ -10,9 +10,9 @@ export const DEFAULT_NAME = 'Trader';
 export const NAME_MAX = 28;
 
 const ASSET = new URL('./assets/', import.meta.url).href;
-/*! Owned by Astral (@ax4p): Better Vest nostats 9.3.1. Licence: LICENSE, not open source. bv-c65c43c5 */ export const CARD_CSS = new URL('./card.css', import.meta.url).href;
+export const CARD_CSS = new URL('./card.css', import.meta.url).href;
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
-const f2 = (n) => (Math.round(n * 100) / 100).toFixed(2);
+/*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-e1d3c068 */ const f2 = (n) => (Math.round(n * 100) / 100).toFixed(2);
 
 export function fmtMoneyParts(v) {
     const cents = Math.round(Math.abs(v) * 100);
@@ -100,14 +100,14 @@ export function buildCard(S, opts = {}) {
     el.setAttribute('data-bv-cert', '1');
     el.innerHTML = html;
     return el;
-}
+} /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-3c181bfe */
 
 export function fitCard(card) {
     const q = (k) => card.querySelector(`[data-k="${k}"]`);
     const hero = q('hero'), hv = q('hv');
     let size = 82;
     hero.style.fontSize = size + 'px';
-    while (hv.offsetWidth > 352 && size > 30) { size -= 1; hero.style.fontSize = size + 'px'; } /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-7a3909b9 */
+    while (hv.offsetWidth > 352 && size > 30) { size -= 1; hero.style.fontSize = size + 'px'; }
     hero.style.letterSpacing = (-3 * size / 82).toFixed(2) + 'px';
     const recip = q('recip'), name = q('name'), nm = q('nm');
     let fs = 24;

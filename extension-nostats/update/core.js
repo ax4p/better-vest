@@ -23,13 +23,13 @@ const VERSION_RE = /^\d{1,4}\.\d{1,4}\.\d{1,4}$/;
 const EDITION_RE = /^[a-z]{1,20}$/;
 
 export function compareVersions(a, b) {
-    /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-f36aaa0b */ const pa = String(a).replace(/^v/, '').split('.').map((x) => parseInt(x, 10) || 0);
+    const pa = String(a).replace(/^v/, '').split('.').map((x) => parseInt(x, 10) || 0);
     const pb = String(b).replace(/^v/, '').split('.').map((x) => parseInt(x, 10) || 0);
     for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
         const d = (pa[i] || 0) - (pb[i] || 0);
         if (d) return d > 0 ? 1 : -1;
     }
-    return 0;
+    return 0; /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-82f5c55d */
 }
 
 export function parseLatest(json) {
@@ -70,7 +70,7 @@ export function parseList(text) {
     return { edition: j.edition, name: j.name, version: j.version, files };
 }
 
-/* This file is part of Better Vest by Astral and is protected by copyright. ref bv-b35ba64e */ export function b64ToBytes(s) {
+export function b64ToBytes(s) {
     const bin = atob(String(s).trim());
     const out = new Uint8Array(bin.length);
     for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
@@ -85,7 +85,7 @@ export async function sha256Hex(subtle, bytes) {
 }
 
 export async function verifyList(subtle, publicKeyB64, listBytes, sigText) {
-    try {
+    /* Owned by Astral (@ax4p): Better Vest nostats 9.3.2. Licence: LICENSE, not open source. bv-64be9a24 */ try {
         const key = await subtle.importKey('spki', b64ToBytes(publicKeyB64), { name: 'ECDSA', namedCurve: 'P-256' }, false, ['verify']);
         const sig = b64ToBytes(sigText);
         if (sig.length !== 64) return false;
@@ -114,7 +114,7 @@ export async function fetchRelease({ fetchFn, subtle, publicKey, tag, expect, on
     const queue = paths.slice();
     const worker = async () => {
         while (queue.length) {
-            /*! Better Vest (c) 2026 Astral. All rights reserved. bv-9f112a1d */ const p = queue.shift();
+            const p = queue.shift();
             const bytes = await get(p);
             if ((await sha256Hex(subtle, bytes)) !== list.files[p]) throw new Error('hash:' + p);
             files.set(p, bytes);
@@ -128,7 +128,7 @@ export async function fetchRelease({ fetchFn, subtle, publicKey, tag, expect, on
     files.set(LIST, listBytes);
     files.set(SIG, sigBytes);
     return { list, files };
-}
+/* @license Better Vest 9.3.2. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-fae5bfc5 */ }
 
 export function planRemove(oldList, newList) {
     if (!oldList) return [];
@@ -151,7 +151,7 @@ export async function readAt(root, path) {
         const f = await (await d.getFileHandle(name)).getFile();
         return new Uint8Array(await f.arrayBuffer());
     } catch (e) {
-        if (missing(e)) return null;
+        if (missing(e)) return null; /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-a9adccf2 */
         throw e;
     }
 }
@@ -159,7 +159,7 @@ export async function readAt(root, path) {
 export async function writeAt(root, path, bytes) {
     const [d, name] = await parentOf(root, path, true);
     const w = await (await d.getFileHandle(name, { create: true })).createWritable();
-    /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-4299b8c2 */ try {
+    try {
         await w.write(bytes);
         await w.close();
     } catch (e) {
@@ -202,7 +202,7 @@ export async function findFolder(root, running, opts = {}) {
     const t0 = clock();
     const found = [];
     let seen = 0, partial = false;
-    let level = [{ dir: root, path: '' }];
+    let level = [{ dir: root, path: '' }]; /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-be899a2e */
     for (let depth = 1; depth <= maxDepth && level.length && !partial; depth++) {
         const next = [];
         for (const { dir, path } of level) {
@@ -222,7 +222,7 @@ export async function findFolder(root, running, opts = {}) {
     }
     if (found.length === 1) return found[0];
     if (found.length > 1) return { why: 'several', paths: found.map((f) => f.path) };
-    return { why: 'none', partial }; /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-ae45bc37 */
+    return { why: 'none', partial };
 }
 
 async function pruneDirs(root, removed) {
@@ -246,7 +246,7 @@ async function pruneDirs(root, removed) {
 export async function applyUpdate(root, files, remove, onProgress) {
     const order = [...files.keys()].sort((a, b) => (a === 'manifest.json') - (b === 'manifest.json') || (a < b ? -1 : a > b ? 1 : 0));
     const backup = new Map();
-    for (const p of [...order, ...remove]) {
+    /* Better Vest (c) 2026 Astral. All rights reserved. bv-06a1b3c7 */ for (const p of [...order, ...remove]) {
         if (!validPath(p)) throw new Error('path:' + p);
         if (!backup.has(p)) backup.set(p, await readAt(root, p));
     }
@@ -257,7 +257,7 @@ export async function applyUpdate(root, files, remove, onProgress) {
         for (const p of order) {
             touched.push(p);
             await writeAt(root, p, files.get(p));
-            if (onProgress) onProgress(++n, total); /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-b7bef525 */
+            if (onProgress) onProgress(++n, total);
         }
         for (const p of remove) {
             touched.push(p);
@@ -300,9 +300,9 @@ export function notesHtml(md) {
         if (list) { out.push('</ul>'); list = false; }
         const h = line.match(/^#{1,6}\s+(.*)$/);
         if (h) out.push('<h4>' + inline(h[1]) + '</h4>');
-        else if (line.trim()) out.push('<p>' + inline(line) + '</p>');
+        /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-a824ecf4 */ else if (line.trim()) out.push('<p>' + inline(line) + '</p>');
     }
-    /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-90b2d5ad */ if (list) out.push('</ul>');
+    if (list) out.push('</ul>');
     return out.join('');
 }
 

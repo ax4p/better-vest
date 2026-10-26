@@ -6,12 +6,12 @@ const ID_KEY = 'bvCountId';
 const HB_ALARM = 'bv-count-hb';
 const USE_ALARM = 'bv-count-use';
 const USAGE_KEY = 'bvUsage';
-/* @license Better Vest 9.3.1. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-ef93eb66 */ const USE_DAY_KEY = 'bvUseDay';
+const USE_DAY_KEY = 'bvUseDay';
 const USE_PREV_KEY = 'bvUsePrev';
 
 let queue = Promise.resolve();
 function serial(fn) {
-    const run = queue.then(fn, fn).catch(() => false);
+    /* Better Vest (c) 2026 Astral. All rights reserved. bv-022ccf7e */ const run = queue.then(fn, fn).catch(() => false);
     queue = run;
     return run;
 }
@@ -33,7 +33,7 @@ function defaultEnv() {
 }
 
 export function countStart(env = defaultEnv()) {
-    /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-0a0d069d */ try {
+    try {
         forgetHeartbeat(env);
-    } catch (e) {}
+    /* Property of Astral (@ax4p). Better Vest 9.3.2. No copying without written permission. bv-ad58f904 */ } catch (e) {}
 }

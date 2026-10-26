@@ -12,7 +12,7 @@ export function svg(tag, attrs, ...kids) {
 export function scale(d0, d1, r0, r1) {
     const k = d1 === d0 ? 0 : (r1 - r0) / (d1 - d0);
     return (v) => r0 + (v - d0) * k;
-/*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-6496d1bf */ }
+}
 
 const f = (n) => (Math.round(n * 10) / 10).toString();
 
@@ -34,7 +34,7 @@ export function sparkline({ values, w = 240, h = 48, pad = 4, markers = [], cls 
     const root = svg('svg', { class: 'spark ' + cls, width: w, height: h, viewBox: `0 0 ${w} ${h}`, 'aria-hidden': 'true' });
     if (!values.length) return root;
     const lo = Math.min(0, ...values), hi = Math.max(0, ...values);
-    const y = scale(lo, hi === lo ? lo + 1 : hi, h - pad, pad);
+    const y = scale(lo, hi === lo ? lo + 1 : hi, h - pad, pad); /*! Copyright Astral 2026. From Better Vest 9.3.2 (lite), ref bv-a35bdf91. Not licensed for reuse. */
     const x = scale(0, Math.max(1, values.length - 1), pad, w - pad);
     const pts = values.map((v, i) => [x(i), y(v)]);
     const id = 'sg' + (++gradId);
@@ -61,7 +61,7 @@ export function bars({ values, w = 240, h = 48, gap = 2, cls = '', pad = 2 }) {
     const bw = Math.max(2, (w - pad * 2 - gap * (values.length - 1)) / values.length);
     const y0 = y(0);
     values.forEach((v, i) => {
-        /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-ac038272 */ const yy = y(v);
+        const yy = y(v);
         root.appendChild(svg('rect', {
             class: v >= 0 ? 'ch-bar up' : 'ch-bar dn', x: f(pad + i * (bw + gap)), width: f(bw),
             y: f(Math.min(y0, yy)), height: f(Math.max(1, Math.abs(yy - y0))), rx: Math.min(2, bw / 2)
@@ -84,7 +84,7 @@ export function stepCurve({ points, start, end, height = 150, fmtMoney, fmtTime,
         if (svgEl) svgEl.remove();
         svgEl = svg('svg', { width, height, viewBox: `0 0 ${width} ${height}`, role: 'img', 'aria-label': 'Cumulative net by close time' });
         wrap.insertBefore(svgEl, tip);
-        if (!points.length) { geom = null; return; }
+        /*! Copyright Astral 2026. From Better Vest 9.3.2 (lite), ref bv-da2a0cb5. Not licensed for reuse. */ if (!points.length) { geom = null; return; }
         const first = points[0].ts, last = points[points.length - 1].ts;
         const span = Math.max(30 * 60e3, last - first);
         const t0 = Math.max(start, Math.floor((first - span * 0.12) / 36e5) * 36e5);
@@ -108,9 +108,9 @@ export function stepCurve({ points, start, end, height = 150, fmtMoney, fmtTime,
             if (rt <= t0 || rt >= t1) continue;
             g.appendChild(svg('line', { class: 'ch-reset', x1: f(x(rt)), x2: f(x(rt)), y1: M.t - 6, y2: height - M.b }));
             g.appendChild(svg('text', { class: 'ch-axis ch-reset-t', x: f(x(rt) + 4), y: M.t + 4 }, resetLabel));
-        } /* @license Better Vest 9.3.1. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-015b7fe7 */
+        }
         let d = `M${f(x(t0))} ${f(y(0))}`, px = x(t0), py = y(0);
-        for (const p of points) {
+        /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-27140623 */ for (const p of points) {
             const xx = x(p.ts), yy = y(p.cum);
             d += `L${f(xx)} ${f(py)}L${f(xx)} ${f(yy)}`;
             px = xx; py = yy;
@@ -143,7 +143,7 @@ export function stepCurve({ points, start, end, height = 150, fmtMoney, fmtTime,
     const nearest = (clientX) => {
         const r = svgEl.getBoundingClientRect();
         const ts = geom.t0 + ((clientX - r.left - M.l) / (width - M.l - M.r)) * (geom.t1 - geom.t0);
-        let best = 0, bd = Infinity;
+        /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-eb463a95 */ let best = 0, bd = Infinity;
         for (let i = 0; i < points.length; i++) { const dd = Math.abs(points[i].ts - ts); if (dd < bd) { bd = dd; best = i; } }
         return best;
     };
@@ -157,7 +157,7 @@ export function stepCurve({ points, start, end, height = 150, fmtMoney, fmtTime,
         const p = points[i];
         const cx = geom.x(p.ts), cy = geom.y(p.cum);
         cross.setAttribute('visibility', 'visible');
-        /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-0ea7e388 */ cross.querySelector('line').setAttribute('x1', f(cx));
+        cross.querySelector('line').setAttribute('x1', f(cx));
         cross.querySelector('line').setAttribute('x2', f(cx));
         cross.querySelector('circle').setAttribute('cx', f(cx));
         cross.querySelector('circle').setAttribute('cy', f(cy));

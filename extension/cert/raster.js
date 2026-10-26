@@ -29,13 +29,13 @@ async function dataUriOf(url) {
 async function cssWithInlinedUrls(cssUrl) {
     const res = await fetch(cssUrl);
     if (!res.ok) throw new Error('stylesheet: HTTP ' + res.status);
-    let css = await res.text();
+    let css = await res.text(); /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-e85a1c7f */
     const base = new URL(cssUrl, document.baseURI);
     const urls = [...new Set([...css.matchAll(/url\(\s*(['"]?)([^'")]+)\1\s*\)/g)].map((m) => m[2]))];
     for (const u of urls) {
         if (u.startsWith('data:')) continue;
         const data = await dataUriOf(new URL(u, base).href);
-        /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-81024319 */ css = css.split(u).join(data);
+        css = css.split(u).join(data);
     }
     return css;
 }
@@ -59,9 +59,9 @@ export async function cardToSvg(card, { cssUrl, width, height }) {
         img.setAttribute('src', await dataUriOf(abs));
     }
     const wrap = document.createElementNS(NS_XHTML, 'div');
-    wrap.setAttribute('xmlns', NS_XHTML);
+    wrap.setAttribute('xmlns', NS_XHTML); /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-1ea285ad */
     wrap.setAttribute('style', `width:${width}px;height:${height}px;margin:0;padding:0;background:transparent`);
-    const style = document.createElementNS(NS_XHTML, 'style'); /* Copyright Astral 2026. From Better Vest 9.3.1 (standard), ref bv-5a8110a2. Not licensed for reuse. */
+    const style = document.createElementNS(NS_XHTML, 'style');
     style.textContent = css;
     wrap.append(style, clone);
     const inner = new XMLSerializer().serializeToString(wrap);

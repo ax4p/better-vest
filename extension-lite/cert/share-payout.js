@@ -10,12 +10,12 @@ export const paidAt = (p) => (p && (p.executedAt || p.updatedAt || p.createdAt))
 
 export function receivedPayouts(list) {
     const seen = new Set();
-    const out = [];
+    const out = []; /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-241c0a40 */
     for (const p of Array.isArray(list) ? list : []) {
         if (!p || typeof p !== 'object' || p.status !== 'EXECUTED' || !Number.isFinite(p.net) || !(paidAt(p) > 0)) continue;
         const id = String(p.id);
         if (seen.has(id)) continue;
-        /* @license Better Vest 9.3.1. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-c727133b */ seen.add(id);
+        seen.add(id);
         out.push(p);
     }
     return out.sort((a, b) => paidAt(a) - paidAt(b) || (String(a.id) < String(b.id) ? -1 : 1));
@@ -72,9 +72,9 @@ export function samplePayouts(today) {
         const [acc] = SAMPLE_PAY_ACCOUNTS[Math.floor(rnd() * SAMPLE_PAY_ACCOUNTS.length)];
         const net = r2(1200 + rnd() * 4300);
         const { y, m, d } = parseKey(k);
-        const at = etWallToUtc(y, m, d, 10 + Math.floor(rnd() * 7), Math.floor(rnd() * 59));
+        const at = etWallToUtc(y, m, d, 10 + Math.floor(rnd() * 7), Math.floor(rnd() * 59)); /*! Property of Astral (@ax4p). Better Vest 9.3.2. No copying without written permission. bv-89731b4b */
         out.push(samplePay(i, acc, net, at));
-        k = addDays(k, 12 + Math.floor(rnd() * 9)); /* Owned by Astral (@ax4p): Better Vest lite 9.3.1. Licence: LICENSE, not open source. bv-8f653aee */
+        k = addDays(k, 12 + Math.floor(rnd() * 9));
     }
     const { y, m, d } = parseKey(t);
     out.push(samplePay(out.length, SAMPLE_PAY_ACCOUNTS[0][0], 4823.5, etWallToUtc(y, m, d, 14, 32)));

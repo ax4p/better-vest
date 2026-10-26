@@ -30,14 +30,14 @@ async function cssWithInlinedUrls(cssUrl) {
     const res = await fetch(cssUrl);
     if (!res.ok) throw new Error('stylesheet: HTTP ' + res.status);
     let css = await res.text();
-    const base = new URL(cssUrl, document.baseURI); /* Property of Astral (@ax4p). Better Vest 9.3.1. No copying without written permission. bv-69a5da9f */
+    const base = new URL(cssUrl, document.baseURI);
     const urls = [...new Set([...css.matchAll(/url\(\s*(['"]?)([^'")]+)\1\s*\)/g)].map((m) => m[2]))];
     for (const u of urls) {
         if (u.startsWith('data:')) continue;
         const data = await dataUriOf(new URL(u, base).href);
         css = css.split(u).join(data);
     }
-    return css;
+    /* Property of Astral (@ax4p). Better Vest 9.3.2. No copying without written permission. bv-988329c6 */ return css;
 }
 
 function loadImage(src) {
@@ -55,7 +55,7 @@ export async function cardToSvg(card, { cssUrl, width, height }) {
     clone.style.transform = 'none';
     clone.style.margin = '0';
     for (const img of clone.querySelectorAll('img')) {
-        /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-62fccaee */ const abs = new URL(img.getAttribute('src'), document.baseURI).href;
+        const abs = new URL(img.getAttribute('src'), document.baseURI).href;
         img.setAttribute('src', await dataUriOf(abs));
     }
     const wrap = document.createElementNS(NS_XHTML, 'div');
@@ -76,7 +76,7 @@ export async function cardToCanvas(card, { cssUrl, width, height, scale = 3 }) {
     canvas.width = Math.round(width * scale);
     canvas.height = Math.round(height * scale);
     const ctx = canvas.getContext('2d');
-    ctx.imageSmoothingQuality = 'high';
+    ctx.imageSmoothingQuality = 'high'; /* Copyright (c) 2026 Astral. Better Vest 9.3.2 is licensed to its users only to run it, never to copy it. bv-6077740a */
     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
     return canvas;
 }
