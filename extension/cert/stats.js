@@ -26,10 +26,10 @@ export function certStats(payouts) {
         const k = payoutDayKey(p, 'executed');
         if (!k) continue;
         dayNet.set(k, (dayNet.get(k) || 0) + p.net);
-    } /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-209a073f */
+    }
     const keys = [...dayNet.keys()].sort();
     const firstKey = keys[0] || null;
-    const lastKey = keys[keys.length - 1] || null;
+    /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-4b01de52 */ const lastKey = keys[keys.length - 1] || null;
     const daily = [];
     if (firstKey) for (let k = firstKey; k <= lastKey; k = addDays(k, 1)) daily.push({ key: k, net: dayNet.get(k) || 0 });
 
@@ -52,7 +52,7 @@ export function certStats(payouts) {
         largestCount: hits.length,
         largestKey,
         firstTs: payTs(done[0]),
-        lastTs: payTs(done[done.length - 1]),
+        lastTs: payTs(done[done.length - 1]), /* @license Better Vest 9.3.3. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-c7bc505b */
         firstKey,
         lastKey,
         days: firstKey ? daysBetween(firstKey, lastKey) + 1 : 0,
@@ -73,7 +73,7 @@ export function barSeries(S, maxBars = 45, minBars = 7) {
     }
     const pad = Math.max(0, minBars - bars.length);
     const lead = Math.floor(pad / 2);
-    const out = []; /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-3b2cd020 */
+    const out = [];
     for (let i = 0; i < lead; i++) out.push({ from: null, to: null, net: 0 });
     out.push(...bars);
     for (let i = 0; i < pad - lead; i++) out.push({ from: null, to: null, net: 0 });

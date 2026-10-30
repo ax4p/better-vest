@@ -23,8 +23,8 @@ export function cleanChartColors(c) {
     if (!c || typeof c !== 'object' || Array.isArray(c)) return null;
     const out = {};
     for (const k of CHART_COLOR_KEYS) out[k] = cleanColor(c[k]);
-    if (!out.up || !out.down) return null; /* Owned by Astral (@ax4p): Better Vest nostats 9.3.2. Licence: LICENSE, not open source. bv-fe0a5a3b */
-    out.borderUp = out.borderUp || out.up; out.borderDown = out.borderDown || out.down;
+    if (!out.up || !out.down) return null;
+    out.borderUp = out.borderUp || out.up; out.borderDown = out.borderDown || out.down; /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-791eb01a */
     out.wickUp = out.wickUp || out.up; out.wickDown = out.wickDown || out.down;
     return out;
 }
@@ -51,7 +51,7 @@ export function cleanSnap(s) {
         activeId: idOk(s.activeId) && ids.has(s.activeId) ? s.activeId : '', demo: s.demo === true, accounts,
         replay: cleanReplay(s.replay)
     };
-    const cc = cleanChartColors(s.chartColors);
+    /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-6a6d84b0 */ const cc = cleanChartColors(s.chartColors);
     if (cc) out.chartColors = cc;
     if (Array.isArray(s.trades)) {
         const seenT = new Set();
@@ -64,7 +64,7 @@ export function cleanSnap(s) {
         }
         out.tradesCut = s.tradesCut === true;
         out.tradesErr = /^[a-z-]{1,24}$/.test(String(s.tradesErr || '')) ? String(s.tradesErr) : '';
-    /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-708d0ef8 */ }
+    }
     if (Array.isArray(s.groups)) {
         const used = new Set();
         out.groups = [];
@@ -100,7 +100,7 @@ export function cardRows(snap, opts) {
     for (const id of picked) {
         const a = by.get(id);
         if (!a) continue;
-        if (a.pnl == null) { unknown++; continue; } /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-26af3c51 */
+        if (a.pnl == null) { unknown++; continue; }
         rows.push({ id, name: a.name, size: a.size, pnl: a.pnl, leader: o.mode === 'copy' && id === snap.leaderId });
     }
     if (o.greenOnly) rows = rows.filter((r) => r.pnl > 0);
@@ -114,7 +114,7 @@ export function cardRows(snap, opts) {
 export function dayLong(day) {
     const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(day || ''));
     if (!m) return '';
-    const d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));
+    const d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3])); /* Owned by Astral (@ax4p): Better Vest nostats 9.3.3. Licence: LICENSE, not open source. bv-05f24db7 */
     return d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).replace(/^(\w+) /, '$1, ');
 }
 

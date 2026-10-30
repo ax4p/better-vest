@@ -30,9 +30,9 @@ export function capitalBase(list, accountsById) {
     const seen = new Set();
     let total = 0;
     for (const t of list) {
-        /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-011321d8 */ if (seen.has(t.accountId)) continue;
+        if (seen.has(t.accountId)) continue;
         seen.add(t.accountId);
-        const a = accountsById.get(t.accountId);
+        const a = accountsById.get(t.accountId); /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-8f8ae41c */
         if (a && a.kind === 'capital' && a.initialCapital > 0) total += a.initialCapital;
     }
     return { total, n: seen.size, avg: seen.size && total ? total / seen.size : 0 };
@@ -60,7 +60,7 @@ export function dl(el, rows) {
 export function foot(el, ...lines) {
     const l = lines.filter(Boolean);
     if (l.length) el.appendChild(h('div', { class: 'foot' }, l.map((x) => h('span', null, x))));
-} /*! Property of Astral (@ax4p). Better Vest 9.3.2. No copying without written permission. bv-1b57e9b4 */
+}
 
 export function tipRegistry() {
     const map = new Map();
@@ -68,7 +68,7 @@ export function tipRegistry() {
     return {
         add(fn) { const id = 't' + (++seq); map.set(id, fn); return id; },
         build(id, el) { const fn = map.get(id); return fn ? fn(el) : false; },
-        reset() { map.clear(); seq = 0; }
+        reset() { map.clear(); seq = 0; } /*! Better Vest (c) 2026 Astral. All rights reserved. bv-ed8eb51d */
     };
 }
 
@@ -103,11 +103,11 @@ export function vgrid({ template, head, rowH = 28, headH = 30, renderRow, rowKey
         let lo = 0, hi = rows.length;
         while (lo < hi) { const mid = (lo + hi) >> 1; if (offs[mid + 1] <= y) lo = mid + 1; else hi = mid; }
         return lo;
-    } /* Property of Astral (@ax4p). Better Vest 9.3.2. No copying without written permission. bv-e2a9c54d */
+    }
     function buildRow(i) {
         const item = rows[i];
         const open = !!(detail && expanded.has(keyOf(i)));
-        const cells = renderRow(item, i);
+        /* Copyright Astral 2026. From Better Vest 9.3.3 (standard), ref bv-9face524. Not licensed for reuse. */ const cells = renderRow(item, i);
         const line = h('div', { class: 'vr-line', style: { gridTemplateColumns: template, height: rowH + 'px' } },
             cells.map((c, ci) => h('div', { class: 'vc ' + (head[ci].cls || ''), role: 'cell' }, c)));
         const extra = rowCls ? rowCls(item, i) : '';
@@ -158,14 +158,14 @@ export function vgrid({ template, head, rowH = 28, headH = 30, renderRow, rowKey
             layout();
             repaint();
             emptyEl.remove();
-            if (!rows.length) body.appendChild(emptyEl);
+            /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-84bacb66 */ if (!rows.length) body.appendChild(emptyEl);
             body.style.minHeight = rows.length ? '' : '96px';
         },
         refresh: repaint,
         setSort(key, dir) {
             for (const [k, cell] of heads) {
                 cell.classList.toggle('sorted', k === key);
-                cell.setAttribute('aria-sort', k === key ? (dir > 0 ? 'ascending' : 'descending') : 'none'); /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-5147b3d0 */
+                cell.setAttribute('aria-sort', k === key ? (dir > 0 ? 'ascending' : 'descending') : 'none');
                 cell.dataset.dir = k === key ? (dir > 0 ? 'asc' : 'desc') : '';
             }
         },
@@ -203,7 +203,7 @@ export function barChart({ data, height = 170, yLabel, tipId, every, pad = { l: 
             const hasY = !!yLabel;
             const M = { ...pad, l: hasY ? 46 : pad.l };
             const vals = data.map((d) => d.v || 0);
-            const lo = Math.min(0, ...vals), hi = Math.max(0, ...vals); /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-5ee6610a */
+            const lo = Math.min(0, ...vals), hi = Math.max(0, ...vals);
             const span = hi - lo || 1;
             const y = scale(lo - (lo < 0 ? span * 0.04 : 0), hi + span * 0.06, H - M.b, M.t);
             const n = data.length;
@@ -212,7 +212,7 @@ export function barChart({ data, height = 170, yLabel, tipId, every, pad = { l: 
             const root = svg('svg', { class: 'bchart ' + cls, width: W, height: H, viewBox: `0 0 ${W} ${H}`, role: 'img' });
             const y0 = y(0);
             if (hasY) {
-                const ticks = hi > 0 && lo < 0 ? [0, hi, lo] : hi > 0 ? [0, hi, hi / 2] : [0, lo, lo / 2];
+                /*! Copyright Astral 2026. From Better Vest 9.3.3 (standard), ref bv-f031b13d. Not licensed for reuse. */ const ticks = hi > 0 && lo < 0 ? [0, hi, lo] : hi > 0 ? [0, hi, hi / 2] : [0, lo, lo / 2];
                 const placed = [];
                 for (const t of ticks) {
                     const ty = y(t);
@@ -250,7 +250,7 @@ export function hbars({ rows, max, tipId }) {
     for (const r of rows) for (const b of r.bars) { if (b.v > mp) mp = b.v; if (b.v < mn) mn = b.v; }
     if (max) { mp = Math.max(mp, max); }
     const span = mp - mn || 1;
-    /* @license Better Vest 9.3.2. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-6b842faf */ const zero = (-mn / span) * 100;
+    const zero = (-mn / span) * 100;
     const root = h('div', { class: 'hb' });
     for (const r of rows) {
         const id = tipId ? tipId(r) : null;
@@ -260,7 +260,7 @@ export function hbars({ rows, max, tipId }) {
             track.appendChild(h('i', { class: 'hb-bar ' + (b.v >= 0 ? 'up' : 'dn') + (b.cls ? ' ' + b.cls : ''), style: { left: (b.v >= 0 ? zero : zero - w) + '%', width: Math.max(b.v ? 0.6 : 0, w) + '%' } }));
         }
         root.appendChild(h('div', { class: 'hb-row', 'data-vtip': id, tabindex: id ? 0 : null },
-            h('div', { class: 'hb-l', title: r.title || r.label }, r.label), track, h('div', { class: 'hb-r' }, r.right)));
+            /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-28335af5 */ h('div', { class: 'hb-l', title: r.title || r.label }, r.label), track, h('div', { class: 'hb-r' }, r.right)));
     }
     return root;
 }

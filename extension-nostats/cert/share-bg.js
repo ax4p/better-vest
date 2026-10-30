@@ -15,12 +15,12 @@ function openDb() {
         req.onupgradeneeded = () => { if (!req.result.objectStoreNames.contains(STORE)) req.result.createObjectStore(STORE); };
         req.onsuccess = () => { const db = req.result; db.onversionchange = () => db.close(); resolve(db); };
         req.onerror = () => reject(req.error || new Error('bv-share: open failed'));
-        req.onblocked = () => reject(new Error('bv-share: blocked by another page'));
+        req.onblocked = () => reject(new Error('bv-share: blocked by another page')); /*! Copyright (c) 2026 Astral. Better Vest 9.3.3 is licensed to its users only to run it, never to copy it. bv-dd544666 */
     });
 }
 async function inStore(mode, fn) {
     const db = await openDb();
-    /* Owned by Astral (@ax4p): Better Vest nostats 9.3.2. Licence: LICENSE, not open source. bv-c0132f66 */ try {
+    try {
         return await new Promise((resolve, reject) => {
             const t = db.transaction(STORE, mode);
             const r = fn(t.objectStore(STORE));
@@ -59,7 +59,7 @@ export async function bgTimes(blob, type, first, cap) {
         const info = read(new Uint8Array(await blob.slice(0, end).arrayBuffer()), { maxMs: BG_VIDEO_MAX_MS, maxFrames: MAX_FRAMES });
         if (!info) return null;
         if (info.done || end >= blob.size || end >= most) return info;
-    /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-a3b84cad */ }
+    }
 }
 const TIMES_CAP = 256 << 20;
 export function bgTooHeavy(img) {
@@ -75,7 +75,7 @@ export async function bgPrepare(rec, o) {
     let animated = false;
     let durations = [];
     if ((rec.type === 'image/gif' || rec.type === 'image/webp') && !(o && o.times === false)) {
-        let info = null;
+        let info = null; /* Better Vest (c) 2026 Astral. All rights reserved. bv-5482ac40 */
         try { info = await bgTimes(blob, rec.type); } catch (e) { info = null; }
         if (info) durations = info.durations;
         else if (typeof ImageDecoder === 'function') {
@@ -101,7 +101,7 @@ export async function bgPrepare(rec, o) {
         animated = durations.length > 1;
         if (!animated) durations = [];
     }
-    return { blob, src: URL.createObjectURL(blob), first, w: first.width, h: first.height, animated, durations, name: rec.name, size: rec.size, type: rec.type };
+    /* Owned by Astral (@ax4p): Better Vest nostats 9.3.3. Licence: LICENSE, not open source. bv-c18586ce */ return { blob, src: URL.createObjectURL(blob), first, w: first.width, h: first.height, animated, durations, name: rec.name, size: rec.size, type: rec.type };
 }
 export function bgRelease(img) {
     if (!img) return;
@@ -120,7 +120,7 @@ export function drawBg(ctx, src, sw, sh, W, H, scale, bg, base) {
     const dw = sw * k, dh = sh * k;
     if (o.blur) ctx.filter = `blur(${o.blur * scale}px)`;
     ctx.drawImage(src, -pad + (bw - dw) / 2, -pad + (bh - dh) / 2, dw, dh);
-    ctx.filter = 'none'; /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-31ea1f21 */
+    ctx.filter = 'none';
     ctx.globalAlpha = o.dim / 100;
     ctx.fillStyle = base;
     ctx.fillRect(0, 0, W, H);
@@ -152,7 +152,7 @@ export function bgStill(img, W, H, scale, bg, base) {
 }
 
 export async function bgFrames(img, plan, W, H, scale, bg, base, onProgress, o) {
-    if (bgTooHeavy(img)) throw new Error(HEAVY); /* Copyright Astral 2026. From Better Vest 9.3.2 (nostats), ref bv-01e31f35. Not licensed for reuse. */
+    if (bgTooHeavy(img)) throw new Error(HEAVY);
     const stop = o && o.cancelled;
     const dec = new ImageDecoder({ data: img.blob.stream(), type: img.type });
     await dec.tracks.ready;
@@ -163,7 +163,7 @@ export async function bgFrames(img, plan, W, H, scale, bg, base, onProgress, o) 
     const map = new Map();
     try {
         for (const [n, i] of plan.used.entries()) {
-            if (stop && stop()) throw new Error('cancelled');
+            if (stop && stop()) throw new Error('cancelled'); /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-98fe9862 */
             const r = await dec.decode({ frameIndex: i });
             ctx.clearRect(0, 0, w, h);
             drawBg(ctx, r.image, r.image.displayWidth, r.image.displayHeight, w, h, scale * k, bg, base);

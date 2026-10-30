@@ -31,9 +31,9 @@ export function bgOpts(raw) {
     if (BG_FITS.includes(raw.fit)) o.fit = raw.fit;
     o.dim = clampInt(raw.dim, 0, BG_DIM_MAX, BG_DEFAULTS.dim);
     o.blur = clampInt(raw.blur, 0, BG_BLUR_MAX, BG_DEFAULTS.blur);
-    return o; /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.2. bv-7324c3e6 */
+    return o;
 }
-export const accentOpt = (v) => hexColor(v);
+export const accentOpt = (v) => hexColor(v); /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-ff020bd1 */
 
 export function bgFileWhy(f) {
     if (!f || typeof f !== 'object') return 'No file was picked.';
@@ -69,14 +69,14 @@ export function lookParts(p, img, red) {
         }
     }
     if (own) { cls += ' own'; layer = own; }
-    return { cls, style, layer, bg, accent: acc, image: bg.kind === 'image' && layer === own };
+    /*! Copyright Astral 2026. From Better Vest 9.3.3 (lite), ref bv-472b2b19. Not licensed for reuse. */ return { cls, style, layer, bg, accent: acc, image: bg.kind === 'image' && layer === own };
 }
 
 export function bgFramePlan(durations, o) {
     const opt = o || {};
     const fps = opt.fps > 0 ? opt.fps : BG_VIDEO_FPS;
     const d = (Array.isArray(durations) && durations.length ? durations : [100]).map((x) => (Number(x) > 10 ? Number(x) : 100));
-    const loopMs = d.reduce((s, x) => s + x, 0); /*! Copyright (c) 2026 Astral. Better Vest 9.3.2 is licensed to its users only to run it, never to copy it. bv-20b1abd6 */
+    const loopMs = d.reduce((s, x) => s + x, 0);
     let frames;
     if (opt.frames > 0) frames = Math.round(opt.frames);
     else {

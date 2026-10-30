@@ -26,7 +26,7 @@ function h(tag, attrs, ...kids) {
         if (v == null || v === false) continue;
         if (k === 'class') el.className = v;
         else if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
-        else el.setAttribute(k, v === true ? '' : v); /*! Property of Astral (@ax4p). Better Vest 9.3.2. No copying without written permission. bv-253dfed0 */
+        else el.setAttribute(k, v === true ? '' : v);
     }
     for (const kid of kids.flat()) if (kid != null && kid !== false) el.append(kid.nodeType ? kid : document.createTextNode(String(kid)));
     return el;
@@ -37,7 +37,7 @@ async function loadPayouts() {
     if (DEV) {
         try {
             const { buildFixture } = await import('../journal/fixture.js');
-            return { payouts: FORCE_EMPTY ? [] : buildFixture().payouts, source: 'fixture' };
+            /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-efbb8ee4 */ return { payouts: FORCE_EMPTY ? [] : buildFixture().payouts, source: 'fixture' };
         } catch (e) {
             if (location.hash.includes('fixture')) console.warn('certificate: no fixture in this build', e);
         }
@@ -53,7 +53,7 @@ async function loadPayouts() {
         const lastSync = await DB.getMeta(db, 'lastSync').catch(() => null);
         return { payouts, source: 'db', lastSync: lastSync || null };
     } finally {
-        db.close();
+        db.close(); /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-8b422775 */
     }
 }
 
@@ -63,7 +63,7 @@ function syncTheme() {
     const css = ls.get('bv-journal-themecss');
     if (name) document.documentElement.setAttribute('data-theme', name);
     if (css) {
-        let s = document.getElementById('theme-vars'); /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-ce74a1d3 */
+        let s = document.getElementById('theme-vars');
         if (!s) { s = document.createElement('style'); s.id = 'theme-vars'; document.head.appendChild(s); }
         s.textContent = css;
     }
@@ -99,7 +99,7 @@ function fileStamp() {
     return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
 }
 
-function renderPage(S) {
+function renderPage(S) { /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-508ef7ae */
     const state = { name: (ls.get(LS_NAME) || '').slice(0, NAME_MAX), chart: ls.get(LS_CHART) === '1' };
     let card = null;
     let seq = 0;
@@ -113,7 +113,7 @@ function renderPage(S) {
     function layout() {
         const w = stage.clientWidth - 24, hgt = Math.max(420, window.innerHeight - 150);
         const k = Math.max(0.3, Math.min(w / CARD_W, hgt / CARD_H, 1.5));
-        /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-37d70c9b */ frame.style.width = (CARD_W * k).toFixed(2) + 'px';
+        frame.style.width = (CARD_W * k).toFixed(2) + 'px';
         frame.style.height = (CARD_H * k).toFixed(2) + 'px';
         if (card) card.style.transform = `scale(${k.toFixed(4)})`;
     }
@@ -152,14 +152,14 @@ function renderPage(S) {
             say(`Saved ${Math.round(CARD_W * EXPORT_SCALE)} × ${Math.round(CARD_H * EXPORT_SCALE)} PNG.`, 'ok');
         } catch (e) {
             console.warn('certificate: export failed', e);
-            say('Could not render the image: ' + (e && e.message ? e.message : e), 'err');
+            /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-feb27402 */ say('Could not render the image: ' + (e && e.message ? e.message : e), 'err');
         } finally { busy([download, copy], false); }
     });
     copy.addEventListener('click', async () => {
         busy([download, copy], true);
         try {
             if (!(navigator.clipboard && window.ClipboardItem)) throw new Error('this browser cannot copy images');
-            /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.2. bv-8265f060 */ await navigator.clipboard.write([new ClipboardItem({ 'image/png': makePng() })]);
+            await navigator.clipboard.write([new ClipboardItem({ 'image/png': makePng() })]);
             say('Image copied to the clipboard.', 'ok');
         } catch (e) {
             console.warn('certificate: copy failed', e);
@@ -178,7 +178,7 @@ function renderPage(S) {
     const facts = h('dl', { class: 'cp-facts' },
         h('dt', null, 'Net paid out'), h('dd', { class: 'gold' }, fmtMoney(S.total)),
         h('dt', null, 'Executed payouts'), h('dd', null, S.count),
-        h('dt', null, 'Funded accounts paid'), h('dd', null, S.accounts), /* Property of Astral (@ax4p). Better Vest 9.3.2. No copying without written permission. bv-980d5881 */
+        h('dt', null, 'Funded accounts paid'), h('dd', null, S.accounts),
         h('dt', null, 'Largest'), h('dd', null, fmtMoney(S.largest) + (S.largestCount > 1 ? ` × ${S.largestCount}` : '')),
         h('dt', null, 'First → latest'), h('dd', null, `${stamp(S.firstKey)} → ${stamp(S.lastKey)}`),
         h('dt', null, 'Milestone'), h('dd', null, ms ? `${fmtMilestone(ms.amount)} · ${stamp(ms.reachedKey)}` : (S.next ? `next ${fmtMilestone(S.next.amount)}` : '—')));
@@ -190,7 +190,7 @@ function renderPage(S) {
             h('label', { class: 'cp-field' }, h('span', null, 'Name on certificate'), input,
                 h('span', { class: 'cp-hint', style: 'text-transform:none;letter-spacing:0;font-weight:400' }, `Shown as "${DEFAULT_NAME}" when empty. Saved on this device.`)),
             h('label', { class: 'cp-toggle', for: 'cp-chart' }, chartBox, h('span', { class: 'cp-switch' }), h('span', null, 'Show daily chart')),
-            h('div', { class: 'cp-actions' }, download, copy),
+            h('div', { class: 'cp-actions' }, download, copy), /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-2595cefe */
             status),
         h('div', { class: 'cp-box' }, h('div', { class: 'cp-label' }, 'Based on your Calendar data'), facts,
             h('div', { class: 'cp-hint' }, 'Executed payouts only, trader net amount: the same total as the Payouts tab.')));

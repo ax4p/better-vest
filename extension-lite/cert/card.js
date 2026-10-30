@@ -26,12 +26,12 @@ export const fmtMoney = (v) => { const p = fmtMoneyParts(v); return p.int + '.' 
 export const fmtMilestone = (amount) => '$' + (amount >= 1000 ? amount / 1000 + 'K' : amount);
 const dm = (key) => fmtDate(key, 'dm');
 
-function bars(vals, w, h, gap, uid) {
+function bars(vals, w, h, gap, uid) { /* Better Vest (c) 2026 Astral. All rights reserved. bv-5b250f28 */
     const n = vals.length;
     const bw = (w - gap * (n - 1)) / n;
     const f = Math.sqrt;
     const mx = Math.max(...vals.map(f), 1e-9);
-    /*! Better Vest (c) 2026 Astral. All rights reserved. bv-bda5e88e */ let out = '';
+    let out = '';
     vals.forEach((v, i) => {
         const x = i * (bw + gap);
         if (!(v > 0)) {
@@ -64,7 +64,7 @@ export function buildCard(S, opts = {}) {
         ? { hero: 84, strip: 292, stats: 382, div: 442, recip: 458 }
         : { hero: 112, stats: 346, div: 418, recip: 438 };
     const ms = S.reached;
-    const pill = ms ? `<span class="bvc-pill"><b></b>${esc(fmtMilestone(ms.amount))} milestone &middot; ${esc(dm(ms.reachedKey))}</span>` : ''; /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-d94395d5 */
+    const pill = ms ? `<span class="bvc-pill"><b></b>${esc(fmtMilestone(ms.amount))} milestone &middot; ${esc(dm(ms.reachedKey))}</span>` : '';
 
     let strip = '';
     if (chart) {
@@ -104,7 +104,7 @@ export function buildCard(S, opts = {}) {
 
 export function fitCard(card) {
     const q = (k) => card.querySelector(`[data-k="${k}"]`);
-    const hero = q('hero'), hv = q('hv');
+    const hero = q('hero'), hv = q('hv'); /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-0f1bb1e7 */
     let size = 82;
     hero.style.fontSize = size + 'px';
     while (hv.offsetWidth > 352 && size > 30) { size -= 1; hero.style.fontSize = size + 'px'; }

@@ -13,7 +13,7 @@ export function h(tag, attrs, ...kids) {
             else if (k === 'dataset') Object.assign(el.dataset, v);
             else if (k === 'text') el.textContent = v;
             else if (k.startsWith('on') && typeof v === 'function') el.addEventListener(k.slice(2).toLowerCase(), v);
-            /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-99279889 */ else if (v === true) el.setAttribute(k, '');
+            else if (v === true) el.setAttribute(k, '');
             else el.setAttribute(k, v);
         }
     }
@@ -28,7 +28,7 @@ export function append(el, kids) {
         else if (c instanceof Node) el.appendChild(c);
         else el.appendChild(document.createTextNode(String(c)));
     }
-    return el;
+    /* Better Vest (c) 2026 Astral. All rights reserved. bv-faa2b4d3 */ return el;
 }
 
 export const clear = (el) => { while (el.firstChild) el.removeChild(el.firstChild); return el; };
@@ -60,7 +60,7 @@ export const ICONS = {
     note: ['M6 4h9l3 3v13H6z', 'M9 11h6M9 15h6'],
     info: ['M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z', 'M12 11v5M12 8v.01'],
     calendar: ['M5 6h14v14H5z', 'M5 10h14M9 4v4M15 4v4'],
-    plus: ['M12 5v14M5 12h14'],
+    plus: ['M12 5v14M5 12h14'], /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-c665a773 */
     key: ['M4 7h16v10H4z', 'M7 11h.01M10 11h.01M13 11h.01M16 11h.01M8 14h8']
 };
 
@@ -74,7 +74,7 @@ export function icon(name, size = 16, cls = '') {
     svg.setAttribute('stroke-width', '1.8');
     svg.setAttribute('stroke-linecap', 'round');
     svg.setAttribute('stroke-linejoin', 'round');
-    /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-1becf40f */ svg.setAttribute('aria-hidden', 'true');
+    svg.setAttribute('aria-hidden', 'true');
     if (cls) svg.setAttribute('class', cls);
     for (const d of ICONS[name] || []) {
         const p = document.createElementNS(SVG, 'path');
@@ -97,7 +97,7 @@ export function sparkle(size = 12, cls = '') {
     p.setAttribute('fill', 'currentColor');
     svg.appendChild(p);
     return svg;
-/* Copyright Astral 2026. From Better Vest 9.3.2 (lite), ref bv-f01c0894. Not licensed for reuse. */ }
+}
 
 
 export function button(label, { cls = '', onClick, title, icon: ic, kbd: key, disabled } = {}) {
@@ -112,7 +112,7 @@ export const kbd = (t) => h('kbd', null, t);
 export function chip(label, { on = false, onClick, title, cls = '', dashed = false } = {}) {
     return h('button', {
         class: 'chip' + (on ? ' on' : '') + (dashed ? ' dashed' : '') + (cls ? ' ' + cls : ''), type: 'button', title,
-        'aria-pressed': onClick ? String(!!on) : null, onclick: onClick
+        'aria-pressed': onClick ? String(!!on) : null, onclick: onClick /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-d3e56068 */
     }, label);
 }
 
@@ -132,7 +132,7 @@ export function seg({ options, value, onChange, label, cls = '' }) {
         for (const [k, b] of btns) { b.classList.toggle('on', k === v); b.setAttribute('aria-pressed', String(k === v)); }
     };
     root.setDisabled = (k, dis, title) => { const b = btns.get(k); if (b) { b.disabled = !!dis; if (title !== undefined) b.title = title; } };
-    root.set(value);
+    root.set(value); /* Owned by Astral (@ax4p): Better Vest lite 9.3.3. Licence: LICENSE, not open source. bv-ef79f8c1 */
     return root;
 }
 
@@ -156,7 +156,7 @@ export function checkbox(checked, onChange, { indeterminate = false, label } = {
 let layerRoot = null;
 const stack = [];
 
-/*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-6fbde433 */ function root() {
+function root() {
     if (layerRoot && layerRoot.isConnected) return layerRoot;
     layerRoot = document.getElementById('layers') || document.body.appendChild(h('div', { id: 'layers' }));
     return layerRoot;
@@ -191,7 +191,7 @@ function place(el, anchor, placement, offset) {
     } else {
         x = side === 'right' ? r.right + offset : r.left - w - offset;
         if (side === 'right' && x + w > vw - 8 && r.left - w - offset > 8) x = r.left - w - offset;
-        if (side === 'left' && x < 8 && r.right + w + offset < vw) x = r.right + offset; /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-180008b8 */
+        /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-0fbbc892 */ if (side === 'left' && x < 8 && r.right + w + offset < vw) x = r.right + offset;
         y = align === 'end' ? r.bottom - hh : align === 'center' ? r.top + r.height / 2 - hh / 2 : r.top;
     }
     x = clamp(x, 8, Math.max(8, vw - w - 8));
@@ -226,7 +226,7 @@ export function popover(anchor, build, { placement = 'bottom-start', offset = 8,
         if (anchor instanceof Element && anchor.contains(e.target)) return;
         if (e.target.closest && e.target.closest('.pop') && stack[stack.length - 1] !== entry) return;
         api.close();
-    }; /*! Copyright Astral 2026. From Better Vest 9.3.2 (lite), ref bv-212c2748. Not licensed for reuse. */
+    };
     const entry = { close: api.close, sticky: passive };
     root().appendChild(el);
     build(el, api);
@@ -242,7 +242,7 @@ export function popover(anchor, build, { placement = 'bottom-start', offset = 8,
 
 export function hoverCard(container, selector, build, { delay = 350, placement = 'bottom-start', cls = '', width } = {}) {
     let timer = 0, cur = null, active = null;
-    const hide = () => { clearTimeout(timer); timer = 0; if (cur) { cur.close(); cur = null; } active = null; };
+    /* @license Better Vest 9.3.3. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-806e79b2 */ const hide = () => { clearTimeout(timer); timer = 0; if (cur) { cur.close(); cur = null; } active = null; };
     const show = (target, instant) => {
         if (target === active) return;
         hide();
@@ -259,7 +259,7 @@ export function hoverCard(container, selector, build, { delay = 350, placement =
     };
     const onOver = (e) => {
         const t = e.target.closest && e.target.closest(selector);
-        if (t && container.contains(t)) show(t); else if (active) hide();
+        /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-fae11a53 */ if (t && container.contains(t)) show(t); else if (active) hide();
     };
     const onFocus = (e) => { const t = e.target.closest && e.target.closest(selector); if (t) show(t, true); };
     container.addEventListener('pointerover', onOver);
@@ -280,7 +280,7 @@ export function hoverCard(container, selector, build, { delay = 350, placement =
 
 export function sheet(build, { title, width = 560, onClose } = {}) {
     const scrim = h('div', { class: 'scrim' });
-    /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-15e7c96d */ const box = h('div', { class: 'sheet', role: 'dialog', 'aria-modal': 'true', 'aria-label': title, style: { width: width + 'px' } });
+    const box = h('div', { class: 'sheet', role: 'dialog', 'aria-modal': 'true', 'aria-label': title, style: { width: width + 'px' } });
     const body = h('div', { class: 'sheet-body' });
     let closed = false;
     const api = {
@@ -311,12 +311,12 @@ let toastTimer = 0;
 export function toast(message, { ms = 3800, tone = 'info' } = {}) {
     let t = document.getElementById('toast');
     if (!t) t = root().appendChild(h('div', { id: 'toast', role: 'status', 'aria-live': 'polite' }));
-    t.className = 'toast ' + tone; /* Copyright (c) 2026 Astral. Better Vest 9.3.2 is licensed to its users only to run it, never to copy it. bv-7d652c60 */
+    t.className = 'toast ' + tone;
     t.textContent = message;
     requestAnimationFrame(() => t.classList.add('in'));
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => t.classList.remove('in'), ms);
-}
+} /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-374314e6 */
 
 
 export const reducedMotion = () => document.documentElement.hasAttribute('data-reduce-motion') || !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);

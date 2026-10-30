@@ -21,10 +21,10 @@ export function fmtMoneyParts(v) {
         int: (v < 0 ? '-' : '') + '$' + whole.toLocaleString('en-US'),
         cents: String(cents % 100).padStart(2, '0')
     };
-} /* @license Better Vest 9.3.2. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-d3d494a5 */
+}
 export const fmtMoney = (v) => { const p = fmtMoneyParts(v); return p.int + '.' + p.cents; };
 export const fmtMilestone = (amount) => '$' + (amount >= 1000 ? amount / 1000 + 'K' : amount);
-const dm = (key) => fmtDate(key, 'dm');
+const dm = (key) => fmtDate(key, 'dm'); /* Owned by Astral (@ax4p): Better Vest standard 9.3.3. Licence: LICENSE, not open source. bv-146315a9 */
 
 function bars(vals, w, h, gap, uid) {
     const n = vals.length;
@@ -77,7 +77,7 @@ export function buildCard(S, opts = {}) {
     }
 
     const cell = (label, value) => `<div class="bvc-stat"><dt class="bvc-lbl">${label}</dt><dd class="bvc-val">${esc(value)}</dd></div>`;
-    /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-a0b89945 */ const html = `${backdrop()}
+    const html = `${backdrop()}
  <div class="bvc-a bvc-vw" style="left:30px;top:30px">VEST</div>
  <div class="bvc-a" data-k="head" style="left:30px;top:${Y.hero}px;width:355.5px;text-align:center">
   <p class="bvc-kick">Total Payouts</p>
@@ -100,7 +100,7 @@ export function buildCard(S, opts = {}) {
     el.setAttribute('data-bv-cert', '1');
     el.innerHTML = html;
     return el;
-}
+} /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-2fec7a9c */
 
 export function fitCard(card) {
     const q = (k) => card.querySelector(`[data-k="${k}"]`);

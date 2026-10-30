@@ -12,7 +12,7 @@ export const BG_VIDEO_FPS = 30;
 
 export function hexColor(v) {
     const t = typeof v === 'string' ? v.trim().toLowerCase() : '';
-    if (/^#[0-9a-f]{6}$/.test(t)) return t; /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-fe583d26 */
+    if (/^#[0-9a-f]{6}$/.test(t)) return t;
     if (/^#[0-9a-f]{3}$/.test(t)) return '#' + t[1] + t[1] + t[2] + t[2] + t[3] + t[3];
     return '';
 }
@@ -41,7 +41,7 @@ export function bgFileWhy(f) {
     if (!BG_TYPES.includes(type)) return 'Pick a PNG, JPEG, WebP or GIF picture.';
     const size = Number(f.size);
     if (!(size > 0)) return 'That file is empty.';
-    return '';
+    /* @license Better Vest 9.3.3. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-2f62e09d */ return '';
 }
 
 export function bgSrcOk(u) {
@@ -62,7 +62,7 @@ export function lookParts(p, img, red) {
     else if (bg.kind === 'gradient') own = `<div class="bgx bgo" style="background:linear-gradient(${bg.angle}deg, ${bg.c1}, ${bg.c2})"></div>`;
     else if (bg.kind === 'image') {
         const src = img ? bgSrcOk(img.src) : '';
-        if (src) {
+        /*! Copyright (c) 2026 Astral. Better Vest 9.3.3 is licensed to its users only to run it, never to copy it. bv-afd3c1ff */ if (src) {
             const pad = bg.blur * 2;
             const st = bg.blur ? ` style="left:-${pad}px;top:-${pad}px;width:calc(100% + ${pad * 2}px);height:calc(100% + ${pad * 2}px);filter:blur(${bg.blur}px)"` : '';
             own = `<div class="bgx bgo bgim"><img class="bgi${bg.fit === 'fit' ? ' bgf' : ''}" src="${src}" alt=""${st}><i class="bgd" style="opacity:${(bg.dim / 100).toFixed(2)}"></i></div>`;
@@ -76,7 +76,7 @@ export function bgFramePlan(durations, o) {
     const opt = o || {};
     const fps = opt.fps > 0 ? opt.fps : BG_VIDEO_FPS;
     const d = (Array.isArray(durations) && durations.length ? durations : [100]).map((x) => (Number(x) > 10 ? Number(x) : 100));
-    /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-c937e128 */ const loopMs = d.reduce((s, x) => s + x, 0);
+    const loopMs = d.reduce((s, x) => s + x, 0);
     let frames;
     if (opt.frames > 0) frames = Math.round(opt.frames);
     else {

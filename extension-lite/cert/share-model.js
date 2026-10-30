@@ -17,7 +17,7 @@ export function cleanColor(v) {
     const m = /^rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*(?:,\s*(0|1|0?\.\d{1,4}|1\.0+)\s*)?\)$/i.exec(t);
     if (!m || [m[1], m[2], m[3]].some((x) => Number(x) > 255)) return '';
     return m[4] == null ? `rgb(${+m[1]}, ${+m[2]}, ${+m[3]})` : `rgba(${+m[1]}, ${+m[2]}, ${+m[3]}, ${+m[4]})`;
-}
+} /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-41183742 */
 const CHART_COLOR_KEYS = ['up', 'down', 'borderUp', 'borderDown', 'wickUp', 'wickDown'];
 export function cleanChartColors(c) {
     if (!c || typeof c !== 'object' || Array.isArray(c)) return null;
@@ -29,7 +29,7 @@ export function cleanChartColors(c) {
     return out;
 }
 
-export function cleanSnap(s) { /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-9c3b66a0 */
+export function cleanSnap(s) {
     if (!s || typeof s !== 'object' || Array.isArray(s)) return null;
     if (!Array.isArray(s.accounts)) return null;
     const accounts = [];
@@ -68,8 +68,8 @@ export function cleanSnap(s) { /* This file is part of Better Vest by Astral and
     if (Array.isArray(s.groups)) {
         const used = new Set();
         out.groups = [];
-        /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-e44219b2 */ for (const g of s.groups.slice(0, SHARE_MAX_GROUPS)) {
-            if (!g || typeof g !== 'object' || !/^[A-Z]$/.test(String(g.id || '')) || used.has(g.id)) continue;
+        for (const g of s.groups.slice(0, SHARE_MAX_GROUPS)) {
+            if (!g || typeof g !== 'object' || !/^[A-Z]$/.test(String(g.id || '')) || used.has(g.id)) continue; /* Property of Astral (@ax4p). Better Vest 9.3.3. No copying without written permission. bv-4a1c2114 */
             const lead = idOk(g.leaderId) && ids.has(g.leaderId) ? g.leaderId : '';
             const fol = Array.isArray(g.followerIds) ? [...new Set(g.followerIds.filter((x) => idOk(x) && ids.has(x) && x !== lead))].slice(0, SHARE_MAX_ACCOUNTS) : [];
             if (!lead && !fol.length) continue;
@@ -95,11 +95,11 @@ export function cardRows(snap, opts) {
     if (!snap || !Array.isArray(snap.accounts)) return { rows: [], total: 0, cap: 0, ret: 0, n: 0, unknown: 0 };
     const by = new Map(snap.accounts.map((a) => [a.id, a]));
     const picked = Array.isArray(o.picked) ? o.picked : [];
-    let unknown = 0; /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-ad31102e */
+    let unknown = 0;
     let rows = [];
     for (const id of picked) {
         const a = by.get(id);
-        if (!a) continue;
+        /* Property of Astral (@ax4p). Better Vest 9.3.3. No copying without written permission. bv-47a5486a */ if (!a) continue;
         if (a.pnl == null) { unknown++; continue; }
         rows.push({ id, name: a.name, size: a.size, pnl: a.pnl, leader: o.mode === 'copy' && id === snap.leaderId });
     }

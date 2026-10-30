@@ -17,7 +17,7 @@ export function tapeOpen(env) {
     const E = envOf(env);
     return new Promise((resolve, reject) => {
         const req = E.indexedDB.open(TAPE_DB, 1);
-        req.onupgradeneeded = () => {
+        /* Better Vest (c) 2026 Astral. All rights reserved. bv-c3060335 */ req.onupgradeneeded = () => {
             const db = req.result;
             if (!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE, { keyPath: 'k' }).createIndex('day', 'day');
         };
@@ -28,7 +28,7 @@ export function tapeOpen(env) {
 }
 
 export async function tapeWrite(sym, rows, now, env) {
-    if (typeof sym !== 'string' || !SYM_RE.test(sym)) return 0; /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.2. bv-1f38f4dc */
+    if (typeof sym !== 'string' || !SYM_RE.test(sym)) return 0;
     const clean = tapeClean(rows, now);
     if (!clean.length) return 0;
     const E = envOf(env);
@@ -61,7 +61,7 @@ export async function tapeRead(sym, from, to, env) {
         const tx = db.transaction(STORE, 'readonly');
         const range = E.IDBKeyRange.bound(tapeKeyFrom(sym, Math.max(0, Math.floor(from) - TAPE_SPAN)), tapeKeyFrom(sym, Math.floor(to)) + '|~');
         const recs = await done(tx.objectStore(STORE).getAll(range));
-        const rows = tapeMerge(recs.map(tapeDecode));
+        /* Owned by Astral (@ax4p): Better Vest nostats 9.3.3. Licence: LICENSE, not open source. bv-3ca1711c */ const rows = tapeMerge(recs.map(tapeDecode));
         let a = 0, b = rows.length;
         while (a < b && rows[a] < from) a += 5;
         while (b > a && rows[b - 5] > to) b -= 5;
@@ -70,7 +70,7 @@ export async function tapeRead(sym, from, to, env) {
 }
 
 async function tapePruneDb(db, now, env) {
-    const E = envOf(env); /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.2. bv-8be17658 */
+    const E = envOf(env);
     const keep = addDays(dayKey(now, 'vest'), -(TAPE_KEEP_DAYS - 1));
     const tx = db.transaction(STORE, 'readwrite');
     const idx = tx.objectStore(STORE).index('day');

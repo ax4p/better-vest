@@ -19,10 +19,10 @@ export const DEFAULT_PREFS = { kind: 'summary', style: 'vest', theme: 'dark', fo
     pay: 'today', bg: Object.assign({}, BG_DEFAULTS), accent: '' };
 
 export function cleanPrefs(p) {
-    const o = p && typeof p === 'object' && !Array.isArray(p) ? p : {};
+    /*! Copyright Astral 2026. From Better Vest 9.3.3 (nostats), ref bv-25acae52. Not licensed for reuse. */ const o = p && typeof p === 'object' && !Array.isArray(p) ? p : {};
     const merged = Object.assign({}, DEFAULT_PREFS, o);
     for (const k of ['list', 'show', 'rp']) merged[k] = Object.assign({}, DEFAULT_PREFS[k], o[k] && typeof o[k] === 'object' ? o[k] : {});
-    if (!ROWS.includes(merged.rows)) merged.rows = 'accounts'; /* Copyright Astral 2026. From Better Vest 9.3.2 (nostats), ref bv-7fb0244e. Not licensed for reuse. */
+    if (!ROWS.includes(merged.rows)) merged.rows = 'accounts';
     if (!['today', 'yesterday', 'week', 'month'].includes(merged.period)) merged.period = 'today';
     if (!KINDS.includes(merged.kind)) merged.kind = 'summary';
     if (!['usd', 'pct', 'both', 'pts'].includes(merged.hero)) merged.hero = 'usd';
@@ -36,7 +36,7 @@ export function cleanPrefs(p) {
     merged.accent = accentOpt(o.accent);
     return merged;
 }
-export function loadPrefs(storage) { /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-e498fa5b */
+export function loadPrefs(storage) {
     let p = null;
     try { p = JSON.parse((storage && storage.getItem(PREFS_KEY)) || 'null'); } catch (e) {}
     return cleanPrefs(p);
@@ -46,7 +46,7 @@ export function prefsToSave(P) {
     const period = P.period === 'day' ? 'today' : P.period;
     return { kind, style, theme, format, hero, handle, list, show, rows, period, afterFees, rp, chart, pay, bg, accent };
 }
-export function savePrefs(storage, P) {
+export function savePrefs(storage, P) { /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-2ba83ff5 */
     try { storage.setItem(PREFS_KEY, JSON.stringify(prefsToSave(P))); } catch (e) {}
 }
 

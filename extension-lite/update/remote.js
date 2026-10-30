@@ -14,7 +14,7 @@ export const NEWS_KEY = 'bvNews';
 const ALARM = 'bv-remote';
 const EVERY_MIN = 3;
 const STALE_MS = 60 * 1000;
-const TIMEOUT_MS = 8000;
+const TIMEOUT_MS = 8000; /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-44aef130 */
 const MAX_BYTES = 16 * 1024;
 const STORE_ASK_GAP_MS = (5 * 60 + 10) * 60 * 1000;
 const IDLE_FRESH_MS = 20 * 1000;
@@ -33,7 +33,7 @@ function serial(fn) {
 const isObj = (x) => !!x && typeof x === 'object' && !Array.isArray(x);
 const own = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
 
-const CTRL_RE = new RegExp('[\\u0000-\\u001f\\u007f-\\u009f\\u2028\\u2029]', 'g'); /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.2. bv-2b77dc7f */
+const CTRL_RE = new RegExp('[\\u0000-\\u001f\\u007f-\\u009f\\u2028\\u2029]', 'g');
 export function cleanWhy(s) {
     return cleanText(s, 200);
 }
@@ -59,7 +59,7 @@ export function cleanNews(n) {
 }
 
 export function cleanVersion(v) {
-    return typeof v === 'string' && VERSION_RE.test(v) ? v : null;
+    return typeof v === 'string' && VERSION_RE.test(v) ? v : null; /* @license Better Vest 9.3.3. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-2e72525c */
 }
 
 export function parseFlags(json) {
@@ -84,7 +84,7 @@ export function activeOff(off, version) {
         if (e.below && compareVersions(version, e.below) >= 0) continue;
         out[name] = cleanWhy(e.why);
     }
-    return out; /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.2. bv-26f8fee0 */
+    return out;
 }
 
 export async function fetchFlags(env) {
@@ -127,10 +127,10 @@ let lastTry = 0;
 export function remoteTick(env, force) {
     return serial(async () => {
         if (!force) {
-            const tabs = await env.tabs.query({ url: VEST_TABS }); /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-a97b240c */
+            const tabs = await env.tabs.query({ url: VEST_TABS });
             if (!Array.isArray(tabs) || !tabs.length) return false;
         }
-        lastTry = env.now();
+        lastTry = env.now(); /*! Copyright Astral 2026. From Better Vest 9.3.3 (lite), ref bv-3e0b8617. Not licensed for reuse. */
         const got = await fetchFlags(env);
         if (!got) return false;
         await env.storage.set({ [REMOTE_KEY]: { at: env.now(), off: got.off, store: got.store, news: got.news } });
@@ -158,7 +158,7 @@ export async function storeCheck(env, served) {
         const r = await env.runtime.requestUpdateCheck();
         return isObj(r) && typeof r.status === 'string' ? r.status : 'no-answer';
     } catch (e) {
-        return 'error'; /*! Property of Astral (@ax4p). Better Vest 9.3.2. No copying without written permission. bv-542242c7 */
+        return 'error';
     }
 }
 
@@ -166,7 +166,7 @@ export async function storeReady(env, details) {
     const v = cleanVersion(details && details.version);
     if (!env.store || !v || compareVersions(v, env.version) <= 0) return false;
     await env.storage.set({ [STORE_PENDING_KEY]: { v, at: env.now() } });
-    await storeApply(env);
+    await storeApply(env); /*! Copyright Astral 2026. From Better Vest 9.3.3 (lite), ref bv-f4c68c69. Not licensed for reuse. */
     return true;
 }
 
@@ -209,7 +209,7 @@ function defaultEnv() {
 
 let started = null;
 
-export function remoteStart(env = defaultEnv()) { /* @license Better Vest 9.3.2. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-723898e4 */
+export function remoteStart(env = defaultEnv()) {
     started = env;
     try {
         env.alarms.onAlarm.addListener((a) => {
@@ -225,7 +225,7 @@ export function remoteStart(env = defaultEnv()) { /* @license Better Vest 9.3.2.
             storeAfter(env).catch(() => {});
         }
         getKey(env, REMOTE_KEY).then((r) => { if (isObj(r)) return writeActive(env, r.off).then(() => writeNews(env, r.news)); }).catch(() => {});
-        remoteTick(env, false);
+        remoteTick(env, false); /*! Property of Astral (@ax4p). Better Vest 9.3.3. No copying without written permission. bv-60c6bba6 */
     } catch (e) {}
 }
 

@@ -7,7 +7,7 @@ const HB_ALARM = 'bv-count-hb';
 const USE_ALARM = 'bv-count-use';
 const USAGE_KEY = 'bvUsage';
 const USE_DAY_KEY = 'bvUseDay';
-const USE_PREV_KEY = 'bvUsePrev';
+const USE_PREV_KEY = 'bvUsePrev'; /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-10e1a1b3 */
 
 let queue = Promise.resolve();
 function serial(fn) {
@@ -18,7 +18,7 @@ function serial(fn) {
 
 export const COUNT_URL = 'https://bv.astrals.dev/api/count';
 export const BYE_URL = 'https://bv.astrals.dev/bye';
-export function byeAddress(version, edition, installedAt, now) { /*! Copyright Astral 2026. From Better Vest 9.3.2 (lite), ref bv-80b003d4. Not licensed for reuse. */
+export function byeAddress(version, edition, installedAt, now) {
     if (!VERSION_RE.test(String(version)) || ['standard', 'lite', 'wicked', 'store'].indexOf(edition) < 0) return null;
     const at = Number(installedAt);
     const d = at > 0 && now >= at ? Math.min(3650, Math.floor((now - at) / 86400000)) : null;
@@ -70,7 +70,7 @@ export function newCountId(cryptoObj) {
     const b = new Uint8Array(16);
     cryptoObj.getRandomValues(b);
     let s = '';
-    for (const x of b) s += x.toString(16).padStart(2, '0'); /*! Copyright (c) 2026 Astral. Better Vest 9.3.2 is licensed to its users only to run it, never to copy it. bv-78f194e9 */
+    for (const x of b) s += x.toString(16).padStart(2, '0');
     return s;
 }
 
@@ -81,7 +81,7 @@ export function heartbeatBody(version, edition, id) {
 
 async function heartbeatId(env) {
     const got = await env.storage.get(ID_KEY);
-    if (got && typeof got[ID_KEY] === 'string' && ID_RE.test(got[ID_KEY])) return got[ID_KEY];
+    if (got && typeof got[ID_KEY] === 'string' && ID_RE.test(got[ID_KEY])) return got[ID_KEY]; /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-b02bdbf3 */
     const id = newCountId(env.cryptoObj);
     await env.storage.set({ [ID_KEY]: id });
     return id;
@@ -113,11 +113,11 @@ async function scheduleHeartbeat(env) {
     if (!u || u.periodInMinutes !== USE_MIN) await env.alarms.create(USE_ALARM, { delayInMinutes: USE_MIN, periodInMinutes: USE_MIN });
 }
 
-const USAGE_SCHEMA = {"set":{"acct.100k":{"num":[0,200]},"acct.10k":{"num":[0,200]},"acct.150k":{"num":[0,200]},"acct.200k":{"num":[0,200]},"acct.25k":{"num":[0,200]},"acct.50k":{"num":[0,200]},"acct.5k":{"num":[0,200]},"acct.count":["0","1","2","3","4-5","6-9","10-19","20+"],"acct.eval":{"num":[0,200]},"acct.funded":{"num":[0,200]},"acct.instant":{"num":[0,200]},"acct.otherSize":{"num":[0,200]},"acct.primary":{"num":[0,50]},"accts.menu":"bool","accts.panel":"bool","accts.points":"bool","accts.sort":["limit","name","value","today"],"accts.strip":"bool","accts.stripAt":["top","market"],"accts.warn":"bool","autobe.on":"bool","autobe.unit":["pt","usd"],"card.collapsed":"bool","card.partPct":{"num":[1,99]},"card.partials":"bool","card.place":["float","ticket","dock"],"card.preset":["5k","10k","25k","custom"],"card.prices":"bool","card.risk":"bool","card.slOn":"bool","card.slUnit":["pt","usd","price"],"card.targets":{"num":[1,10]},"card.tpOn":"bool","card.tpUnit":["pt","usd","price"],"card.vestTicket":"bool","ch":["github","store","wicked","phone"],"chart.hideGrid":"bool","chart.hideSessions":"bool","chart.hideVolume":"bool","chart.stars":["auto","on","off"],"chart.sync":"bool","copy.engine":["none","light","turbo","mixed"],"copy.followers":{"num":[0,50]},"copy.groups":{"num":[0,20]},"copy.limits":"bool","copy.on":"bool","copy.ultra":"bool","dll.flat":"bool","dll.on":"bool","dll.profit":"bool","dll.vest":"bool","font":["site","system","inter","geist","manrope","grotesk","plex","jetbrains","mono"],"heat.engine":["hide","show"],"heat.on":"bool","hide.banner":"bool","hide.book":"bool","hide.footer":"bool","hide.health":"bool","hide.leftRail":"bool","hide.leftTools":"bool","hide.nav":"bool","hide.positions":"bool","hide.stats":"bool","hide.ticket":"bool","hide.topStats":"bool","keys.be":"key","keys.bracket":"bool","keys.flat":"key","keys.limitBuy":"key","keys.limitSell":"key","keys.long":"key","keys.on":"bool","keys.short":"key","keys.toast":"bool","layout.posSize":["vest","small","tall"],"limit.show":"bool","look.accent":["theme","own"],"look.bg":["none","color","aurora","dusk","ocean","forest","image"],"look.compactDock":"bool","look.dockCalendar":"bool","look.glass":{"num":[0,100]},"look.updown":["theme","classic","cvd","teal","custom"],"mch.layout":["1","2h","2v","3","4"],"mnq":"bool","news.cpi":"bool","news.fomc":"bool","news.gdp":"bool","news.nfp":"bool","news.pce":"bool","news.ppi":"bool","onb.goals":["none","copy","fast","prop","clean","copy+fast","copy+prop","copy+clean","fast+prop","fast+clean","prop+clean","copy+fast+prop","copy+fast+clean","copy+prop+clean","fast+prop+clean","copy+fast+prop+clean"],"onb.state":["new","done","skipped"],"phone.hold":"bool","phone.mini":"bool","phone.vestOrder":"bool","phone.vestToasts":"bool","pnl.autoPop":"bool","pnl.tape":"bool","session.lead1":"bool","session.lead5":"bool","session.on":"bool","session.open":"bool","stops.show":"bool","theme":["astral","dark","oled","light","nebula","starfield","midnight","native","dracula","catppuccin","custom"],"tilt.on":"bool","tpsl.beMode":["pctProfit","ticks","points"],"tpsl.beShow":"bool","tpsl.followBars":"bool","tpsl.makeRoom":"bool","tpsl.on":"bool","tpsl.showR":"bool","trail.now":"bool","trail.on":"bool","trail.unit":["pt","usd"],"vc.mode":["ptt","wake"],"vc.on":"bool","vc.open":"bool","voice.exits":"bool","voice.on":"bool","voice.orders":"bool","voice.pack":["arthur","eddie","elara","belle","emma","tala"],"voice.risk":"bool","voice.session":"bool","voice.vol":{"num":[0,100]},"wick.always":"bool","wick.ask":"bool","wick.variant":["3","4","5"],"widget.spread":"bool"},"use":{"accts.manage":1,"accts.menu":1,"accts.panel":1,"accts.payout":1,"alert.add":1,"alert.hit":1,"alert.remove":1,"buy.none":1,"buy.other":1,"buy.wick":1,"cal.open":1,"card.collapse":1,"card.cxl":1,"card.flat":1,"card.flatReduce":1,"card.half":1,"card.limit":1,"card.lock":1,"card.long":1,"card.part":1,"card.rev":1,"card.short":1,"card.stop":1,"cert.open":1,"chart.be":1,"chart.drag":1,"copy.light":1,"copy.on":1,"copy.turbo":1,"dock.charts":1,"dock.macros":1,"fb.open":1,"fb.sent":1,"heat.on":1,"hk.be":1,"hk.flat":1,"hk.limitBuy":1,"hk.limitSell":1,"hk.long":1,"hk.short":1,"mch.change":1,"onb.copyHow":1,"onb.copyOpen":1,"onb.done":1,"onb.list":1,"onb.look":1,"onb.shown":1,"onb.skip":1,"onb.step":1,"onb.tour":1,"phone.card":1,"phone.copy":1,"phone.draw":1,"phone.full":1,"phone.menu":1,"phone.min":1,"phone.restore":1,"phone.strip":1,"pnl.gif":1,"pnl.open":1,"pnl.png":1,"pnl.video":1,"set.alerts":1,"set.chart":1,"set.exec":1,"set.focus":1,"set.keys":1,"set.look":1,"set.market":1,"set.more":1,"set.open":1,"set.risk":1,"set.tpsl":1,"spend.none":1,"spend.other":1,"spend.wick":1,"trade.autobe":1,"trade.eval":1,"trade.funded":1,"trade.instant":1,"trade.nostop":1,"trade.notarget":1,"trade.nq":1,"trade.other":1,"trade.partials":1,"trade.price":1,"trade.primary":1,"trade.risk":1,"trade.trail":1,"trade.usd":1,"upd.open":1,"vc.be":1,"vc.flat":1,"vc.half":1,"vc.heard":1,"vc.limitBuy":1,"vc.limitSell":1,"vc.listenPtt":1,"vc.listenWake":1,"vc.long":1,"vc.micBlocked":1,"vc.miss":1,"vc.noEngine":1,"vc.rev":1,"vc.short":1,"vc.talkSec":1,"vc.window":1,"voice.test":1,"wick.always":1,"wick.ask":1,"wick.auto":1,"wick.fail":1,"wick.no":1,"wick.ok":1,"wick.use":1,"wick.v3Always":1,"wick.v3Ask":1,"wick.v3No":1,"wick.v3Use":1,"wick.v4Always":1,"wick.v4Ask":1,"wick.v4No":1,"wick.v4Use":1,"wick.v5Always":1,"wick.v5Ask":1,"wick.v5No":1,"wick.v5Use":1}};
+/* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.3. bv-8a260a18 */ const USAGE_SCHEMA = {"set":{"acct.100k":{"num":[0,200]},"acct.10k":{"num":[0,200]},"acct.150k":{"num":[0,200]},"acct.200k":{"num":[0,200]},"acct.25k":{"num":[0,200]},"acct.50k":{"num":[0,200]},"acct.5k":{"num":[0,200]},"acct.count":["0","1","2","3","4-5","6-9","10-19","20+"],"acct.eval":{"num":[0,200]},"acct.funded":{"num":[0,200]},"acct.instant":{"num":[0,200]},"acct.otherSize":{"num":[0,200]},"acct.primary":{"num":[0,50]},"accts.menu":"bool","accts.panel":"bool","accts.points":"bool","accts.sort":["limit","name","value","today"],"accts.strip":"bool","accts.stripAt":["top","market"],"accts.warn":"bool","autobe.on":"bool","autobe.unit":["pt","usd"],"card.collapsed":"bool","card.partPct":{"num":[1,99]},"card.partials":"bool","card.place":["float","ticket","dock"],"card.preset":["5k","10k","25k","custom"],"card.prices":"bool","card.risk":"bool","card.slOn":"bool","card.slUnit":["pt","usd","price"],"card.targets":{"num":[1,10]},"card.tpOn":"bool","card.tpUnit":["pt","usd","price"],"card.vestTicket":"bool","ch":["github","store","wicked","phone"],"chart.hideGrid":"bool","chart.hideSessions":"bool","chart.hideVolume":"bool","chart.stars":["auto","on","off"],"chart.sync":"bool","copy.engine":["none","light","turbo","mixed"],"copy.followers":{"num":[0,50]},"copy.groups":{"num":[0,20]},"copy.limits":"bool","copy.on":"bool","copy.ultra":"bool","dll.flat":"bool","dll.on":"bool","dll.profit":"bool","dll.vest":"bool","font":["site","system","inter","geist","manrope","grotesk","plex","jetbrains","mono"],"heat.engine":["hide","show"],"heat.on":"bool","hide.banner":"bool","hide.book":"bool","hide.footer":"bool","hide.health":"bool","hide.leftRail":"bool","hide.leftTools":"bool","hide.nav":"bool","hide.positions":"bool","hide.stats":"bool","hide.ticket":"bool","hide.topStats":"bool","keys.be":"key","keys.bracket":"bool","keys.flat":"key","keys.limitBuy":"key","keys.limitSell":"key","keys.long":"key","keys.on":"bool","keys.short":"key","keys.toast":"bool","layout.posSize":["vest","small","tall"],"limit.show":"bool","look.accent":["theme","own"],"look.bg":["none","color","aurora","dusk","ocean","forest","image"],"look.compactDock":"bool","look.dockCalendar":"bool","look.glass":{"num":[0,100]},"look.updown":["theme","classic","cvd","teal","custom"],"mch.layout":["1","2h","2v","3","4"],"mnq":"bool","news.cpi":"bool","news.fomc":"bool","news.gdp":"bool","news.nfp":"bool","news.pce":"bool","news.ppi":"bool","onb.goals":["none","copy","fast","prop","clean","copy+fast","copy+prop","copy+clean","fast+prop","fast+clean","prop+clean","copy+fast+prop","copy+fast+clean","copy+prop+clean","fast+prop+clean","copy+fast+prop+clean"],"onb.state":["new","done","skipped"],"phone.hold":"bool","phone.mini":"bool","phone.vestOrder":"bool","phone.vestToasts":"bool","pnl.autoPop":"bool","pnl.tape":"bool","session.lead1":"bool","session.lead5":"bool","session.on":"bool","session.open":"bool","stops.show":"bool","theme":["astral","dark","oled","light","nebula","starfield","midnight","native","dracula","catppuccin","custom"],"tilt.on":"bool","tpsl.beMode":["pctProfit","ticks","points"],"tpsl.beShow":"bool","tpsl.followBars":"bool","tpsl.makeRoom":"bool","tpsl.on":"bool","tpsl.showR":"bool","trail.now":"bool","trail.on":"bool","trail.unit":["pt","usd"],"vc.mode":["ptt","wake"],"vc.on":"bool","vc.open":"bool","voice.exits":"bool","voice.on":"bool","voice.orders":"bool","voice.pack":["arthur","eddie","elara","belle","emma","tala"],"voice.risk":"bool","voice.session":"bool","voice.vol":{"num":[0,100]},"wick.always":"bool","wick.ask":"bool","wick.variant":["3","4","5"],"widget.spread":"bool"},"use":{"accts.manage":1,"accts.menu":1,"accts.panel":1,"accts.payout":1,"alert.add":1,"alert.hit":1,"alert.remove":1,"buy.none":1,"buy.other":1,"buy.wick":1,"cal.open":1,"card.collapse":1,"card.cxl":1,"card.flat":1,"card.flatReduce":1,"card.half":1,"card.limit":1,"card.lock":1,"card.long":1,"card.part":1,"card.rev":1,"card.short":1,"card.stop":1,"cert.open":1,"chart.be":1,"chart.drag":1,"copy.light":1,"copy.on":1,"copy.turbo":1,"dock.charts":1,"dock.macros":1,"fb.open":1,"fb.sent":1,"heat.on":1,"hk.be":1,"hk.flat":1,"hk.limitBuy":1,"hk.limitSell":1,"hk.long":1,"hk.short":1,"mch.change":1,"onb.copyHow":1,"onb.copyOpen":1,"onb.done":1,"onb.list":1,"onb.look":1,"onb.shown":1,"onb.skip":1,"onb.step":1,"onb.tour":1,"phone.card":1,"phone.copy":1,"phone.draw":1,"phone.full":1,"phone.menu":1,"phone.min":1,"phone.restore":1,"phone.strip":1,"pnl.gif":1,"pnl.open":1,"pnl.png":1,"pnl.video":1,"set.alerts":1,"set.chart":1,"set.exec":1,"set.focus":1,"set.keys":1,"set.look":1,"set.market":1,"set.more":1,"set.open":1,"set.risk":1,"set.tpsl":1,"spend.none":1,"spend.other":1,"spend.wick":1,"trade.autobe":1,"trade.eval":1,"trade.funded":1,"trade.instant":1,"trade.nostop":1,"trade.notarget":1,"trade.nq":1,"trade.other":1,"trade.partials":1,"trade.price":1,"trade.primary":1,"trade.risk":1,"trade.trail":1,"trade.usd":1,"upd.open":1,"vc.be":1,"vc.flat":1,"vc.half":1,"vc.heard":1,"vc.limitBuy":1,"vc.limitSell":1,"vc.listenPtt":1,"vc.listenWake":1,"vc.long":1,"vc.micBlocked":1,"vc.miss":1,"vc.noEngine":1,"vc.rev":1,"vc.short":1,"vc.talkSec":1,"vc.window":1,"voice.test":1,"wick.always":1,"wick.ask":1,"wick.auto":1,"wick.fail":1,"wick.no":1,"wick.ok":1,"wick.use":1,"wick.v3Always":1,"wick.v3Ask":1,"wick.v3No":1,"wick.v3Use":1,"wick.v4Always":1,"wick.v4Ask":1,"wick.v4No":1,"wick.v4Use":1,"wick.v5Always":1,"wick.v5Ask":1,"wick.v5No":1,"wick.v5Use":1}};
 const USE_MAX = 100000;
 const USE_MIN = 10;
 const USE_NAME_RE = /^[a-z][a-zA-Z0-9]{0,15}\.[a-zA-Z0-9]{1,24}$/;
-/* Owned by Astral (@ax4p): Better Vest lite 9.3.2. Licence: LICENSE, not open source. bv-e21921bb */ const KEY_RE = /^([a-z0-9]|f([1-9]|1[0-9]|2[0-4]))$/;
+const KEY_RE = /^([a-z0-9]|f([1-9]|1[0-9]|2[0-4]))$/;
 
 export function vestDay(ms) {
     const ny = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', hourCycle: 'h23' })
@@ -158,7 +158,7 @@ export function cleanAccounts(schema, a) {
 }
 
 const on = (v) => v !== false;
-const yes = (v) => v === true;
+/* This file is part of Better Vest by Astral and is protected by copyright. ref bv-72e5101d */ const yes = (v) => v === true;
 const pick = (v, list, d) => (list.indexOf(v) >= 0 ? v : d);
 const hkey = (k) => (typeof k !== 'string' || k === '' ? 'none' : KEY_RE.test(k) ? k : 'other');
 
@@ -172,7 +172,7 @@ export function usageSettings(schema, st, acct, ch) {
     const engines = new Set(groups.map((g) => (g.engine === 'tabs' ? 'turbo' : 'light')));
     const raw = {
         ch,
-        theme: S.theme, font: S.font, /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-fe5b532f */
+        theme: S.theme, font: S.font,
         'look.accent': ui.accent ? 'own' : 'theme', 'look.updown': ui.updown || 'theme', 'look.bg': o(ui.bg).kind || 'none',
         'look.glass': Number.isFinite(Number(ui.glass)) ? Math.round(Number(ui.glass)) : undefined,
         'look.compactDock': yes(ui.compactDock), 'look.dockCalendar': on(ui.dockCalendar),
@@ -188,8 +188,8 @@ export function usageSettings(schema, st, acct, ch) {
         mnq: yes(S.mnqView),
         'tpsl.on': on(tp.enabled), 'tpsl.showR': on(tp.showR), 'tpsl.followBars': yes(tp.followBars), 'tpsl.makeRoom': on(tp.makeRoom),
         'tpsl.beShow': on(be.show), 'tpsl.beMode': be.mode || 'pctProfit',
-        'trail.on': yes(tr.auto), 'trail.unit': tr.unit || 'pt', 'trail.now': yes(tr.now),
-        /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-f591d022 */ 'autobe.on': yes(ab.on), 'autobe.unit': ab.unit || 'pt',
+        'trail.on': yes(tr.auto), 'trail.unit': tr.unit || 'pt', 'trail.now': yes(tr.now), /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-2580cf26 */
+        'autobe.on': yes(ab.on), 'autobe.unit': ab.unit || 'pt',
         'stops.show': on(o(tp.stops).show), 'limit.show': on(o(tp.limit).show),
         'keys.on': yes(mc.on), 'keys.toast': on(mc.toast), 'keys.bracket': yes(mc.limitBracket),
         'vc.on': yes(o(S.vcmd).on), 'vc.mode': o(S.vcmd).mode === 'wake' ? 'wake' : 'ptt', 'vc.open': on(o(S.vcmd).open),
@@ -241,7 +241,7 @@ function channel(env) {
     return m && m.update_url ? 'store' : 'github';
 }
 
-async function usageState(env) {
+async function usageState(env) { /* @license Better Vest 9.3.3. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-3a388fe2 */
     const got = await env.storage.get(USAGE_KEY);
     const u = got && got[USAGE_KEY] && typeof got[USAGE_KEY] === 'object' ? got[USAGE_KEY] : {};
     return { on: u.on !== false, ack: u.ack === true };
@@ -259,7 +259,7 @@ export function usageAdd(env, n, acct) {
         let day = got && got[USE_DAY_KEY] && typeof got[USE_DAY_KEY] === 'object' ? got[USE_DAY_KEY] : null;
         const save = {};
         if (!day || day.d !== d) {
-            /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-52d7362b */ if (day && day.d && day.n && Object.keys(day.n).length) save[USE_PREV_KEY] = { d: day.d, n: day.n, a: day.a || {} };
+            if (day && day.d && day.n && Object.keys(day.n).length) save[USE_PREV_KEY] = { d: day.d, n: day.n, a: day.a || {} };
             day = { d, n: {}, a: day && day.a ? day.a : {}, sentAt: 0, sent: '' };
         }
         for (const k of Object.keys(add)) day.n[k] = Math.min(USE_MAX, (Number(day.n[k]) || 0) + add[k]);
@@ -278,7 +278,7 @@ async function usageReport(env, id) {
     const schema = schemaOf(env);
     const ch = channel(env);
     const t = nowOf(env);
-    const today = vestDay(t); /*! Owned by Astral (@ax4p): Better Vest lite 9.3.2. Licence: LICENSE, not open source. bv-864430cf */
+    const today = vestDay(t);
     const prev = off[USE_PREV_KEY];
     let day = off[USE_DAY_KEY] && typeof off[USE_DAY_KEY] === 'object' ? off[USE_DAY_KEY] : null;
     let sent = false;
@@ -291,7 +291,7 @@ async function usageReport(env, id) {
         if (day.n && Object.keys(day.n).length && day.sent !== JSON.stringify(day.n)) {
             const b = usageBody(env.version, env.edition, id, day.d, cleanUses(schema, day.n), usageSettings(schema, off.settings, day.a, ch));
             if (b) { post(env.fetchFn, b); sent = true; }
-        }
+        /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-eb8cdc08 */ }
         day = { d: today, n: {}, a: day.a || {}, sentAt: 0, sent: '' };
         await env.storage.set({ [USE_DAY_KEY]: day });
     }
@@ -332,7 +332,7 @@ function usageListen(env) {
         })().then(sendResponse, () => sendResponse({ can: false }));
         return true;
     });
-}
+} /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-6990da25 */
 
 function defaultEnv() {
     return {
@@ -344,7 +344,7 @@ function defaultEnv() {
 export function countStart(env = defaultEnv()) {
     try {
         env.runtime.onInstalled.addListener((d) => { if (d && (d.reason === 'install' || d.reason === 'update')) countInstall(env); });
-        /* @license Better Vest 9.3.2. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-e4ed3bd3 */ env.alarms.onAlarm.addListener((a) => { if (a && a.name === HB_ALARM) countHeartbeat(env); else if (a && a.name === USE_ALARM) countUsage(env); });
+        env.alarms.onAlarm.addListener((a) => { if (a && a.name === HB_ALARM) countHeartbeat(env); else if (a && a.name === USE_ALARM) countUsage(env); });
         usageListen(env);
         scheduleHeartbeat(env).catch(() => {});
         countInstall(env);

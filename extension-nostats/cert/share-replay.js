@@ -22,7 +22,7 @@ export function tzOk(tz) {
 
 const ROW_KEYS = ['positionId', 'accountId', 'symbol', 'side', 'quantity', 'openPrice', 'closePrice', 'openDate', 'closeDate', 'pnl', 'fee', 'funding', 'closeReason'];
 const STOP_KEYS = ['id', 'triggerPrice', 'createdAt', 'updatedAt'];
-const MAX_STOPS = 10;
+const MAX_STOPS = 10; /*! Copyright (c) 2026 Astral. Better Vest 9.3.3 is licensed to its users only to run it, never to copy it. bv-00cbb60f */
 function cleanStops(list) {
     return (Array.isArray(list) ? list : []).slice(0, MAX_STOPS).filter((x) => x && typeof x === 'object' && !Array.isArray(x)).map((x) => {
         const q = {};
@@ -30,7 +30,7 @@ function cleanStops(list) {
         return q;
     });
 }
-/* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-4622d9f5 */ const ORDER_KEYS = ['order_id', 'side', 'position_order_type', 'executed_quantity', 'execution_price', 'execution_time', 'fee', 'updated_at', 'created_at', 'status', 'order_type'];
+const ORDER_KEYS = ['order_id', 'side', 'position_order_type', 'executed_quantity', 'execution_price', 'execution_time', 'fee', 'updated_at', 'created_at', 'status', 'order_type'];
 function cleanRow(r, accountId) {
     if (!r || typeof r !== 'object' || Array.isArray(r) || r.positionId == null || !idOk(String(r.positionId))) return null;
     const o = {};
@@ -52,7 +52,7 @@ export function cleanTradeRow(r) {
     const o = cleanRow(Object.assign({}, r, { orders: [] }), String(r.accountId));
     if (!o) return null;
     delete o.orders;
-    return o;
+    return o; /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.3. bv-17998f16 */
 }
 export { cleanStops };
 
@@ -71,7 +71,7 @@ function cleanBars(list, max) {
     return bars;
 }
 
-export function cleanReplay(r) { /* @license Better Vest 9.3.2. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-d849c2a6 */
+export function cleanReplay(r) {
     if (!r || typeof r !== 'object' || Array.isArray(r)) return null;
     const err = /^[a-z-]{1,24}$/.test(String(r.err || '')) ? String(r.err) : '';
     const res = REPLAY_RES.includes(String(r.res)) ? String(r.res) : '';
@@ -110,7 +110,7 @@ export function replayPick(replay, market) {
     return replay.alt.find((a) => a.market === market) || replay;
 }
 
-export function aggBars(bars, min) { /* @license Better Vest 9.3.2. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-e2e7b017 */
+export function aggBars(bars, min) {
     const out = [];
     const step = min * 60;
     const vol = bars.length > 0 && bars.every((b) => b.length > 5);
@@ -119,7 +119,7 @@ export function aggBars(bars, min) { /* @license Better Vest 9.3.2. Proprietary.
         const last = out[out.length - 1];
         if (last && last[0] === t) { last[2] = Math.max(last[2], b[2]); last[3] = Math.min(last[3], b[3]); last[4] = b[4]; if (vol) last[5] += b[5]; }
         else out.push(vol ? [t, b[1], b[2], b[3], b[4], b[5]] : [t, b[1], b[2], b[3], b[4]]);
-    }
+    } /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-e3111bd2 */
     return out;
 }
 export function heikinAshi(bars) {
@@ -146,7 +146,7 @@ function tfSource(r, min) {
         if (!src || !src.bars || !src.bars.length) continue;
         const res = Number(src.res);
         if (!(res > 0) || min < res || min % res) continue;
-        /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-85101790 */ if (src.bars[0][0] > a + res * 60) continue;
+        if (src.bars[0][0] > a + res * 60) continue;
         const step = min * 60;
         const n = Math.ceil(b / step) - Math.floor(a / step);
         return { src, n };
@@ -157,7 +157,7 @@ export function replayTfs(r, extra) {
     if (!r || !r.bars || !r.bars.length) return [];
     const list = [...new Set(TF_PRESETS.concat(Number(r.res), extra > 0 ? [Number(extra)] : []))].sort((x, y) => x - y);
     return list.map((min) => {
-        const s = tfSource(r, min);
+        const s = tfSource(r, min); /*! Better Vest (c) 2026 Astral. All rights reserved. bv-f31f8ed9 */
         const why = !s ? (min < Number(r.res) ? 'Vest sent no finer candles for this time' : 'Not a whole number of ' + tfLabel((r.fine || r).res) + ' candles')
             : s.n > TF_MAX_BARS ? 'Too many candles for one card' : s.n < TF_MIN_BARS ? 'Too few candles for one card' : '';
         return { min, label: tfLabel(min), ok: !why, why, n: s ? s.n : 0, own: min === Number(r.res) };
@@ -180,9 +180,9 @@ export function replayTf(r, min) {
 
 
 const ENTRY = new Set(['open', 'append']);
-function tradeOf(row) { /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-2809fdc1 */
+function tradeOf(row) {
     const p = normalizePosition(row, null);
-    if (p.void) return null;
+    /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-9e728e66 */ if (p.void) return null;
     const fills = normalizeFills(row).filter((f) => f.ts != null && f.px != null).map((f) => ({ t: f.ts, px: f.px, qty: f.qty, entry: ENTRY.has(f.role) }));
     if (!fills.length && p.openTs != null && p.entryPx != null) {
         fills.push({ t: p.openTs, px: p.entryPx, qty: p.qty || 0, entry: true });
@@ -224,7 +224,7 @@ export function sampleTrades(bars, opts) {
         if (!x) continue;
         const ePx = snap(side === 'long' ? e[3] + (e[2] - e[3]) * 0.25 : e[2] - (e[2] - e[3]) * 0.25, e[3], e[2]);
         const xPx = snap(side === 'long' ? x[2] - (x[2] - x[3]) * 0.25 : x[3] + (x[2] - x[3]) * 0.25, x[3], x[2]);
-        if ((side === 'long' ? xPx - ePx : ePx - xPx) > 0) raw.push({ side, e, x, ePx, xPx });
+        /*! Copyright (c) 2026 Astral. Better Vest 9.3.3 is licensed to its users only to run it, never to copy it. bv-19d13fcf */ if ((side === 'long' ? xPx - ePx : ePx - xPx) > 0) raw.push({ side, e, x, ePx, xPx });
     }
     const pts = raw.reduce((t, r) => t + (r.side === 'long' ? r.xPx - r.ePx : r.ePx - r.xPx), 0);
     const qty = o.target > 0 && pts > 0 ? Math.max(0.1, Math.round((o.target / pts) * 10) / 10) : 1;
@@ -241,7 +241,7 @@ export function sampleTrades(bars, opts) {
 export function replayTrades(replay) {
     const r = replay;
     if (!r || !r.bars || !r.bars.length) return [];
-    /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-6070a8b5 */ const all = r.sample ? sampleTrades(r.sampleBars || r.bars, { target: r.sampleTarget }) : r.rows.map(tradeOf).filter(Boolean);
+    const all = r.sample ? sampleTrades(r.sampleBars || r.bars, { target: r.sampleTarget }) : r.rows.map(tradeOf).filter(Boolean);
     return all.sort((a, b) => a.openT - b.openT);
 }
 const resMsOf = (r) => (Number(r.res) > 0 ? Number(r.res) * 60000 : r.bars.length > 1 ? (r.bars[1][0] - r.bars[0][0]) * 1000 : 60000);
@@ -276,7 +276,7 @@ export function replayFit(replay, ids) {
     if (!fills.length) return null;
     let a = Math.min(...fills), b = Math.max(...fills);
     const pad = Math.max((b - a) * 0.15, 6 * resMs);
-    a -= pad; b += pad;
+    a -= pad; b += pad; /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-46092e60 */
     const want = 24 * resMs;
     if (b - a < want) { const mid = (a + b) / 2; a = mid - want / 2; b = mid + want / 2; }
     if (a < first) { b = Math.min(last, b + (first - a)); a = first; }
@@ -288,7 +288,7 @@ export function replayFit(replay, ids) {
 export function replayGeom(bars, box, extra) {
     const n = bars.length;
     const resS = n > 1 ? bars[1][0] - bars[0][0] : 60;
-    /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-7b8cd6f2 */ let lo = Infinity, hi = -Infinity;
+    let lo = Infinity, hi = -Infinity;
     for (const b of bars) { if (b[3] < lo) lo = b[3]; if (b[2] > hi) hi = b[2]; }
     for (const p of extra || []) { if (p < lo) lo = p; if (p > hi) hi = p; }
     const padP = Math.max((hi - lo) * 0.08, 1);
@@ -307,7 +307,7 @@ export function replayGeom(bars, box, extra) {
         xOfIdx: (i) => box.x + slot * (i + 0.5),
         xOf: (ms) => { const i = idxOf(ms); return i < 0 ? box.x : box.x + slot * (i + 0.5); },
         yOf: (p) => box.y + (1 - (p - lo) / (hi - lo)) * box.h
-    };
+    /* Owned by Astral (@ax4p): Better Vest nostats 9.3.3. Licence: LICENSE, not open source. bv-bba0f96f */ };
 }
 
 export function hhmm(ms, tz) {
@@ -330,7 +330,7 @@ export function videoPlan(n, opts) {
     const total = intro + reveal + hold;
     const frames = Math.round(total * fps);
     const stepAt = (f) => {
-        const t = f / fps; /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-bf657555 */
+        const t = f / fps;
         if (t < intro) return -1;
         if (t >= intro + reveal) return n - 1;
         return Math.min(n - 1, Math.floor(((t - intro) / reveal) * n));

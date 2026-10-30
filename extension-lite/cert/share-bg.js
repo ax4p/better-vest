@@ -26,7 +26,7 @@ async function inStore(mode, fn) {
             const r = fn(t.objectStore(STORE));
             t.oncomplete = () => resolve(r ? r.result : undefined);
             t.onerror = () => reject(t.error);
-            t.onabort = () => reject(t.error || new Error('bv-share: aborted'));
+            /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-67cc5bd1 */ t.onabort = () => reject(t.error || new Error('bv-share: aborted'));
         });
     } finally { db.close(); }
 }
@@ -34,7 +34,7 @@ async function inStore(mode, fn) {
 export async function bgSave(file) {
     const why = bgFileWhy(file);
     if (why) throw new Error(why);
-    const rec = { blob: file, type: String(file.type).toLowerCase(), name: String(file.name || 'picture').replace(/[\u0000-\u001f<>]/g, '').slice(0, 80), size: file.size, at: Date.now() }; /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.2. bv-e0771711 */
+    const rec = { blob: file, type: String(file.type).toLowerCase(), name: String(file.name || 'picture').replace(/[\u0000-\u001f<>]/g, '').slice(0, 80), size: file.size, at: Date.now() };
     try { await inStore('readwrite', (st) => st.put(rec, KEY)); } catch (e) {
         if (e && (e.name === 'QuotaExceededError' || /quota/i.test(String(e.message)))) {
             throw new Error('no room left for it on this computer (' + mb(file.size) + '). Free some disk space or pick a smaller one');
@@ -76,9 +76,9 @@ export async function bgPrepare(rec, o) {
     let durations = [];
     if ((rec.type === 'image/gif' || rec.type === 'image/webp') && !(o && o.times === false)) {
         let info = null;
-        try { info = await bgTimes(blob, rec.type); } catch (e) { info = null; }
+        /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-c4ccd929 */ try { info = await bgTimes(blob, rec.type); } catch (e) { info = null; }
         if (info) durations = info.durations;
-        else if (typeof ImageDecoder === 'function') { /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-1030fb48 */
+        else if (typeof ImageDecoder === 'function') {
             let dec = null;
             try {
                 dec = new ImageDecoder({ data: blob.stream(), type: rec.type });
@@ -106,7 +106,7 @@ export async function bgPrepare(rec, o) {
 export function bgRelease(img) {
     if (!img) return;
     try { URL.revokeObjectURL(img.src); } catch (e) {}
-    try { if (img.first) img.first.close(); } catch (e) {}
+    try { if (img.first) img.first.close(); } catch (e) {} /* Better Vest (c) 2026 Astral. All rights reserved. bv-d481c286 */
 }
 
 export function drawBg(ctx, src, sw, sh, W, H, scale, bg, base) {
@@ -124,7 +124,7 @@ export function drawBg(ctx, src, sw, sh, W, H, scale, bg, base) {
     ctx.globalAlpha = o.dim / 100;
     ctx.fillStyle = base;
     ctx.fillRect(0, 0, W, H);
-    ctx.restore(); /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-9a43b544 */
+    ctx.restore();
 }
 
 export function cardGeom(card) {
@@ -148,7 +148,7 @@ export function bgStill(img, W, H, scale, bg, base) {
     cv.width = W;
     cv.height = H;
     drawBg(cv.getContext('2d'), img.first, img.w, img.h, W, H, scale, bg, base);
-    return cv; /* @license Better Vest 9.3.2. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-5e050a53 */
+    return cv;
 }
 
 export async function bgFrames(img, plan, W, H, scale, bg, base, onProgress, o) {
@@ -169,7 +169,7 @@ export async function bgFrames(img, plan, W, H, scale, bg, base, onProgress, o) 
             drawBg(ctx, r.image, r.image.displayWidth, r.image.displayHeight, w, h, scale * k, bg, base);
             r.image.close();
             map.set(i, await createImageBitmap(cv));
-            if (onProgress) onProgress((n + 1) / plan.used.length);
+            if (onProgress) onProgress((n + 1) / plan.used.length); /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.3. bv-bda4ab30 */
         }
     } catch (e) {
         map.forEach((b) => { try { b.close(); } catch (x) {} });

@@ -23,7 +23,7 @@ export function tapeOpen(env) {
         };
         req.onsuccess = () => resolve(req.result);
         req.onerror = () => reject(req.error);
-        req.onblocked = () => reject(new Error('blocked'));
+        /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-8dd2f607 */ req.onblocked = () => reject(new Error('blocked'));
     });
 }
 
@@ -32,7 +32,7 @@ export async function tapeWrite(sym, rows, now, env) {
     const clean = tapeClean(rows, now);
     if (!clean.length) return 0;
     const E = envOf(env);
-    const db = await tapeOpen(env); /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-b29d2f42 */
+    const db = await tapeOpen(env);
     try {
         const tx = db.transaction(STORE, 'readwrite');
         const st = tx.objectStore(STORE);
@@ -65,8 +65,8 @@ export async function tapeRead(sym, from, to, env) {
         let a = 0, b = rows.length;
         while (a < b && rows[a] < from) a += 5;
         while (b > a && rows[b - 5] > to) b -= 5;
-        return rows.slice(a, b);
-    /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-1d868fd4 */ } finally { db.close(); }
+        return rows.slice(a, b); /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-c0e3f61f */
+    } finally { db.close(); }
 }
 
 async function tapePruneDb(db, now, env) {

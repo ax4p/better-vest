@@ -7,7 +7,7 @@ const LABEL = { long: 'Long', short: 'Short', flat: 'Flat', half: '50%', rev: 'R
 const WAIT_MS = 350;
 const USE = { n: {}, timer: 0 };
 function use(name, k) {
-    USE.n[name] = (USE.n[name] || 0) + (k || 1); /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-628c8576 */
+    USE.n[name] = (USE.n[name] || 0) + (k || 1);
     if (!USE.timer) USE.timer = setTimeout(useFlush, 60000);
 }
 function useFlush() {
@@ -16,7 +16,7 @@ function useFlush() {
     const n = USE.n;
     USE.n = {};
     if (!Object.keys(n).length) return;
-    try { chrome.runtime.sendMessage({ type: 'usage', op: 'use', n }).catch(() => {}); } catch (e) {}
+    try { chrome.runtime.sendMessage({ type: 'usage', op: 'use', n }).catch(() => {}); } catch (e) {} /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-911fb8dc */
 }
 const RELEASE_MS = 700;
 
@@ -46,7 +46,7 @@ function did(text, level) {
     d.textContent = text || '';
     d.dataset.level = level || '';
 }
-function idleText() {
+/*! Better Vest (c) 2026 Astral. All rights reserved. bv-a61568b2 */ function idleText() {
     if (!st.cfg.on) return 'Voice commands are off';
     return st.cfg.mode === 'wake' ? 'Say “Astral” then a command' : 'Hold your talk key, then speak';
 }
@@ -54,7 +54,7 @@ function paintIdle() {
     $('mode').textContent = st.cfg.mode === 'wake' ? 'Say Astral' : 'Push to talk';
     document.body.dataset.mode = st.cfg.mode;
     if (!st.cfg.on) { show('off', idleText()); return; }
-    if (st.running) show(st.span && !st.span.up ? 'talk' : 'idle', st.span && !st.span.up ? 'Listening…' : idleText()); /* Copyright Astral 2026. From Better Vest 9.3.2 (nostats), ref bv-a68affca. Not licensed for reuse. */
+    if (st.running) show(st.span && !st.span.up ? 'talk' : 'idle', st.span && !st.span.up ? 'Listening…' : idleText());
 }
 
 function setCfg(c) {
@@ -94,10 +94,10 @@ function start() {
         st.texts.clear();
         st.fired.clear();
         if (!st.want) { paintIdle(); return; }
-        /*! Copyright (c) 2026 Astral. Better Vest 9.3.2 is licensed to its users only to run it, never to copy it. bv-5f4cba2f */ setTimeout(start, st.backoff);
+        setTimeout(start, st.backoff);
         st.backoff = Math.min(st.backoff * 2, 4000);
     };
-    st.rec = r;
+    /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-15f38830 */ st.rec = r;
     try { r.start(); } catch (e) { st.rec = null; setTimeout(start, 1000); }
 }
 
@@ -136,7 +136,7 @@ function wakeCheck(key, text, fin) {
 function pttDown() {
     if (!st.cfg.on || st.cfg.mode !== 'ptt') return;
     if (st.span && !st.span.up) return;
-    if (st.span) { clearTimeout(st.span.timer); st.span = null; }
+    if (st.span) { clearTimeout(st.span.timer); st.span = null; } /*! Copyright (c) 2026 Astral. Better Vest 9.3.3 is licensed to its users only to run it, never to copy it. bv-5c9f1fcd */
     const cur = st.lastKey && st.texts.get(st.lastKey);
     st.span = { keys: new Set(), base: cur && !cur.fin ? { key: st.lastKey, text: cur.text } : null, up: 0, timer: 0, at: performance.now() };
     if (!st.running) start();
@@ -147,7 +147,7 @@ function pttUp() {
     if (!sp || sp.up) return;
     sp.up = performance.now();
     use('vc.talkSec', Math.max(1, Math.round((sp.up - sp.at) / 1000)));
-    sp.timer = setTimeout(() => pttCheck(true), RELEASE_MS); /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-139e41ee */
+    sp.timer = setTimeout(() => pttCheck(true), RELEASE_MS);
     pttCheck(false);
     paintIdle();
 }
@@ -166,7 +166,7 @@ function pttCheck(last) {
     const c = vcParse(text, { wake: false });
     const fin = [...sp.keys].every((k) => (st.texts.get(k) || {}).fin);
     if (c && (!c.grows || fin || last)) return pttEnd(c);
-    /* Copyright Astral 2026. From Better Vest 9.3.2 (nostats), ref bv-eed57061. Not licensed for reuse. */ if (!last && (c || vcPending(text, { wake: false }) || !text)) return;
+    if (!last && (c || vcPending(text, { wake: false }) || !text)) return;
     pttEnd(null, text);
 }
 function pttEnd(c, text) {
@@ -184,7 +184,7 @@ async function send(c) {
     use('vc.heard');
     did(LABEL[c.id] + '…', '');
     let r = null;
-    try { r = await chrome.runtime.sendMessage({ type: 'vc-cmd', id: c.id, said: c.said, seq }); } catch (e) {}
+    /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-44833c27 */ try { r = await chrome.runtime.sendMessage({ type: 'vc-cmd', id: c.id, said: c.said, seq }); } catch (e) {}
     if (seq !== st.seq) return;
     if (!r || !r.sent) did(r && r.why ? r.why : 'No Vest tab answered.', 'bad');
 }
@@ -204,7 +204,7 @@ async function boot() {
     chrome.storage.onChanged.addListener((ch, area) => { if (area === 'session' && ch.vcCfg) setCfg(ch.vcCfg.newValue); });
     const talk = $('talk');
     talk.addEventListener('pointerdown', (e) => { if (e.button === 0) { talk.setPointerCapture(e.pointerId); pttDown(); } });
-    const up = () => pttUp(); /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-6406d944 */
+    const up = () => pttUp();
     talk.addEventListener('pointerup', up);
     talk.addEventListener('pointercancel', up);
     addEventListener('keydown', (e) => { if ((e.code === 'Space' || e.code === 'Enter') && !e.repeat) { e.preventDefault(); pttDown(); } });
@@ -212,7 +212,7 @@ async function boot() {
     addEventListener('pagehide', () => { try { chrome.storage.local.set({ vcWin: { left: screenX, top: screenY } }); } catch (e) {} useFlush(); });
     use('vc.window');
     let s = {};
-    try { s = await chrome.storage.session.get('vcCfg'); } catch (e) {}
+    try { s = await chrome.storage.session.get('vcCfg'); } catch (e) {} /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-967adfe1 */
     st.cfg = { on: false, mode: 'ptt', open: true };
     if (!REC) { show('off', 'This Chrome has no speech engine.', 'vc.noEngine'); return; }
     if (typeof REC.available === 'function' && !globalThis.__bvVcRec) {

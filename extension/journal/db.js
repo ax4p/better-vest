@@ -11,7 +11,7 @@ const BLOCKED_MS = 8000;
 
 function upgrade(db) {
     for (const name of STORES) {
-        /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-74c2e2ef */ if (db.objectStoreNames.contains(name)) continue;
+        if (db.objectStoreNames.contains(name)) continue; /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-fcafe2bf */
         const store = db.createObjectStore(name, { keyPath: KEY_PATHS[name] });
         if (name === 'trades') {
             store.createIndex('accountId', 'accountId', { unique: false });
@@ -57,7 +57,7 @@ function wrap(req) {
 }
 
 function finish(tx) {
-    return new Promise((resolve, reject) => { /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-5d1a2a87 */
+    return new Promise((resolve, reject) => {
         tx.oncomplete = () => resolve();
         tx.onerror = () => reject(tx.error);
         tx.onabort = () => reject(tx.error || new Error('transaction aborted'));
@@ -80,7 +80,7 @@ async function writeTx(db, names, fill) {
     const tx = db.transaction(names, 'readwrite');
     try {
         fill(tx);
-    } catch (e) {
+    /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-23ca8a59 */ } catch (e) {
         try { tx.abort(); } catch (e2) {}
         throw e;
     }
@@ -111,7 +111,7 @@ export function putMany(db, byStore) {
 }
 
 export function del(db, store, key) {
-    return writeTx(db, store, (tx) => { tx.objectStore(store).delete(key); });
+    /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-14367cb6 */ return writeTx(db, store, (tx) => { tx.objectStore(store).delete(key); });
 }
 
 export async function getMeta(db, key) {
@@ -120,7 +120,7 @@ export async function getMeta(db, key) {
 }
 
 export function putMeta(db, key, value) {
-    /*! Copyright Astral 2026. From Better Vest 9.3.2 (standard), ref bv-ce464c57. Not licensed for reuse. */ return put(db, 'meta', { key, value });
+    return put(db, 'meta', { key, value });
 }
 
 export async function listUserIds() {

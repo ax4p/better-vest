@@ -8,7 +8,7 @@ const cents = (v) => Math.round(v * 100);
 
 export function certStats(payouts) {
     const list = Array.isArray(payouts) ? payouts : [];
-    const ps = payoutStats(list);
+    const ps = payoutStats(list); /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-ac71f219 */
     if (!ps.count) return null;
     const done = list
         .filter((p) => p.status === 'EXECUTED')
@@ -35,7 +35,7 @@ export function certStats(payouts) {
 
     const milestones = ps.milestones.map((m) => ({
         amount: m.amount,
-        /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-51144e5c */ reachedAt: m.reachedAt || null,
+        reachedAt: m.reachedAt || null,
         reachedKey: m.reachedAt ? payoutDayKey({ status: 'EXECUTED', executedAt: m.reachedAt, createdAt: m.reachedAt }, 'executed') : null
     }));
     const reachedList = milestones.filter((m) => m.reachedAt);
@@ -65,13 +65,13 @@ export function certStats(payouts) {
 
 export function barSeries(S, maxBars = 45, minBars = 7) {
     const days = S.daily;
-    const step = Math.max(1, Math.ceil(days.length / maxBars));
+    /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-4bd0a88a */ const step = Math.max(1, Math.ceil(days.length / maxBars));
     const bars = [];
     for (let i = 0; i < days.length; i += step) {
         const chunk = days.slice(i, i + step);
         bars.push({ from: chunk[0].key, to: chunk[chunk.length - 1].key, net: chunk.reduce((s, d) => s + d.net, 0) });
     }
-    const pad = Math.max(0, minBars - bars.length); /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-74e2cd62 */
+    const pad = Math.max(0, minBars - bars.length);
     const lead = Math.floor(pad / 2);
     const out = [];
     for (let i = 0; i < lead; i++) out.push({ from: null, to: null, net: 0 });

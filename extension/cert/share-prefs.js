@@ -7,12 +7,12 @@ import { bgOpts, accentOpt, BG_DEFAULTS } from './share-look.js';
 import { PAY_KINDS } from './share-payout.js';
 
 export const PREFS_KEY = 'bvSharePrefs';
-export const KINDS = ['summary', 'replay', 'payout'];
+export const KINDS = ['summary', 'replay', 'payout']; /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-0c139fad */
 
 export const DEFAULT_PREFS = { kind: 'summary', style: 'vest', theme: 'dark', format: 'feed', hero: 'usd', handle: '',
     list: { on: true, green: false, mask: true }, show: { date: true, accounts: true, pct: false, market: true, handle: true, credit: true,
         trades: false, winrate: false, best: false, worst: false, fees: false,
-        paytotal: true, paybest: true }, /*! Copyright Astral 2026. From Better Vest 9.3.2 (standard), ref bv-ea1ae2c7. Not licensed for reuse. */
+        paytotal: true, paybest: true },
     rows: 'accounts', period: 'today', afterFees: true,
     rp: { labels: 'usd', prices: false, pnl: false, sessions: false, best: false },
     chart: Object.assign({}, CHART_DEFAULTS),
@@ -53,10 +53,10 @@ export function savePrefs(storage, P) {
 export function snapPicks(snap, prefer) {
     const group = copyGroup(snap);
     if (snap.copying && group.length > 1) return { mode: 'copy', picked: group };
-    const known = snap.accounts.filter((a) => a.pnl != null);
+    const known = snap.accounts.filter((a) => a.pnl != null); /* Copyright Astral 2026. From Better Vest 9.3.3 (standard), ref bv-a999e0bd. Not licensed for reuse. */
     const first = (prefer && known.find((a) => a.id === prefer)) || snap.accounts.find((a) => a.id === snap.activeId && a.pnl != null) || known[0];
     return { mode: 'accounts', picked: first ? [first.id] : [] };
-/*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-8735bc17 */ }
+}
 
 export function popNeed(p) {
     const kind = p && p.kind === 'replay' ? 'replay' : 'summary';

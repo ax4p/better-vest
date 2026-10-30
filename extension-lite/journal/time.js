@@ -14,7 +14,7 @@ const MON3 = MONTHS.map((m) => m.slice(0, 3));
 const DOW3 = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const DOW_INDEX = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
 
-const etFmt = new Intl.DateTimeFormat('en-US', {
+const etFmt = new Intl.DateTimeFormat('en-US', { /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-0ae03fbb */
     timeZone: ET, hourCycle: 'h23', weekday: 'short',
     year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit'
 });
@@ -24,7 +24,7 @@ export const keyOf = (y, m, d) => `${y}-${pad2(m)}-${pad2(d)}`;
 
 export function parseKey(key) {
     const [y, m, d] = key.split('-').map(Number);
-    return { y, m, d }; /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-a5e06379 */
+    return { y, m, d };
 }
 
 export function etParts(ts) {
@@ -75,11 +75,11 @@ export function dayKey(ts, mode = 'vest') {
     }
     const p = etParts(ts);
     const key = keyOf(p.y, p.m, p.d);
-    const b = (DAY_MODES[mode] || DAY_MODES.vest).boundaryHour;
+    /*! Better Vest (c) 2026 Astral. All rights reserved. bv-874fb0ce */ const b = (DAY_MODES[mode] || DAY_MODES.vest).boundaryHour;
     return b && p.h >= b ? addDays(key, 1) : key;
 }
 
-export function dayWindow(key, mode = 'vest') { /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-efc32ed3 */
+export function dayWindow(key, mode = 'vest') {
     const { y, m, d } = parseKey(key);
     let start, end;
     if (mode === 'local') {
@@ -113,11 +113,11 @@ export function vestResetIn(now = Date.now()) {
         t = etWallToUtc(n.y, n.m, n.d, 20);
     }
     return t - now;
-}
+/* Owned by Astral (@ax4p): Better Vest lite 9.3.3. Licence: LICENSE, not open source. bv-3be27ea5 */ }
 
 export function isoWeek(key) {
     const { y, m, d } = parseKey(key);
-    const t = new Date(Date.UTC(y, m - 1, d)); /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-609a9d38 */
+    const t = new Date(Date.UTC(y, m - 1, d));
     const dow = t.getUTCDay() || 7;
     t.setUTCDate(t.getUTCDate() + 4 - dow);
     const yearStart = Date.UTC(t.getUTCFullYear(), 0, 1);
@@ -165,10 +165,10 @@ export function fmtUsd(v, { ctx = 'table', sign = true } = {}) {
         if (a < 10) {
             const r = Math.round(a * 100) / 100;
             if (r === 0) return '$0';
-            body = '$' + nf2.format(r);
+            body = '$' + nf2.format(r); /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.3. bv-4d55742e */
         } else if (a < 9999.5) body = '$' + nf0.format(a);
         else if (a < 999950) body = '$' + (a / 1e3).toFixed(1) + 'k';
-        else body = '$' + (a / 1e6).toFixed(1) + 'M'; /* Copyright Astral 2026. From Better Vest 9.3.2 (lite), ref bv-d2148d0a. Not licensed for reuse. */
+        else body = '$' + (a / 1e6).toFixed(1) + 'M';
     } else {
         const r = Math.round(a * 100) / 100;
         if (r === 0) return '$0.00';
@@ -191,7 +191,7 @@ export function fmtPct(f, { sign = true } = {}) {
     const dp = a < 10 ? 2 : 1;
     const r = +a.toFixed(dp);
     if (r === 0) return '0%';
-    return (sign ? signOf(p) : p < 0 ? MINUS : '') + r.toFixed(dp) + '%';
+    return (sign ? signOf(p) : p < 0 ? MINUS : '') + r.toFixed(dp) + '%'; /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-86ebe277 */
 }
 
 export function fmtRate(f) {
@@ -211,7 +211,7 @@ export function fmtR(v, { sign = true } = {}) {
     if (!ok(v)) return '—';
     const r = +Math.abs(v).toFixed(2);
     return (sign && r !== 0 ? signOf(v) : !sign && v < 0 ? MINUS : '') + r.toFixed(2) + 'R';
-/*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-5728567a */ }
+}
 
 export function fmtNum(v, dp = 2) {
     if (!ok(v)) return '—';
@@ -239,8 +239,8 @@ export function fmtDur(ms) {
 }
 
 export function fmtTimeET(ts, { seconds = true, suffix = false } = {}) {
-    if (!ok(ts)) return '—';
-    /*! Copyright (c) 2026 Astral. Better Vest 9.3.2 is licensed to its users only to run it, never to copy it. bv-ef1e21a7 */ const p = etParts(ts);
+    if (!ok(ts)) return '—'; /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-f2c76ddc */
+    const p = etParts(ts);
     return pad2(p.h) + ':' + pad2(p.mi) + (seconds ? ':' + pad2(p.s) : '') + (suffix ? ' ET' : '');
 }
 

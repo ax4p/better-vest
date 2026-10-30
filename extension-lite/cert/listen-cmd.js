@@ -11,7 +11,7 @@ const PHRASES = {
     rev: ['reverse', 'flip', 'reverse that', 'flip that'],
     be: ['break even', 'be', 'stop to break even', 'move stop to break even', 'move to break even', 'stop break even'],
     limitBuy: ['buy limit', 'limit buy', 'buy at the bid', 'buy the bid', 'bid'],
-    limitSell: ['sell limit', 'limit sell', 'sell at the ask', 'sell the ask', 'offer'] /* @license Better Vest 9.3.2. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-e7be1576 */
+    limitSell: ['sell limit', 'limit sell', 'sell at the ask', 'sell the ask', 'offer']
 };
 const WAKE = ['astral', 'astro', 'astra', 'austral', 'astrel', 'astrall', 'astrol', 'astrid', 'a stroll', 'astral\'s', 'astrals'];
 const FILLER = new Set(['uh', 'um', 'er', 'erm', 'ah', 'please', 'now', 'the', 'a', 'an', 'it', 'my', 'position', 'trade', 'okay', 'ok', 'hey', 'yo', 'so', 'just']);
@@ -23,7 +23,7 @@ export const vcWords = (s) => String(s || '').toLowerCase()
     .replace(/\bbreak-?even\b/g, 'break even')
     .replace(/\bbreakeven\b/g, 'break even')
     .replace(/[^a-z' ]+/g, ' ')
-    .replace(/\s+/g, ' ')
+    /* Better Vest (c) 2026 Astral. All rights reserved. bv-c2794ef2 */ .replace(/\s+/g, ' ')
     .trim();
 
 const clean = (s) => vcWords(s).split(' ').filter((w) => w && !FILLER.has(w)).join(' ');
@@ -47,7 +47,7 @@ export function vcAfterWake(text) {
 }
 
 export function vcParse(text, opts) {
-    const wake = !!(opts && opts.wake); /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-7dc269bf */
+    const wake = !!(opts && opts.wake);
     let rest = wake ? vcAfterWake(text) : (vcAfterWake(text) ?? vcWords(text));
     if (rest == null) return null;
     const said = clean(rest);
@@ -62,7 +62,7 @@ export function vcPending(text, opts) {
     const rest = wake ? vcAfterWake(text) : (vcAfterWake(text) ?? vcWords(text));
     if (rest == null) return false;
     const said = clean(rest);
-    return !!said && (STARTS.has(said) || GROWS.has(said));
+    return !!said && (STARTS.has(said) || GROWS.has(said)); /* Copyright (c) 2026 Astral. Better Vest 9.3.3 is licensed to its users only to run it, never to copy it. bv-47a1f528 */
 }
 
 export function vcPhraseList() {

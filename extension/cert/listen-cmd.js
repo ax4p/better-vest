@@ -14,10 +14,10 @@ const PHRASES = {
     limitSell: ['sell limit', 'limit sell', 'sell at the ask', 'sell the ask', 'offer']
 };
 const WAKE = ['astral', 'astro', 'astra', 'austral', 'astrel', 'astrall', 'astrol', 'astrid', 'a stroll', 'astral\'s', 'astrals'];
-/*! Better Vest (c) 2026 Astral. All rights reserved. bv-ec2cf2f8 */ const FILLER = new Set(['uh', 'um', 'er', 'erm', 'ah', 'please', 'now', 'the', 'a', 'an', 'it', 'my', 'position', 'trade', 'okay', 'ok', 'hey', 'yo', 'so', 'just']);
+const FILLER = new Set(['uh', 'um', 'er', 'erm', 'ah', 'please', 'now', 'the', 'a', 'an', 'it', 'my', 'position', 'trade', 'okay', 'ok', 'hey', 'yo', 'so', 'just']);
 
 export const vcWords = (s) => String(s || '').toLowerCase()
-    .replace(/(\d+)\s*%/g, '$1 percent')
+    /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-8957a403 */ .replace(/(\d+)\s*%/g, '$1 percent')
     .replace(/\b50\b/g, 'fifty')
     .replace(/\bb\s*\.?\s*e\b\.?/g, 'be')
     .replace(/\bbreak-?even\b/g, 'break even')
@@ -47,7 +47,7 @@ export function vcAfterWake(text) {
 }
 
 export function vcParse(text, opts) {
-    const wake = !!(opts && opts.wake);
+    /* @license Better Vest 9.3.3. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-a0c49673 */ const wake = !!(opts && opts.wake);
     let rest = wake ? vcAfterWake(text) : (vcAfterWake(text) ?? vcWords(text));
     if (rest == null) return null;
     const said = clean(rest);
@@ -63,7 +63,7 @@ export function vcPending(text, opts) {
     if (rest == null) return false;
     const said = clean(rest);
     return !!said && (STARTS.has(said) || GROWS.has(said));
-/*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-68296504 */ }
+}
 
 export function vcPhraseList() {
     return ['astral'].concat([...new Set(Object.values(PHRASES).flat())]);

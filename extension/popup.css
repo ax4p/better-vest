@@ -9,7 +9,7 @@
   --up: #34d399;
   --down: #f87171;
 }
-* { box-sizing: border-box; } /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-6637524c */
+* { box-sizing: border-box; }
 [hidden] { display: none !important; }
 html { background: var(--bg); }
 body {
@@ -35,14 +35,14 @@ button:hover { border-color: var(--accent); }
 button.on { border-color: var(--accent); color: #7dd3fc; background: rgba(56, 189, 248, 0.14); }
 button.primary { width: 100%; background: #2563eb; border-color: var(--accent); color: #fff; padding: 8px 0; }
 .themes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
-.theme { height: 38px; border-radius: 7px; border: 1px solid; display: flex; flex-direction: column; justify-content: space-between; align-items: flex-start; padding: 5px 6px; text-align: left; }
+.theme { height: 38px; border-radius: 7px; border: 1px solid; display: flex; flex-direction: column; justify-content: space-between; align-items: flex-start; padding: 5px 6px; text-align: left; } /* @license Better Vest 9.3.3. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-468e1e49 */
 .theme.on { outline: 2px solid var(--accent); outline-offset: 1px; }
 .theme i { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 2px; }
 .theme b { font-size: 9.5px; }
 
 .label { display: flex; justify-content: space-between; align-items: center; }
 button.mini { padding: 3px 8px; font-size: 10px; text-transform: none; letter-spacing: 0; border-radius: 999px; }
-button { transition: background-color .15s, border-color .15s, transform .1s; }
+button { transition: background-color .15s, border-color .15s, transform .1s; } /*! Copyright Astral 2026. From Better Vest 9.3.3 (standard), ref bv-ac0d2723. Not licensed for reuse. */
 button:active { transform: scale(.97); }
 
 .flow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
@@ -66,7 +66,7 @@ button.cal-open { display: flex; justify-content: center; align-items: center; g
 
 .upd { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 10px; padding: 8px 10px; border-radius: 10px;
   border: 1px solid var(--accent); background: rgba(37, 99, 235, 0.18); }
-.upd b { color: #7dd3fc; } /*! Owned by Astral (@ax4p): Better Vest standard 9.3.2. Licence: LICENSE, not open source. bv-32239442 */
+.upd b { color: #7dd3fc; }
 .upd button.mini { background: #2563eb; border-color: var(--accent); color: #fff; }
 .upd-pref { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; color: var(--muted); font-size: 11px; }
 .upd-pref input { accent-color: #2563eb; vertical-align: -2px; }

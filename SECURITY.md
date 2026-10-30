@@ -211,15 +211,15 @@ When a new version is out and you're flat, a small panel at the bottom right of 
 ## Check it yourself
 
 1. **Read the code.** The [`extension`](extension) folder in this repo is the Standard zip, file for file ([`extension-lite`](extension-lite) and [`extension-nostats`](extension-nostats) are the other two). It isn't minified or obfuscated, so you can read it in your browser.
-2. **Check the zip is that code.** The SHA-256 of `better-vest-9.3.2.zip` is:
+2. **Check the zip is that code.** The SHA-256 of `better-vest-9.3.3.zip` is:
 
-   `8584d0882f304664573b6f9b5ef76e45ae855b1f776ecdb05ae5e4813b493525`
+   `bc287d8c6babc91cc6433ae6e3d3472d303f6ad6f9d751d03140647fe1fdee73`
 
-   Lite: `1a3aca332b6fea94d0c272ce4afb752d8b408351fbf59604c74ecdf982cbe55b`. No stats: `be3647157d1ccf4b12c080311ae620d3f1aa60b79d0ce3cc91d8d96115cfe091`.
+   Lite: `29df9e88bfb7ac603fc2553263d3a9e0a7029f9e2ae5124b74c91ee2d3ce5f4c`. No stats: `08d592a4805660d74e242209478e492e70e9c69c47e32f58a7f58b731a453c49`.
 
-   - On Mac: `shasum -a 256 better-vest-9.3.2.zip`
-   - On Windows: `certutil -hashfile better-vest-9.3.2.zip SHA256`
-3. **Scan it.** VirusTotal checks a file with more than 60 antivirus engines. Upload the zip at [virustotal.com](https://www.virustotal.com) and you get the result for that exact file. The version here, 9.3.2, came back with no engine flagging it: Standard ([report](https://www.virustotal.com/gui/file/8584d0882f304664573b6f9b5ef76e45ae855b1f776ecdb05ae5e4813b493525)), Lite ([report](https://www.virustotal.com/gui/file/1a3aca332b6fea94d0c272ce4afb752d8b408351fbf59604c74ecdf982cbe55b)), No stats ([report](https://www.virustotal.com/gui/file/be3647157d1ccf4b12c080311ae620d3f1aa60b79d0ce3cc91d8d96115cfe091)). The one released before, 9.3.1, was the same.
+   - On Mac: `shasum -a 256 better-vest-9.3.3.zip`
+   - On Windows: `certutil -hashfile better-vest-9.3.3.zip SHA256`
+3. **Scan it.** VirusTotal checks a file with more than 60 antivirus engines. Upload the zip at [virustotal.com](https://www.virustotal.com) and you get the result for that exact file. The version here, 9.3.3, came back with no engine flagging it: Standard ([report](https://www.virustotal.com/gui/file/bc287d8c6babc91cc6433ae6e3d3472d303f6ad6f9d751d03140647fe1fdee73)), Lite ([report](https://www.virustotal.com/gui/file/29df9e88bfb7ac603fc2553263d3a9e0a7029f9e2ae5124b74c91ee2d3ce5f4c)), No stats ([report](https://www.virustotal.com/gui/file/08d592a4805660d74e242209478e492e70e9c69c47e32f58a7f58b731a453c49)). The one released before, 9.3.2, was the same.
 
    Reports for earlier versions also had an AI summary, "Code insights", which marked two things as suspicious. Both are on this page: the WICK code switch ([The WICK code](#the-wick-code)) and the updater writing its own files ([Updates are signed](#updates-are-signed)).
 4. **Watch it work.** Open Chrome's DevTools on the Vest tab (F12), go to Network, and use Better Vest. You'll only see the addresses listed above.

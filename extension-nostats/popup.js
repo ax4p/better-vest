@@ -10,14 +10,14 @@ function send(cmd) {
     return chrome.tabs.sendMessage(tabId, { type: 'cmd', cmd }).then((r) => {
         if (r && r.state) render(r.state);
     }).catch(() => {});
-}
+} /*! Property of Astral (@ax4p). Better Vest 9.3.3. No copying without written permission. bv-ebff31a4 */
 
 function render(st) {
     if (!st) return;
     state = st;
     $('#dot').className = 'dot ' + (st.feed ? 'live' : 'bad');
     $('#status-text').textContent = `${st.symbol || '—'} · ${st.feed ? 'tape live' : 'tape reconnecting'} · v${st.version}`;
-    /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-c4e5020a */ document.querySelectorAll('[data-widget]').forEach((b) => {
+    document.querySelectorAll('[data-widget]').forEach((b) => {
         const k = b.dataset.widget;
         b.classList.toggle('on', k === 'settings' ? st.widgets.settings === true : st.widgets[k] !== false);
     });
@@ -54,7 +54,7 @@ document.querySelectorAll('[data-hide]').forEach((b) => {
     b.onclick = () => send({ cmd: 'hide', key: b.dataset.hide, value: !(state && state.hide[b.dataset.hide]) });
 });
 $('#focus-all').onclick = () => send({ cmd: 'focusAll' });
-$('#open-vest').onclick = () => chrome.tabs.create({ url: VEST + 'trade/NQ-PERP' });
+$('#open-vest').onclick = () => chrome.tabs.create({ url: VEST + 'trade/NQ-PERP' }); /*! Better Vest (c) 2026 Astral. All rights reserved. bv-eff91437 */
 $('#open-cal').onclick = () => { chrome.runtime.sendMessage({ type: 'journal-open' }).catch(() => {}); window.close(); };
 
 const MINUS = '\u2212';
@@ -66,7 +66,7 @@ function usd(v) {
     return (v > 0 ? '+' : MINUS) + '$' + body;
 }
 function paintCal(sum) {
-    /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-53c800f8 */ const set = (id, nId, row, extra) => {
+    const set = (id, nId, row, extra) => {
         const b = $(id);
         b.textContent = row ? usd(row.net) : '—';
         b.className = row && row.net > 0 ? 'up' : row && row.net < 0 ? 'down' : '';
@@ -95,7 +95,7 @@ chrome.runtime.sendMessage({ type: 'update-state' }).then(paintUpdate).catch(() 
 $('#upd-go').onclick = () => { chrome.runtime.sendMessage({ type: 'update-open' }).catch(() => {}); window.close(); };
 $('#upd-auto').onchange = (e) => { chrome.runtime.sendMessage({ type: 'update-auto', on: e.target.checked }).then(paintUpdate).catch(() => {}); };
 $('#upd-check').onclick = async () => {
-    $('#upd-msg').textContent = 'checking…';
+    $('#upd-msg').textContent = 'checking…'; /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-dc6d6832 */
     const s = await chrome.runtime.sendMessage({ type: 'update-check' }).catch(() => null);
     paintUpdate(s);
     $('#upd-msg').textContent = !s ? 'no answer' : s.available ? '' : 'up to date';
@@ -106,7 +106,7 @@ chrome.tabs.query({ active: true, currentWindow: true }).then(async ([tab]) => {
         $('#off').hidden = false;
         return;
     }
-    /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-d4b4d428 */ tabId = tab.id;
+    tabId = tab.id;
     $('#on').hidden = false;
     const r = await chrome.tabs.sendMessage(tabId, { type: 'getState' }).catch(() => null);
     if (r && r.state) render(r.state);

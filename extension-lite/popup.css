@@ -30,14 +30,14 @@ header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
 button {
   background: var(--btn); color: var(--text); border: 1px solid var(--line); border-radius: 6px;
   padding: 6px 0; font: 700 11px system-ui, sans-serif; cursor: pointer;
-} /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.2. bv-c5eb8a72 */
+}
 button:hover { border-color: var(--accent); }
 button.on { border-color: var(--accent); color: #7dd3fc; background: rgba(56, 189, 248, 0.14); }
 button.primary { width: 100%; background: #2563eb; border-color: var(--accent); color: #fff; padding: 8px 0; }
 .themes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
 .theme { height: 38px; border-radius: 7px; border: 1px solid; display: flex; flex-direction: column; justify-content: space-between; align-items: flex-start; padding: 5px 6px; text-align: left; }
 .theme.on { outline: 2px solid var(--accent); outline-offset: 1px; }
-.theme i { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 2px; }
+.theme i { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 2px; } /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-874ef517 */
 .theme b { font-size: 9.5px; }
 
 .label { display: flex; justify-content: space-between; align-items: center; }
@@ -58,7 +58,7 @@ button:active { transform: scale(.97); }
 .cal-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 9px; }
 .cal-grid div { display: flex; flex-direction: column; gap: 1px; }
 .cal-grid small { color: var(--muted); font-size: 9px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
-.cal-grid b { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.01em; } /* Owned by Astral (@ax4p): Better Vest lite 9.3.2. Licence: LICENSE, not open source. bv-760d374f */
+.cal-grid b { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.01em; } /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-67bea138 */
 .cal-grid b.up { color: var(--up); } .cal-grid b.down { color: var(--down); }
 .cal-grid i { font-style: normal; color: var(--muted); font-size: 10px; font-variant-numeric: tabular-nums; }
 button.cal-open { display: flex; justify-content: center; align-items: center; gap: 8px; }

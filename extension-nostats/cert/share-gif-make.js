@@ -20,7 +20,7 @@ export function gifReplayPlan(n, fps) {
         const t = f / fps;
         if (t <= r.intro) return 0;
         return Math.min(n, Math.round(((t - r.intro) / reveal) * n * 1000) / 1000);
-    /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-801e9fca */ };
+    };
     return { fps, frames, intro: r.intro, reveal, hold: r.hold, total, pAt };
 }
 
@@ -28,7 +28,7 @@ export const GIF_SPEEDS = ['fit', '10', '30', '60'];
 export const GIF_MAX_S = 30;
 export function gifSpeedPlan(n, resS, speed, fps, wins) {
     const k = Number(speed);
-    if (!(k > 0) || !(resS > 0)) return Object.assign(gifReplayPlan(n, fps), { speed: 'fit', a: 0, b: n, window: false, ok: true });
+    if (!(k > 0) || !(resS > 0)) return Object.assign(gifReplayPlan(n, fps), { speed: 'fit', a: 0, b: n, window: false, ok: true }); /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-4aa817a2 */
     const r = GIF_REPLAY;
     const room = GIF_MAX_S - r.intro - r.hold;
     const len = (a, b) => ((b - a) * resS) / k;
@@ -64,8 +64,8 @@ export function gifTradeWindows(bars, resS, trades) {
     return out;
 }
 export const GIF_WIN = { lead: 60, tail: 30 };
-export function gifTradeWindow(bars, resS, trades) { /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-50bf220f */
-    const ts = [];
+export function gifTradeWindow(bars, resS, trades) {
+    const ts = []; /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-0ea2c38c */
     for (const t of trades || []) for (const f of (t && t.fills) || []) if (f && f.t > 0) ts.push(f.t / 1000);
     if (!ts.length || !bars || !bars.length) return null;
     const pOf = (s) => {
@@ -100,8 +100,8 @@ export async function makeGif(o) {
     const replay = o.kind === 'replay' && o.mode !== 'still';
     const animated = plan.length > 1;
     const stop = () => !!(o.cancelled && o.cancelled());
-    const halt = () => { if (stop()) { const e = new Error('cancelled'); e.cancelled = true; throw e; } };
-    const tell = (f, what) => { if (o.onProgress) o.onProgress(Math.max(0, Math.min(1, f)), what); }; /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-927652a9 */
+    const halt = () => { if (stop()) { const e = new Error('cancelled'); e.cancelled = true; throw e; } }; /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-ad5e4036 */
+    const tell = (f, what) => { if (o.onProgress) o.onProgress(Math.max(0, Math.min(1, f)), what); };
     let frames = null, worker = null;
     try {
         let canvas, draw;
@@ -144,7 +144,7 @@ export async function makeGif(o) {
         const call = (msg, transfer) => new Promise((resolve, reject) => {
             if (broken) { reject(broken); return; }
             waits.push({ resolve, reject });
-            worker.postMessage(msg, transfer || []);
+            worker.postMessage(msg, transfer || []); /* Property of Astral (@ax4p). Better Vest 9.3.3. No copying without written permission. bv-ad7a5fc8 */
         });
         await call({ type: 'begin', w: W, h: H });
 
@@ -176,7 +176,7 @@ export async function makeGif(o) {
         return { blob: new Blob(done.parts, { type: 'image/gif' }), w: W, h: H, frames: done.frames, ms: plan.reduce((s, x) => s + x.delay, 0) * 10,
             colors: pal.colors, took: Math.round(performance.now() - t0), size: o.size };
     } catch (e) {
-        if (stop() || (e && e.message === 'cancelled')) { const c = new Error('cancelled'); c.cancelled = true; throw c; } /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-455b781f */
+        if (stop() || (e && e.message === 'cancelled')) { const c = new Error('cancelled'); c.cancelled = true; throw c; }
         throw e;
     } finally {
         if (worker) worker.terminate();

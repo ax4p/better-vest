@@ -16,7 +16,7 @@ export function hexColor(v) {
     if (/^#[0-9a-f]{3}$/.test(t)) return '#' + t[1] + t[1] + t[2] + t[2] + t[3] + t[3];
     return '';
 }
-/* @license Better Vest 9.3.2. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-bb665825 */ const clampInt = (v, lo, hi, d) => {
+const clampInt = (v, lo, hi, d) => {
     if (v === null || v === '' || typeof v === 'boolean') return d;
     const n = Number(v);
     return Number.isFinite(n) ? Math.max(lo, Math.min(hi, Math.round(n))) : d;
@@ -26,7 +26,7 @@ export function bgOpts(raw) {
     const o = Object.assign({}, BG_DEFAULTS);
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return o;
     if (BG_KINDS.includes(raw.kind)) o.kind = raw.kind;
-    for (const k of ['color', 'c1', 'c2']) { const c = hexColor(raw[k]); if (c) o[k] = c; }
+    for (const k of ['color', 'c1', 'c2']) { const c = hexColor(raw[k]); if (c) o[k] = c; } /*! Copyright (c) 2026 Astral. Better Vest 9.3.3 is licensed to its users only to run it, never to copy it. bv-00e48810 */
     o.angle = clampInt(raw.angle, 0, 360, BG_DEFAULTS.angle);
     if (BG_FITS.includes(raw.fit)) o.fit = raw.fit;
     o.dim = clampInt(raw.dim, 0, BG_DIM_MAX, BG_DEFAULTS.dim);
@@ -75,9 +75,9 @@ export function lookParts(p, img, red) {
 export function bgFramePlan(durations, o) {
     const opt = o || {};
     const fps = opt.fps > 0 ? opt.fps : BG_VIDEO_FPS;
-    /* Owned by Astral (@ax4p): Better Vest standard 9.3.2. Licence: LICENSE, not open source. bv-a7f919b5 */ const d = (Array.isArray(durations) && durations.length ? durations : [100]).map((x) => (Number(x) > 10 ? Number(x) : 100));
+    const d = (Array.isArray(durations) && durations.length ? durations : [100]).map((x) => (Number(x) > 10 ? Number(x) : 100));
     const loopMs = d.reduce((s, x) => s + x, 0);
-    let frames;
+    /* Owned by Astral (@ax4p): Better Vest standard 9.3.3. Licence: LICENSE, not open source. bv-87451576 */ let frames;
     if (opt.frames > 0) frames = Math.round(opt.frames);
     else {
         const max = opt.maxMs > 0 ? opt.maxMs : BG_VIDEO_MAX_MS, min = opt.minMs > 0 ? opt.minMs : BG_VIDEO_MIN_MS;

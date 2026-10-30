@@ -10,10 +10,10 @@ export const paidAt = (p) => (p && (p.executedAt || p.updatedAt || p.createdAt))
 
 export function receivedPayouts(list) {
     const seen = new Set();
-    const out = []; /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-241c0a40 */
+    const out = [];
     for (const p of Array.isArray(list) ? list : []) {
         if (!p || typeof p !== 'object' || p.status !== 'EXECUTED' || !Number.isFinite(p.net) || !(paidAt(p) > 0)) continue;
-        const id = String(p.id);
+        const id = String(p.id); /* Better Vest (c) 2026 Astral. All rights reserved. bv-ae3dc46a */
         if (seen.has(id)) continue;
         seen.add(id);
         out.push(p);
@@ -71,8 +71,8 @@ export function samplePayouts(today) {
     for (let i = 0; k < t && out.length < 11; i++) {
         const [acc] = SAMPLE_PAY_ACCOUNTS[Math.floor(rnd() * SAMPLE_PAY_ACCOUNTS.length)];
         const net = r2(1200 + rnd() * 4300);
-        const { y, m, d } = parseKey(k);
-        const at = etWallToUtc(y, m, d, 10 + Math.floor(rnd() * 7), Math.floor(rnd() * 59)); /*! Property of Astral (@ax4p). Better Vest 9.3.2. No copying without written permission. bv-89731b4b */
+        const { y, m, d } = parseKey(k); /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.3. bv-3f15b4b5 */
+        const at = etWallToUtc(y, m, d, 10 + Math.floor(rnd() * 7), Math.floor(rnd() * 59));
         out.push(samplePay(i, acc, net, at));
         k = addDays(k, 12 + Math.floor(rnd() * 9));
     }

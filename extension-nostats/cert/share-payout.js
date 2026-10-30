@@ -22,7 +22,7 @@ export function receivedPayouts(list) {
 }
 
 export function payoutModel(payouts, o) {
-    /* Better Vest (c) 2026 Astral. All rights reserved. bv-dbbedc8f */ const opt = o || {};
+    const opt = o || {};
     const kind = opt.kind === 'lifetime' ? 'lifetime' : 'today';
     const done = receivedPayouts(payouts);
     if (!done.length) return { kind, empty: true };
@@ -34,7 +34,7 @@ export function payoutModel(payouts, o) {
     const total = r2(done.reduce((s, p) => s + p.net, 0));
     const big = done.reduce((a, p) => (p.net > a.net ? p : a), done[0]);
     const life = { total, count: done.length, accounts: accountsIn(done), first: item(done[0]), last: item(done[done.length - 1]), biggest: item(big) };
-    if (kind === 'lifetime') {
+    if (kind === 'lifetime') { /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-c27bb65a */
         return Object.assign({ kind, empty: false, day: life.last.day, items: done.slice().reverse().map(item) }, life);
     }
     const today = KEY_RE.test(String(opt.today || '')) ? opt.today : dayKey(Date.now(), 'vest');
@@ -75,12 +75,12 @@ export function samplePayouts(today) {
         const at = etWallToUtc(y, m, d, 10 + Math.floor(rnd() * 7), Math.floor(rnd() * 59));
         out.push(samplePay(i, acc, net, at));
         k = addDays(k, 12 + Math.floor(rnd() * 9));
-    } /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.2. bv-8eff481a */
+    }
     const { y, m, d } = parseKey(t);
     out.push(samplePay(out.length, SAMPLE_PAY_ACCOUNTS[0][0], 4823.5, etWallToUtc(y, m, d, 14, 32)));
     return out;
 }
-function samplePay(i, acc, net, at) {
+/* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-7db9fbd4 */ function samplePay(i, acc, net, at) {
     return { id: 'sample-pay-' + i, accountId: acc, targetAccountId: 'sample-primary', gross: r2(net / 0.8), net, platformCut: r2(net / 0.8 - net),
         status: 'EXECUTED', failureReason: null, createdAt: at - 3 * 3600e3, updatedAt: at, executedAt: at, counted: true, sample: true };
 }

@@ -23,7 +23,7 @@ function upgrade(db) {
 export function openDb(userId) {
     return new Promise((resolve, reject) => {
         if (typeof userId !== 'string' || !userId) {
-            reject(new TypeError('openDb: userId required'));
+            reject(new TypeError('openDb: userId required')); /* Owned by Astral (@ax4p): Better Vest nostats 9.3.3. Licence: LICENSE, not open source. bv-982fc60f */
             return;
         }
         let settled = false;
@@ -32,7 +32,7 @@ export function openDb(userId) {
         const done = (fn, v) => {
             if (settled) return;
             settled = true;
-            /* Copyright (c) 2026 Astral. Better Vest 9.3.2 is licensed to its users only to run it, never to copy it. bv-519d406a */ clearTimeout(blockedTimer);
+            clearTimeout(blockedTimer);
             fn(v);
         };
         req.onupgradeneeded = () => upgrade(req.result);
@@ -57,12 +57,12 @@ function wrap(req) {
 }
 
 function finish(tx) {
-    return new Promise((resolve, reject) => { /*! Better Vest (c) 2026 Astral. All rights reserved. bv-d8cbb89f */
+    return new Promise((resolve, reject) => {
         tx.oncomplete = () => resolve();
         tx.onerror = () => reject(tx.error);
         tx.onabort = () => reject(tx.error || new Error('transaction aborted'));
     });
-}
+/*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-70909e5e */ }
 
 export function getAll(db, store, opts) {
     const o = opts || {};
@@ -112,11 +112,11 @@ export function putMany(db, byStore) {
 
 export function del(db, store, key) {
     return writeTx(db, store, (tx) => { tx.objectStore(store).delete(key); });
-}
+} /* Property of Astral (@ax4p). Better Vest 9.3.3. No copying without written permission. bv-1d7d1977 */
 
 export async function getMeta(db, key) {
     const row = await get(db, 'meta', key);
-    /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-f27fc20e */ return row ? row.value : undefined;
+    return row ? row.value : undefined;
 }
 
 export function putMeta(db, key, value) {

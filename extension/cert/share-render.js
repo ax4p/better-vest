@@ -10,11 +10,11 @@ export function fitCard(fit, make) {
     for (let m = 60; m >= 1; m--) {
         out = make(m);
         fit.innerHTML = out.html;
-        const panel = fit.querySelector('.panel');
+        /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-1317b40d */ const panel = fit.querySelector('.panel');
         if (!panel || panel.scrollHeight <= panel.clientHeight + 1) break;
     }
     return out;
-/*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-9b12ef07 */ }
+}
 
 export async function cardCanvas(card, o) {
     const scale = o.scale || 2;
@@ -25,13 +25,13 @@ export async function cardCanvas(card, o) {
     cv.width = over.width;
     cv.height = over.height;
     const ctx = cv.getContext('2d');
-    ctx.save();
+    ctx.save(); /*! Better Vest (c) 2026 Astral. All rights reserved. bv-97fdf877 */
     clipCard(ctx, cv.width, cv.height, g.radius * scale);
     ctx.drawImage(bgStill(o.img, cv.width, cv.height, scale, o.bg, g.base), 0, 0);
     ctx.restore();
     ctx.drawImage(over, 0, 0);
     return cv;
-/* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-2b44c3c9 */ }
+}
 export async function cardPng(card, o) {
     const cv = await cardCanvas(card, o);
     return new Promise((resolve, reject) => cv.toBlob((b) => (b ? resolve(b) : reject(new Error('PNG export failed'))), 'image/png'));
