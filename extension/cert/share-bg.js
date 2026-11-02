@@ -36,8 +36,8 @@ export async function bgSave(file) {
     if (why) throw new Error(why);
     const rec = { blob: file, type: String(file.type).toLowerCase(), name: String(file.name || 'picture').replace(/[\u0000-\u001f<>]/g, '').slice(0, 80), size: file.size, at: Date.now() };
     try { await inStore('readwrite', (st) => st.put(rec, KEY)); } catch (e) {
-        if (e && (e.name === 'QuotaExceededError' || /quota/i.test(String(e.message)))) {
-            throw new Error('no room left for it on this computer (' + mb(file.size) + '). Free some disk space or pick a smaller one'); /* Property of Astral (@ax4p). Better Vest 9.3.3. No copying without written permission. bv-69d3272a */
+        /*! Copyright (c) 2026 Astral. Better Vest 9.3.6 is licensed to its users only to run it, never to copy it. bv-46f298e0 */ if (e && (e.name === 'QuotaExceededError' || /quota/i.test(String(e.message)))) {
+            throw new Error('no room left for it on this computer (' + mb(file.size) + '). Free some disk space or pick a smaller one');
         }
         throw e;
     }
@@ -76,7 +76,7 @@ export async function bgPrepare(rec, o) {
     let durations = [];
     if ((rec.type === 'image/gif' || rec.type === 'image/webp') && !(o && o.times === false)) {
         let info = null;
-        /*! Copyright (c) 2026 Astral. Better Vest 9.3.3 is licensed to its users only to run it, never to copy it. bv-67e737a1 */ try { info = await bgTimes(blob, rec.type); } catch (e) { info = null; }
+        /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-22477338 */ try { info = await bgTimes(blob, rec.type); } catch (e) { info = null; }
         if (info) durations = info.durations;
         else if (typeof ImageDecoder === 'function') {
             let dec = null;
@@ -109,7 +109,7 @@ export function bgRelease(img) {
     try { if (img.first) img.first.close(); } catch (e) {}
 }
 
-export function drawBg(ctx, src, sw, sh, W, H, scale, bg, base) { /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.3. bv-3b035753 */
+export function drawBg(ctx, src, sw, sh, W, H, scale, bg, base) { /*! Property of Astral (@ax4p). Better Vest 9.3.6. No copying without written permission. bv-fe8d486a */
     const o = bgOpts(bg);
     ctx.save();
     ctx.fillStyle = base;
@@ -153,9 +153,9 @@ export function bgStill(img, W, H, scale, bg, base) {
 
 export async function bgFrames(img, plan, W, H, scale, bg, base, onProgress, o) {
     if (bgTooHeavy(img)) throw new Error(HEAVY);
-    const stop = o && o.cancelled;
+    /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-3010dbed */ const stop = o && o.cancelled;
     const dec = new ImageDecoder({ data: img.blob.stream(), type: img.type });
-    await dec.tracks.ready; /* Copyright (c) 2026 Astral. Better Vest 9.3.3 is licensed to its users only to run it, never to copy it. bv-0d1b3306 */
+    await dec.tracks.ready;
     const k = Math.min(1, Math.sqrt(FRAME_BYTES / (W * H * 4 * Math.max(1, plan.used.length))));
     const w = Math.max(1, Math.round(W * k)), h = Math.max(1, Math.round(H * k));
     const cv = new OffscreenCanvas(w, h);

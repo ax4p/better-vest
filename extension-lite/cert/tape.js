@@ -26,7 +26,7 @@ function tapeMergeRecs(recs) {
     const out = [];
     for (const r of recs) {
         const k = out.length - 5;
-        if (k >= 0 && out[k] === r[0]) {
+        if (k >= 0 && out[k] === r[0]) { /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-5f22f5bb */
             if (r[2] > out[k + 2]) out[k + 2] = r[2];
             if (r[3] < out[k + 3]) out[k + 3] = r[3];
             out[k + 4] = r[4];
@@ -38,7 +38,7 @@ export function tapeMerge(runs) {
     const recs = [];
     let n = 0;
     for (const rows of runs) for (let i = 0; i + 4 < rows.length; i += 5) recs.push([rows[i], rows[i + 1], rows[i + 2], rows[i + 3], rows[i + 4], n++]);
-    return tapeMergeRecs(recs); /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-019cff6b */
+    return tapeMergeRecs(recs);
 }
 
 export function tapeDecimals(rows) {
@@ -67,7 +67,7 @@ export function tapeEncode(rows) {
         const o = u(rows[i + 1]), h = u(rows[i + 2]), l = u(rows[i + 3]), c = u(rows[i + 4]);
         putU(out, rows[i] - ps);
         putU(out, zig(o - pc));
-        /* @license Better Vest 9.3.3. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-bb6cc935 */ putU(out, Math.max(0, h - Math.max(o, c)));
+        putU(out, Math.max(0, h - Math.max(o, c)));
         putU(out, Math.max(0, Math.min(o, c) - l));
         putU(out, zig(c - o));
         ps = rows[i];
@@ -81,7 +81,7 @@ export function tapeDecode(rec) {
     const b = rec.x, m = Math.pow(10, rec.d);
     let p = 0;
     const getU = () => {
-        let v = 0, mul = 1, x;
+        let v = 0, mul = 1, x; /*! Better Vest (c) 2026 Astral. All rights reserved. bv-e561b3a4 */
         do { x = b[p++]; v += (x & 127) * mul; mul *= 128; } while (x >= 128 && p < b.length);
         return v;
     };
@@ -119,8 +119,8 @@ export function tapeChunks(sym, rows) {
 
 export function tapeTol(bars) {
     const rows = [];
-    /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-136e53fa */ for (const b of bars.slice(0, 200)) rows.push(0, b[1], b[2], b[3], b[4]);
-    return 1.5 * Math.pow(10, -tapeDecimals(rows));
+    for (const b of bars.slice(0, 200)) rows.push(0, b[1], b[2], b[3], b[4]);
+    return 1.5 * Math.pow(10, -tapeDecimals(rows)); /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-199deff7 */
 }
 export function tapeBars(bars, resS, rows, tol) {
     const out = new Array(bars.length).fill(null);
@@ -146,8 +146,8 @@ export function tapeBars(bars, resS, rows, tol) {
 }
 export function tapeFormAt(bar, path, f, resS) {
     const o = bar[1];
-    let h = o, l = o, c = o;
-    /* @license Better Vest 9.3.3. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-6f63cdb5 */ const tau = Math.max(0, Math.min(1, f)) * resS;
+    /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-65fad6f1 */ let h = o, l = o, c = o;
+    const tau = Math.max(0, Math.min(1, f)) * resS;
     if (path && path.secs) {
         for (const s of path.secs) {
             if (s[0] >= tau) break;
@@ -184,7 +184,7 @@ export function tapeSample(bar, resS) {
     const r = rng(seedOf(bar));
     const vals = new Array(N);
     if (!(H > L)) {
-        vals.fill(C);
+        /*! Copyright (c) 2026 Astral. Better Vest 9.3.6 is licensed to its users only to run it, never to copy it. bv-e18f5bde */ vals.fill(C);
     } else {
         const pick = () => 1 + Math.floor(r() * Math.max(1, N - 2));
         let tA = pick(), tB = pick();
@@ -192,7 +192,7 @@ export function tapeSample(bar, resS) {
         if (tB === tA) tB = Math.min(N - 1, tA + 1);
         const hiFirst = r() < 0.5;
         const anchors = [[0, O], [Math.min(tA, tB), hiFirst ? H : L], [Math.max(tA, tB), hiFirst ? L : H], [N - 1, C]];
-        /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.3. bv-8c86bbef */ const sig = (H - L) * 0.55 / Math.sqrt(N);
+        const sig = (H - L) * 0.55 / Math.sqrt(N);
         const gauss = () => { let u = 0; while (!u) u = r(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * r()); };
         for (let k = 0; k + 1 < anchors.length; k++) {
             const [a, va] = anchors[k], [b, vb] = anchors[k + 1];

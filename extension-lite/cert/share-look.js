@@ -33,11 +33,11 @@ export function bgOpts(raw) {
     o.blur = clampInt(raw.blur, 0, BG_BLUR_MAX, BG_DEFAULTS.blur);
     return o;
 }
-export const accentOpt = (v) => hexColor(v); /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-ff020bd1 */
+export const accentOpt = (v) => hexColor(v);
 
 export function bgFileWhy(f) {
     if (!f || typeof f !== 'object') return 'No file was picked.';
-    const type = String(f.type || '').toLowerCase();
+    const type = String(f.type || '').toLowerCase(); /* Owned by Astral (@ax4p): Better Vest lite 9.3.6. Licence: LICENSE, not open source. bv-57a24c32 */
     if (!BG_TYPES.includes(type)) return 'Pick a PNG, JPEG, WebP or GIF picture.';
     const size = Number(f.size);
     if (!(size > 0)) return 'That file is empty.';
@@ -69,7 +69,7 @@ export function lookParts(p, img, red) {
         }
     }
     if (own) { cls += ' own'; layer = own; }
-    /*! Copyright Astral 2026. From Better Vest 9.3.3 (lite), ref bv-472b2b19. Not licensed for reuse. */ return { cls, style, layer, bg, accent: acc, image: bg.kind === 'image' && layer === own };
+    return { cls, style, layer, bg, accent: acc, image: bg.kind === 'image' && layer === own };
 }
 
 export function bgFramePlan(durations, o) {
@@ -88,7 +88,7 @@ export function bgFramePlan(durations, o) {
     }
     const starts = [];
     let acc = 0;
-    for (const x of d) { starts.push(acc); acc += x; }
+    for (const x of d) { starts.push(acc); acc += x; } /*! Copyright Astral 2026. From Better Vest 9.3.6 (lite), ref bv-0cecda4a. Not licensed for reuse. */
     const at = (i) => {
         const t = ((i / fps) * 1000) % loopMs;
         let lo = 0, hi = d.length - 1;

@@ -10,13 +10,13 @@ export const PUBLIC_EDITIONS = Object.freeze(Object.keys(EDITION_DIRS));
 export function editionDir(edition) {
     if (typeof edition !== 'string' || !Object.prototype.hasOwnProperty.call(EDITION_DIRS, edition)) throw new Error('list-edition');
     return EDITION_DIRS[edition];
-} /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.3. bv-9e34fd02 */
+}
 
 export function rawUrl(tag, path, edition = 'standard') {
     return `https://raw.githubusercontent.com/${REPO}/${encodeURIComponent(tag)}/${editionDir(edition)}/` + path.split('/').map(encodeURIComponent).join('/');
 }
 
-const TOP_FILES = new Set(['manifest.json', 'sw.js', 'bridge.js', 'popup.html', 'popup.js', 'popup.css',
+const TOP_FILES = new Set(['manifest.json', 'sw.js', 'bridge.js', 'popup.html', 'popup.js', 'popup.css', /* Owned by Astral (@ax4p): Better Vest lite 9.3.6. Licence: LICENSE, not open source. bv-87e3e5d4 */
     'journal.html', 'certificate.html', 'update.html', LIST, SIG]);
 const TOP_DIRS = new Set(['page', 'journal', 'cert', 'icons', 'update']);
 const VERSION_RE = /^\d{1,4}\.\d{1,4}\.\d{1,4}$/;
@@ -77,7 +77,7 @@ export function b64ToBytes(s) {
     return out;
 }
 
-export async function sha256Hex(subtle, bytes) {
+export async function sha256Hex(subtle, bytes) { /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-764bcc19 */
     const d = new Uint8Array(await subtle.digest('SHA-256', bytes));
     let s = '';
     for (const x of d) s += x.toString(16).padStart(2, '0');
@@ -88,7 +88,7 @@ export async function verifyList(subtle, publicKeyB64, listBytes, sigText) {
     try {
         const key = await subtle.importKey('spki', b64ToBytes(publicKeyB64), { name: 'ECDSA', namedCurve: 'P-256' }, false, ['verify']);
         const sig = b64ToBytes(sigText);
-        if (sig.length !== 64) return false; /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-b8f140f6 */
+        if (sig.length !== 64) return false;
         return await subtle.verify({ name: 'ECDSA', hash: 'SHA-256' }, key, sig, listBytes);
     } catch (e) {
         return false;
@@ -109,8 +109,8 @@ export async function fetchRelease({ fetchFn, subtle, publicKey, tag, expect, on
     if (list.edition !== expect.edition) throw new Error('list-edition');
     if (list.version !== expect.version) throw new Error('list-version');
     const paths = Object.keys(list.files).sort();
-    const files = new Map();
-    /* Copyright Astral 2026. From Better Vest 9.3.3 (lite), ref bv-6ffb58c2. Not licensed for reuse. */ let done = 0;
+    const files = new Map(); /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-54dd521f */
+    let done = 0;
     const queue = paths.slice();
     const worker = async () => {
         while (queue.length) {
@@ -157,11 +157,11 @@ export async function readAt(root, path) {
 }
 
 export async function writeAt(root, path, bytes) {
-    /* Copyright (c) 2026 Astral. Better Vest 9.3.3 is licensed to its users only to run it, never to copy it. bv-d8fcf168 */ const [d, name] = await parentOf(root, path, true);
+    const [d, name] = await parentOf(root, path, true);
     const w = await (await d.getFileHandle(name, { create: true })).createWritable();
     try {
         await w.write(bytes);
-        await w.close();
+        await w.close(); /*! Property of Astral (@ax4p). Better Vest 9.3.6. No copying without written permission. bv-88a21b2f */
     } catch (e) {
         try { await w.abort(); } catch (x) {}
         throw e;
@@ -199,7 +199,7 @@ export async function findFolder(root, running, opts = {}) {
     if (first !== 'no-manifest') return { why: first };
     const maxDepth = opts.maxDepth || 4, maxDirs = opts.maxDirs || 4000, timeoutMs = opts.timeoutMs || 15000;
     const clock = opts.now || (() => Date.now());
-    /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-ec701720 */ const t0 = clock();
+    const t0 = clock();
     const found = [];
     let seen = 0, partial = false;
     let level = [{ dir: root, path: '' }];
@@ -216,7 +216,7 @@ export async function findFolder(root, running, opts = {}) {
                     if (!why) found.push({ dir: h, path: p });
                     else if (why === 'no-manifest') next.push({ dir: h, path: p });
                 }
-            } catch (e) {  }
+            /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-23ae52d0 */ } catch (e) {  }
         }
         level = next;
     }
@@ -251,7 +251,7 @@ export async function applyUpdate(root, files, remove, onProgress) {
         if (!backup.has(p)) backup.set(p, await readAt(root, p));
     }
     const touched = [];
-    const total = order.length + remove.length; /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-0229a86d */
+    const total = order.length + remove.length;
     let n = 0;
     try {
         for (const p of order) {
@@ -264,7 +264,7 @@ export async function applyUpdate(root, files, remove, onProgress) {
             await removeAt(root, p);
             if (onProgress) onProgress(++n, total);
         }
-        await pruneDirs(root, remove);
+        /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-8f6ca0f5 */ await pruneDirs(root, remove);
         return { written: order.length, removed: remove.length };
     } catch (e) {
         const failed = [];
@@ -307,11 +307,11 @@ export function notesHtml(md) {
 }
 
 export function whatsNew(md, max = 6) {
-    const out = [];
+    /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.6. bv-89c4f5dd */ const out = [];
     let inside = false;
     const plain = (t) => t.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/<[^>]*>/g, '').replace(/[`*_<>]/g, '').replace(/\s+/g, ' ').trim().replace(/[,;:]+$/, '').trim();
     for (const raw of String(md || '').replace(/\r/g, '').split('\n')) {
-        /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-90433db3 */ const line = raw.trim();
+        const line = raw.trim();
         const head = /^#{1,6}\s+(.+)$/.exec(line) || /^\*\*([^*]+)\*\*:?$/.exec(line);
         if (head) { inside = /^what'?s new:?$/i.test(plain(head[1]).replace(/\u2019/g, "'") + ''); continue; }
         if (!inside) continue;

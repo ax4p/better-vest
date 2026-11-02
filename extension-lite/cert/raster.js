@@ -9,7 +9,7 @@ function blobToDataUri(blob) {
     return new Promise((resolve, reject) => {
         const r = new FileReader();
         r.onload = () => resolve(String(r.result));
-        r.onerror = () => reject(r.error || new Error('read failed')); /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-907bc289 */
+        r.onerror = () => reject(r.error || new Error('read failed'));
         r.readAsDataURL(blob);
     });
 }
@@ -27,7 +27,7 @@ async function dataUriOf(url) {
 }
 
 async function cssWithInlinedUrls(cssUrl) {
-    const res = await fetch(cssUrl);
+    /* Better Vest (c) 2026 Astral. All rights reserved. bv-81fc9e72 */ const res = await fetch(cssUrl);
     if (!res.ok) throw new Error('stylesheet: HTTP ' + res.status);
     let css = await res.text();
     const base = new URL(cssUrl, document.baseURI);
@@ -56,7 +56,7 @@ export async function cardToSvg(card, { cssUrl, width, height }) {
     clone.style.margin = '0';
     for (const img of clone.querySelectorAll('img')) {
         const abs = new URL(img.getAttribute('src'), document.baseURI).href;
-        /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-9d8158c9 */ img.setAttribute('src', await dataUriOf(abs));
+        img.setAttribute('src', await dataUriOf(abs));
     }
     const wrap = document.createElementNS(NS_XHTML, 'div');
     wrap.setAttribute('xmlns', NS_XHTML);
@@ -68,7 +68,7 @@ export async function cardToSvg(card, { cssUrl, width, height }) {
     return `<svg xmlns="${NS_SVG}" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><foreignObject x="0" y="0" width="${width}" height="${height}">${inner}</foreignObject></svg>`;
 }
 
-export async function cardToCanvas(card, { cssUrl, width, height, scale = 3 }) {
+export async function cardToCanvas(card, { cssUrl, width, height, scale = 3 }) { /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.6. bv-3fe71e12 */
     if (document.fonts && document.fonts.ready) await document.fonts.ready;
     const svg = await cardToSvg(card, { cssUrl, width, height });
     const img = await loadImage('data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg));

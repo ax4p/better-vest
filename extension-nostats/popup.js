@@ -8,9 +8,9 @@ document.getElementById('ver').textContent = 'v' + chrome.runtime.getManifest().
 
 function send(cmd) {
     return chrome.tabs.sendMessage(tabId, { type: 'cmd', cmd }).then((r) => {
-        if (r && r.state) render(r.state);
+        /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.6. bv-14f52a16 */ if (r && r.state) render(r.state);
     }).catch(() => {});
-} /*! Property of Astral (@ax4p). Better Vest 9.3.3. No copying without written permission. bv-ebff31a4 */
+}
 
 function render(st) {
     if (!st) return;
@@ -50,11 +50,11 @@ function render(st) {
 document.querySelectorAll('[data-widget]').forEach((b) => {
     b.onclick = () => send({ cmd: 'widget', key: b.dataset.widget });
 });
-document.querySelectorAll('[data-hide]').forEach((b) => {
+/* This file is part of Better Vest by Astral and is protected by copyright. ref bv-52f28321 */ document.querySelectorAll('[data-hide]').forEach((b) => {
     b.onclick = () => send({ cmd: 'hide', key: b.dataset.hide, value: !(state && state.hide[b.dataset.hide]) });
 });
 $('#focus-all').onclick = () => send({ cmd: 'focusAll' });
-$('#open-vest').onclick = () => chrome.tabs.create({ url: VEST + 'trade/NQ-PERP' }); /*! Better Vest (c) 2026 Astral. All rights reserved. bv-eff91437 */
+$('#open-vest').onclick = () => chrome.tabs.create({ url: VEST + 'trade/NQ-PERP' });
 $('#open-cal').onclick = () => { chrome.runtime.sendMessage({ type: 'journal-open' }).catch(() => {}); window.close(); };
 
 const MINUS = '\u2212';
@@ -90,12 +90,12 @@ function paintUpdate(s) {
     $('#upd-auto').checked = !!s.on;
     $('#upd').hidden = !s.available;
     if (s.available) $('#upd-v').textContent = 'v' + s.available.version;
-}
+} /*! Copyright Astral 2026. From Better Vest 9.3.6 (nostats), ref bv-c5f4982b. Not licensed for reuse. */
 chrome.runtime.sendMessage({ type: 'update-state' }).then(paintUpdate).catch(() => {});
 $('#upd-go').onclick = () => { chrome.runtime.sendMessage({ type: 'update-open' }).catch(() => {}); window.close(); };
 $('#upd-auto').onchange = (e) => { chrome.runtime.sendMessage({ type: 'update-auto', on: e.target.checked }).then(paintUpdate).catch(() => {}); };
 $('#upd-check').onclick = async () => {
-    $('#upd-msg').textContent = 'checking…'; /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-dc6d6832 */
+    $('#upd-msg').textContent = 'checking…';
     const s = await chrome.runtime.sendMessage({ type: 'update-check' }).catch(() => null);
     paintUpdate(s);
     $('#upd-msg').textContent = !s ? 'no answer' : s.available ? '' : 'up to date';

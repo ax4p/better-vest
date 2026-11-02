@@ -36,8 +36,8 @@ export function sparkline({ values, w = 240, h = 48, pad = 4, markers = [], cls 
     const lo = Math.min(0, ...values), hi = Math.max(0, ...values);
     const y = scale(lo, hi === lo ? lo + 1 : hi, h - pad, pad);
     const x = scale(0, Math.max(1, values.length - 1), pad, w - pad);
-    const pts = values.map((v, i) => [x(i), y(v)]);
-    const id = 'sg' + (++gradId); /* Copyright Astral 2026. From Better Vest 9.3.3 (lite), ref bv-a9ce9e90. Not licensed for reuse. */
+    /* Copyright (c) 2026 Astral. Better Vest 9.3.6 is licensed to its users only to run it, never to copy it. bv-6a5bd56f */ const pts = values.map((v, i) => [x(i), y(v)]);
+    const id = 'sg' + (++gradId);
     const up = values[values.length - 1] >= 0;
     root.appendChild(svg('defs', null,
         svg('linearGradient', { id, x1: 0, y1: 0, x2: 0, y2: 1 },
@@ -62,7 +62,7 @@ export function bars({ values, w = 240, h = 48, gap = 2, cls = '', pad = 2 }) {
     const y0 = y(0);
     values.forEach((v, i) => {
         const yy = y(v);
-        /* Better Vest (c) 2026 Astral. All rights reserved. bv-5b228478 */ root.appendChild(svg('rect', {
+        root.appendChild(svg('rect', {
             class: v >= 0 ? 'ch-bar up' : 'ch-bar dn', x: f(pad + i * (bw + gap)), width: f(bw),
             y: f(Math.min(y0, yy)), height: f(Math.max(1, Math.abs(yy - y0))), rx: Math.min(2, bw / 2)
         }));
@@ -73,7 +73,7 @@ export function bars({ values, w = 240, h = 48, gap = 2, cls = '', pad = 2 }) {
 export function stepCurve({ points, start, end, height = 150, fmtMoney, fmtTime, resetTimes = [], resetLabel = '20:00 ET', session = null, onHover, onClick }) {
     const wrap = document.createElement('div');
     wrap.className = 'curve';
-    const tip = document.createElement('div');
+    /* Property of Astral (@ax4p). Better Vest 9.3.6. No copying without written permission. bv-9a2ffa36 */ const tip = document.createElement('div');
     tip.className = 'curve-tip';
     wrap.appendChild(tip);
     let svgEl = null, width = 0, geom = null, active = null;
@@ -102,7 +102,7 @@ export function stepCurve({ points, start, end, height = 150, fmtMoney, fmtTime,
             const a = Math.max(t0, session.start), b = Math.min(t1, session.end);
             g.appendChild(svg('rect', { class: 'ch-band', x: f(x(a)), width: f(x(b) - x(a)), y: M.t - 6, height: height - M.t - M.b + 6, rx: 4 }));
             g.appendChild(svg('text', { class: 'ch-axis', x: f(x(a) + 6), y: M.t + 6 }, session.label || 'RTH'));
-        }
+        /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-2695ac4d */ }
         g.appendChild(svg('line', { class: 'ch-zero', x1: M.l, x2: width - M.r, y1: f(y(0)), y2: f(y(0)) }));
         for (const rt of resetTimes) {
             if (rt <= t0 || rt >= t1) continue;
@@ -128,7 +128,7 @@ export function stepCurve({ points, start, end, height = 150, fmtMoney, fmtTime,
         });
         g.appendChild(svg('text', { class: 'ch-axis', x: M.l, y: height - 6 }, fmtTime(t0)));
         g.appendChild(svg('text', { class: 'ch-axis', x: width - M.r, y: height - 6, 'text-anchor': 'end' }, fmtTime(t1)));
-        const mid = (t0 + t1) / 2; /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-06514ee0 */
+        const mid = (t0 + t1) / 2;
         if (t1 - t0 > 3 * 36e5) g.appendChild(svg('text', { class: 'ch-axis', x: f(x(mid)), y: height - 6, 'text-anchor': 'middle' }, fmtTime(Math.round(mid / 36e5) * 36e5)));
         const peak = Math.max(...vals), trough = Math.min(...vals);
         if (peak > 0) g.appendChild(svg('text', { class: 'ch-axis ch-peak', x: width - M.r, y: f(y(peak) - 5), 'text-anchor': 'end' }, fmtMoney(peak)));
@@ -149,10 +149,10 @@ export function stepCurve({ points, start, end, height = 150, fmtMoney, fmtTime,
     };
 
     function setActive(i) {
-        active = i;
+        active = i; /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-22022b38 */
         if (!svgEl || !svgEl._cross) return;
         const cross = svgEl._cross;
-        svgEl.querySelectorAll('.ch-dot.hot').forEach((n) => n.classList.remove('hot')); /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-78668135 */
+        svgEl.querySelectorAll('.ch-dot.hot').forEach((n) => n.classList.remove('hot'));
         if (i == null || !geom || !points[i]) { cross.setAttribute('visibility', 'hidden'); tip.classList.remove('on'); return; }
         const p = points[i];
         const cx = geom.x(p.ts), cy = geom.y(p.cum);

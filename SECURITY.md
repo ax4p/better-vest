@@ -43,7 +43,7 @@ Every address in the code, and when each one is used:
 | `api-gateway.hz.vestmarkets.com` | Read-only (GET) requests: your trade history and payouts for the Calendar and the Payout card, open positions for the chart TP/SL and the copy trader, today's positions for the P&L card, the daily profit limit and the tilt guard, and your accounts' resting orders for the copy trader's limit-order mirror. They use the login your Vest tab already has and keep it in memory only, never on disk. The chart and the copy trader can only ask for positions, resting orders and market info. The copy trader's orders and Request payouts' claims go here too, but Vest's own code sends them, the same way it sends yours. | When the Calendar syncs, while you hold a position with chart TP/SL on, while copying is on, when you press P&L or the card pops up after a big close, and every 15 seconds while the daily profit limit or the tilt guard is on. |
 | `api.github.com` | "Which version is the latest?" Nothing about you is in that request. | Every 30 minutes, and when Chrome starts. You can turn it off in the toolbar popup. |
 | `raw.githubusercontent.com` | The files of a new version, from this repo. | Only when you click Update. |
-| `bv.astrals.dev` | My site: the usage stats, and the safety switches. See [The usage stats](#the-usage-stats) and [Safety switches](#safety-switches). | The stats: once when it's installed or updated, every 3 minutes while a Vest tab is open, and every 10 minutes once you've said yes (Standard and Lite). The switches: every 3 minutes while a Vest tab is open. |
+| `bv.astrals.dev` | My site: the usage stats, the error reports, and the safety switches. See [The usage stats](#the-usage-stats), [Error reports](#error-reports) and [Safety switches](#safety-switches). | The stats: once when it's installed or updated, every 3 minutes while a Vest tab is open, and every 10 minutes once you've said yes (Standard and Lite). The error reports: when something in Better Vest fails (Standard and Lite). The switches: every 3 minutes while a Vest tab is open. |
 | `fonts.googleapis.com` | A font (the file itself comes from `fonts.gstatic.com`). | Only if you pick one of the Google fonts in Settings > Look. The default is Vest's own font, which loads nothing. |
 
 There's no other address in the code. No ads, and no analytics company. The voice, the news dates and the P&L pop-up are files inside the extension. Multi-chart's hidden tabs are Vest's own page, so they make Vest's own requests, the same as any Vest tab you open.
@@ -66,9 +66,21 @@ Standard and Lite send me anonymous usage stats, so I know how many people use B
 - **What I never get:** your Vest account, trades, balances, P&L, positions, orders or the pages you open. Vercel, which hosts the site, sees the IP address of every request the way any website does; the stats don't keep it.
 - **Don't want it?** Turn it off in Settings > More, or take the No stats zip (or switch to it on the update page). No stats sends nothing at all.
 
+## Error reports
+
+Since 9.3.6, when something in Better Vest fails, Standard and Lite tell me what failed, so I can fix it before you have to message me. No stats sends nothing.
+
+- **What counts:** an error in Better Vest's own code, a warning Better Vest showed you, an order the Execute card couldn't send, the copy trader getting an order refused or a follower stuck out of sync, and an update that didn't go through. Vest's own errors are never sent.
+- **What goes:** what kind of failure it was, its message with every account name, id, amount and number taken out (Vest's error codes stay), a few details like the copy mode, Vest's error code and where in Better Vest's code it happened, the version and edition, your browser and system, and the random number from the usage stats.
+- **What never goes:** your account, trades, balances, P&L, prices, sizes, anything you type, or anything that says who you are. The words are cleaned on your computer before they leave, and my site cleans them again.
+- **When:** a new kind of failure goes right away, repeats are counted and go every 5 minutes, and never more than 100 reports a day.
+- **Where it goes:** `bv.astrals.dev/api/errors`, my site, as one small request from the extension's background script. No cookies, and nothing is read back.
+- **What I keep:** each kind of failure with how many times it happened, and for 40 days how many times per version, edition, system and computer (under the scrambled form of the random number).
+- **Don't want it?** It's on by default. Turn it off in Settings > More > Error reports, or take the No stats zip.
+
 ## Safety switches
 
-If Vest changes something a feature depends on, or I find a bug, I can pause that one feature for everyone until it's fixed: the copy trader, Turbo, LONG / SHORT, FLAT / 50% / REV, stop orders, limit orders, TP / SL on the chart, the trailing stop, auto breakeven, account switching and payouts, the loss limit's "Close my positions", voice commands, or code WICK going into an empty code box.
+If Vest changes something a feature depends on, or I find a bug, I can pause that one feature for everyone until it's fixed: the copy trader, Turbo, LONG / SHORT, FLAT / 50% / REV, stop orders, limit orders, TP / SL on the chart, the trailing stop, auto breakeven, account switching and payouts, the loss limit's "Close my positions", voice commands, code WICK going into an empty code box, or the error reports.
 
 - **How it works:** every 3 minutes while a Vest tab is open, the extension asks `bv.astrals.dev/api/flags` which features are paused. Nothing about you is in that request: no number, no account, no cookies.
 - **What comes back:** a short list of feature names, my note on why, and the version the Chrome Web Store has. It's data, never code: Better Vest only reads names it knows and shows my note as plain text.
@@ -211,15 +223,15 @@ When a new version is out and you're flat, a small panel at the bottom right of 
 ## Check it yourself
 
 1. **Read the code.** The [`extension`](extension) folder in this repo is the Standard zip, file for file ([`extension-lite`](extension-lite) and [`extension-nostats`](extension-nostats) are the other two). It isn't minified or obfuscated, so you can read it in your browser.
-2. **Check the zip is that code.** The SHA-256 of `better-vest-9.3.3.zip` is:
+2. **Check the zip is that code.** The SHA-256 of `better-vest-9.3.6.zip` is:
 
-   `bc287d8c6babc91cc6433ae6e3d3472d303f6ad6f9d751d03140647fe1fdee73`
+   `43439d3c5f9248147bd608cd62b26a7969962c123a15bf1875827f3d42f6e25e`
 
-   Lite: `29df9e88bfb7ac603fc2553263d3a9e0a7029f9e2ae5124b74c91ee2d3ce5f4c`. No stats: `08d592a4805660d74e242209478e492e70e9c69c47e32f58a7f58b731a453c49`.
+   Lite: `314b5d8fcff3a4b77f7ef21614ccf65f26855e68a324f8697e37c9b80494d827`. No stats: `984b532d28ef070c39bd797ed286e4243c56598a1e9deeb56e8245eb16a82cac`.
 
-   - On Mac: `shasum -a 256 better-vest-9.3.3.zip`
-   - On Windows: `certutil -hashfile better-vest-9.3.3.zip SHA256`
-3. **Scan it.** VirusTotal checks a file with more than 60 antivirus engines. Upload the zip at [virustotal.com](https://www.virustotal.com) and you get the result for that exact file. The version here, 9.3.3, came back with no engine flagging it: Standard ([report](https://www.virustotal.com/gui/file/bc287d8c6babc91cc6433ae6e3d3472d303f6ad6f9d751d03140647fe1fdee73)), Lite ([report](https://www.virustotal.com/gui/file/29df9e88bfb7ac603fc2553263d3a9e0a7029f9e2ae5124b74c91ee2d3ce5f4c)), No stats ([report](https://www.virustotal.com/gui/file/08d592a4805660d74e242209478e492e70e9c69c47e32f58a7f58b731a453c49)). The one released before, 9.3.2, was the same.
+   - On Mac: `shasum -a 256 better-vest-9.3.6.zip`
+   - On Windows: `certutil -hashfile better-vest-9.3.6.zip SHA256`
+3. **Scan it.** VirusTotal checks a file with more than 60 antivirus engines. Upload the zip at [virustotal.com](https://www.virustotal.com) and you get the result for that exact file. The version here, 9.3.6, came back with no engine flagging it: Standard ([report](https://www.virustotal.com/gui/file/43439d3c5f9248147bd608cd62b26a7969962c123a15bf1875827f3d42f6e25e)), Lite ([report](https://www.virustotal.com/gui/file/314b5d8fcff3a4b77f7ef21614ccf65f26855e68a324f8697e37c9b80494d827)), No stats ([report](https://www.virustotal.com/gui/file/984b532d28ef070c39bd797ed286e4243c56598a1e9deeb56e8245eb16a82cac)). The one released before, 9.3.3, was the same.
 
    Reports for earlier versions also had an AI summary, "Code insights", which marked two things as suspicious. Both are on this page: the WICK code switch ([The WICK code](#the-wick-code)) and the updater writing its own files ([Updates are signed](#updates-are-signed)).
 4. **Watch it work.** Open Chrome's DevTools on the Vest tab (F12), go to Network, and use Better Vest. You'll only see the addresses listed above.

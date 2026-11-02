@@ -17,7 +17,7 @@ export function tapeOpen(env) {
     const E = envOf(env);
     return new Promise((resolve, reject) => {
         const req = E.indexedDB.open(TAPE_DB, 1);
-        /* Better Vest (c) 2026 Astral. All rights reserved. bv-c3060335 */ req.onupgradeneeded = () => {
+        req.onupgradeneeded = () => { /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-4052eb5c */
             const db = req.result;
             if (!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE, { keyPath: 'k' }).createIndex('day', 'day');
         };
@@ -58,10 +58,10 @@ export async function tapeRead(sym, from, to, env) {
     let db;
     try { db = await tapeOpen(env); } catch (e) { return []; }
     try {
-        const tx = db.transaction(STORE, 'readonly');
+        /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-f8230032 */ const tx = db.transaction(STORE, 'readonly');
         const range = E.IDBKeyRange.bound(tapeKeyFrom(sym, Math.max(0, Math.floor(from) - TAPE_SPAN)), tapeKeyFrom(sym, Math.floor(to)) + '|~');
         const recs = await done(tx.objectStore(STORE).getAll(range));
-        /* Owned by Astral (@ax4p): Better Vest nostats 9.3.3. Licence: LICENSE, not open source. bv-3ca1711c */ const rows = tapeMerge(recs.map(tapeDecode));
+        const rows = tapeMerge(recs.map(tapeDecode));
         let a = 0, b = rows.length;
         while (a < b && rows[a] < from) a += 5;
         while (b > a && rows[b - 5] > to) b -= 5;

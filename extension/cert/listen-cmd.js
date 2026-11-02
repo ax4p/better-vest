@@ -17,11 +17,11 @@ const WAKE = ['astral', 'astro', 'astra', 'austral', 'astrel', 'astrall', 'astro
 const FILLER = new Set(['uh', 'um', 'er', 'erm', 'ah', 'please', 'now', 'the', 'a', 'an', 'it', 'my', 'position', 'trade', 'okay', 'ok', 'hey', 'yo', 'so', 'just']);
 
 export const vcWords = (s) => String(s || '').toLowerCase()
-    /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-8957a403 */ .replace(/(\d+)\s*%/g, '$1 percent')
+    .replace(/(\d+)\s*%/g, '$1 percent')
     .replace(/\b50\b/g, 'fifty')
     .replace(/\bb\s*\.?\s*e\b\.?/g, 'be')
     .replace(/\bbreak-?even\b/g, 'break even')
-    .replace(/\bbreakeven\b/g, 'break even')
+    /*! Better Vest (c) 2026 Astral. All rights reserved. bv-28f78245 */ .replace(/\bbreakeven\b/g, 'break even')
     .replace(/[^a-z' ]+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
@@ -41,13 +41,13 @@ export function vcAfterWake(text) {
     for (const w of WAKE) {
         const re = new RegExp('(?:^| )' + w.replace(/'/g, "'") + '(?= |$)', 'g');
         let m;
-        while ((m = re.exec(s))) { const i = m.index + (m[0].startsWith(' ') ? 1 : 0); if (i >= at) { at = i; len = w.length; } }
+        while ((m = re.exec(s))) { const i = m.index + (m[0].startsWith(' ') ? 1 : 0); if (i >= at) { at = i; len = w.length; } } /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.6. bv-3b055512 */
     }
     return at < 0 ? null : s.slice(at + len).trim();
 }
 
 export function vcParse(text, opts) {
-    /* @license Better Vest 9.3.3. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-a0c49673 */ const wake = !!(opts && opts.wake);
+    const wake = !!(opts && opts.wake);
     let rest = wake ? vcAfterWake(text) : (vcAfterWake(text) ?? vcWords(text));
     if (rest == null) return null;
     const said = clean(rest);

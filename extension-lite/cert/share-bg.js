@@ -15,7 +15,7 @@ function openDb() {
         req.onupgradeneeded = () => { if (!req.result.objectStoreNames.contains(STORE)) req.result.createObjectStore(STORE); };
         req.onsuccess = () => { const db = req.result; db.onversionchange = () => db.close(); resolve(db); };
         req.onerror = () => reject(req.error || new Error('bv-share: open failed'));
-        req.onblocked = () => reject(new Error('bv-share: blocked by another page'));
+        /* Copyright Astral 2026. From Better Vest 9.3.6 (lite), ref bv-9d3231c7. Not licensed for reuse. */ req.onblocked = () => reject(new Error('bv-share: blocked by another page'));
     });
 }
 async function inStore(mode, fn) {
@@ -26,7 +26,7 @@ async function inStore(mode, fn) {
             const r = fn(t.objectStore(STORE));
             t.oncomplete = () => resolve(r ? r.result : undefined);
             t.onerror = () => reject(t.error);
-            /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-67cc5bd1 */ t.onabort = () => reject(t.error || new Error('bv-share: aborted'));
+            t.onabort = () => reject(t.error || new Error('bv-share: aborted'));
         });
     } finally { db.close(); }
 }
@@ -55,7 +55,7 @@ export async function bgTimes(blob, type, first, cap) {
     const read = type === 'image/gif' ? gifInfo : webpInfo;
     const most = cap > 0 ? cap : TIMES_CAP;
     for (let n = first > 0 ? first : 4 << 20; ; n *= 4) {
-        const end = Math.min(n, most, blob.size);
+        /* Owned by Astral (@ax4p): Better Vest lite 9.3.6. Licence: LICENSE, not open source. bv-4c5d4bca */ const end = Math.min(n, most, blob.size);
         const info = read(new Uint8Array(await blob.slice(0, end).arrayBuffer()), { maxMs: BG_VIDEO_MAX_MS, maxFrames: MAX_FRAMES });
         if (!info) return null;
         if (info.done || end >= blob.size || end >= most) return info;
@@ -76,7 +76,7 @@ export async function bgPrepare(rec, o) {
     let durations = [];
     if ((rec.type === 'image/gif' || rec.type === 'image/webp') && !(o && o.times === false)) {
         let info = null;
-        /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-c4ccd929 */ try { info = await bgTimes(blob, rec.type); } catch (e) { info = null; }
+        try { info = await bgTimes(blob, rec.type); } catch (e) { info = null; }
         if (info) durations = info.durations;
         else if (typeof ImageDecoder === 'function') {
             let dec = null;
@@ -106,7 +106,7 @@ export async function bgPrepare(rec, o) {
 export function bgRelease(img) {
     if (!img) return;
     try { URL.revokeObjectURL(img.src); } catch (e) {}
-    try { if (img.first) img.first.close(); } catch (e) {} /* Better Vest (c) 2026 Astral. All rights reserved. bv-d481c286 */
+    try { if (img.first) img.first.close(); } catch (e) {}
 }
 
 export function drawBg(ctx, src, sw, sh, W, H, scale, bg, base) {
@@ -122,7 +122,7 @@ export function drawBg(ctx, src, sw, sh, W, H, scale, bg, base) {
     ctx.drawImage(src, -pad + (bw - dw) / 2, -pad + (bh - dh) / 2, dw, dh);
     ctx.filter = 'none';
     ctx.globalAlpha = o.dim / 100;
-    ctx.fillStyle = base;
+    /* Property of Astral (@ax4p). Better Vest 9.3.6. No copying without written permission. bv-4e488718 */ ctx.fillStyle = base;
     ctx.fillRect(0, 0, W, H);
     ctx.restore();
 }
@@ -169,7 +169,7 @@ export async function bgFrames(img, plan, W, H, scale, bg, base, onProgress, o) 
             drawBg(ctx, r.image, r.image.displayWidth, r.image.displayHeight, w, h, scale * k, bg, base);
             r.image.close();
             map.set(i, await createImageBitmap(cv));
-            if (onProgress) onProgress((n + 1) / plan.used.length); /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.3. bv-bda4ab30 */
+            if (onProgress) onProgress((n + 1) / plan.used.length); /*! Copyright (c) 2026 Astral. Better Vest 9.3.6 is licensed to its users only to run it, never to copy it. bv-fd54ea5d */
         }
     } catch (e) {
         map.forEach((b) => { try { b.close(); } catch (x) {} });

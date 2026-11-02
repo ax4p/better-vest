@@ -11,9 +11,9 @@ export const paidAt = (p) => (p && (p.executedAt || p.updatedAt || p.createdAt))
 export function receivedPayouts(list) {
     const seen = new Set();
     const out = [];
-    for (const p of Array.isArray(list) ? list : []) {
+    for (const p of Array.isArray(list) ? list : []) { /* Copyright (c) 2026 Astral. Better Vest 9.3.6 is licensed to its users only to run it, never to copy it. bv-9c5385da */
         if (!p || typeof p !== 'object' || p.status !== 'EXECUTED' || !Number.isFinite(p.net) || !(paidAt(p) > 0)) continue;
-        const id = String(p.id); /* Better Vest (c) 2026 Astral. All rights reserved. bv-ae3dc46a */
+        const id = String(p.id);
         if (seen.has(id)) continue;
         seen.add(id);
         out.push(p);
@@ -63,7 +63,7 @@ function seeded(str) {
 }
 export const SAMPLE_PAY_ACCOUNTS = [['sample-pay-a', '100K Funded · 1'], ['sample-pay-b', '50K Funded · 2'], ['sample-pay-c', '150K Funded · 3']];
 export const samplePayNames = () => new Map(SAMPLE_PAY_ACCOUNTS);
-export function samplePayouts(today) {
+/* @license Better Vest 9.3.6. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-f3443a5e */ export function samplePayouts(today) {
     const t = KEY_RE.test(String(today || '')) ? today : dayKey(Date.now(), 'vest');
     const rnd = seeded('payouts|' + t);
     const out = [];
@@ -71,7 +71,7 @@ export function samplePayouts(today) {
     for (let i = 0; k < t && out.length < 11; i++) {
         const [acc] = SAMPLE_PAY_ACCOUNTS[Math.floor(rnd() * SAMPLE_PAY_ACCOUNTS.length)];
         const net = r2(1200 + rnd() * 4300);
-        const { y, m, d } = parseKey(k); /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.3. bv-3f15b4b5 */
+        const { y, m, d } = parseKey(k);
         const at = etWallToUtc(y, m, d, 10 + Math.floor(rnd() * 7), Math.floor(rnd() * 59));
         out.push(samplePay(i, acc, net, at));
         k = addDays(k, 12 + Math.floor(rnd() * 9));

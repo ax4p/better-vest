@@ -22,7 +22,7 @@
 .card.story .in { padding: 50px 38px 38px; }
 .card .hd { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex: none; }
 .card .vest { display: block; color: var(--k-logo); line-height: 0; }
-.card .vest svg { width: 100%; height: auto; display: block; } /* @license Better Vest 9.3.3. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-0bb7c373 */
+.card .vest svg { width: 100%; height: auto; display: block; }
 .card .badge { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px; border-radius: 6px; background: var(--k-badge); color: var(--k-badge-text); font-size: 12px; font-weight: 600; white-space: nowrap; }
 .card .badge.sample { background: transparent; box-shadow: inset 0 0 0 1px var(--k-panel-line); color: var(--k-mut); font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
 .card .badge i { width: 6px; height: 6px; border-radius: 50%; background: rgb(var(--k-glow)); box-shadow: 0 0 8px rgb(var(--k-glow)); }
@@ -33,7 +33,7 @@
 .card.wide .body.split .panel { max-height: 100%; }
 .card .hero { margin-top: auto; flex: none; }
 .card .body.listed .hero { margin-top: 26px; }
-.card.wide .body.split .hero { flex: 1; margin-top: auto; margin-bottom: auto; }
+.card.wide .body.split .hero { flex: 1; margin-top: auto; margin-bottom: auto; } /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.6. bv-46d8405e */
 .card .lbl { font-size: 14px; font-weight: 500; color: var(--k-mut); }
 .card .amt { margin-top: 6px; font-weight: 700; letter-spacing: -.035em; line-height: 1; white-space: nowrap; }
 .card .amt small { font-size: .5em; letter-spacing: -.02em; opacity: .85; }
@@ -113,7 +113,7 @@
 .rp-svg .po { fill: var(--k-mut); }
 .rp-svg .lp { fill: #000; font-size: 10px; font-weight: 700; }
 .card.rp .ft { margin-top: 14px; }
-.card .rp-left { display: flex; flex-direction: column; gap: 4px; } /*! Copyright Astral 2026. From Better Vest 9.3.3 (lite), ref bv-c856fe94. Not licensed for reuse. */
+.card .rp-left { display: flex; flex-direction: column; gap: 4px; }
 .card .rp-legend { font-size: 10px; color: var(--k-dim); white-space: nowrap; }
 .card .rp-legend .ia { color: var(--k-up); }
 .card .rp-legend .ie { color: var(--k-text); }
@@ -157,7 +157,7 @@
 .rp-svg .db { fill: var(--k-up); }
 .rp-svg .ds { fill: var(--k-down); }
 
-.card .panel .r .nm .pdt { min-width: 48px; }
+.card .panel .r .nm .pdt { min-width: 48px; } /* @license Better Vest 9.3.6. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-199fe153 */
 .card.pay .panel .r b.up { color: var(--k-up); }
 .card.own .bgx.bgim { background: var(--k-bg); overflow: hidden; }
 .card .bgx .bgi { position: absolute; left: 0; top: 0; width: 100%; height: 100%; object-fit: cover; display: block; max-width: none; }

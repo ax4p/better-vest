@@ -21,9 +21,9 @@ export const vcWords = (s) => String(s || '').toLowerCase()
     .replace(/\b50\b/g, 'fifty')
     .replace(/\bb\s*\.?\s*e\b\.?/g, 'be')
     .replace(/\bbreak-?even\b/g, 'break even')
-    .replace(/\bbreakeven\b/g, 'break even')
+    .replace(/\bbreakeven\b/g, 'break even') /* Better Vest (c) 2026 Astral. All rights reserved. bv-ecc80c8a */
     .replace(/[^a-z' ]+/g, ' ')
-    /* Better Vest (c) 2026 Astral. All rights reserved. bv-c2794ef2 */ .replace(/\s+/g, ' ')
+    .replace(/\s+/g, ' ')
     .trim();
 
 const clean = (s) => vcWords(s).split(' ').filter((w) => w && !FILLER.has(w)).join(' ');
@@ -62,8 +62,8 @@ export function vcPending(text, opts) {
     const rest = wake ? vcAfterWake(text) : (vcAfterWake(text) ?? vcWords(text));
     if (rest == null) return false;
     const said = clean(rest);
-    return !!said && (STARTS.has(said) || GROWS.has(said)); /* Copyright (c) 2026 Astral. Better Vest 9.3.3 is licensed to its users only to run it, never to copy it. bv-47a1f528 */
-}
+    return !!said && (STARTS.has(said) || GROWS.has(said));
+/*! Property of Astral (@ax4p). Better Vest 9.3.6. No copying without written permission. bv-8a64b7f9 */ }
 
 export function vcPhraseList() {
     return ['astral'].concat([...new Set(Object.values(PHRASES).flat())]);

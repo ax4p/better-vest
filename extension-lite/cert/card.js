@@ -26,14 +26,14 @@ export const fmtMoney = (v) => { const p = fmtMoneyParts(v); return p.int + '.' 
 export const fmtMilestone = (amount) => '$' + (amount >= 1000 ? amount / 1000 + 'K' : amount);
 const dm = (key) => fmtDate(key, 'dm');
 
-function bars(vals, w, h, gap, uid) { /* Better Vest (c) 2026 Astral. All rights reserved. bv-5b250f28 */
+function bars(vals, w, h, gap, uid) {
     const n = vals.length;
     const bw = (w - gap * (n - 1)) / n;
     const f = Math.sqrt;
     const mx = Math.max(...vals.map(f), 1e-9);
     let out = '';
     vals.forEach((v, i) => {
-        const x = i * (bw + gap);
+        const x = i * (bw + gap); /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-29b4f65b */
         if (!(v > 0)) {
             out += `<rect x="${x.toFixed(2)}" y="${h - 1}" width="${bw.toFixed(2)}" height="1" rx=".5" fill="rgb(255 255 255 / .18)"/>`;
             return;
@@ -93,7 +93,7 @@ export function buildCard(S, opts = {}) {
   <p class="bvc-sil" data-k="name"><span data-k="nm">${esc(name)}</span></p>
   ${pill ? `<div style="margin-top:2px">${pill}</div>` : ''}
  </div>
- <p class="bvc-a bvc-prov" style="left:20px;top:560px;width:375px">${esc(PROVENANCE)}</p>`;
+ <p class="bvc-a bvc-prov" style="left:20px;top:560px;width:375px">${esc(PROVENANCE)}</p>`; /*! Owned by Astral (@ax4p): Better Vest lite 9.3.6. Licence: LICENSE, not open source. bv-14821068 */
 
     const el = document.createElement('div');
     el.className = 'bvc';
@@ -104,7 +104,7 @@ export function buildCard(S, opts = {}) {
 
 export function fitCard(card) {
     const q = (k) => card.querySelector(`[data-k="${k}"]`);
-    const hero = q('hero'), hv = q('hv'); /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-0f1bb1e7 */
+    const hero = q('hero'), hv = q('hv');
     let size = 82;
     hero.style.fontSize = size + 'px';
     while (hv.offsetWidth > 352 && size > 30) { size -= 1; hero.style.fontSize = size + 'px'; }

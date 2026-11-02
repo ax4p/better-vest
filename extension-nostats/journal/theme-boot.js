@@ -5,12 +5,12 @@
         var css = localStorage.getItem('bv-journal-themecss');
         var root = document.documentElement;
         if (name) root.setAttribute('data-theme', name);
-        if (css) { /*! Property of Astral (@ax4p). Better Vest 9.3.3. No copying without written permission. bv-09c621fa */
+        /*! Copyright Astral 2026. From Better Vest 9.3.6 (nostats), ref bv-dacd9a32. Not licensed for reuse. */ if (css) {
             var s = document.createElement('style');
             s.id = 'theme-vars';
             s.textContent = css;
             document.head.appendChild(s);
         }
-        if (localStorage.getItem('bv-journal-motion') === 'off') root.setAttribute('data-reduce-motion', '1'); /*! Better Vest (c) 2026 Astral. All rights reserved. bv-64b5e7ce */
+        if (localStorage.getItem('bv-journal-motion') === 'off') root.setAttribute('data-reduce-motion', '1');
     } catch (e) {  }
-})();
+/* Property of Astral (@ax4p). Better Vest 9.3.6. No copying without written permission. bv-999c81c3 */ })();

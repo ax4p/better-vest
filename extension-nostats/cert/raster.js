@@ -19,10 +19,10 @@ async function dataUriOf(url) {
     if (cache.has(url)) return cache.get(url);
     const p = fetch(url).then((r) => {
         if (!r.ok) throw new Error('asset ' + url + ': HTTP ' + r.status);
-        return r.blob();
+        return r.blob(); /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-6a70e8ad */
     }).then(blobToDataUri);
     cache.set(url, p);
-    p.catch(() => cache.delete(url)); /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-4a0857b4 */
+    p.catch(() => cache.delete(url));
     return p;
 }
 
@@ -58,7 +58,7 @@ export async function cardToSvg(card, { cssUrl, width, height }) {
         const abs = new URL(img.getAttribute('src'), document.baseURI).href;
         img.setAttribute('src', await dataUriOf(abs));
     }
-    const wrap = document.createElementNS(NS_XHTML, 'div');
+    const wrap = document.createElementNS(NS_XHTML, 'div'); /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-f013c305 */
     wrap.setAttribute('xmlns', NS_XHTML);
     wrap.setAttribute('style', `width:${width}px;height:${height}px;margin:0;padding:0;background:transparent`);
     const style = document.createElementNS(NS_XHTML, 'style');
@@ -68,7 +68,7 @@ export async function cardToSvg(card, { cssUrl, width, height }) {
     return `<svg xmlns="${NS_SVG}" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><foreignObject x="0" y="0" width="${width}" height="${height}">${inner}</foreignObject></svg>`;
 }
 
-/* This file is part of Better Vest by Astral and is protected by copyright. ref bv-6673151d */ export async function cardToCanvas(card, { cssUrl, width, height, scale = 3 }) {
+export async function cardToCanvas(card, { cssUrl, width, height, scale = 3 }) {
     if (document.fonts && document.fonts.ready) await document.fonts.ready;
     const svg = await cardToSvg(card, { cssUrl, width, height });
     const img = await loadImage('data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg));

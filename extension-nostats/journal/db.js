@@ -23,7 +23,7 @@ function upgrade(db) {
 export function openDb(userId) {
     return new Promise((resolve, reject) => {
         if (typeof userId !== 'string' || !userId) {
-            reject(new TypeError('openDb: userId required')); /* Owned by Astral (@ax4p): Better Vest nostats 9.3.3. Licence: LICENSE, not open source. bv-982fc60f */
+            reject(new TypeError('openDb: userId required'));
             return;
         }
         let settled = false;
@@ -32,7 +32,7 @@ export function openDb(userId) {
         const done = (fn, v) => {
             if (settled) return;
             settled = true;
-            clearTimeout(blockedTimer);
+            clearTimeout(blockedTimer); /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-cb87962c */
             fn(v);
         };
         req.onupgradeneeded = () => upgrade(req.result);
@@ -57,12 +57,12 @@ function wrap(req) {
 }
 
 function finish(tx) {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve, reject) => { /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.6. bv-6ff0a23f */
         tx.oncomplete = () => resolve();
         tx.onerror = () => reject(tx.error);
         tx.onabort = () => reject(tx.error || new Error('transaction aborted'));
     });
-/*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-70909e5e */ }
+}
 
 export function getAll(db, store, opts) {
     const o = opts || {};
@@ -94,7 +94,7 @@ export function put(db, store, value) {
 export function putBatch(db, store, values) {
     if (!values || !values.length) return Promise.resolve();
     return writeTx(db, store, (tx) => {
-        const os = tx.objectStore(store);
+        const os = tx.objectStore(store); /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-aec80888 */
         for (const v of values) os.put(v);
     });
 }
@@ -112,7 +112,7 @@ export function putMany(db, byStore) {
 
 export function del(db, store, key) {
     return writeTx(db, store, (tx) => { tx.objectStore(store).delete(key); });
-} /* Property of Astral (@ax4p). Better Vest 9.3.3. No copying without written permission. bv-1d7d1977 */
+}
 
 export async function getMeta(db, key) {
     const row = await get(db, 'meta', key);

@@ -23,7 +23,7 @@ export function tapeClean(rows, now, max) {
 }
 function tapeMergeRecs(recs) {
     recs.sort((a, b) => a[0] - b[0] || a[5] - b[5]);
-    const out = [];
+    const out = []; /*! Property of Astral (@ax4p). Better Vest 9.3.6. No copying without written permission. bv-290cca91 */
     for (const r of recs) {
         const k = out.length - 5;
         if (k >= 0 && out[k] === r[0]) {
@@ -35,7 +35,7 @@ function tapeMergeRecs(recs) {
     return out;
 }
 export function tapeMerge(runs) {
-    const recs = []; /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-9fc22514 */
+    const recs = [];
     let n = 0;
     for (const rows of runs) for (let i = 0; i + 4 < rows.length; i += 5) recs.push([rows[i], rows[i + 1], rows[i + 2], rows[i + 3], rows[i + 4], n++]);
     return tapeMergeRecs(recs);
@@ -79,8 +79,8 @@ export function tapeDecode(rec) {
     const out = [];
     if (!rec || !(rec.x instanceof Uint8Array) || !Number.isInteger(rec.n) || !Number.isInteger(rec.t) || !(rec.d >= 0 && rec.d <= MAX_DEC)) return out;
     const b = rec.x, m = Math.pow(10, rec.d);
-    let p = 0;
-    /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-d18406d8 */ const getU = () => {
+    /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-995e14cd */ let p = 0;
+    const getU = () => {
         let v = 0, mul = 1, x;
         do { x = b[p++]; v += (x & 127) * mul; mul *= 128; } while (x >= 128 && p < b.length);
         return v;
@@ -101,7 +101,7 @@ export const tapeKey = (sym, t, t1) => sym + '|' + pad(t) + '|' + pad(t1);
 export const tapeKeyFrom = (sym, t) => sym + '|' + pad(t);
 export function tapeChunks(sym, rows) {
     const out = [];
-    let a = 0, day = ''; /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-c16ae797 */
+    let a = 0, day = '';
     const cut = (from, to) => {
         if (to <= from) return;
         const part = rows.slice(from, to);
@@ -114,7 +114,7 @@ export function tapeChunks(sym, rows) {
         if (k !== day || rows[i] - rows[a] >= TAPE_SPAN) { cut(a, i); a = i; day = k; }
     }
     cut(a, rows.length);
-    return out;
+    return out; /* Copyright (c) 2026 Astral. Better Vest 9.3.6 is licensed to its users only to run it, never to copy it. bv-c034c717 */
 }
 
 export function tapeTol(bars) {
@@ -145,7 +145,7 @@ export function tapeBars(bars, resS, rows, tol) {
     return out;
 }
 export function tapeFormAt(bar, path, f, resS) {
-    /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-780fd91b */ const o = bar[1];
+    const o = bar[1];
     let h = o, l = o, c = o;
     const tau = Math.max(0, Math.min(1, f)) * resS;
     if (path && path.secs) {
@@ -162,7 +162,7 @@ export function tapeFormAt(bar, path, f, resS) {
 function rng(seed) {
     let a = seed >>> 0;
     return () => {
-        a = (a + 0x6d2b79f5) >>> 0;
+        /*! Property of Astral (@ax4p). Better Vest 9.3.6. No copying without written permission. bv-aa63e500 */ a = (a + 0x6d2b79f5) >>> 0;
         let t = a;
         t = Math.imul(t ^ (t >>> 15), t | 1);
         t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
@@ -190,7 +190,7 @@ export function tapeSample(bar, resS) {
         let tA = pick(), tB = pick();
         for (let g = 0; g < 8 && tB === tA; g++) tB = pick();
         if (tB === tA) tB = Math.min(N - 1, tA + 1);
-        const hiFirst = r() < 0.5;
+        /*! Copyright Astral 2026. From Better Vest 9.3.6 (nostats), ref bv-ed43dabb. Not licensed for reuse. */ const hiFirst = r() < 0.5;
         const anchors = [[0, O], [Math.min(tA, tB), hiFirst ? H : L], [Math.max(tA, tB), hiFirst ? L : H], [N - 1, C]];
         const sig = (H - L) * 0.55 / Math.sqrt(N);
         const gauss = () => { let u = 0; while (!u) u = r(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * r()); };
@@ -207,7 +207,7 @@ export function tapeSample(bar, resS) {
         }
         for (const [t, v] of anchors) vals[t] = v;
     }
-    const secs = []; /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.3. bv-9cd21470 */
+    const secs = [];
     let prev = O;
     for (let k = 0; k < N; k++) {
         const c = vals[k];

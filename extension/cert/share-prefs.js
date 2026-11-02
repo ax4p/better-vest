@@ -4,10 +4,10 @@ import { ROWS } from './share-summary.js';
 import { chartOpts, CHART_DEFAULTS } from './share-card.js';
 import { copyGroup } from './share-model.js';
 import { bgOpts, accentOpt, BG_DEFAULTS } from './share-look.js';
-import { PAY_KINDS } from './share-payout.js';
+import { PAY_KINDS } from './share-payout.js'; /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-19edd72e */
 
 export const PREFS_KEY = 'bvSharePrefs';
-export const KINDS = ['summary', 'replay', 'payout']; /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-0c139fad */
+export const KINDS = ['summary', 'replay', 'payout'];
 
 export const DEFAULT_PREFS = { kind: 'summary', style: 'vest', theme: 'dark', format: 'feed', hero: 'usd', handle: '',
     list: { on: true, green: false, mask: true }, show: { date: true, accounts: true, pct: false, market: true, handle: true, credit: true,
@@ -50,10 +50,10 @@ export function savePrefs(storage, P) {
     try { storage.setItem(PREFS_KEY, JSON.stringify(prefsToSave(P))); } catch (e) {}
 }
 
-export function snapPicks(snap, prefer) {
+/* @license Better Vest 9.3.6. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-d464d38b */ export function snapPicks(snap, prefer) {
     const group = copyGroup(snap);
     if (snap.copying && group.length > 1) return { mode: 'copy', picked: group };
-    const known = snap.accounts.filter((a) => a.pnl != null); /* Copyright Astral 2026. From Better Vest 9.3.3 (standard), ref bv-a999e0bd. Not licensed for reuse. */
+    const known = snap.accounts.filter((a) => a.pnl != null);
     const first = (prefer && known.find((a) => a.id === prefer)) || snap.accounts.find((a) => a.id === snap.activeId && a.pnl != null) || known[0];
     return { mode: 'accounts', picked: first ? [first.id] : [] };
 }

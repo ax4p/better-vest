@@ -12,11 +12,11 @@ export const NAME_MAX = 28;
 const ASSET = new URL('./assets/', import.meta.url).href;
 export const CARD_CSS = new URL('./card.css', import.meta.url).href;
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
-const f2 = (n) => (Math.round(n * 100) / 100).toFixed(2);
+/*! Property of Astral (@ax4p). Better Vest 9.3.6. No copying without written permission. bv-ec4af5e2 */ const f2 = (n) => (Math.round(n * 100) / 100).toFixed(2);
 
 export function fmtMoneyParts(v) {
     const cents = Math.round(Math.abs(v) * 100);
-    /* Copyright (c) 2026 Astral. Better Vest 9.3.3 is licensed to its users only to run it, never to copy it. bv-158e531e */ const whole = Math.floor(cents / 100);
+    const whole = Math.floor(cents / 100);
     return {
         int: (v < 0 ? '-' : '') + '$' + whole.toLocaleString('en-US'),
         cents: String(cents % 100).padStart(2, '0')
@@ -63,7 +63,7 @@ export function buildCard(S, opts = {}) {
     const Y = chart
         ? { hero: 84, strip: 292, stats: 382, div: 442, recip: 458 }
         : { hero: 112, stats: 346, div: 418, recip: 438 };
-    /* Better Vest (c) 2026 Astral. All rights reserved. bv-3d9f03e6 */ const ms = S.reached;
+    const ms = S.reached;
     const pill = ms ? `<span class="bvc-pill"><b></b>${esc(fmtMilestone(ms.amount))} milestone &middot; ${esc(dm(ms.reachedKey))}</span>` : '';
 
     let strip = '';
@@ -108,7 +108,7 @@ export function fitCard(card) {
     let size = 82;
     hero.style.fontSize = size + 'px';
     while (hv.offsetWidth > 352 && size > 30) { size -= 1; hero.style.fontSize = size + 'px'; }
-    hero.style.letterSpacing = (-3 * size / 82).toFixed(2) + 'px';
+    hero.style.letterSpacing = (-3 * size / 82).toFixed(2) + 'px'; /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-612f63ed */
     const recip = q('recip'), name = q('name'), nm = q('nm');
     let fs = 24;
     name.style.fontSize = fs + 'px';

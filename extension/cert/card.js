@@ -24,7 +24,7 @@ export function fmtMoneyParts(v) {
 }
 export const fmtMoney = (v) => { const p = fmtMoneyParts(v); return p.int + '.' + p.cents; };
 export const fmtMilestone = (amount) => '$' + (amount >= 1000 ? amount / 1000 + 'K' : amount);
-const dm = (key) => fmtDate(key, 'dm'); /* Owned by Astral (@ax4p): Better Vest standard 9.3.3. Licence: LICENSE, not open source. bv-146315a9 */
+const dm = (key) => fmtDate(key, 'dm');
 
 function bars(vals, w, h, gap, uid) {
     const n = vals.length;
@@ -37,7 +37,7 @@ function bars(vals, w, h, gap, uid) {
         if (!(v > 0)) {
             out += `<rect x="${x.toFixed(2)}" y="${h - 1}" width="${bw.toFixed(2)}" height="1" rx=".5" fill="rgb(255 255 255 / .18)"/>`;
             return;
-        }
+        /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-1ca5c394 */ }
         const bh = Math.max(1.5, (f(v) / mx) * (h - 2));
         out += `<rect x="${x.toFixed(2)}" y="${(h - bh).toFixed(2)}" width="${bw.toFixed(2)}" height="${bh.toFixed(2)}" rx="${Math.min(1.5, bw / 2).toFixed(2)}" fill="url(#bvg-${uid})"/>`;
     });
@@ -100,10 +100,10 @@ export function buildCard(S, opts = {}) {
     el.setAttribute('data-bv-cert', '1');
     el.innerHTML = html;
     return el;
-} /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-2fec7a9c */
+}
 
 export function fitCard(card) {
-    const q = (k) => card.querySelector(`[data-k="${k}"]`);
+    /* @license Better Vest 9.3.6. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-7e1b6875 */ const q = (k) => card.querySelector(`[data-k="${k}"]`);
     const hero = q('hero'), hv = q('hv');
     let size = 82;
     hero.style.fontSize = size + 'px';

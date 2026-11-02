@@ -12,7 +12,7 @@ const BLOCKED_MS = 8000;
 function upgrade(db) {
     for (const name of STORES) {
         if (db.objectStoreNames.contains(name)) continue;
-        const store = db.createObjectStore(name, { keyPath: KEY_PATHS[name] }); /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-ae3d8e7a */
+        const store = db.createObjectStore(name, { keyPath: KEY_PATHS[name] });
         if (name === 'trades') {
             store.createIndex('accountId', 'accountId', { unique: false });
             store.createIndex('closeTs', 'closeTs', { unique: false });
@@ -33,7 +33,7 @@ export function openDb(userId) {
             if (settled) return;
             settled = true;
             clearTimeout(blockedTimer);
-            fn(v);
+            /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-ab57be2a */ fn(v);
         };
         req.onupgradeneeded = () => upgrade(req.result);
         req.onblocked = () => {
@@ -66,7 +66,7 @@ function finish(tx) {
 
 export function getAll(db, store, opts) {
     const o = opts || {};
-    const tx = db.transaction(store, 'readonly'); /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-d9b6e63d */
+    const tx = db.transaction(store, 'readonly');
     let source = tx.objectStore(store);
     if (o.index) source = source.index(o.index);
     return wrap(o.range !== undefined && o.range !== null ? source.getAll(o.range) : source.getAll());
@@ -79,7 +79,7 @@ export function get(db, store, key) {
 async function writeTx(db, names, fill) {
     const tx = db.transaction(names, 'readwrite');
     try {
-        fill(tx);
+        /* Copyright (c) 2026 Astral. Better Vest 9.3.6 is licensed to its users only to run it, never to copy it. bv-77ede503 */ fill(tx);
     } catch (e) {
         try { tx.abort(); } catch (e2) {}
         throw e;
@@ -103,7 +103,7 @@ export function putMany(db, byStore) {
     const names = Object.keys(byStore || {}).filter((n) => byStore[n] && byStore[n].length);
     if (!names.length) return Promise.resolve();
     return writeTx(db, names, (tx) => {
-        for (const n of names) {
+        for (const n of names) { /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-be22fa44 */
             const os = tx.objectStore(n);
             for (const v of byStore[n]) os.put(v);
         }
@@ -125,7 +125,7 @@ export function putMeta(db, key, value) {
 
 export async function listUserIds() {
     if (typeof indexedDB === 'undefined' || typeof indexedDB.databases !== 'function') return [];
-    const list = await indexedDB.databases(); /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.3. bv-8b8b3c58 */
+    const list = await indexedDB.databases();
     const ids = [];
     for (const d of list) {
         if (d && typeof d.name === 'string' && d.name.startsWith(DB_PREFIX)) ids.push(d.name.slice(DB_PREFIX.length));

@@ -11,12 +11,12 @@ const BLOCKED_MS = 8000;
 
 function upgrade(db) {
     for (const name of STORES) {
-        if (db.objectStoreNames.contains(name)) continue; /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-fcafe2bf */
+        if (db.objectStoreNames.contains(name)) continue;
         const store = db.createObjectStore(name, { keyPath: KEY_PATHS[name] });
         if (name === 'trades') {
             store.createIndex('accountId', 'accountId', { unique: false });
             store.createIndex('closeTs', 'closeTs', { unique: false });
-        }
+        /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-8d13c6fe */ }
     }
 }
 
@@ -76,11 +76,11 @@ export function get(db, store, key) {
     return wrap(db.transaction(store, 'readonly').objectStore(store).get(key));
 }
 
-async function writeTx(db, names, fill) {
+async function writeTx(db, names, fill) { /* @license Better Vest 9.3.6. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-8bb94e71 */
     const tx = db.transaction(names, 'readwrite');
     try {
         fill(tx);
-    /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-23ca8a59 */ } catch (e) {
+    } catch (e) {
         try { tx.abort(); } catch (e2) {}
         throw e;
     }
@@ -111,13 +111,13 @@ export function putMany(db, byStore) {
 }
 
 export function del(db, store, key) {
-    /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-14367cb6 */ return writeTx(db, store, (tx) => { tx.objectStore(store).delete(key); });
+    return writeTx(db, store, (tx) => { tx.objectStore(store).delete(key); });
 }
 
 export async function getMeta(db, key) {
     const row = await get(db, 'meta', key);
     return row ? row.value : undefined;
-}
+/* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-588dcbaf */ }
 
 export function putMeta(db, key, value) {
     return put(db, 'meta', { key, value });

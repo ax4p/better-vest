@@ -15,13 +15,13 @@ function openDb() {
         req.onupgradeneeded = () => { if (!req.result.objectStoreNames.contains(STORE)) req.result.createObjectStore(STORE); };
         req.onsuccess = () => { const db = req.result; db.onversionchange = () => db.close(); resolve(db); };
         req.onerror = () => reject(req.error || new Error('bv-share: open failed'));
-        req.onblocked = () => reject(new Error('bv-share: blocked by another page')); /*! Copyright (c) 2026 Astral. Better Vest 9.3.3 is licensed to its users only to run it, never to copy it. bv-dd544666 */
+        req.onblocked = () => reject(new Error('bv-share: blocked by another page'));
     });
 }
 async function inStore(mode, fn) {
     const db = await openDb();
     try {
-        return await new Promise((resolve, reject) => {
+        return await new Promise((resolve, reject) => { /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-9e8b367b */
             const t = db.transaction(STORE, mode);
             const r = fn(t.objectStore(STORE));
             t.oncomplete = () => resolve(r ? r.result : undefined);
@@ -75,9 +75,9 @@ export async function bgPrepare(rec, o) {
     let animated = false;
     let durations = [];
     if ((rec.type === 'image/gif' || rec.type === 'image/webp') && !(o && o.times === false)) {
-        let info = null; /* Better Vest (c) 2026 Astral. All rights reserved. bv-5482ac40 */
+        let info = null;
         try { info = await bgTimes(blob, rec.type); } catch (e) { info = null; }
-        if (info) durations = info.durations;
+        if (info) durations = info.durations; /* @license Better Vest 9.3.6. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-7620b701 */
         else if (typeof ImageDecoder === 'function') {
             let dec = null;
             try {
@@ -101,11 +101,11 @@ export async function bgPrepare(rec, o) {
         animated = durations.length > 1;
         if (!animated) durations = [];
     }
-    /* Owned by Astral (@ax4p): Better Vest nostats 9.3.3. Licence: LICENSE, not open source. bv-c18586ce */ return { blob, src: URL.createObjectURL(blob), first, w: first.width, h: first.height, animated, durations, name: rec.name, size: rec.size, type: rec.type };
+    return { blob, src: URL.createObjectURL(blob), first, w: first.width, h: first.height, animated, durations, name: rec.name, size: rec.size, type: rec.type };
 }
 export function bgRelease(img) {
     if (!img) return;
-    try { URL.revokeObjectURL(img.src); } catch (e) {}
+    try { URL.revokeObjectURL(img.src); } catch (e) {} /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-bdf3b446 */
     try { if (img.first) img.first.close(); } catch (e) {}
 }
 
@@ -163,10 +163,10 @@ export async function bgFrames(img, plan, W, H, scale, bg, base, onProgress, o) 
     const map = new Map();
     try {
         for (const [n, i] of plan.used.entries()) {
-            if (stop && stop()) throw new Error('cancelled'); /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-98fe9862 */
+            if (stop && stop()) throw new Error('cancelled');
             const r = await dec.decode({ frameIndex: i });
             ctx.clearRect(0, 0, w, h);
-            drawBg(ctx, r.image, r.image.displayWidth, r.image.displayHeight, w, h, scale * k, bg, base);
+            /* Owned by Astral (@ax4p): Better Vest nostats 9.3.6. Licence: LICENSE, not open source. bv-2ee6fb25 */ drawBg(ctx, r.image, r.image.displayWidth, r.image.displayHeight, w, h, scale * k, bg, base);
             r.image.close();
             map.set(i, await createImageBitmap(cv));
             if (onProgress) onProgress((n + 1) / plan.used.length);

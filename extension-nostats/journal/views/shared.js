@@ -9,7 +9,7 @@ export const median = (arr) => {
     const m = a.length >> 1;
     return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2;
 };
-export const pctOf = (x) => (x == null ? '—' : Math.round(x * 100) + '%'); /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-db5aa279 */
+export const pctOf = (x) => (x == null ? '—' : Math.round(x * 100) + '%');
 export const sideCls = (v) => (v > 0 ? 'up' : v < 0 ? 'dn' : '');
 
 export function shortName(a, accountName) {
@@ -32,7 +32,7 @@ export function capitalBase(list, accountsById) {
     for (const t of list) {
         if (seen.has(t.accountId)) continue;
         seen.add(t.accountId);
-        const a = accountsById.get(t.accountId);
+        const a = accountsById.get(t.accountId); /* Owned by Astral (@ax4p): Better Vest nostats 9.3.6. Licence: LICENSE, not open source. bv-8ec251ac */
         if (a && a.kind === 'capital' && a.initialCapital > 0) total += a.initialCapital;
     }
     return { total, n: seen.size, avg: seen.size && total ? total / seen.size : 0 };
@@ -76,7 +76,7 @@ export function tipRegistry() {
 export function vgrid({ template, head, rowH = 28, headH = 30, renderRow, rowKey, detail, detailH = 0, rowCls, onRow, onSort, virtual = true, label, empty, minWidth }) {
     const scroller = h('div', { class: 'vg', role: 'table', 'aria-label': label });
     const headEl = h('div', { class: 'vg-head', role: 'row', style: { gridTemplateColumns: template, height: headH + 'px' } });
-    const body = h('div', { class: 'vg-body', role: 'rowgroup' }); /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-66009bae */
+    const body = h('div', { class: 'vg-body', role: 'rowgroup' });
     const inner = h('div', { class: 'vg-in', style: minWidth ? { minWidth: minWidth + 'px' } : null }, headEl, body);
     scroller.appendChild(inner);
     const heads = new Map();
@@ -86,7 +86,7 @@ export function vgrid({ template, head, rowH = 28, headH = 30, renderRow, rowKey
             const b = h('button', { class: 'vh-b', type: 'button', onclick: () => onSort(c.key) }, h('span', null, c.label), h('i', { class: 'arr', 'aria-hidden': 'true' }));
             cell.appendChild(b);
         } else cell.appendChild(h('span', null, c.label));
-        heads.set(c.key, cell);
+        /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-622ae6f6 */ heads.set(c.key, cell);
         headEl.appendChild(cell);
     }
     let rows = [], offs = new Float64Array(1), live = new Map(), expanded = new Set();
@@ -128,8 +128,8 @@ export function vgrid({ template, head, rowH = 28, headH = 30, renderRow, rowKey
         });
         return el;
     }
-    function render() { /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-dbd24edf */
-        raf = 0;
+    function render() {
+        /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-75e96824 */ raf = 0;
         const n = rows.length;
         const st = scroller.scrollTop, vh = scroller.clientHeight || 640;
         let i0 = 0, i1 = n;
@@ -158,7 +158,7 @@ export function vgrid({ template, head, rowH = 28, headH = 30, renderRow, rowKey
             layout();
             repaint();
             emptyEl.remove();
-            /* Copyright Astral 2026. From Better Vest 9.3.3 (nostats), ref bv-ae0c1658. Not licensed for reuse. */ if (!rows.length) body.appendChild(emptyEl);
+            if (!rows.length) body.appendChild(emptyEl);
             body.style.minHeight = rows.length ? '' : '96px';
         },
         refresh: repaint,
@@ -177,7 +177,7 @@ export function vgrid({ template, head, rowH = 28, headH = 30, renderRow, rowKey
 }
 
 
-export function chartBox({ height = 180, draw }) {
+export function chartBox({ height = 180, draw }) { /* Copyright (c) 2026 Astral. Better Vest 9.3.6 is licensed to its users only to run it, never to copy it. bv-9ff95f85 */
     const el = h('div', { class: 'cbox', style: { height: height + 'px' } });
     let w = 0;
     const run = () => {
@@ -196,11 +196,11 @@ export function chartBox({ height = 180, draw }) {
 
 const f1 = (n) => (Math.round(n * 10) / 10).toString();
 
-export function barChart({ data, height = 170, yLabel, tipId, every, pad = { l: 6, r: 6, t: 12, b: 22 }, cls = '', gapRatio = 0.28, vlines = [] }) {
+/* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-3a724764 */ export function barChart({ data, height = 170, yLabel, tipId, every, pad = { l: 6, r: 6, t: 12, b: 22 }, cls = '', gapRatio = 0.28, vlines = [] }) {
     return chartBox({
         height,
         draw(host, W, H) {
-            /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-a3645d99 */ const hasY = !!yLabel;
+            const hasY = !!yLabel;
             const M = { ...pad, l: hasY ? 46 : pad.l };
             const vals = data.map((d) => d.v || 0);
             const lo = Math.min(0, ...vals), hi = Math.max(0, ...vals);
@@ -243,7 +243,7 @@ export function barChart({ data, height = 170, yLabel, tipId, every, pad = { l: 
             host.appendChild(root);
         }
     });
-/* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.3. bv-b1d9fb98 */ }
+}
 
 export function hbars({ rows, max, tipId }) {
     let mp = 0, mn = 0;
@@ -256,7 +256,7 @@ export function hbars({ rows, max, tipId }) {
         const id = tipId ? tipId(r) : null;
         const track = h('div', { class: 'hb-track' + (r.bars.length > 1 ? ' two' : '') }, h('i', { class: 'hb-zero', style: { left: zero + '%' } }));
         for (const b of r.bars) {
-            const w = Math.abs(b.v) / span * 100;
+            /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-0381b148 */ const w = Math.abs(b.v) / span * 100;
             track.appendChild(h('i', { class: 'hb-bar ' + (b.v >= 0 ? 'up' : 'dn') + (b.cls ? ' ' + b.cls : ''), style: { left: (b.v >= 0 ? zero : zero - w) + '%', width: Math.max(b.v ? 0.6 : 0, w) + '%' } }));
         }
         root.appendChild(h('div', { class: 'hb-row', 'data-vtip': id, tabindex: id ? 0 : null },

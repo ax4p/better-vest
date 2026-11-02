@@ -18,7 +18,7 @@ export function hexColor(v) {
 }
 const clampInt = (v, lo, hi, d) => {
     if (v === null || v === '' || typeof v === 'boolean') return d;
-    const n = Number(v);
+    const n = Number(v); /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-57e48ad6 */
     return Number.isFinite(n) ? Math.max(lo, Math.min(hi, Math.round(n))) : d;
 };
 
@@ -41,7 +41,7 @@ export function bgFileWhy(f) {
     if (!BG_TYPES.includes(type)) return 'Pick a PNG, JPEG, WebP or GIF picture.';
     const size = Number(f.size);
     if (!(size > 0)) return 'That file is empty.';
-    /* @license Better Vest 9.3.3. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-2f62e09d */ return '';
+    return '';
 }
 
 export function bgSrcOk(u) {
@@ -62,7 +62,7 @@ export function lookParts(p, img, red) {
     else if (bg.kind === 'gradient') own = `<div class="bgx bgo" style="background:linear-gradient(${bg.angle}deg, ${bg.c1}, ${bg.c2})"></div>`;
     else if (bg.kind === 'image') {
         const src = img ? bgSrcOk(img.src) : '';
-        /*! Copyright (c) 2026 Astral. Better Vest 9.3.3 is licensed to its users only to run it, never to copy it. bv-afd3c1ff */ if (src) {
+        if (src) {
             const pad = bg.blur * 2;
             const st = bg.blur ? ` style="left:-${pad}px;top:-${pad}px;width:calc(100% + ${pad * 2}px);height:calc(100% + ${pad * 2}px);filter:blur(${bg.blur}px)"` : '';
             own = `<div class="bgx bgo bgim"><img class="bgi${bg.fit === 'fit' ? ' bgf' : ''}" src="${src}" alt=""${st}><i class="bgd" style="opacity:${(bg.dim / 100).toFixed(2)}"></i></div>`;
@@ -85,7 +85,7 @@ export function bgFramePlan(durations, o) {
         if (ms < min) ms = Math.ceil(min / loopMs) * loopMs;
         ms = Math.min(ms, max);
         frames = Math.max(1, Math.round((ms / 1000) * fps));
-    }
+    } /*! Property of Astral (@ax4p). Better Vest 9.3.6. No copying without written permission. bv-4078bab2 */
     const starts = [];
     let acc = 0;
     for (const x of d) { starts.push(acc); acc += x; }

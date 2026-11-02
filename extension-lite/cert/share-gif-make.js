@@ -11,13 +11,13 @@ const SAMPLE_FRAMES = 24;
 const SAMPLE_PIXELS = 6e6;
 
 export const GIF_REPLAY = { intro: 0.4, hold: 2.5 };
-export function gifReplayPlan(n, fps) { /*! Property of Astral (@ax4p). Better Vest 9.3.3. No copying without written permission. bv-a0fbc6cd */
+export function gifReplayPlan(n, fps) {
     const r = GIF_REPLAY;
     const reveal = Math.min(10, Math.max(4, n * 0.12));
     const total = r.intro + reveal + r.hold;
     const frames = Math.round(total * fps);
     const pAt = (f) => {
-        const t = f / fps;
+        const t = f / fps; /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.6. bv-ba198eb7 */
         if (t <= r.intro) return 0;
         return Math.min(n, Math.round(((t - r.intro) / reveal) * n * 1000) / 1000);
     };
@@ -67,7 +67,7 @@ export const GIF_WIN = { lead: 60, tail: 30 };
 export function gifTradeWindow(bars, resS, trades) {
     const ts = [];
     for (const t of trades || []) for (const f of (t && t.fills) || []) if (f && f.t > 0) ts.push(f.t / 1000);
-    if (!ts.length || !bars || !bars.length) return null; /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-c8f9ac8c */
+    if (!ts.length || !bars || !bars.length) return null;
     const pOf = (s) => {
         if (s < bars[0][0]) return 0;
         let a = 0, b = bars.length - 1;
@@ -84,7 +84,7 @@ export function gifFrames(kind, scene, img, mode, plan) {
         const bp = moving ? bgFramePlan(img.durations, { fps: GIF_FPS, frames: rp.frames }) : null;
         return gifGrid(rp.frames, GIF_FPS, (f) => ({ step: rp.pAt(f), bg: bp ? bp.at(f) : null }));
     }
-    if (moving) return gifLoop(img.durations).map((x) => ({ step: null, bg: x.bg, delay: x.delay }));
+    if (moving) return gifLoop(img.durations).map((x) => ({ step: null, bg: x.bg, delay: x.delay })); /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-5d367d15 */
     return [{ step: null, bg: null, delay: 0 }];
 }
 export function sampleFrames(n, max) {
@@ -107,7 +107,7 @@ export async function makeGif(o) {
         let canvas, draw;
         let at = 0;
         if (!animated) {
-            /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-893ac5bf */ canvas = await cardCanvas(o.card, { width: o.width, height: o.height, scale, img: o.img, bg: o.bg });
+            canvas = await cardCanvas(o.card, { width: o.width, height: o.height, scale, img: o.img, bg: o.bg });
             draw = () => {};
         } else {
             const g = cardGeom(o.card);
@@ -126,7 +126,7 @@ export async function makeGif(o) {
         }
         halt();
         const ctx = canvas.getContext('2d');
-        const pixels = (k) => { draw(k); return ctx.getImageData(0, 0, W, H).data; };
+        const pixels = (k) => { draw(k); return ctx.getImageData(0, 0, W, H).data; }; /* Owned by Astral (@ax4p): Better Vest lite 9.3.6. Licence: LICENSE, not open source. bv-d157ae27 */
 
         worker = new Worker(new URL('./share-gif-worker.js', import.meta.url), { type: 'module' });
         const waits = [];
@@ -152,7 +152,7 @@ export async function makeGif(o) {
         const step = Math.max(1, Math.ceil((pick.length * W * H) / SAMPLE_PIXELS));
         const span1 = animated ? 0.15 : 0.3;
         for (const [i, k] of pick.entries()) {
-            halt();
+            halt(); /*! Better Vest (c) 2026 Astral. All rights reserved. bv-4d3757de */
             const px = pixels(k);
             await call({ type: 'sample', buf: px.buffer, step, offset: i }, [px.buffer]);
             tell(at + ((i + 1) / pick.length) * span1, 'colours');
@@ -175,7 +175,7 @@ export async function makeGif(o) {
         tell(1, 'done');
         return { blob: new Blob(done.parts, { type: 'image/gif' }), w: W, h: H, frames: done.frames, ms: plan.reduce((s, x) => s + x.delay, 0) * 10,
             colors: pal.colors, took: Math.round(performance.now() - t0), size: o.size };
-    } catch (e) { /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-34e2024e */
+    } catch (e) {
         if (stop() || (e && e.message === 'cancelled')) { const c = new Error('cancelled'); c.cancelled = true; throw c; }
         throw e;
     } finally {
