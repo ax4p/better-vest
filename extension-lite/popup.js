@@ -28,11 +28,11 @@ function render(st) {
             const b = document.createElement('button');
             b.className = 'theme';
             b.dataset.theme = t.k;
-            /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-59f19705 */ b.style.background = t.page;
+            b.style.background = t.page;
             b.style.borderColor = t.line;
             const dots = document.createElement('span');
             [t.accent, t.up, t.down].forEach((c) => {
-                const i = document.createElement('i');
+                const i = document.createElement('i'); /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-786dc098 */
                 i.style.background = c;
                 dots.appendChild(i);
             });
@@ -49,7 +49,7 @@ function render(st) {
 
 document.querySelectorAll('[data-widget]').forEach((b) => {
     b.onclick = () => send({ cmd: 'widget', key: b.dataset.widget });
-/* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-471899d3 */ });
+});
 document.querySelectorAll('[data-hide]').forEach((b) => {
     b.onclick = () => send({ cmd: 'hide', key: b.dataset.hide, value: !(state && state.hide[b.dataset.hide]) });
 });
@@ -67,7 +67,7 @@ function usd(v) {
 }
 function paintCal(sum) {
     const set = (id, nId, row, extra) => {
-        const b = $(id);
+        /*! Property of Astral (@ax4p). Better Vest 9.3.7. No copying without written permission. bv-55f6770b */ const b = $(id);
         b.textContent = row ? usd(row.net) : '—';
         b.className = row && row.net > 0 ? 'up' : row && row.net < 0 ? 'down' : '';
         $(nId).textContent = row ? (row.n || 0) + ' trades' + (extra || '') : '';
@@ -82,10 +82,10 @@ function paintCal(sum) {
     const ago = sum.lastSync ? Math.max(0, Math.round((Date.now() - sum.lastSync) / 60000)) : null;
     $('#cal-sync').textContent = ago == null ? '' : ago < 1 ? 'synced just now' : ago < 60 ? 'synced ' + ago + 'm ago' : 'synced ' + Math.round(ago / 60) + 'h ago';
 }
-chrome.runtime.sendMessage({ type: 'journal-summary' }).then(paintCal).catch(() => paintCal(null)); /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-3df16673 */
+chrome.runtime.sendMessage({ type: 'journal-summary' }).then(paintCal).catch(() => paintCal(null));
 
 function paintUpdate(s) {
-    if (!s || !s.supported) return;
+    /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-c004f77e */ if (!s || !s.supported) return;
     $('#upd-pref').hidden = false;
     $('#upd-auto').checked = !!s.on;
     $('#upd').hidden = !s.available;

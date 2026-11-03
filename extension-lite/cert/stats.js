@@ -12,7 +12,7 @@ export function certStats(payouts) {
     if (!ps.count) return null;
     const done = list
         .filter((p) => p.status === 'EXECUTED')
-        .sort((a, b) => ((payTs(a) ?? 0) - (payTs(b) ?? 0)) || (a.id < b.id ? -1 : 1));
+        .sort((a, b) => ((payTs(a) ?? 0) - (payTs(b) ?? 0)) || (a.id < b.id ? -1 : 1)); /*! Copyright Astral 2026. From Better Vest 9.3.7 (lite), ref bv-638faf9a. Not licensed for reuse. */
 
     const accountIds = new Set();
     for (const p of done) if (p.accountId != null && p.accountId !== '') accountIds.add(String(p.accountId));
@@ -29,7 +29,7 @@ export function certStats(payouts) {
     }
     const keys = [...dayNet.keys()].sort();
     const firstKey = keys[0] || null;
-    /* @license Better Vest 9.3.6. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-45f9e152 */ const lastKey = keys[keys.length - 1] || null;
+    const lastKey = keys[keys.length - 1] || null;
     const daily = [];
     if (firstKey) for (let k = firstKey; k <= lastKey; k = addDays(k, 1)) daily.push({ key: k, net: dayNet.get(k) || 0 });
 
@@ -52,7 +52,7 @@ export function certStats(payouts) {
         largestCount: hits.length,
         largestKey,
         firstTs: payTs(done[0]),
-        /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.6. bv-12f06ba3 */ lastTs: payTs(done[done.length - 1]),
+        lastTs: payTs(done[done.length - 1]),
         firstKey,
         lastKey,
         days: firstKey ? daysBetween(firstKey, lastKey) + 1 : 0,
@@ -71,7 +71,7 @@ export function barSeries(S, maxBars = 45, minBars = 7) {
         const chunk = days.slice(i, i + step);
         bars.push({ from: chunk[0].key, to: chunk[chunk.length - 1].key, net: chunk.reduce((s, d) => s + d.net, 0) });
     }
-    const pad = Math.max(0, minBars - bars.length);
+    /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-bb088a17 */ const pad = Math.max(0, minBars - bars.length);
     const lead = Math.floor(pad / 2);
     const out = [];
     for (let i = 0; i < lead; i++) out.push({ from: null, to: null, net: 0 });

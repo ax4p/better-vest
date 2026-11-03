@@ -12,7 +12,7 @@ export function receivedPayouts(list) {
     const seen = new Set();
     const out = [];
     for (const p of Array.isArray(list) ? list : []) {
-        if (!p || typeof p !== 'object' || p.status !== 'EXECUTED' || !Number.isFinite(p.net) || !(paidAt(p) > 0)) continue; /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-325073e6 */
+        if (!p || typeof p !== 'object' || p.status !== 'EXECUTED' || !Number.isFinite(p.net) || !(paidAt(p) > 0)) continue;
         const id = String(p.id);
         if (seen.has(id)) continue;
         seen.add(id);
@@ -21,7 +21,7 @@ export function receivedPayouts(list) {
     return out.sort((a, b) => paidAt(a) - paidAt(b) || (String(a.id) < String(b.id) ? -1 : 1));
 }
 
-export function payoutModel(payouts, o) {
+export function payoutModel(payouts, o) { /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-f61309c7 */
     const opt = o || {};
     const kind = opt.kind === 'lifetime' ? 'lifetime' : 'today';
     const done = receivedPayouts(payouts);
@@ -63,7 +63,7 @@ function seeded(str) {
 }
 export const SAMPLE_PAY_ACCOUNTS = [['sample-pay-a', '100K Funded · 1'], ['sample-pay-b', '50K Funded · 2'], ['sample-pay-c', '150K Funded · 3']];
 export const samplePayNames = () => new Map(SAMPLE_PAY_ACCOUNTS);
-export function samplePayouts(today) {
+/* This file is part of Better Vest by Astral and is protected by copyright. ref bv-2d832b83 */ export function samplePayouts(today) {
     const t = KEY_RE.test(String(today || '')) ? today : dayKey(Date.now(), 'vest');
     const rnd = seeded('payouts|' + t);
     const out = [];
@@ -71,7 +71,7 @@ export function samplePayouts(today) {
     for (let i = 0; k < t && out.length < 11; i++) {
         const [acc] = SAMPLE_PAY_ACCOUNTS[Math.floor(rnd() * SAMPLE_PAY_ACCOUNTS.length)];
         const net = r2(1200 + rnd() * 4300);
-        /* Owned by Astral (@ax4p): Better Vest standard 9.3.6. Licence: LICENSE, not open source. bv-b3e22c2e */ const { y, m, d } = parseKey(k);
+        const { y, m, d } = parseKey(k);
         const at = etWallToUtc(y, m, d, 10 + Math.floor(rnd() * 7), Math.floor(rnd() * 59));
         out.push(samplePay(i, acc, net, at));
         k = addDays(k, 12 + Math.floor(rnd() * 9));

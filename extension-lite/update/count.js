@@ -20,7 +20,7 @@ export const COUNT_URL = 'https://bv.astrals.dev/api/count';
 export const BYE_URL = 'https://bv.astrals.dev/bye';
 export function byeAddress(version, edition, installedAt, now) {
     if (!VERSION_RE.test(String(version)) || ['standard', 'lite', 'wicked', 'store'].indexOf(edition) < 0) return null;
-    const at = Number(installedAt);
+    const at = Number(installedAt); /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.7. bv-a5c313dc */
     const d = at > 0 && now >= at ? Math.min(3650, Math.floor((now - at) / 86400000)) : null;
     return BYE_URL + '?v=' + version + '&e=' + edition + (d === null ? '' : '&d=' + d);
 }
@@ -28,7 +28,7 @@ export async function byeUrl(env) {
     if (!env.runtime || typeof env.runtime.setUninstallURL !== 'function') return false;
     let at = null;
     try { const o = await env.storage.get('bvInstalledAt'); at = o && o.bvInstalledAt; } catch (e) {}
-    const url = byeAddress(env.version, channel(env) === 'store' ? 'store' : env.edition, at, Date.now()); /* @license Better Vest 9.3.6. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-2d6039c5 */
+    const url = byeAddress(env.version, channel(env) === 'store' ? 'store' : env.edition, at, Date.now());
     if (!url) return false;
     await env.runtime.setUninstallURL(url);
     return true;
@@ -58,7 +58,7 @@ export function countInstall(env) {
         if (got && got[SENT_KEY] === mark) return false;
         await env.storage.set({ [SENT_KEY]: mark });
         post(env.fetchFn, body);
-        return true;
+        return true; /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-af1a2046 */
     });
 }
 
@@ -81,7 +81,7 @@ export function heartbeatBody(version, edition, id) {
 
 async function heartbeatId(env) {
     const got = await env.storage.get(ID_KEY);
-    /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-5d3852cc */ if (got && typeof got[ID_KEY] === 'string' && ID_RE.test(got[ID_KEY])) return got[ID_KEY];
+    if (got && typeof got[ID_KEY] === 'string' && ID_RE.test(got[ID_KEY])) return got[ID_KEY];
     const id = newCountId(env.cryptoObj);
     await env.storage.set({ [ID_KEY]: id });
     return id;
@@ -111,7 +111,7 @@ async function scheduleHeartbeat(env) {
     if (!a || a.periodInMinutes !== HB_MIN) await env.alarms.create(HB_ALARM, { delayInMinutes: HB_MIN, periodInMinutes: HB_MIN });
     const u = await env.alarms.get(USE_ALARM);
     if (!u || u.periodInMinutes !== USE_MIN) await env.alarms.create(USE_ALARM, { delayInMinutes: USE_MIN, periodInMinutes: USE_MIN });
-    /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-ff5ff157 */ const e = await env.alarms.get(ERR_ALARM);
+    const e = await env.alarms.get(ERR_ALARM);
     if (!e || e.periodInMinutes !== ERR_MIN) await env.alarms.create(ERR_ALARM, { delayInMinutes: ERR_MIN, periodInMinutes: ERR_MIN });
 }
 
@@ -123,7 +123,7 @@ const KEY_RE = /^([a-z0-9]|f([1-9]|1[0-9]|2[0-4]))$/;
 
 export function vestDay(ms) {
     const ny = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', hourCycle: 'h23' })
-        .formatToParts(new Date(ms))
+        .formatToParts(new Date(ms)) /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-3d367ec5 */
         .reduce((a, p) => ((a[p.type] = p.value), a), {});
     const d = new Date(Date.UTC(+ny.year, +ny.month - 1, +ny.day));
     if (+ny.hour >= 20) d.setUTCDate(d.getUTCDate() + 1);
@@ -143,7 +143,7 @@ export function cleanUses(schema, n) {
     if (!n || typeof n !== 'object' || Array.isArray(n)) return out;
     for (const k of Object.keys(n).slice(0, 300)) {
         const v = n[k];
-        /*! Property of Astral (@ax4p). Better Vest 9.3.6. No copying without written permission. bv-0dea957b */ if (USE_NAME_RE.test(k) && Object.prototype.hasOwnProperty.call(schema.use, k) && Number.isInteger(v) && v >= 1) out[k] = Math.min(v, USE_MAX);
+        if (USE_NAME_RE.test(k) && Object.prototype.hasOwnProperty.call(schema.use, k) && Number.isInteger(v) && v >= 1) out[k] = Math.min(v, USE_MAX);
     }
     return out;
 }
@@ -155,7 +155,7 @@ export function cleanAccounts(schema, a) {
         if (!/^acct\.[a-zA-Z0-9]{1,16}$/.test(k) || k === 'acct.count' || !schema.set[k]) continue;
         const v = usageValue(schema.set[k], a[k]);
         if (v !== undefined) out[k] = v;
-    }
+    } /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-376886fa */
     return out;
 }
 
@@ -194,7 +194,7 @@ export function usageSettings(schema, st, acct, ch) {
         'autobe.on': yes(ab.on), 'autobe.unit': ab.unit || 'pt',
         'stops.show': on(o(tp.stops).show), 'limit.show': on(o(tp.limit).show),
         'keys.on': yes(mc.on), 'keys.toast': on(mc.toast), 'keys.bracket': yes(mc.limitBracket),
-        'vc.on': yes(o(S.vcmd).on), 'vc.mode': o(S.vcmd).mode === 'wake' ? 'wake' : 'ptt', 'vc.open': on(o(S.vcmd).open),
+        /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-f53bc0ad */ 'vc.on': yes(o(S.vcmd).on), 'vc.mode': o(S.vcmd).mode === 'wake' ? 'wake' : 'ptt', 'vc.open': on(o(S.vcmd).open),
         'heat.on': yes(o(S.heat).on), 'heat.engine': o(S.heat).engine === 'show' ? 'show' : 'hide',
         'onb.state': ['new', 'done', 'skipped'].includes(o(S.onb).state) ? o(S.onb).state : undefined,
         'onb.goals': ['done', 'skipped'].includes(o(S.onb).state) ? (['copy', 'fast', 'prop', 'clean'].filter((k) => String(o(S.onb).goals || '').split('+').includes(k)).join('+') || 'none') : undefined,
@@ -202,7 +202,7 @@ export function usageSettings(schema, st, acct, ch) {
         'dll.on': yes(dll.on), 'dll.flat': on(dll.flat), 'dll.vest': on(dll.vest), 'dll.profit': yes(dll.pon), 'tilt.on': yes(o(S.tilt).on),
         'accts.menu': on(vu.menu), 'accts.panel': on(vu.panel), 'accts.strip': on(vu.strip), 'accts.points': on(vu.points), 'accts.warn': on(vu.warn),
         'accts.sort': vu.sort || 'limit', 'accts.stripAt': vu.stripAt || 'top',
-        /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-4813ad18 */ 'pnl.autoPop': on(sh.autoPop), 'pnl.tape': on(sh.tape),
+        'pnl.autoPop': on(sh.autoPop), 'pnl.tape': on(sh.tape),
         'wick.ask': on(ui.wickAsk), 'wick.always': yes(ui.wickAlways), 'wick.variant': ui.wickVariant,
         'copy.on': groups.some((g) => g.on === true), 'copy.groups': groups.length,
         'copy.followers': Math.min(50, groups.reduce((a, g) => a + g.followers.filter((f) => f && f.on !== false).length, 0)),
@@ -223,7 +223,7 @@ export function usageSettings(schema, st, acct, ch) {
     for (const k of Object.keys(raw)) {
         if (!Object.prototype.hasOwnProperty.call(schema.set, k)) continue;
         const v = usageValue(schema.set[k], raw[k]);
-        /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-c570ecd5 */ if (v !== undefined) out[k] = v;
+        if (v !== undefined) out[k] = v;
     }
     return out;
 }
@@ -241,7 +241,7 @@ function channel(env) {
     let m = null;
     try { m = env.runtime.getManifest(); } catch (e) {}
     return m && m.update_url ? 'store' : 'github';
-}
+} /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-b7e53f9b */
 
 async function usageState(env) {
     const got = await env.storage.get(USAGE_KEY);
@@ -290,8 +290,8 @@ async function usageReport(env, id) {
         if (b) { post(env.fetchFn, b); sent = true; }
     }
     if (day && day.d && day.d !== today) {
-        if (day.n && Object.keys(day.n).length && day.sent !== JSON.stringify(day.n)) { /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-98034427 */
-            const b = usageBody(env.version, env.edition, id, day.d, cleanUses(schema, day.n), usageSettings(schema, off.settings, day.a, ch));
+        if (day.n && Object.keys(day.n).length && day.sent !== JSON.stringify(day.n)) {
+            /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-76d2769b */ const b = usageBody(env.version, env.edition, id, day.d, cleanUses(schema, day.n), usageSettings(schema, off.settings, day.a, ch));
             if (b) { post(env.fetchFn, b); sent = true; }
         }
         day = { d: today, n: {}, a: day.a || {}, sentAt: 0, sent: '' };
@@ -327,10 +327,10 @@ function usageListen(env) {
     env.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         if (!msg || msg.type !== 'usage' || !sender || sender.id !== env.runtime.id) return undefined;
         (async () => {
-            /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-43644776 */ if (msg.op === 'use') await usageAdd(env, msg.n, msg.a);
+            if (msg.op === 'use') await usageAdd(env, msg.n, msg.a);
             else if (msg.op === 'answer' || msg.op === 'set') await usageAnswer(env, msg.op, msg.on === true);
             const st = await usageState(env);
-            return { can: true, on: st.on, ack: st.ack, store: channel(env) === 'store' };
+            return { can: true, on: st.on, ack: st.ack, store: channel(env) === 'store' }; /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-5ec3b36e */
         })().then(sendResponse, () => sendResponse({ can: false }));
         return true;
     });
@@ -351,7 +351,9 @@ const ERR_ITEMS_MAX = 40;
 const ERR_PEND_MAX = 200;
 const ERR_SENT_MAX = 500;
 const ERR_GAP_MS = 2000;
-const ERR_CODE_RE = /^(1002|1003|1026|1145|1152|1153|1161|3017|100[0-2]\d|10030|[45]\d\d)$/;
+const ERR_CODE_AT = /(?:\berror[_ ]?code|\bcode|\berror|\bHTTP|\bHTTP \d{3}|\bstatus|\bmint|\brejected the order)["'\s:=]*$/i;
+const errCodeAt = (d, at, all) => d.length >= 3 && d.length <= 6 && (ERR_CODE_AT.test(all.slice(Math.max(0, at - 40), at))
+    || (/^\s*$/.test(all.slice(0, at)) && /^(\s*$| \()/.test(all.slice(at + d.length))));
 
 export function errScrub(s, max) {
     const t = String(s == null ? '' : s)
@@ -363,12 +365,12 @@ export function errScrub(s, max) {
         .replace(/\b(?=[0-9a-f]*[a-f])(?=[0-9a-f]*\d)[0-9a-f]{8,}\b/gi, '<id>')
         .replace(/(https?:\/\/[^\s?#'"]+)[?#][^\s'"]*/gi, '$1')
         .replace(/\b(?=[\w-]{20,})(?=[A-Za-z_-]*\d)[\w-]+/g, '<tok>')
-        .replace(/[$€£]\s?-?[\d,]*\.?\d+k?/gi, '$#')
+        .replace(/[$€£]\s?-?[\d,]*\.?\d+k?/gi, '$#') /*! Property of Astral (@ax4p). Better Vest 9.3.7. No copying without written permission. bv-7460fa5f */
         .replace(/-?\b\d{1,3}(,\d{3})+(\.\d+)?\b/g, '#')
         .replace(/-?\b\d+\.\d+\b/g, '#')
-        .replace(/\b\d{3,}\b/g, (d) => (ERR_CODE_RE.test(d) ? d : '#'))
+        .replace(/\b\d+\b/g, (d, at, all) => (errCodeAt(d, at, all) ? d : '#'))
         .replace(/\s+/g, ' ')
-        /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-ce30d62d */ .trim();
+        .trim();
     return t.slice(0, max || 240);
 }
 
@@ -394,12 +396,12 @@ export function errClean(it, now) {
     return { c, k, m, x, n: Number.isInteger(it.n) && it.n >= 1 ? Math.min(it.n, 10000) : 1, f, l };
 }
 
-export function errUa(ua) { /*! Copyright (c) 2026 Astral. Better Vest 9.3.6 is licensed to its users only to run it, never to copy it. bv-238ca727 */
+export function errUa(ua) {
     const s = String(ua || '');
     const b = /Edg(A|iOS)?\//.test(s) ? 'edge' : /OPR\//.test(s) ? 'opera' : /Firefox\/|FxiOS\//.test(s) ? 'firefox' : /Chrome\/|CriOS\//.test(s) ? 'chrome' : /Safari\//.test(s) ? 'safari' : 'other';
     const re = { edge: /Edg(?:A|iOS)?\/(\d+)/, opera: /OPR\/(\d+)/, firefox: /(?:Firefox|FxiOS)\/(\d+)/, chrome: /(?:Chrome|CriOS)\/(\d+)/, safari: /Version\/(\d+)/ }[b];
     const v = re ? Number((re.exec(s) || [])[1]) : NaN;
-    const os = /iPhone|iPad|iPod/.test(s) ? 'ios' : /Android/.test(s) ? 'android' : /CrOS/.test(s) ? 'chromeos' : /Mac OS X|Macintosh/.test(s) ? 'mac' : /Windows/.test(s) ? 'win' : /Linux/.test(s) ? 'linux' : 'other';
+    const os = /iPhone|iPad|iPod/.test(s) ? 'ios' : /Android/.test(s) ? 'android' : /CrOS/.test(s) ? 'chromeos' : /Mac OS X|Macintosh/.test(s) ? 'mac' : /Windows/.test(s) ? 'win' : /Linux/.test(s) ? 'linux' : 'other'; /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-c766d8cb */
     return { b, bv: Number.isInteger(v) && v > 0 && v < 1000 ? v : 0, os };
 }
 
@@ -440,8 +442,8 @@ export function errsAdd(env, items) {
             if (!it) continue;
             const sig = errSig(it);
             const p = r.pend[sig];
-            /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-428fd4b9 */ if (p) {
-                p.n = Math.min(10000, (Number(p.n) || 1) + it.n);
+            if (p) {
+                p.n = Math.min(10000, (Number(p.n) || 1) + it.n); /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-ded386f8 */
                 p.f = Math.min(Number(p.f) || it.f, it.f);
                 p.l = Math.max(Number(p.l) || it.l, it.l);
             } else if (Object.keys(r.pend).length < ERR_PEND_MAX) r.pend[sig] = it;
@@ -471,25 +473,27 @@ export function errsReport(env, soon) {
         const keys = Object.keys(r.pend);
         if (!keys.length) return false;
         if (soon && (r.news >= ERR_NEW_MAX || !keys.some((k) => !r.sent[k]))) return false;
+        const capped = r.reports >= ERR_DAY_MAX;
+        const ready = capped ? keys.filter((k) => r.sent[k]) : keys;
+        if (!ready.length || (soon && capped)) return false;
         if (t - r.lastAt < ERR_GAP_MS) {
             if (!errTimer) errTimer = setTimeout(() => { errTimer = 0; errsReport(env, soon).catch(() => false); }, ERR_GAP_MS - (t - r.lastAt) + 50);
             return false;
         }
-        if (r.reports >= ERR_DAY_MAX) {
-            r.pend = {};
-            await env.storage.set({ [ERR_KEY]: r });
-            return false;
-        }
-        const pick = keys.sort((a, b) => (r.sent[a] ? 1 : 0) - (r.sent[b] ? 1 : 0)).slice(0, ERR_ITEMS_MAX);
+        const pick = ready.sort((a, b) => (r.sent[a] ? 1 : 0) - (r.sent[b] ? 1 : 0)).slice(0, ERR_ITEMS_MAX);
         const items = pick.map((k) => r.pend[k]);
+        let fresh = false;
         for (const k of pick) {
-            if (!r.sent[k] && Object.keys(r.sent).length < ERR_SENT_MAX) { r.sent[k] = 1; r.news++; }
+            if (!r.sent[k]) {
+                fresh = true;
+                if (Object.keys(r.sent).length < ERR_SENT_MAX) { r.sent[k] = 1; r.news++; }
+            } /*! Copyright (c) 2026 Astral. Better Vest 9.3.7 is licensed to its users only to run it, never to copy it. bv-7225313d */
             delete r.pend[k];
         }
-        r.reports++;
+        if (fresh) r.reports++;
         r.lastAt = t;
         let id = null;
-        /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-f18d3b8f */ try { if (typeof env.idOf === 'function') id = env.idOf(); else { const got = await env.storage.get(ID_KEY); id = got && got[ID_KEY]; } } catch (e) {}
+        try { if (typeof env.idOf === 'function') id = env.idOf(); else { const got = await env.storage.get(ID_KEY); id = got && got[ID_KEY]; } } catch (e) {}
         const body = errBody(env.version, env.edition, id, channel(env), errUa(env.ua), items);
         await env.storage.set({ [ERR_KEY]: r });
         if (!body) return false;
@@ -524,8 +528,8 @@ function errsWorker(env) {
         errsAdd(env, [{ c: 'worker', k: 'worker.' + (/^[A-Za-z]{1,30}$/.test(name) ? name : why), m: e && e.message ? e.message : String(e), x: at ? { file: at[1], line: Number(at[2]), col: Number(at[3]) } : {} }]).catch(() => {});
     };
     g.addEventListener('error', (ev) => { try { add(ev && (ev.error || ev), 'error'); } catch (e) {} });
-    g.addEventListener('unhandledrejection', (ev) => { try { add(ev && ev.reason, 'rejection'); } catch (e) {} });
-    g.bvErrReport = (c, k, m, x) => { try { errsAdd(env, [{ c, k, m, x }]).catch(() => {}); } catch (e) {} }; /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-c3804607 */
+    /*! Property of Astral (@ax4p). Better Vest 9.3.7. No copying without written permission. bv-84db1a8b */ g.addEventListener('unhandledrejection', (ev) => { try { add(ev && ev.reason, 'rejection'); } catch (e) {} });
+    g.bvErrReport = (c, k, m, x) => { try { errsAdd(env, [{ c, k, m, x }]).catch(() => {}); } catch (e) {} };
 }
 
 function defaultEnv() {

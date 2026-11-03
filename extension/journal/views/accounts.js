@@ -12,9 +12,9 @@ const clamp01 = (v) => Math.max(0, Math.min(1, v));
 
 export function mount(root, ctx) {
     const { h, ui, time: T, stats, fmt, model } = ctx;
-    const S = () => ctx.state;
+    /* Copyright Astral 2026. From Better Vest 9.3.7 (standard), ref bv-bbd7c4bb. Not licensed for reuse. */ const S = () => ctx.state;
     let filter = lsGet(LS_FILTER) || 'all';
-    if (!FILTERS.some((f) => f.k === filter)) filter = 'all'; /* Copyright Astral 2026. From Better Vest 9.3.6 (standard), ref bv-e17bb249. Not licensed for reuse. */
+    if (!FILTERS.some((f) => f.k === filter)) filter = 'all';
     let sort = { key: 'start', dir: -1 };
     let sig = '';
     let lastD = null;
@@ -66,12 +66,12 @@ export function mount(root, ctx) {
     }
     const reconcileMark = (a) => (reconciled(a) ? h('span', { class: 'rec', title: 'Initial capital plus closed results equals the account balance Vest reports' }, ui.icon('check', 11), 'reconciled') : null);
 
-    function health(a) { /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-26521b39 */
+    function health(a) {
         const as = A.aStats.get(a.id) || { net: 0 };
         const out = ctx.data.payouts.filter((p) => p.accountId === a.id && (p.status === 'EXECUTED' || p.status === 'PROCESSING')).reduce((s, p) => s + p.gross, 0);
         const bal = a.balance != null ? a.balance : a.initialCapital + as.net - out;
         const floor = a.ddFloor != null && a.ddFloor < a.initialCapital ? a.ddFloor : (frac(a.ddPct) != null ? a.initialCapital * (1 - frac(a.ddPct)) : null);
-        const room = floor != null ? a.initialCapital - floor : null;
+        /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-0d67accd */ const room = floor != null ? a.initialCapital - floor : null;
         const ddUsed = room > 0 ? clamp01((a.initialCapital - bal) / room) : null;
         const goal = a.targetEquity != null && a.targetEquity > a.initialCapital ? clamp01((bal - a.initialCapital) / (a.targetEquity - a.initialCapital)) : null;
         return { bal, floor, ddUsed, goal, source: a.balance != null ? 'reported by Vest' : 'computed from closed trades' };
@@ -101,7 +101,7 @@ export function mount(root, ctx) {
         const simple = (title, formula, rows, n) => (el) => { popBase(el, title, `n = ${n}`); el.appendChild(h('div', { class: 'formula' }, formula)); dl(el, rows); foot(el, 'Counted per journey: an evaluation chain and the funded account it earned.'); return true; };
         const pay = A.paidTotal;
         let base = 0;
-        for (const c of J.chains) if (c.payoutsNet > 0) base += c.initialCapital || 0; /*! Copyright Astral 2026. From Better Vest 9.3.6 (standard), ref bv-f401d003. Not licensed for reuse. */
+        for (const c of J.chains) if (c.payoutsNet > 0) base += c.initialCapital || 0;
         ribbon.append(
             tile('Journeys', String(J.chains.length), `${A.accounts.filter((a) => a.kind === 'capital').length} accounts`, { tip: simple('Journeys', 'A journey is every account sharing one root: evaluation steps, then the funded account they unlock.', [['Journeys', String(J.chains.length)], ['Accounts', String(A.accounts.filter((a) => a.kind === 'capital').length)]], J.chains.length) }),
             tile('Pass rate', J.passRate == null ? '—' : pctOf(J.passRate), resolved ? `${J.passed} of ${resolved} resolved` : 'nothing resolved yet', { tip: simple('Pass rate', 'Passed evaluations ÷ evaluations that ended (passed or failed). Active evaluations are not counted.', [['Passed', String(J.passed)], ['Failed', String(J.failedEval)], ['Active', String(J.active)]], resolved) }),
@@ -114,7 +114,7 @@ export function mount(root, ctx) {
 
     function barOf(label, frac01, text, tone) {
         return h('div', { class: 'hl' },
-            h('div', { class: 'hl-t' }, h('span', null, label), h('b', null, text)),
+            h('div', { class: 'hl-t' }, h('span', null, label), h('b', null, text)), /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-4c5648ef */
             h('div', { class: 'hl-bar ' + tone, role: 'progressbar', 'aria-label': label, 'aria-valuenow': frac01 == null ? null : Math.round(frac01 * 100) }, h('i', { style: { width: frac01 == null ? '0%' : (frac01 * 100).toFixed(1) + '%' } })));
     }
 
@@ -161,7 +161,7 @@ export function mount(root, ctx) {
         return 'done';
     }
     const OUTCOME = {
-        /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-58d1b1f2 */ active: ['Active', 'live'], passed: ['Passed', 'ok'], claimed: ['Claimed', 'ok'], 'failed-drawdown': ['Failed · drawdown', 'bad'], 'failed-dailyloss': ['Failed · daily loss', 'bad'], blocked: ['Blocked', 'bad']
+        active: ['Active', 'live'], passed: ['Passed', 'ok'], claimed: ['Claimed', 'ok'], 'failed-drawdown': ['Failed · drawdown', 'bad'], 'failed-dailyloss': ['Failed · daily loss', 'bad'], blocked: ['Blocked', 'bad']
     };
 
     function nodeEl(a, c, idx, sizeN) {
@@ -174,7 +174,7 @@ export function mount(root, ctx) {
         const evalIdx = c.accounts.slice(0, idx + 1).filter((x) => x.phase === 'eval').length;
         const caps = (PHASE_CAPS[a.phase] || '') + (a.phase === 'eval' && evalsInChain > 1 ? ' ' + evalIdx : '');
         const tid = tips.add((el) => {
-            popBase(el, model.accountName(a), `${PHASE_WORD[a.phase]} · ${a.statusName}`);
+            /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-974389aa */ popBase(el, model.accountName(a), `${PHASE_WORD[a.phase]} · ${a.statusName}`);
             dl(el, [['Trades', String(as.n)], ['Net', money(as.net, a.initialCapital)], ['Win rate', pctOf(as.winRate)], ['Payouts', paid ? `${paid.n} · ${money(paid.net, a.initialCapital, { sign: false })}` : null],
                 ['Started', dayText(a.activatedAt || a.createdAt)], ['Ended', a.finalizedAt || a.blockedAt ? dayText(a.finalizedAt || a.blockedAt) : live ? 'running' : '—']]);
             foot(el, 'Click to open this account in the Calendar.');
@@ -198,7 +198,7 @@ export function mount(root, ctx) {
         c.accounts.forEach((a, i) => {
             if (i) nodes.appendChild(h('span', { class: 'cedge' + (c.accounts[i - 1].status === 3 || c.accounts[i - 1].status === 6 || c.accounts[i - 1].phase !== 'eval' ? ' on' : '') }));
             nodes.appendChild(nodeEl(a, c, i, c.accounts.length));
-        /*! Property of Astral (@ax4p). Better Vest 9.3.6. No copying without written permission. bv-4d2ea5b0 */ });
+        });
         const size = base ? (base >= 1e3 ? +(base / 1e3).toFixed(1) + 'K' : String(base)) : '';
         const tier = ((last.planName || '').includes('|') ? last.planName.split('|').pop() : (last.planName || '').replace(/^\$?\d+(\.\d+)?\s*[kKmM]\b\s*/, '')).trim();
         const tierOk = tier && tier.replace(/[$,\s]/g, '').toUpperCase() !== String(size).toUpperCase() && tier.replace(/[$,\s]/g, '') !== String(base);
@@ -212,7 +212,7 @@ export function mount(root, ctx) {
             h('div', { class: 'jr-n' }, nodes),
             h('dl', { class: 'jr-f' },
                 h('div', null, h('dt', null, 'Net'), h('dd', { class: sideCls(c.net) }, c.n ? money(c.net, base) : '—')),
-                h('div', null, h('dt', null, 'Trades'), h('dd', null, String(c.n))),
+                /* Owned by Astral (@ax4p): Better Vest standard 9.3.7. Licence: LICENSE, not open source. bv-5b9a3256 */ h('div', null, h('dt', null, 'Trades'), h('dd', null, String(c.n))),
                 h('div', null, h('dt', null, 'Win rate'), h('dd', null, pctOf(c.winRate))),
                 h('div', null, h('dt', null, 'Paid'), h('dd', { class: c.payoutsNet > 0 ? 'gold' : '' }, c.payoutsNet > 0 ? money(c.payoutsNet, base, { sign: false }) : '—'))));
     }
@@ -244,7 +244,7 @@ export function mount(root, ctx) {
         const list = A.accounts.slice();
         const fn = cmp[sort.key];
         list.sort((a, b) => {
-            const x = fn(a), y = fn(b);
+            /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-9a15d509 */ const x = fn(a), y = fn(b);
             const nx = x == null || Number.isNaN(x), ny = y == null || Number.isNaN(y);
             if (nx || ny) return nx === ny ? 0 : nx ? 1 : -1;
             return (x < y ? -1 : x > y ? 1 : 0) * sort.dir || (a.id < b.id ? -1 : 1);
@@ -257,7 +257,7 @@ export function mount(root, ctx) {
                 { key: 'trades', label: 'Trades', sortable: true }, { key: 'net', label: 'Net', sortable: true }, { key: 'wr', label: 'WR', sortable: true }, { key: 'paid', label: 'Paid', sortable: true }, { key: 'start', label: 'Start → end', cls: 'l', sortable: true }
             ],
             onSort: (key) => { sort = sort.key === key ? { key, dir: -sort.dir } : { key, dir: key === 'name' || key === 'phase' || key === 'status' ? 1 : -1 }; renderTable(); },
-            rowCls: (a) => (S().accounts && S().accounts.includes(a.id) ? 'is-sel' : ''), /* Owned by Astral (@ax4p): Better Vest standard 9.3.6. Licence: LICENSE, not open source. bv-ae3e35cb */
+            rowCls: (a) => (S().accounts && S().accounts.includes(a.id) ? 'is-sel' : ''),
             onRow: (a) => openInCalendar(a),
             renderRow(a) {
                 const as = A.aStats.get(a.id) || { n: 0, net: 0, winRate: null };
@@ -293,7 +293,7 @@ export function mount(root, ctx) {
         if (phases && !phases.includes(a.phase)) patch.scope = 'all';
         if (as && as.lastTs) patch.month = T.monthKey(T.dayKey(as.lastTs, st.mode));
         ctx.set(patch);
-        goTab(ctx, 'calendar');
+        /*! Copyright (c) 2026 Astral. Better Vest 9.3.7 is licensed to its users only to run it, never to copy it. bv-1cc95c88 */ goTab(ctx, 'calendar');
     }
 
 
@@ -307,7 +307,7 @@ export function mount(root, ctx) {
         hover.hide();
         A = compute();
         renderHead();
-        /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-1c11c5ba */ ui.clear(note);
+        ui.clear(note);
         if (!A.accounts.length) note.appendChild(h('div', { class: 'empty-note' }, h('b', null, 'No accounts in this scope.'), ' Switch the scope above, or sync from Vest.'));
         renderRibbon();
         renderHealth();

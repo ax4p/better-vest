@@ -15,8 +15,8 @@ function upgrade(db) {
         const store = db.createObjectStore(name, { keyPath: KEY_PATHS[name] });
         if (name === 'trades') {
             store.createIndex('accountId', 'accountId', { unique: false });
-            store.createIndex('closeTs', 'closeTs', { unique: false });
-        /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-8d13c6fe */ }
+            store.createIndex('closeTs', 'closeTs', { unique: false }); /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.7. bv-46040e60 */
+        }
     }
 }
 
@@ -65,7 +65,7 @@ function finish(tx) {
 }
 
 export function getAll(db, store, opts) {
-    const o = opts || {};
+    /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-18347a89 */ const o = opts || {};
     const tx = db.transaction(store, 'readonly');
     let source = tx.objectStore(store);
     if (o.index) source = source.index(o.index);
@@ -76,7 +76,7 @@ export function get(db, store, key) {
     return wrap(db.transaction(store, 'readonly').objectStore(store).get(key));
 }
 
-async function writeTx(db, names, fill) { /* @license Better Vest 9.3.6. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-8bb94e71 */
+async function writeTx(db, names, fill) {
     const tx = db.transaction(names, 'readwrite');
     try {
         fill(tx);
@@ -117,7 +117,7 @@ export function del(db, store, key) {
 export async function getMeta(db, key) {
     const row = await get(db, 'meta', key);
     return row ? row.value : undefined;
-/* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-588dcbaf */ }
+}
 
 export function putMeta(db, key, value) {
     return put(db, 'meta', { key, value });
@@ -127,7 +127,7 @@ export async function listUserIds() {
     if (typeof indexedDB === 'undefined' || typeof indexedDB.databases !== 'function') return [];
     const list = await indexedDB.databases();
     const ids = [];
-    for (const d of list) {
+    /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-0f4c156d */ for (const d of list) {
         if (d && typeof d.name === 'string' && d.name.startsWith(DB_PREFIX)) ids.push(d.name.slice(DB_PREFIX.length));
     }
     return ids;

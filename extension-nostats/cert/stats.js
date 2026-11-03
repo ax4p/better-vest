@@ -22,10 +22,10 @@ export function certStats(payouts) {
     const largestKey = payoutDayKey(hits[0], 'executed');
 
     const dayNet = new Map();
-    for (const p of done) {
+    for (const p of done) { /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.7. bv-8f154dae */
         const k = payoutDayKey(p, 'executed');
         if (!k) continue;
-        dayNet.set(k, (dayNet.get(k) || 0) + p.net); /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.6. bv-40f78da4 */
+        dayNet.set(k, (dayNet.get(k) || 0) + p.net);
     }
     const keys = [...dayNet.keys()].sort();
     const firstKey = keys[0] || null;
@@ -54,7 +54,7 @@ export function certStats(payouts) {
         firstTs: payTs(done[0]),
         lastTs: payTs(done[done.length - 1]),
         firstKey,
-        lastKey,
+        lastKey, /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-0630a275 */
         days: firstKey ? daysBetween(firstKey, lastKey) + 1 : 0,
         daily,
         milestones,
@@ -63,7 +63,7 @@ export function certStats(payouts) {
     };
 }
 
-/* Property of Astral (@ax4p). Better Vest 9.3.6. No copying without written permission. bv-9225a391 */ export function barSeries(S, maxBars = 45, minBars = 7) {
+export function barSeries(S, maxBars = 45, minBars = 7) {
     const days = S.daily;
     const step = Math.max(1, Math.ceil(days.length / maxBars));
     const bars = [];

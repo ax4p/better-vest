@@ -11,7 +11,7 @@ const SAMPLE_FRAMES = 24;
 const SAMPLE_PIXELS = 6e6;
 
 export const GIF_REPLAY = { intro: 0.4, hold: 2.5 };
-/*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-566dbdfe */ export function gifReplayPlan(n, fps) {
+export function gifReplayPlan(n, fps) {
     const r = GIF_REPLAY;
     const reveal = Math.min(10, Math.max(4, n * 0.12));
     const total = r.intro + reveal + r.hold;
@@ -33,7 +33,7 @@ export function gifSpeedPlan(n, resS, speed, fps, wins) {
     const room = GIF_MAX_S - r.intro - r.hold;
     const len = (a, b) => ((b - a) * resS) / k;
     const ws = (Array.isArray(wins) ? wins : wins ? [Object.assign({ kind: 'trades' }, wins)] : []).filter((w) => w && w.b > w.a && w.a >= 0 && w.b <= n);
-    let a = 0, b = n, window = false;
+    let a = 0, b = n, window = false; /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-d53f7d65 */
     if (len(0, n) > room) {
         const w = ws.find((x) => len(x.a, x.b) <= room);
         if (!w) {
@@ -82,9 +82,9 @@ export function gifFrames(kind, scene, img, mode, plan) {
     if (kind === 'replay' && scene && mode !== 'still') {
         const rp = plan && plan.ok !== false && plan.pAt ? plan : gifReplayPlan(scene.n, GIF_FPS);
         const bp = moving ? bgFramePlan(img.durations, { fps: GIF_FPS, frames: rp.frames }) : null;
-        return gifGrid(rp.frames, GIF_FPS, (f) => ({ step: rp.pAt(f), bg: bp ? bp.at(f) : null })); /* Better Vest (c) 2026 Astral. All rights reserved. bv-ddccc007 */
+        return gifGrid(rp.frames, GIF_FPS, (f) => ({ step: rp.pAt(f), bg: bp ? bp.at(f) : null }));
     }
-    if (moving) return gifLoop(img.durations).map((x) => ({ step: null, bg: x.bg, delay: x.delay }));
+    /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-84eae291 */ if (moving) return gifLoop(img.durations).map((x) => ({ step: null, bg: x.bg, delay: x.delay }));
     return [{ step: null, bg: null, delay: 0 }];
 }
 export function sampleFrames(n, max) {
@@ -121,10 +121,10 @@ export async function makeGif(o) {
                 bg = { at: frames.at };
             } else if (o.img) bg = { still: bgStill(o.img, W, H, scale, o.bg, g.base) };
             const so = { cssUrl: CARD_CSS, width: o.width, height: o.height, scale, bg };
-            /* Copyright Astral 2026. From Better Vest 9.3.6 (standard), ref bv-c1549bb4. Not licensed for reuse. */ if (replay) { const st = await replayStage(o.card, o.scene, Object.assign({ tape: o.tape || null }, so)); canvas = st.canvas; draw = (k) => st.drawAt(plan[k].step, k); }
+            if (replay) { const st = await replayStage(o.card, o.scene, Object.assign({ tape: o.tape || null }, so)); canvas = st.canvas; draw = (k) => st.drawAt(plan[k].step, k); }
             else { const st = await cardStage(o.card, so); canvas = st.canvas; draw = (k) => st.draw(k); }
         }
-        halt();
+        /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.7. bv-e14de777 */ halt();
         const ctx = canvas.getContext('2d');
         const pixels = (k) => { draw(k); return ctx.getImageData(0, 0, W, H).data; };
 
@@ -174,9 +174,9 @@ export async function makeGif(o) {
         const done = await call({ type: 'end' });
         tell(1, 'done');
         return { blob: new Blob(done.parts, { type: 'image/gif' }), w: W, h: H, frames: done.frames, ms: plan.reduce((s, x) => s + x.delay, 0) * 10,
-            colors: pal.colors, took: Math.round(performance.now() - t0), size: o.size };
+            colors: pal.colors, took: Math.round(performance.now() - t0), size: o.size }; /*! Owned by Astral (@ax4p): Better Vest standard 9.3.7. Licence: LICENSE, not open source. bv-6676231d */
     } catch (e) {
-        /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-c030f9cb */ if (stop() || (e && e.message === 'cancelled')) { const c = new Error('cancelled'); c.cancelled = true; throw c; }
+        if (stop() || (e && e.message === 'cancelled')) { const c = new Error('cancelled'); c.cancelled = true; throw c; }
         throw e;
     } finally {
         if (worker) worker.terminate();

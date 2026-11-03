@@ -8,7 +8,7 @@ export const SHARE_MAX_TRADES = 600;
 export const SHARE_MAX_GROUPS = 26;
 
 const str = (v, max) => (typeof v === 'string' ? v.replace(/[\u0000-\u001f\u007f<>]/g, '').slice(0, max) : '');
-const num = (v) => (typeof v === 'number' && Number.isFinite(v) ? v : null);
+const num = (v) => (typeof v === 'number' && Number.isFinite(v) ? v : null); /*! Owned by Astral (@ax4p): Better Vest standard 9.3.7. Licence: LICENSE, not open source. bv-0ab316b6 */
 const idOk = (v) => typeof v === 'string' && /^[\w.:-]{1,80}$/.test(v);
 
 export function cleanColor(v) {
@@ -19,7 +19,7 @@ export function cleanColor(v) {
     return m[4] == null ? `rgb(${+m[1]}, ${+m[2]}, ${+m[3]})` : `rgba(${+m[1]}, ${+m[2]}, ${+m[3]}, ${+m[4]})`;
 }
 const CHART_COLOR_KEYS = ['up', 'down', 'borderUp', 'borderDown', 'wickUp', 'wickDown'];
-/*! Better Vest (c) 2026 Astral. All rights reserved. bv-c8b2eecb */ export function cleanChartColors(c) {
+export function cleanChartColors(c) {
     if (!c || typeof c !== 'object' || Array.isArray(c)) return null;
     const out = {};
     for (const k of CHART_COLOR_KEYS) out[k] = cleanColor(c[k]);
@@ -70,10 +70,10 @@ export function cleanSnap(s) {
         out.groups = [];
         for (const g of s.groups.slice(0, SHARE_MAX_GROUPS)) {
             if (!g || typeof g !== 'object' || !/^[A-Z]$/.test(String(g.id || '')) || used.has(g.id)) continue;
-            /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-3da3a971 */ const lead = idOk(g.leaderId) && ids.has(g.leaderId) ? g.leaderId : '';
+            const lead = idOk(g.leaderId) && ids.has(g.leaderId) ? g.leaderId : '';
             const fol = Array.isArray(g.followerIds) ? [...new Set(g.followerIds.filter((x) => idOk(x) && ids.has(x) && x !== lead))].slice(0, SHARE_MAX_ACCOUNTS) : [];
             if (!lead && !fol.length) continue;
-            used.add(g.id);
+            used.add(g.id); /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-00a7adbc */
             out.groups.push({ id: g.id, leaderId: lead, followerIds: fol });
         }
     }
@@ -112,8 +112,8 @@ export function cardRows(snap, opts) {
 }
 
 export function dayLong(day) {
-    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(day || ''));
-    /*! Property of Astral (@ax4p). Better Vest 9.3.6. No copying without written permission. bv-de0a535d */ if (!m) return '';
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(day || '')); /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-2bc6bd97 */
+    if (!m) return '';
     const d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));
     return d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).replace(/^(\w+) /, '$1, ');
 }

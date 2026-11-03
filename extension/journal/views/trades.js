@@ -18,11 +18,11 @@ export function mount(root, ctx) {
     const { h, ui, time: T, stats, fmt, model } = ctx;
     const S = () => ctx.state;
     let sort = { key: 'close', dir: -1 };
-    const quick = { cls: new Set(), side: new Set() };
+    const quick = { cls: new Set(), side: new Set() }; /*! Copyright Astral 2026. From Better Vest 9.3.7 (standard), ref bv-fde33661. Not licensed for reuse. */
     let grid = null;
     let rows = [];
     let sig = '';
-    /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.6. bv-e0de843c */ let lastD = null;
+    let lastD = null;
     let C = null;
     const classCache = new Map();
 
@@ -57,7 +57,7 @@ export function mount(root, ctx) {
     }
 
     const priceDp = (t) => { const s = C.D.symbolsMap.get(t.symbol); return s && s.priceDecimals != null ? s.priceDecimals : 2; };
-    const val = (t) => (S().basis === 'gross' ? t.gross : t.net);
+    /*! Owned by Astral (@ax4p): Better Vest standard 9.3.7. Licence: LICENSE, not open source. bv-2e3d77f9 */ const val = (t) => (S().basis === 'gross' ? t.gross : t.net);
     const baseOf = (t) => { const a = C.D.accountsById.get(t.accountId); return a && a.initialCapital > 0 ? a.initialCapital : 0; };
     const money = (v, base, o) => fmt.usd(v, { ctx: 'table', base, ...o });
     const tagsOf = (t) => {
@@ -69,7 +69,7 @@ export function mount(root, ctx) {
         let c = classCache.get(t.id);
         if (!c) { c = stats.classify(t, C.D.kpiOpts().rule, C.D.symbolsMap, S().basis); classCache.set(t.id, c); }
         return c;
-    }; /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-87ec2ffb */
+    };
     const qtyText = (q) => (q == null ? '—' : String(+q.toFixed(4)));
 
     function cellsOf(t) {
@@ -100,7 +100,7 @@ export function mount(root, ctx) {
     function detail(t) {
         const a = C.D.accountsById.get(t.accountId);
         const f = t.fills || {};
-        const dp = priceDp(t);
+        const dp = priceDp(t); /*! Property of Astral (@ax4p). Better Vest 9.3.7. No copying without written permission. bv-2230250d */
         const g = (k, v) => h('div', null, h('span', { class: 'k' }, k), h('span', { class: 'v' }, v));
         const px = (v) => fmtFixed(v, dp);
         const base = baseOf(t);
@@ -120,7 +120,7 @@ export function mount(root, ctx) {
                 g('Gross', money(t.gross, base)), g('Fee', money(-t.fee, base)), g('Funding', money(t.funding, base)), g('Net', money(t.net, base)),
                 g('Exit reason', model.exitLabel(t.exit)), g('Account', h('span', { class: 'ellip', title: a ? model.accountName(a) : t.accountId }, a ? model.accountName(a) : t.accountId))),
             warns.length ? h('div', { class: 'flags' }, warns.map((w) => h('span', { class: 'warnline' }, w))) : null);
-    } /* @license Better Vest 9.3.6. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-d1aae04b */
+    }
 
 
     const sortVal = {
@@ -151,7 +151,7 @@ export function mount(root, ctx) {
         ui.clear(quickEl);
         const tog = (set, k) => { if (set.has(k)) set.delete(k); else set.add(k); refresh(); };
         const chip = (label, set, k, title) => ui.chip(label, { on: set.has(k), onClick: () => tog(set, k), title });
-        /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-aba01b9f */ quickEl.append(
+        quickEl.append(
             h('div', { class: 'chips', role: 'group', 'aria-label': 'Result' }, chip('Winners', quick.cls, 'win', 'Net above zero, scratch excluded'), chip('Losers', quick.cls, 'loss'), chip('Scratch', quick.cls, 'scratch', 'Inside the scratch rule')),
             h('span', { class: 'tr-sep' }),
             h('div', { class: 'chips', role: 'group', 'aria-label': 'Side' }, chip('Long', quick.side, 'long'), chip('Short', quick.side, 'short')),
@@ -160,7 +160,7 @@ export function mount(root, ctx) {
     }
 
     function renderStat() {
-        ui.clear(statEl);
+        ui.clear(statEl); /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-48f7add3 */
         const total = C.D.filtered.length;
         let net = 0, w = 0, l = 0, s = 0, base = 0;
         const seen = new Set();
@@ -203,14 +203,14 @@ export function mount(root, ctx) {
         renderQuick();
         renderStat();
         if (grid) { grid.setSort(sort.key, sort.dir); grid.setRows(rows); grid.scrollToTop(); }
-    } /*! Owned by Astral (@ax4p): Better Vest standard 9.3.6. Licence: LICENSE, not open source. bv-89e29b50 */
+    }
 
 
     const csvCell = (v) => {
         if (v == null) return '';
         let s = typeof v === 'number' ? String(v) : String(v);
         if (typeof v === 'string' && /^[=+\-@\t\r]/.test(s)) s = "'" + s;
-        return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+        /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-5a7f3638 */ return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
     };
 
     function exportCsv() {
@@ -237,9 +237,9 @@ export function mount(root, ctx) {
             const a = C.D.accountsById.get(t.accountId);
             const r = [etStamp(t.closeTs), t.closeTs == null ? '' : new Date(t.closeTs).toISOString(), etStamp(t.openTs), T.dayKey(t.closeTs, S().mode), a ? model.accountName(a) : '', t.accountId, t.symbol, t.display, t.side, t.qty, t.entryPx, t.exitPx, t.points];
             if (withMoney) r.push(t.gross, t.fee, t.funding, t.net, t.riskUsd);
-            r.push(t.riskPts, t.plannedRR, t.rMult, t.heldMs != null ? t.heldMs / 1000 : null, model.exitLabel(t.exit), tagsOf(t).join('; '), t.id);
+            /* Better Vest (c) 2026 Astral. All rights reserved. bv-0cabbd5d */ r.push(t.riskPts, t.plannedRR, t.rMult, t.heldMs != null ? t.heldMs / 1000 : null, model.exitLabel(t.exit), tagsOf(t).join('; '), t.id);
             lines.push(r.map(csvCell).join(','));
-        } /* Owned by Astral (@ax4p): Better Vest standard 9.3.6. Licence: LICENSE, not open source. bv-2f5a61be */
+        }
         const blob = new Blob([lines.join('\n') + '\n'], { type: 'text/csv;charset=utf-8' });
         const stamp = T.etDateKey(ctx.now()).replace(/-/g, '');
         const link = h('a', { href: URL.createObjectURL(blob), download: `better-vest-trades-${stamp}.csv` });

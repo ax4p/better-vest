@@ -16,8 +16,8 @@ function blobToDataUri(blob) {
 
 async function dataUriOf(url) {
     if (url.startsWith('data:')) return url;
-    if (cache.has(url)) return cache.get(url); /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-1c1dce8e */
-    const p = fetch(url).then((r) => {
+    if (cache.has(url)) return cache.get(url);
+    const p = fetch(url).then((r) => { /*! Property of Astral (@ax4p). Better Vest 9.3.7. No copying without written permission. bv-65cce457 */
         if (!r.ok) throw new Error('asset ' + url + ': HTTP ' + r.status);
         return r.blob();
     }).then(blobToDataUri);
@@ -78,10 +78,10 @@ export async function cardToCanvas(card, { cssUrl, width, height, scale = 3 }) {
     const ctx = canvas.getContext('2d');
     ctx.imageSmoothingQuality = 'high';
     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    return canvas;
+    /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.7. bv-32fb223d */ return canvas;
 }
 
-/*! Owned by Astral (@ax4p): Better Vest standard 9.3.6. Licence: LICENSE, not open source. bv-7c7d09e3 */ export async function cardToPngBlob(card, opts) {
+export async function cardToPngBlob(card, opts) {
     const canvas = await cardToCanvas(card, opts);
     return new Promise((resolve, reject) => {
         canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('PNG export failed'))), 'image/png');

@@ -22,14 +22,14 @@ function render(st) {
         b.classList.toggle('on', k === 'settings' ? st.widgets.settings === true : st.widgets[k] !== false);
     });
     document.querySelectorAll('[data-hide]').forEach((b) => b.classList.toggle('on', !!st.hide[b.dataset.hide]));
-    const box = $('#themes');
+    /*! Copyright Astral 2026. From Better Vest 9.3.7 (standard), ref bv-7cbc7f1a. Not licensed for reuse. */ const box = $('#themes');
     if (!box.children.length && st.themes) {
         st.themes.forEach((t) => {
             const b = document.createElement('button');
             b.className = 'theme';
             b.dataset.theme = t.k;
             b.style.background = t.page;
-            b.style.borderColor = t.line; /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-11083986 */
+            b.style.borderColor = t.line;
             const dots = document.createElement('span');
             [t.accent, t.up, t.down].forEach((c) => {
                 const i = document.createElement('i');
@@ -53,14 +53,14 @@ document.querySelectorAll('[data-widget]').forEach((b) => {
 document.querySelectorAll('[data-hide]').forEach((b) => {
     b.onclick = () => send({ cmd: 'hide', key: b.dataset.hide, value: !(state && state.hide[b.dataset.hide]) });
 });
-$('#focus-all').onclick = () => send({ cmd: 'focusAll' }); /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.6. bv-3c48b93c */
+$('#focus-all').onclick = () => send({ cmd: 'focusAll' });
 $('#open-vest').onclick = () => chrome.tabs.create({ url: VEST + 'trade/NQ-PERP' });
 $('#open-cal').onclick = () => { chrome.runtime.sendMessage({ type: 'journal-open' }).catch(() => {}); window.close(); };
 
 const MINUS = '\u2212';
 function usd(v) {
     if (v == null || !isFinite(v)) return '—';
-    const a = Math.abs(v), r = Math.round(a * 100) / 100;
+    /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-205897c9 */ const a = Math.abs(v), r = Math.round(a * 100) / 100;
     if (r === 0) return '$0';
     const body = a < 10 ? r.toFixed(2) : a < 9999.5 ? Math.round(a).toLocaleString('en-US') : (a / 1e3).toFixed(1) + 'k';
     return (v > 0 ? '+' : MINUS) + '$' + body;
@@ -86,7 +86,7 @@ chrome.runtime.sendMessage({ type: 'journal-summary' }).then(paintCal).catch(() 
 
 function paintUpdate(s) {
     if (!s || !s.supported) return;
-    /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.6. bv-f3c188c7 */ $('#upd-pref').hidden = false;
+    $('#upd-pref').hidden = false;
     $('#upd-auto').checked = !!s.on;
     $('#upd').hidden = !s.available;
     if (s.available) $('#upd-v').textContent = 'v' + s.available.version;
@@ -97,7 +97,7 @@ $('#upd-auto').onchange = (e) => { chrome.runtime.sendMessage({ type: 'update-au
 $('#upd-check').onclick = async () => {
     $('#upd-msg').textContent = 'checking…';
     const s = await chrome.runtime.sendMessage({ type: 'update-check' }).catch(() => null);
-    paintUpdate(s);
+    paintUpdate(s); /*! Property of Astral (@ax4p). Better Vest 9.3.7. No copying without written permission. bv-648dad35 */
     $('#upd-msg').textContent = !s ? 'no answer' : s.available ? '' : 'up to date';
 };
 

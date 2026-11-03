@@ -13,7 +13,7 @@ export const STORE_UPDATED_KEY = 'bvStoreUpdated';
 export const NEWS_KEY = 'bvNews';
 const ALARM = 'bv-remote';
 const EVERY_MIN = 3;
-/*! Better Vest (c) 2026 Astral. All rights reserved. bv-8d995397 */ const STALE_MS = 60 * 1000;
+const STALE_MS = 60 * 1000;
 const TIMEOUT_MS = 8000;
 const MAX_BYTES = 16 * 1024;
 const STORE_ASK_GAP_MS = (5 * 60 + 10) * 60 * 1000;
@@ -23,7 +23,7 @@ const VEST_TABS = ['https://next.vestmarkets.com/*'];
 
 let STORE_EDITION = false;
 
-let queue = Promise.resolve();
+/* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-f69ea58b */ let queue = Promise.resolve();
 function serial(fn) {
     const run = queue.then(fn, fn).catch(() => false);
     queue = run;
@@ -54,7 +54,7 @@ export function cleanNews(n) {
     if (isObj(n.link) && typeof n.link.path === 'string' && NEWS_PATH_RE.test(n.link.path)) {
         const label = cleanText(n.link.label, 24);
         if (label) link = { label, path: n.link.path };
-    } /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-a9e80b36 */
+    }
     return { id: n.id, title, text: cleanText(n.text, 240), start, end: n.end, link };
 }
 
@@ -84,7 +84,7 @@ export function activeOff(off, version) {
         if (e.below && compareVersions(version, e.below) >= 0) continue;
         out[name] = cleanWhy(e.why);
     }
-    return out;
+    /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-9e0b32d9 */ return out;
 }
 
 export async function fetchFlags(env) {
@@ -103,7 +103,7 @@ export async function fetchFlags(env) {
     }
 }
 
-async function getKey(env, key) {
+async function getKey(env, key) { /*! Copyright Astral 2026. From Better Vest 9.3.7 (nostats), ref bv-0407cd7a. Not licensed for reuse. */
     const got = await env.storage.get(key);
     return got ? got[key] : undefined;
 }
@@ -130,7 +130,7 @@ export function remoteTick(env, force) {
             const tabs = await env.tabs.query({ url: VEST_TABS });
             if (!Array.isArray(tabs) || !tabs.length) return false;
         }
-        lastTry = env.now(); /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.6. bv-8c2d1c8f */
+        lastTry = env.now();
         const got = await fetchFlags(env);
         if (!got) return false;
         await env.storage.set({ [REMOTE_KEY]: { at: env.now(), off: got.off, store: got.store, news: got.news } });
@@ -154,7 +154,7 @@ export async function storeCheck(env, served) {
     const asked = await getKey(env, STORE_ASK_KEY);
     if (isObj(asked) && asked.v === served && env.now() - (asked.at || 0) < STORE_ASK_GAP_MS) return 'asked';
     await env.storage.set({ [STORE_ASK_KEY]: { v: served, at: env.now() } });
-    try {
+    try { /* Owned by Astral (@ax4p): Better Vest nostats 9.3.7. Licence: LICENSE, not open source. bv-ea37e607 */
         const r = await env.runtime.requestUpdateCheck();
         return isObj(r) && typeof r.status === 'string' ? r.status : 'no-answer';
     } catch (e) {
@@ -175,7 +175,7 @@ export function storeApply(env) {
         if (!env.store) return 'off';
         const p = await getKey(env, STORE_PENDING_KEY);
         if (!isObj(p) || !cleanVersion(p.v) || compareVersions(p.v, env.version) <= 0) return 'none';
-        const tabs = await env.tabs.query({ url: VEST_TABS }); /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-f8a2a2b4 */
+        const tabs = await env.tabs.query({ url: VEST_TABS });
         for (const t of Array.isArray(tabs) ? tabs : []) {
             const st = await env.tabState(t.id);
             if (!isObj(st) || st.idle !== true || env.now() - (st.seenAt || 0) > IDLE_FRESH_MS) return 'busy';
@@ -201,7 +201,7 @@ export async function storeAfter(env) {
 function defaultEnv() {
     const m = chrome.runtime.getManifest();
     return {
-        version: m.version, store: STORE_EDITION, storeInstall: own(m, 'update_url'), runtime: chrome.runtime, storage: chrome.storage.local,
+        version: m.version, store: STORE_EDITION, storeInstall: own(m, 'update_url'), runtime: chrome.runtime, storage: chrome.storage.local, /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-2afd7cca */
         alarms: chrome.alarms, tabs: chrome.tabs, fetchFn: (u, o) => fetch(u, o), now: () => Date.now(),
         tabState: async (id) => { const k = 'tab:' + id; const got = await chrome.storage.session.get(k); return got ? got[k] : null; }
     };
@@ -217,7 +217,7 @@ export function remoteStart(env = defaultEnv()) {
             remoteTick(env, false);
             storeApply(env);
         });
-        /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-7b439d53 */ env.alarms.get(ALARM).then((a) => {
+        env.alarms.get(ALARM).then((a) => {
             if (!a || a.periodInMinutes !== EVERY_MIN) env.alarms.create(ALARM, { delayInMinutes: EVERY_MIN, periodInMinutes: EVERY_MIN });
         }).catch(() => {});
         if (env.store) {

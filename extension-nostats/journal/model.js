@@ -10,7 +10,7 @@ export const EXIT_LABELS = {
     user_requested: 'Self-requested',
     take_profit: 'Take Profit',
     stop_loss: 'Stop Loss',
-    liquidation: 'Liquidation',
+    liquidation: 'Liquidation', /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-5697a06e */
     corporate_action: 'Corporate Action',
     auto_deleverage: 'Auto Deleverage'
 };
@@ -24,7 +24,7 @@ const BUILTIN_DISPLAY = { 'NDX-USD-PERP': 'NQ-PERP', 'SPX-USD-PERP': 'ES-PERP' }
 export const BRACKET_WINDOW_MS = 120000;
 const MIN_RISK_TICKS = 2;
 const MIN_RISK_FRACTION = 0.0002;
-/* This file is part of Better Vest by Astral and is protected by copyright. ref bv-486c7aeb */ const MAX_RISK_FRACTION = 0.10;
+const MAX_RISK_FRACTION = 0.10;
 
 
 export function num(v) {
@@ -85,13 +85,13 @@ function buildName(a) {
 export function accountName(acc) {
     if (!acc) return '';
     return acc.name || buildName(acc);
-/*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-d513118b */ }
+}
 
 export function normalizeCapitalAccount(row) {
     const type = num(row.account_type);
     const status = num(row.status);
     const product = row.plan_product_type == null ? null : String(row.plan_product_type);
-    const attemptIndex = num(row.attempt_index);
+    const attemptIndex = num(row.attempt_index); /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-6ce2bfc6 */
     const finalizedAt = tsMs(row.finalized_at);
     const blockedAt = tsMs(row.blocked_at);
     const a = {
@@ -108,7 +108,7 @@ export function normalizeCapitalAccount(row) {
         planName: row.plan_name == null ? null : String(row.plan_name),
         chainId: String(row.root_account_id || row.id),
         step: num(row.step),
-        stepsTotal: num(row.steps_total),
+        stepsTotal: num(row.steps_total), /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-dd595811 */
         attemptIndex,
         origin: row.origin == null ? null : String(row.origin),
         initialCapital: num(row.initial_capital),
@@ -129,7 +129,7 @@ export function normalizeCapitalAccount(row) {
         balance: null,
         balanceVersion: null,
         vestLabel: attemptIndex != null ? 'Account ' + pad2(attemptIndex + 1) : 'Legacy Account',
-        /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.6. bv-6c92fd56 */ name: '',
+        name: '',
         hiddenInVest: status === 6
     };
     a.name = buildName(a);
@@ -162,9 +162,9 @@ export function mergeAccount(prev, next) {
     if (!prev) return next;
     if (!next) return prev;
     let older = prev, newer = next;
-    if (prev.updatedAt != null && next.updatedAt != null && next.updatedAt < prev.updatedAt) { older = next; newer = prev; }
+    /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-3351f200 */ if (prev.updatedAt != null && next.updatedAt != null && next.updatedAt < prev.updatedAt) { older = next; newer = prev; }
     const out = { ...older };
-    for (const k of Object.keys(newer)) if (newer[k] != null) out[k] = newer[k]; /* Copyright Astral 2026. From Better Vest 9.3.6 (nostats), ref bv-105ce305. Not licensed for reuse. */
+    for (const k of Object.keys(newer)) if (newer[k] != null) out[k] = newer[k];
     out.name = buildName(out);
     return out;
 }
@@ -210,12 +210,12 @@ function summarizeFills(list) {
         fee += x.fee;
         if (ENTRY_ROLES.has(x.role)) {
             f.entries++;
-            if (x.role === 'append') f.scaleIns++;
+            if (x.role === 'append') f.scaleIns++; /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.7. bv-65023e30 */
             q += x.qty;
             if (x.px != null) { eq += x.qty; ev += x.qty * x.px; }
         } else {
             f.exits++;
-            if (x.role === 'reduce') f.scaleOuts++; /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-61a092b6 */
+            if (x.role === 'reduce') f.scaleOuts++;
             q -= x.qty;
             if (x.px != null) { xq += x.qty; xv += x.qty * x.px; }
         }
@@ -251,7 +251,7 @@ function initialBracket(entries, openTs, entryPx, sign, kind) {
     if (entryPx == null) return { px: null, flag: 'wrong-side' };
     const below = first.px < entryPx, above = first.px > entryPx;
     const good = kind === 'sl' ? (sign > 0 ? below : above) : (sign > 0 ? above : below);
-    /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-19e401fb */ return good ? { px: first.px, flag: null } : { px: null, flag: 'wrong-side' };
+    return good ? { px: first.px, flag: null } : { px: null, flag: 'wrong-side' };
 }
 
 
@@ -274,7 +274,7 @@ export function normalizePosition(row, symbolsMap) {
     const exitPx = open ? null : (fills.avgExit ?? closePx);
     const points = !open && entryPx != null && exitPx != null ? sign * (exitPx - entryPx) : null;
 
-    const sl = initialBracket(bracketEntries(row.stopLossHistory, row.stopLosses), openTs, entryPx, sign, 'sl');
+    /* Better Vest (c) 2026 Astral. All rights reserved. bv-13f629c9 */ const sl = initialBracket(bracketEntries(row.stopLossHistory, row.stopLosses), openTs, entryPx, sign, 'sl');
     const tp = initialBracket(bracketEntries(row.takeProfitHistory, row.takeProfits), openTs, entryPx, sign, 'tp');
     if (sl.px != null && entryPx != null) {
         const se = symbolEntry(symbolsMap, row.symbol);
@@ -302,11 +302,11 @@ export function normalizePosition(row, symbolsMap) {
         gross, fee, funding,
         net: gross - fee + funding,
         fills,
-        entryPx, exitPx, points, /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-03370535 */
+        entryPx, exitPx, points,
         initialSL: sl.px, initialTP: tp.px, slFlag: sl.flag, tpFlag: tp.flag,
         riskPts,
         riskUsd: riskPts != null && size != null ? riskPts * size : null,
-        rewardPts,
+        rewardPts, /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-733a5026 */
         plannedRR: riskPts > 0 && rewardPts != null ? rewardPts / riskPts : null,
         rMult: riskPts > 0 && points != null ? points / riskPts : null,
         heldMs: openTs != null && closeTs != null ? closeTs - openTs : null,
@@ -344,7 +344,7 @@ export function normalizePayout(row) {
         executedAt: tsMs(row.executed_at),
         counted: status === 'EXECUTED'
     };
-}
+/* Copyright (c) 2026 Astral. Better Vest 9.3.7 is licensed to its users only to run it, never to copy it. bv-7d6cd4a9 */ }
 
 export function normalizeSymbol(row) {
     const symbol = row.symbol;
@@ -361,7 +361,7 @@ export function normalizeSymbol(row) {
 
 export const AUTO_SYNC_AWAY_MS = 120000;
 export function autoSyncWhy(o) {
-    /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-da8af386 */ if (o.dev) return 'fixture';
+    if (o.dev) return 'fixture';
     if (!o.chrome) return 'no-extension';
     if (o.syncing) return 'syncing';
     if (o.why === 'back' && !(o.awayMs > AUTO_SYNC_AWAY_MS)) return 'brief';

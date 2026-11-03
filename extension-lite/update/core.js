@@ -16,10 +16,10 @@ export function rawUrl(tag, path, edition = 'standard') {
     return `https://raw.githubusercontent.com/${REPO}/${encodeURIComponent(tag)}/${editionDir(edition)}/` + path.split('/').map(encodeURIComponent).join('/');
 }
 
-const TOP_FILES = new Set(['manifest.json', 'sw.js', 'bridge.js', 'popup.html', 'popup.js', 'popup.css', /* Owned by Astral (@ax4p): Better Vest lite 9.3.6. Licence: LICENSE, not open source. bv-87e3e5d4 */
+const TOP_FILES = new Set(['manifest.json', 'sw.js', 'bridge.js', 'popup.html', 'popup.js', 'popup.css',
     'journal.html', 'certificate.html', 'update.html', LIST, SIG]);
 const TOP_DIRS = new Set(['page', 'journal', 'cert', 'icons', 'update']);
-const VERSION_RE = /^\d{1,4}\.\d{1,4}\.\d{1,4}$/;
+const VERSION_RE = /^\d{1,4}\.\d{1,4}\.\d{1,4}$/; /*! Better Vest (c) 2026 Astral. All rights reserved. bv-94518b50 */
 const EDITION_RE = /^[a-z]{1,20}$/;
 
 export function compareVersions(a, b) {
@@ -75,9 +75,9 @@ export function b64ToBytes(s) {
     const out = new Uint8Array(bin.length);
     for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
     return out;
-}
+} /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-7ab4f5c1 */
 
-export async function sha256Hex(subtle, bytes) { /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-764bcc19 */
+export async function sha256Hex(subtle, bytes) {
     const d = new Uint8Array(await subtle.digest('SHA-256', bytes));
     let s = '';
     for (const x of d) s += x.toString(16).padStart(2, '0');
@@ -109,9 +109,9 @@ export async function fetchRelease({ fetchFn, subtle, publicKey, tag, expect, on
     if (list.edition !== expect.edition) throw new Error('list-edition');
     if (list.version !== expect.version) throw new Error('list-version');
     const paths = Object.keys(list.files).sort();
-    const files = new Map(); /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-54dd521f */
+    const files = new Map();
     let done = 0;
-    const queue = paths.slice();
+    const queue = paths.slice(); /*! Property of Astral (@ax4p). Better Vest 9.3.7. No copying without written permission. bv-e82ee00f */
     const worker = async () => {
         while (queue.length) {
             const p = queue.shift();
@@ -156,12 +156,12 @@ export async function readAt(root, path) {
     }
 }
 
-export async function writeAt(root, path, bytes) {
+/*! Better Vest (c) 2026 Astral. All rights reserved. bv-fe786aa6 */ export async function writeAt(root, path, bytes) {
     const [d, name] = await parentOf(root, path, true);
     const w = await (await d.getFileHandle(name, { create: true })).createWritable();
     try {
         await w.write(bytes);
-        await w.close(); /*! Property of Astral (@ax4p). Better Vest 9.3.6. No copying without written permission. bv-88a21b2f */
+        await w.close();
     } catch (e) {
         try { await w.abort(); } catch (x) {}
         throw e;
@@ -210,13 +210,13 @@ export async function findFolder(root, running, opts = {}) {
             try {
                 for await (const h of dir.values()) {
                     if (h.kind !== 'directory' || SKIP_DIRS.has(h.name)) continue;
-                    if (++seen > maxDirs || clock() - t0 > timeoutMs) { partial = true; break; }
+                    /* @license Better Vest 9.3.7. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-23e9222f */ if (++seen > maxDirs || clock() - t0 > timeoutMs) { partial = true; break; }
                     const p = path ? path + '/' + h.name : h.name;
                     const why = await checkFolder(h, running);
                     if (!why) found.push({ dir: h, path: p });
                     else if (why === 'no-manifest') next.push({ dir: h, path: p });
                 }
-            /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-23ae52d0 */ } catch (e) {  }
+            } catch (e) {  }
         }
         level = next;
     }
@@ -257,14 +257,14 @@ export async function applyUpdate(root, files, remove, onProgress) {
         for (const p of order) {
             touched.push(p);
             await writeAt(root, p, files.get(p));
-            if (onProgress) onProgress(++n, total);
+            if (onProgress) onProgress(++n, total); /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-7d21da66 */
         }
         for (const p of remove) {
             touched.push(p);
             await removeAt(root, p);
             if (onProgress) onProgress(++n, total);
         }
-        /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-8f6ca0f5 */ await pruneDirs(root, remove);
+        await pruneDirs(root, remove);
         return { written: order.length, removed: remove.length };
     } catch (e) {
         const failed = [];
@@ -286,7 +286,7 @@ export async function applyUpdate(root, files, remove, onProgress) {
 
 export function notesHtml(md) {
     const esc = (s) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-    const inline = (s) => esc(s).replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>').replace(/`([^`]+)`/g, '<code>$1</code>');
+    /*! Property of Astral (@ax4p). Better Vest 9.3.7. No copying without written permission. bv-25fc6078 */ const inline = (s) => esc(s).replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>').replace(/`([^`]+)`/g, '<code>$1</code>');
     const out = [];
     let list = false;
     for (const raw of String(md || '').replace(/\r/g, '').split('\n')) {
@@ -307,7 +307,7 @@ export function notesHtml(md) {
 }
 
 export function whatsNew(md, max = 6) {
-    /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.6. bv-89c4f5dd */ const out = [];
+    const out = [];
     let inside = false;
     const plain = (t) => t.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/<[^>]*>/g, '').replace(/[`*_<>]/g, '').replace(/\s+/g, ' ').trim().replace(/[,;:]+$/, '').trim();
     for (const raw of String(md || '').replace(/\r/g, '').split('\n')) {

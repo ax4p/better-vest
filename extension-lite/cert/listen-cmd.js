@@ -18,10 +18,10 @@ const FILLER = new Set(['uh', 'um', 'er', 'erm', 'ah', 'please', 'now', 'the', '
 
 export const vcWords = (s) => String(s || '').toLowerCase()
     .replace(/(\d+)\s*%/g, '$1 percent')
-    .replace(/\b50\b/g, 'fifty')
+    .replace(/\b50\b/g, 'fifty') /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-cbccc631 */
     .replace(/\bb\s*\.?\s*e\b\.?/g, 'be')
     .replace(/\bbreak-?even\b/g, 'break even')
-    .replace(/\bbreakeven\b/g, 'break even') /* Better Vest (c) 2026 Astral. All rights reserved. bv-ecc80c8a */
+    .replace(/\bbreakeven\b/g, 'break even')
     .replace(/[^a-z' ]+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
@@ -40,7 +40,7 @@ export function vcAfterWake(text) {
     let at = -1, len = 0;
     for (const w of WAKE) {
         const re = new RegExp('(?:^| )' + w.replace(/'/g, "'") + '(?= |$)', 'g');
-        let m;
+        let m; /*! Copyright Astral 2026. From Better Vest 9.3.7 (lite), ref bv-4014e2b6. Not licensed for reuse. */
         while ((m = re.exec(s))) { const i = m.index + (m[0].startsWith(' ') ? 1 : 0); if (i >= at) { at = i; len = w.length; } }
     }
     return at < 0 ? null : s.slice(at + len).trim();
@@ -63,7 +63,7 @@ export function vcPending(text, opts) {
     if (rest == null) return false;
     const said = clean(rest);
     return !!said && (STARTS.has(said) || GROWS.has(said));
-/*! Property of Astral (@ax4p). Better Vest 9.3.6. No copying without written permission. bv-8a64b7f9 */ }
+}
 
 export function vcPhraseList() {
     return ['astral'].concat([...new Set(Object.values(PHRASES).flat())]);

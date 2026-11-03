@@ -17,7 +17,7 @@ export function gifReplayPlan(n, fps) {
     const total = r.intro + reveal + r.hold;
     const frames = Math.round(total * fps);
     const pAt = (f) => {
-        const t = f / fps; /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.6. bv-ba198eb7 */
+        const t = f / fps;
         if (t <= r.intro) return 0;
         return Math.min(n, Math.round(((t - r.intro) / reveal) * n * 1000) / 1000);
     };
@@ -34,7 +34,7 @@ export function gifSpeedPlan(n, resS, speed, fps, wins) {
     const len = (a, b) => ((b - a) * resS) / k;
     const ws = (Array.isArray(wins) ? wins : wins ? [Object.assign({ kind: 'trades' }, wins)] : []).filter((w) => w && w.b > w.a && w.a >= 0 && w.b <= n);
     let a = 0, b = n, window = false;
-    if (len(0, n) > room) {
+    /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-6e5475d4 */ if (len(0, n) > room) {
         const w = ws.find((x) => len(x.a, x.b) <= room);
         if (!w) {
             const z = ws[ws.length - 1];
@@ -63,7 +63,7 @@ export function gifTradeWindows(bars, resS, trades) {
     if (last && !(all && Math.abs(last.a - all.a) < 1e-9 && Math.abs(last.b - all.b) < 1e-9)) out.push(Object.assign({ kind: 'last' }, last));
     return out;
 }
-export const GIF_WIN = { lead: 60, tail: 30 };
+/* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-829f629d */ export const GIF_WIN = { lead: 60, tail: 30 };
 export function gifTradeWindow(bars, resS, trades) {
     const ts = [];
     for (const t of trades || []) for (const f of (t && t.fills) || []) if (f && f.t > 0) ts.push(f.t / 1000);
@@ -84,7 +84,7 @@ export function gifFrames(kind, scene, img, mode, plan) {
         const bp = moving ? bgFramePlan(img.durations, { fps: GIF_FPS, frames: rp.frames }) : null;
         return gifGrid(rp.frames, GIF_FPS, (f) => ({ step: rp.pAt(f), bg: bp ? bp.at(f) : null }));
     }
-    if (moving) return gifLoop(img.durations).map((x) => ({ step: null, bg: x.bg, delay: x.delay })); /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-5d367d15 */
+    if (moving) return gifLoop(img.durations).map((x) => ({ step: null, bg: x.bg, delay: x.delay }));
     return [{ step: null, bg: null, delay: 0 }];
 }
 export function sampleFrames(n, max) {
@@ -126,12 +126,12 @@ export async function makeGif(o) {
         }
         halt();
         const ctx = canvas.getContext('2d');
-        const pixels = (k) => { draw(k); return ctx.getImageData(0, 0, W, H).data; }; /* Owned by Astral (@ax4p): Better Vest lite 9.3.6. Licence: LICENSE, not open source. bv-d157ae27 */
+        const pixels = (k) => { draw(k); return ctx.getImageData(0, 0, W, H).data; };
 
         worker = new Worker(new URL('./share-gif-worker.js', import.meta.url), { type: 'module' });
         const waits = [];
         let broken = null;
-        worker.onmessage = (e) => {
+        /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-8b17f0f7 */ worker.onmessage = (e) => {
             const w = waits.shift();
             if (!w) return;
             if (e.data && e.data.type === 'error') w.reject(new Error(e.data.message)); else w.resolve(e.data);
@@ -152,7 +152,7 @@ export async function makeGif(o) {
         const step = Math.max(1, Math.ceil((pick.length * W * H) / SAMPLE_PIXELS));
         const span1 = animated ? 0.15 : 0.3;
         for (const [i, k] of pick.entries()) {
-            halt(); /*! Better Vest (c) 2026 Astral. All rights reserved. bv-4d3757de */
+            halt();
             const px = pixels(k);
             await call({ type: 'sample', buf: px.buffer, step, offset: i }, [px.buffer]);
             tell(at + ((i + 1) / pick.length) * span1, 'colours');
@@ -170,7 +170,7 @@ export async function makeGif(o) {
             tell(from + ((k + 1) / plan.length) * (0.98 - from), 'frames');
         }
         await Promise.all(inflight);
-        halt();
+        halt(); /* Copyright Astral 2026. From Better Vest 9.3.7 (lite), ref bv-f5c20d1b. Not licensed for reuse. */
         const done = await call({ type: 'end' });
         tell(1, 'done');
         return { blob: new Blob(done.parts, { type: 'image/gif' }), w: W, h: H, frames: done.frames, ms: plan.reduce((s, x) => s + x.delay, 0) * 10,

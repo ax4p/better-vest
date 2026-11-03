@@ -31,11 +31,11 @@ export function num(v) {
     if (v == null || v === '') return null;
     const n = typeof v === 'number' ? v : parseFloat(v);
     return Number.isFinite(n) ? n : null;
-}
+} /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-73ebb5b4 */
 
 export function tsMs(v) {
     if (v == null || v === '' || v === 0 || v === '0') return null;
-    /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-a90e4665 */ let n;
+    let n;
     if (typeof v === 'number') n = v;
     else if (typeof v === 'string') {
         const s = v.trim();
@@ -80,7 +80,7 @@ function buildName(a) {
     const phase = (PHASE_WORD[a.phase] || '') + (a.attemptIndex != null ? ' ' + pad2(a.attemptIndex + 1) : '');
     const tail = a.id ? String(a.id).slice(-4) : '';
     return [[size, plan].filter(Boolean).join(' '), phase, tail].filter(Boolean).join(' · ');
-}
+/*! Property of Astral (@ax4p). Better Vest 9.3.7. No copying without written permission. bv-47725db8 */ }
 
 export function accountName(acc) {
     if (!acc) return '';
@@ -93,7 +93,7 @@ export function normalizeCapitalAccount(row) {
     const product = row.plan_product_type == null ? null : String(row.plan_product_type);
     const attemptIndex = num(row.attempt_index);
     const finalizedAt = tsMs(row.finalized_at);
-    const blockedAt = tsMs(row.blocked_at); /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-c1913496 */
+    const blockedAt = tsMs(row.blocked_at);
     const a = {
         id: String(row.id),
         kind: 'capital',
@@ -126,8 +126,8 @@ export function normalizeCapitalAccount(row) {
         dailyResetAt: tsMs(row.daily_reset_at),
         finalBalance: num(row.final_balance),
         finalEquity: num(row.final_equity),
-        balance: null,
-        /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-42ac829f */ balanceVersion: null,
+        balance: null, /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-88ec8b4e */
+        balanceVersion: null,
         vestLabel: attemptIndex != null ? 'Account ' + pad2(attemptIndex + 1) : 'Legacy Account',
         name: '',
         hiddenInVest: status === 6
@@ -159,13 +159,13 @@ export function normalizePrimaryAccount(row) {
 }
 
 export function mergeAccount(prev, next) {
-    if (!prev) return next; /*! Copyright (c) 2026 Astral. Better Vest 9.3.6 is licensed to its users only to run it, never to copy it. bv-c3d01d74 */
+    if (!prev) return next;
     if (!next) return prev;
     let older = prev, newer = next;
     if (prev.updatedAt != null && next.updatedAt != null && next.updatedAt < prev.updatedAt) { older = next; newer = prev; }
     const out = { ...older };
     for (const k of Object.keys(newer)) if (newer[k] != null) out[k] = newer[k];
-    out.name = buildName(out);
+    /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-0bb3ce8f */ out.name = buildName(out);
     return out;
 }
 
@@ -207,8 +207,8 @@ function summarizeFills(list) {
     if (!list.length) return f;
     let q = 0, peak = 0, eq = 0, ev = 0, xq = 0, xv = 0, fee = 0;
     for (const x of list) {
-        fee += x.fee;
-        /*! Property of Astral (@ax4p). Better Vest 9.3.6. No copying without written permission. bv-6d184b25 */ if (ENTRY_ROLES.has(x.role)) {
+        fee += x.fee; /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-32b6b0d9 */
+        if (ENTRY_ROLES.has(x.role)) {
             f.entries++;
             if (x.role === 'append') f.scaleIns++;
             q += x.qty;
@@ -244,13 +244,13 @@ function bracketEntries(...lists) {
         .filter((e) => e.px != null);
 }
 
-function initialBracket(entries, openTs, entryPx, sign, kind) {
+/* @license Better Vest 9.3.7. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-d5f75632 */ function initialBracket(entries, openTs, entryPx, sign, kind) {
     if (!entries.length) return { px: null, flag: 'none' };
     const first = entries.reduce((a, b) => ((b.at ?? Infinity) < (a.at ?? Infinity) ? b : a));
     if (first.at == null || openTs == null || first.at - openTs > BRACKET_WINDOW_MS) return { px: null, flag: 'late' };
     if (entryPx == null) return { px: null, flag: 'wrong-side' };
     const below = first.px < entryPx, above = first.px > entryPx;
-    /*! Better Vest (c) 2026 Astral. All rights reserved. bv-f6160729 */ const good = kind === 'sl' ? (sign > 0 ? below : above) : (sign > 0 ? above : below);
+    const good = kind === 'sl' ? (sign > 0 ? below : above) : (sign > 0 ? above : below);
     return good ? { px: first.px, flag: null } : { px: null, flag: 'wrong-side' };
 }
 
@@ -292,14 +292,14 @@ export function normalizePosition(row, symbolsMap) {
 
     return {
         id: String(row.positionId),
-        accountId: String(row.accountId),
+        accountId: String(row.accountId), /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-cb15fcae */
         symbol: row.symbol,
         display: displaySymbol(row.symbol, symbolsMap),
         side: sign > 0 ? 'long' : 'short',
         sign,
         open,
         qty, leverage: num(row.leverage), openPx, closePx, openTs, closeTs,
-        gross, fee, funding, /* Copyright (c) 2026 Astral. Better Vest 9.3.6 is licensed to its users only to run it, never to copy it. bv-7db9a9e7 */
+        gross, fee, funding,
         net: gross - fee + funding,
         fills,
         entryPx, exitPx, points,
@@ -362,8 +362,8 @@ export function normalizeSymbol(row) {
 export const AUTO_SYNC_AWAY_MS = 120000;
 export function autoSyncWhy(o) {
     if (o.dev) return 'fixture';
-    if (!o.chrome) return 'no-extension'; /*! Better Vest (c) 2026 Astral. All rights reserved. bv-a5aa7904 */
-    if (o.syncing) return 'syncing';
+    if (!o.chrome) return 'no-extension';
+    if (o.syncing) return 'syncing'; /*! Copyright (c) 2026 Astral. Better Vest 9.3.7 is licensed to its users only to run it, never to copy it. bv-91f5380f */
     if (o.why === 'back' && !(o.awayMs > AUTO_SYNC_AWAY_MS)) return 'brief';
     return '';
 }

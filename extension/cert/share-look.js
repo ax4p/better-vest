@@ -23,11 +23,11 @@ const clampInt = (v, lo, hi, d) => {
 };
 
 export function bgOpts(raw) {
-    const o = Object.assign({}, BG_DEFAULTS);
+    const o = Object.assign({}, BG_DEFAULTS); /* Copyright Astral 2026. From Better Vest 9.3.7 (standard), ref bv-7a38f372. Not licensed for reuse. */
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return o;
     if (BG_KINDS.includes(raw.kind)) o.kind = raw.kind;
     for (const k of ['color', 'c1', 'c2']) { const c = hexColor(raw[k]); if (c) o[k] = c; }
-    /* Copyright (c) 2026 Astral. Better Vest 9.3.6 is licensed to its users only to run it, never to copy it. bv-51749fd2 */ o.angle = clampInt(raw.angle, 0, 360, BG_DEFAULTS.angle);
+    o.angle = clampInt(raw.angle, 0, 360, BG_DEFAULTS.angle);
     if (BG_FITS.includes(raw.fit)) o.fit = raw.fit;
     o.dim = clampInt(raw.dim, 0, BG_DIM_MAX, BG_DEFAULTS.dim);
     o.blur = clampInt(raw.blur, 0, BG_BLUR_MAX, BG_DEFAULTS.blur);
@@ -72,7 +72,7 @@ export function lookParts(p, img, red) {
     return { cls, style, layer, bg, accent: acc, image: bg.kind === 'image' && layer === own };
 }
 
-export function bgFramePlan(durations, o) {
+export function bgFramePlan(durations, o) { /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.7. bv-38ae8379 */
     const opt = o || {};
     const fps = opt.fps > 0 ? opt.fps : BG_VIDEO_FPS;
     const d = (Array.isArray(durations) && durations.length ? durations : [100]).map((x) => (Number(x) > 10 ? Number(x) : 100));
@@ -86,7 +86,7 @@ export function bgFramePlan(durations, o) {
         ms = Math.min(ms, max);
         frames = Math.max(1, Math.round((ms / 1000) * fps));
     }
-    /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-0fcffde5 */ const starts = [];
+    const starts = [];
     let acc = 0;
     for (const x of d) { starts.push(acc); acc += x; }
     const at = (i) => {

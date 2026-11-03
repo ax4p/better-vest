@@ -26,15 +26,15 @@ Each [release](https://github.com/ax4p/better-vest/releases/latest) has three zi
 
 | Zip | What's in it |
 |---|---|
-| `better-vest-9.3.6.zip` | **Standard.** Everything. Take this one if you're not sure. |
-| `better-vest-lite-9.3.6.zip` | **Lite.** Everything but the spoken voice lines, under 1 MB. |
-| `better-vest-nostats-9.3.6.zip` | **No stats.** Standard without the usage stats and the error reports. See [Security](SECURITY.md#the-usage-stats). |
+| `better-vest-9.3.7.zip` | **Standard.** Everything. Take this one if you're not sure. |
+| `better-vest-lite-9.3.7.zip` | **Lite.** Everything but the spoken voice lines, under 1 MB. |
+| `better-vest-nostats-9.3.7.zip` | **No stats.** Standard without the usage stats and the error reports. See [Security](SECURITY.md#the-usage-stats). |
 
 Then load it in Chrome: the [video and steps](https://bv.astrals.dev/#install) on the site, or the [install guide](CONTRIBUTING.md) here. After that it updates itself.
 
 ## What it does
 
-- **[Copy trader](https://bv.astrals.dev/features/copy-trader):** trade one account and up to ten others follow it, in as many groups as you like.
+- **[Copy trader](https://bv.astrals.dev/features/copy-trader):** trade one account and up to ten others follow it, in as many groups as you like, each at its own ratio or sized to its account.
 - **[Trading on the chart](https://bv.astrals.dev/features/chart-trading):** drag your stop and target, stop and limit orders in one click, a trailing stop and auto breakeven.
 - **The Execute card:** long or short in one click with the stop and target attached, in points, dollars or at a price, your size from the dollars you risk, and FLAT, 50% (hover it for 10%, 25%, 75% or your own share) and REV. Float it, put it in place of Vest's ticket or under the chart, and hide the buttons you don't use.
 - **Price alerts:** click the chart where you want one. When price gets there you hear it and see a note. It never places an order.
@@ -48,21 +48,21 @@ Then load it in Chrome: the [video and steps](https://bv.astrals.dev/#install) o
 
 ## Is it safe?
 
-- **Scanned.** `better-vest-9.3.6.zip` comes back clean on VirusTotal, with no engine flagging it ([report](https://www.virustotal.com/gui/file/43439d3c5f9248147bd608cd62b26a7969962c123a15bf1875827f3d42f6e25e)).
+- **Scanned.** `better-vest-9.3.7.zip` comes back clean on VirusTotal, with no engine flagging it ([report](https://www.virustotal.com/gui/file/53ccd078d3fbdaf80bfb838e582a565286faf62b24a6d5d236c3fdf128b11292)).
 - **Readable.** The [`extension`](extension) folder is the Standard zip, file for file, not minified.
 - **Signed updates.** Your copy checks my signature and every file before it writes anything.
 - **Safety switches.** If Vest changes something, I can pause one feature for everyone until it's fixed ([how](SECURITY.md#safety-switches)).
-- **Small reach.** It runs only on next.vestmarkets.com and asks Chrome for `storage`, `alarms` and `tabGroups`. It never sees your password or keys, never withdraws, and trades only through Vest's own buttons and order code.
+- **Small reach.** It runs only on next.vestmarkets.com and asks Chrome for `storage`, `alarms` and `tabGroups`. It never sees your password or keys, never withdraws, and trades only through Vest's own buttons, its order code and its API, from your own Vest tab.
 
 Everything it can do and every address it talks to: [Security](SECURITY.md).
 
 ## Is it allowed on Vest?
 
-Vest's [terms](https://next.vestmarkets.com/terms) don't mention browser extensions or copy trading. The automation they rule out is manipulation, and Better Vest only places the orders you ask for, through Vest's own page. It doesn't use an API. Terms change, so read them yourself, especially before you copy trades on funded accounts.
+Vest's [terms](https://next.vestmarkets.com/terms) don't mention browser extensions or copy trading. The automation they rule out is manipulation, and Better Vest only places the orders you ask for, from your own Vest tab. Its copy trader's Flash mode sends your followers' orders to Vest's own API from that tab, each with that account's own sign-in. Nothing runs on a server. Terms change, so read them yourself, especially before you copy trades on funded accounts.
 
 ## Support
 
-Better Vest is free. If you buy a Vest account, the code **WICK** costs you nothing extra and keeps this going. When Vest's code box is empty, the extension puts it in for you and says so. It never replaces a code you have on, and you can switch that off in Settings > More > Support Astral. When another code is on, it asks first. If you'd rather tip, my EVM address is `0x9F308B10780f9b8FD65C6B94071529b75a3A9dA4`.
+Better Vest is free. If you buy a Vest account, the code **WICK** costs you nothing extra and keeps this going. When you buy, the extension asks first whether to use it, and only keeps WICK when you get the same discount or more. If you'd like it to put WICK into an empty code box for you, switch that on in Settings > More > Support Astral. If you'd rather tip, my EVM address is `0x9F308B10780f9b8FD65C6B94071529b75a3A9dA4`.
 
 Bugs and ideas: Discord **@ax4p**.
 

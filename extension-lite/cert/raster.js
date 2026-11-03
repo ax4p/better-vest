@@ -27,7 +27,7 @@ async function dataUriOf(url) {
 }
 
 async function cssWithInlinedUrls(cssUrl) {
-    /* Better Vest (c) 2026 Astral. All rights reserved. bv-81fc9e72 */ const res = await fetch(cssUrl);
+    /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-6c6c6195 */ const res = await fetch(cssUrl);
     if (!res.ok) throw new Error('stylesheet: HTTP ' + res.status);
     let css = await res.text();
     const base = new URL(cssUrl, document.baseURI);
@@ -54,7 +54,7 @@ export async function cardToSvg(card, { cssUrl, width, height }) {
     const clone = card.cloneNode(true);
     clone.style.transform = 'none';
     clone.style.margin = '0';
-    for (const img of clone.querySelectorAll('img')) {
+    for (const img of clone.querySelectorAll('img')) { /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-15c9917e */
         const abs = new URL(img.getAttribute('src'), document.baseURI).href;
         img.setAttribute('src', await dataUriOf(abs));
     }
@@ -68,7 +68,7 @@ export async function cardToSvg(card, { cssUrl, width, height }) {
     return `<svg xmlns="${NS_SVG}" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><foreignObject x="0" y="0" width="${width}" height="${height}">${inner}</foreignObject></svg>`;
 }
 
-export async function cardToCanvas(card, { cssUrl, width, height, scale = 3 }) { /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.6. bv-3fe71e12 */
+export async function cardToCanvas(card, { cssUrl, width, height, scale = 3 }) {
     if (document.fonts && document.fonts.ready) await document.fonts.ready;
     const svg = await cardToSvg(card, { cssUrl, width, height });
     const img = await loadImage('data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg));

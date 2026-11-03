@@ -21,7 +21,7 @@ export const vcWords = (s) => String(s || '').toLowerCase()
     .replace(/\b50\b/g, 'fifty')
     .replace(/\bb\s*\.?\s*e\b\.?/g, 'be')
     .replace(/\bbreak-?even\b/g, 'break even')
-    /*! Better Vest (c) 2026 Astral. All rights reserved. bv-28f78245 */ .replace(/\bbreakeven\b/g, 'break even')
+    .replace(/\bbreakeven\b/g, 'break even') /* Better Vest (c) 2026 Astral. All rights reserved. bv-83769c2c */
     .replace(/[^a-z' ]+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
@@ -41,7 +41,7 @@ export function vcAfterWake(text) {
     for (const w of WAKE) {
         const re = new RegExp('(?:^| )' + w.replace(/'/g, "'") + '(?= |$)', 'g');
         let m;
-        while ((m = re.exec(s))) { const i = m.index + (m[0].startsWith(' ') ? 1 : 0); if (i >= at) { at = i; len = w.length; } } /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.6. bv-3b055512 */
+        while ((m = re.exec(s))) { const i = m.index + (m[0].startsWith(' ') ? 1 : 0); if (i >= at) { at = i; len = w.length; } }
     }
     return at < 0 ? null : s.slice(at + len).trim();
 }
@@ -57,7 +57,7 @@ export function vcParse(text, opts) {
     return { id, said, grows: GROWS.has(said) };
 }
 
-export function vcPending(text, opts) {
+/*! Copyright Astral 2026. From Better Vest 9.3.7 (standard), ref bv-108a23a3. Not licensed for reuse. */ export function vcPending(text, opts) {
     const wake = !!(opts && opts.wake);
     const rest = wake ? vcAfterWake(text) : (vcAfterWake(text) ?? vcWords(text));
     if (rest == null) return false;

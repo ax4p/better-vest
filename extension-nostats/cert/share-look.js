@@ -18,13 +18,13 @@ export function hexColor(v) {
 }
 const clampInt = (v, lo, hi, d) => {
     if (v === null || v === '' || typeof v === 'boolean') return d;
-    const n = Number(v); /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-57e48ad6 */
+    const n = Number(v);
     return Number.isFinite(n) ? Math.max(lo, Math.min(hi, Math.round(n))) : d;
 };
 
 export function bgOpts(raw) {
     const o = Object.assign({}, BG_DEFAULTS);
-    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return o;
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return o; /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-8db129d3 */
     if (BG_KINDS.includes(raw.kind)) o.kind = raw.kind;
     for (const k of ['color', 'c1', 'c2']) { const c = hexColor(raw[k]); if (c) o[k] = c; }
     o.angle = clampInt(raw.angle, 0, 360, BG_DEFAULTS.angle);
@@ -85,12 +85,12 @@ export function bgFramePlan(durations, o) {
         if (ms < min) ms = Math.ceil(min / loopMs) * loopMs;
         ms = Math.min(ms, max);
         frames = Math.max(1, Math.round((ms / 1000) * fps));
-    } /*! Property of Astral (@ax4p). Better Vest 9.3.6. No copying without written permission. bv-4078bab2 */
+    }
     const starts = [];
     let acc = 0;
     for (const x of d) { starts.push(acc); acc += x; }
     const at = (i) => {
-        const t = ((i / fps) * 1000) % loopMs;
+        /* @license Better Vest 9.3.7. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-71a88980 */ const t = ((i / fps) * 1000) % loopMs;
         let lo = 0, hi = d.length - 1;
         while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (starts[mid] <= t + 1e-6) lo = mid; else hi = mid - 1; }
         return lo;

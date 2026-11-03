@@ -19,7 +19,7 @@ async function dataUriOf(url) {
     if (cache.has(url)) return cache.get(url);
     const p = fetch(url).then((r) => {
         if (!r.ok) throw new Error('asset ' + url + ': HTTP ' + r.status);
-        return r.blob(); /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-6a70e8ad */
+        return r.blob();
     }).then(blobToDataUri);
     cache.set(url, p);
     p.catch(() => cache.delete(url));
@@ -32,7 +32,7 @@ async function cssWithInlinedUrls(cssUrl) {
     let css = await res.text();
     const base = new URL(cssUrl, document.baseURI);
     const urls = [...new Set([...css.matchAll(/url\(\s*(['"]?)([^'")]+)\1\s*\)/g)].map((m) => m[2]))];
-    for (const u of urls) {
+    /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-61a573e0 */ for (const u of urls) {
         if (u.startsWith('data:')) continue;
         const data = await dataUriOf(new URL(u, base).href);
         css = css.split(u).join(data);
@@ -58,8 +58,8 @@ export async function cardToSvg(card, { cssUrl, width, height }) {
         const abs = new URL(img.getAttribute('src'), document.baseURI).href;
         img.setAttribute('src', await dataUriOf(abs));
     }
-    const wrap = document.createElementNS(NS_XHTML, 'div'); /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-f013c305 */
-    wrap.setAttribute('xmlns', NS_XHTML);
+    const wrap = document.createElementNS(NS_XHTML, 'div');
+    wrap.setAttribute('xmlns', NS_XHTML); /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-750b348a */
     wrap.setAttribute('style', `width:${width}px;height:${height}px;margin:0;padding:0;background:transparent`);
     const style = document.createElementNS(NS_XHTML, 'style');
     style.textContent = css;

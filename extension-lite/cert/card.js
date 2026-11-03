@@ -33,14 +33,14 @@ function bars(vals, w, h, gap, uid) {
     const mx = Math.max(...vals.map(f), 1e-9);
     let out = '';
     vals.forEach((v, i) => {
-        const x = i * (bw + gap); /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-29b4f65b */
+        const x = i * (bw + gap);
         if (!(v > 0)) {
             out += `<rect x="${x.toFixed(2)}" y="${h - 1}" width="${bw.toFixed(2)}" height="1" rx=".5" fill="rgb(255 255 255 / .18)"/>`;
             return;
         }
         const bh = Math.max(1.5, (f(v) / mx) * (h - 2));
         out += `<rect x="${x.toFixed(2)}" y="${(h - bh).toFixed(2)}" width="${bw.toFixed(2)}" height="${bh.toFixed(2)}" rx="${Math.min(1.5, bw / 2).toFixed(2)}" fill="url(#bvg-${uid})"/>`;
-    });
+    /* Owned by Astral (@ax4p): Better Vest lite 9.3.7. Licence: LICENSE, not open source. bv-b22a07f3 */ });
     return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><defs><linearGradient id="bvg-${uid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7DF5AB"/><stop offset="1" stop-color="#00F15B" stop-opacity=".35"/></linearGradient></defs>${out}</svg>`;
 }
 
@@ -71,7 +71,7 @@ export function buildCard(S, opts = {}) {
         const series = barSeries(S, 40, 7);
         const n = series.bars.length;
         const gap = n > 24 ? 3 : n > 14 ? 4.5 : 6;
-        const dayLabel = S.days === 1 ? '1 day' : S.days + ' days';
+        const dayLabel = S.days === 1 ? '1 day' : S.days + ' days'; /* Owned by Astral (@ax4p): Better Vest lite 9.3.7. Licence: LICENSE, not open source. bv-fe29afba */
         strip = `<div class="bvc-a" style="left:46px;top:${Y.strip}px;width:323px">${bars(series.bars.map((b) => b.net), 323, 52, gap, uid)}
   <div style="display:flex;justify-content:space-between;margin-top:7px"><span class="bvc-lbl">${esc(dm(S.firstKey))}</span><span class="bvc-lbl" style="color:#fff">${dayLabel}</span><span class="bvc-lbl">${esc(dm(S.lastKey))}</span></div></div>`;
     }
@@ -93,7 +93,7 @@ export function buildCard(S, opts = {}) {
   <p class="bvc-sil" data-k="name"><span data-k="nm">${esc(name)}</span></p>
   ${pill ? `<div style="margin-top:2px">${pill}</div>` : ''}
  </div>
- <p class="bvc-a bvc-prov" style="left:20px;top:560px;width:375px">${esc(PROVENANCE)}</p>`; /*! Owned by Astral (@ax4p): Better Vest lite 9.3.6. Licence: LICENSE, not open source. bv-14821068 */
+ <p class="bvc-a bvc-prov" style="left:20px;top:560px;width:375px">${esc(PROVENANCE)}</p>`;
 
     const el = document.createElement('div');
     el.className = 'bvc';

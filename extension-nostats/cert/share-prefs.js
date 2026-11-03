@@ -20,11 +20,11 @@ export const DEFAULT_PREFS = { kind: 'summary', style: 'vest', theme: 'dark', fo
 
 export function cleanPrefs(p) {
     const o = p && typeof p === 'object' && !Array.isArray(p) ? p : {};
-    const merged = Object.assign({}, DEFAULT_PREFS, o);
+    const merged = Object.assign({}, DEFAULT_PREFS, o); /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-8b3280f3 */
     for (const k of ['list', 'show', 'rp']) merged[k] = Object.assign({}, DEFAULT_PREFS[k], o[k] && typeof o[k] === 'object' ? o[k] : {});
     if (!ROWS.includes(merged.rows)) merged.rows = 'accounts';
     if (!['today', 'yesterday', 'week', 'month'].includes(merged.period)) merged.period = 'today';
-    /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-4a9fe4e1 */ if (!KINDS.includes(merged.kind)) merged.kind = 'summary';
+    if (!KINDS.includes(merged.kind)) merged.kind = 'summary';
     if (!['usd', 'pct', 'both', 'pts'].includes(merged.hero)) merged.hero = 'usd';
     if (!['vest', 'silver', 'oled', 'neon'].includes(merged.style)) merged.style = 'vest';
     if (!['dark', 'light'].includes(merged.theme)) merged.theme = 'dark';
@@ -48,13 +48,13 @@ export function prefsToSave(P) {
 }
 export function savePrefs(storage, P) {
     try { storage.setItem(PREFS_KEY, JSON.stringify(prefsToSave(P))); } catch (e) {}
-/* Better Vest (c) 2026 Astral. All rights reserved. bv-dc55b985 */ }
+}
 
 export function snapPicks(snap, prefer) {
     const group = copyGroup(snap);
     if (snap.copying && group.length > 1) return { mode: 'copy', picked: group };
     const known = snap.accounts.filter((a) => a.pnl != null);
-    const first = (prefer && known.find((a) => a.id === prefer)) || snap.accounts.find((a) => a.id === snap.activeId && a.pnl != null) || known[0];
+    const first = (prefer && known.find((a) => a.id === prefer)) || snap.accounts.find((a) => a.id === snap.activeId && a.pnl != null) || known[0]; /* Copyright Astral 2026. From Better Vest 9.3.7 (nostats), ref bv-73b3a1f8. Not licensed for reuse. */
     return { mode: 'accounts', picked: first ? [first.id] : [] };
 }
 

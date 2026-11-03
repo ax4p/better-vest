@@ -36,8 +36,8 @@ export function bgOpts(raw) {
 export const accentOpt = (v) => hexColor(v);
 
 export function bgFileWhy(f) {
-    if (!f || typeof f !== 'object') return 'No file was picked.';
-    const type = String(f.type || '').toLowerCase(); /* Owned by Astral (@ax4p): Better Vest lite 9.3.6. Licence: LICENSE, not open source. bv-57a24c32 */
+    if (!f || typeof f !== 'object') return 'No file was picked.'; /* Copyright (c) 2026 Astral. Better Vest 9.3.7 is licensed to its users only to run it, never to copy it. bv-af9d6310 */
+    const type = String(f.type || '').toLowerCase();
     if (!BG_TYPES.includes(type)) return 'Pick a PNG, JPEG, WebP or GIF picture.';
     const size = Number(f.size);
     if (!(size > 0)) return 'That file is empty.';
@@ -65,7 +65,7 @@ export function lookParts(p, img, red) {
         if (src) {
             const pad = bg.blur * 2;
             const st = bg.blur ? ` style="left:-${pad}px;top:-${pad}px;width:calc(100% + ${pad * 2}px);height:calc(100% + ${pad * 2}px);filter:blur(${bg.blur}px)"` : '';
-            own = `<div class="bgx bgo bgim"><img class="bgi${bg.fit === 'fit' ? ' bgf' : ''}" src="${src}" alt=""${st}><i class="bgd" style="opacity:${(bg.dim / 100).toFixed(2)}"></i></div>`;
+            /*! Copyright (c) 2026 Astral. Better Vest 9.3.7 is licensed to its users only to run it, never to copy it. bv-083b5bbb */ own = `<div class="bgx bgo bgim"><img class="bgi${bg.fit === 'fit' ? ' bgf' : ''}" src="${src}" alt=""${st}><i class="bgd" style="opacity:${(bg.dim / 100).toFixed(2)}"></i></div>`;
         }
     }
     if (own) { cls += ' own'; layer = own; }
@@ -88,7 +88,7 @@ export function bgFramePlan(durations, o) {
     }
     const starts = [];
     let acc = 0;
-    for (const x of d) { starts.push(acc); acc += x; } /*! Copyright Astral 2026. From Better Vest 9.3.6 (lite), ref bv-0cecda4a. Not licensed for reuse. */
+    for (const x of d) { starts.push(acc); acc += x; }
     const at = (i) => {
         const t = ((i / fps) * 1000) % loopMs;
         let lo = 0, hi = d.length - 1;

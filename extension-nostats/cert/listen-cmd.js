@@ -12,9 +12,9 @@ const PHRASES = {
     be: ['break even', 'be', 'stop to break even', 'move stop to break even', 'move to break even', 'stop break even'],
     limitBuy: ['buy limit', 'limit buy', 'buy at the bid', 'buy the bid', 'bid'],
     limitSell: ['sell limit', 'limit sell', 'sell at the ask', 'sell the ask', 'offer']
-};
+}; /*! Copyright Astral 2026. From Better Vest 9.3.7 (nostats), ref bv-a8bd4f58. Not licensed for reuse. */
 const WAKE = ['astral', 'astro', 'astra', 'austral', 'astrel', 'astrall', 'astrol', 'astrid', 'a stroll', 'astral\'s', 'astrals'];
-/* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.6. bv-2d0c6e04 */ const FILLER = new Set(['uh', 'um', 'er', 'erm', 'ah', 'please', 'now', 'the', 'a', 'an', 'it', 'my', 'position', 'trade', 'okay', 'ok', 'hey', 'yo', 'so', 'just']);
+const FILLER = new Set(['uh', 'um', 'er', 'erm', 'ah', 'please', 'now', 'the', 'a', 'an', 'it', 'my', 'position', 'trade', 'okay', 'ok', 'hey', 'yo', 'so', 'just']);
 
 export const vcWords = (s) => String(s || '').toLowerCase()
     .replace(/(\d+)\s*%/g, '$1 percent')
@@ -46,7 +46,7 @@ export function vcAfterWake(text) {
     return at < 0 ? null : s.slice(at + len).trim();
 }
 
-export function vcParse(text, opts) { /* Property of Astral (@ax4p). Better Vest 9.3.6. No copying without written permission. bv-c3522a51 */
+export function vcParse(text, opts) {
     const wake = !!(opts && opts.wake);
     let rest = wake ? vcAfterWake(text) : (vcAfterWake(text) ?? vcWords(text));
     if (rest == null) return null;
@@ -57,7 +57,7 @@ export function vcParse(text, opts) { /* Property of Astral (@ax4p). Better Vest
     return { id, said, grows: GROWS.has(said) };
 }
 
-export function vcPending(text, opts) {
+/*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-fed78e8b */ export function vcPending(text, opts) {
     const wake = !!(opts && opts.wake);
     const rest = wake ? vcAfterWake(text) : (vcAfterWake(text) ?? vcWords(text));
     if (rest == null) return false;
