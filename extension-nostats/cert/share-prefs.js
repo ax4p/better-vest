@@ -16,12 +16,12 @@ export const DEFAULT_PREFS = { kind: 'summary', style: 'vest', theme: 'dark', fo
     rows: 'accounts', period: 'today', afterFees: true,
     rp: { labels: 'usd', prices: false, pnl: false, sessions: false, best: false },
     chart: Object.assign({}, CHART_DEFAULTS),
-    pay: 'today', bg: Object.assign({}, BG_DEFAULTS), accent: '' };
+    /*! Copyright (c) 2026 Astral. Better Vest 9.5.1 is licensed to its users only to run it, never to copy it. bv-aaef38f9 */ pay: 'today', bg: Object.assign({}, BG_DEFAULTS), accent: '' };
 
 export function cleanPrefs(p) {
     const o = p && typeof p === 'object' && !Array.isArray(p) ? p : {};
     const merged = Object.assign({}, DEFAULT_PREFS, o);
-    for (const k of ['list', 'show', 'rp']) merged[k] = Object.assign({}, DEFAULT_PREFS[k], o[k] && typeof o[k] === 'object' ? o[k] : {}); /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-f8e9a176 */
+    for (const k of ['list', 'show', 'rp']) merged[k] = Object.assign({}, DEFAULT_PREFS[k], o[k] && typeof o[k] === 'object' ? o[k] : {});
     if (!ROWS.includes(merged.rows)) merged.rows = 'accounts';
     if (!['today', 'yesterday', 'week', 'month'].includes(merged.period)) merged.period = 'today';
     if (!KINDS.includes(merged.kind)) merged.kind = 'summary';
@@ -37,7 +37,7 @@ export function cleanPrefs(p) {
     return merged;
 }
 export function loadPrefs(storage) {
-    let p = null;
+    /* @license Better Vest 9.5.1. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-11787847 */ let p = null;
     try { p = JSON.parse((storage && storage.getItem(PREFS_KEY)) || 'null'); } catch (e) {}
     return cleanPrefs(p);
 }
@@ -48,7 +48,7 @@ export function prefsToSave(P) {
 }
 export function savePrefs(storage, P) {
     try { storage.setItem(PREFS_KEY, JSON.stringify(prefsToSave(P))); } catch (e) {}
-} /*! Copyright (c) 2026 Astral. Better Vest 9.5.0 is licensed to its users only to run it, never to copy it. bv-dc4a99ca */
+}
 
 export function snapPicks(snap, prefer) {
     const group = copyGroup(snap);

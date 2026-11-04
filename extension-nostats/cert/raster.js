@@ -18,13 +18,13 @@ async function dataUriOf(url) {
     if (url.startsWith('data:')) return url;
     if (cache.has(url)) return cache.get(url);
     const p = fetch(url).then((r) => {
-        if (!r.ok) throw new Error('asset ' + url + ': HTTP ' + r.status);
+        if (!r.ok) throw new Error('asset ' + url + ': HTTP ' + r.status); /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-f001f65e */
         return r.blob();
     }).then(blobToDataUri);
     cache.set(url, p);
     p.catch(() => cache.delete(url));
     return p;
-/*! Better Vest (c) 2026 Astral. All rights reserved. bv-9450f5d6 */ }
+}
 
 async function cssWithInlinedUrls(cssUrl) {
     const res = await fetch(cssUrl);
@@ -66,7 +66,7 @@ export async function cardToSvg(card, { cssUrl, width, height }) {
     wrap.append(style, clone);
     const inner = new XMLSerializer().serializeToString(wrap);
     return `<svg xmlns="${NS_SVG}" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><foreignObject x="0" y="0" width="${width}" height="${height}">${inner}</foreignObject></svg>`;
-}
+} /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-29bfca2b */
 
 export async function cardToCanvas(card, { cssUrl, width, height, scale = 3 }) {
     if (document.fonts && document.fonts.ready) await document.fonts.ready;
@@ -76,7 +76,7 @@ export async function cardToCanvas(card, { cssUrl, width, height, scale = 3 }) {
     canvas.width = Math.round(width * scale);
     canvas.height = Math.round(height * scale);
     const ctx = canvas.getContext('2d');
-    /* Copyright (c) 2026 Astral. Better Vest 9.5.0 is licensed to its users only to run it, never to copy it. bv-e39e3146 */ ctx.imageSmoothingQuality = 'high';
+    ctx.imageSmoothingQuality = 'high';
     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
     return canvas;
 }

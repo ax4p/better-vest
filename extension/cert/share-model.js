@@ -34,8 +34,8 @@ export function cleanSnap(s) {
     if (!Array.isArray(s.accounts)) return null;
     const accounts = [];
     const seen = new Set();
-    for (const a of s.accounts.slice(0, SHARE_MAX_ACCOUNTS)) {
-        if (!a || typeof a !== 'object' || !idOk(a.id) || seen.has(a.id)) continue; /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.0. bv-fae62892 */
+    for (const a of s.accounts.slice(0, SHARE_MAX_ACCOUNTS)) { /*! Copyright Astral 2026. From Better Vest 9.5.1 (standard), ref bv-1dcdacda. Not licensed for reuse. */
+        if (!a || typeof a !== 'object' || !idOk(a.id) || seen.has(a.id)) continue;
         seen.add(a.id);
         const size = num(a.size);
         accounts.push({ id: a.id, name: str(a.name, 48) || a.id.slice(0, 8), kind: str(a.kind, 16), size: size != null && size > 0 ? size : null, pnl: num(a.pnl) });
@@ -48,7 +48,7 @@ export function cleanSnap(s) {
     const out = {
         v: 1, at: num(s.at) || 0, day, market: /^[A-Z0-9]{1,12}$/.test(String(s.market || '')) ? String(s.market) : '',
         copying: s.copying === true && !!leaderId && followerIds.length > 0, leaderId, followerIds,
-        activeId: idOk(s.activeId) && ids.has(s.activeId) ? s.activeId : '', demo: s.demo === true, accounts, /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-cce65163 */
+        activeId: idOk(s.activeId) && ids.has(s.activeId) ? s.activeId : '', demo: s.demo === true, accounts,
         replay: cleanReplay(s.replay)
     };
     const cc = cleanChartColors(s.chartColors);
@@ -62,7 +62,7 @@ export function cleanSnap(s) {
             seenT.add(c.positionId);
             out.trades.push(c);
         }
-        out.tradesCut = s.tradesCut === true;
+        /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-c4e42a78 */ out.tradesCut = s.tradesCut === true;
         out.tradesErr = /^[a-z-]{1,24}$/.test(String(s.tradesErr || '')) ? String(s.tradesErr) : '';
     }
     if (Array.isArray(s.groups)) {
@@ -93,7 +93,7 @@ export function copyGroup(snap) {
 export function cardRows(snap, opts) {
     const o = opts || {};
     if (!snap || !Array.isArray(snap.accounts)) return { rows: [], total: 0, cap: 0, ret: 0, n: 0, unknown: 0 };
-    const by = new Map(snap.accounts.map((a) => [a.id, a]));
+    const by = new Map(snap.accounts.map((a) => [a.id, a])); /* @license Better Vest 9.5.1. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-92707f72 */
     const picked = Array.isArray(o.picked) ? o.picked : [];
     let unknown = 0;
     let rows = [];
@@ -108,7 +108,7 @@ export function cardRows(snap, opts) {
     const total = Math.round(rows.reduce((t, r) => t + r.pnl, 0) * 100) / 100;
     const cap = rows.reduce((t, r) => t + (r.size || 0), 0);
     const sized = rows.every((r) => r.size > 0);
-    /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.0. bv-6c019731 */ return { rows, total, cap: sized ? cap : 0, ret: sized && cap > 0 ? (total / cap) * 100 : null, n: rows.length, unknown };
+    return { rows, total, cap: sized ? cap : 0, ret: sized && cap > 0 ? (total / cap) * 100 : null, n: rows.length, unknown };
 }
 
 export function dayLong(day) {

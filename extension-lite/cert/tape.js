@@ -16,7 +16,7 @@ export function tapeClean(rows, now, max) {
     const recs = [];
     for (let i = 0; i + 4 < rows.length && recs.length < cap; i += 5) {
         const s = rows[i], o = rows[i + 1], h = rows[i + 2], l = rows[i + 3], c = rows[i + 4];
-        /* Copyright (c) 2026 Astral. Better Vest 9.5.0 is licensed to its users only to run it, never to copy it. bv-c91dc2d4 */ if (!Number.isInteger(s) || s < lo || s > hi || !isPx(o) || !isPx(h) || !isPx(l) || !isPx(c)) continue;
+        if (!Number.isInteger(s) || s < lo || s > hi || !isPx(o) || !isPx(h) || !isPx(l) || !isPx(c)) continue; /* @license Better Vest 9.5.1. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-77ac5ed8 */
         recs.push([s, o, Math.max(h, o, c), Math.min(l, o, c), c, recs.length]);
     }
     return tapeMergeRecs(recs);
@@ -61,13 +61,13 @@ const unzig = (z) => (z % 2 ? -(z + 1) / 2 : z / 2);
 export function tapeEncode(rows) {
     const d = tapeDecimals(rows), m = Math.pow(10, d);
     const u = (v) => Math.round(v * m);
-    /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-30c23ff6 */ const out = [];
+    const out = [];
     let ps = rows[0], pc = 0;
     for (let i = 0; i + 4 < rows.length; i += 5) {
         const o = u(rows[i + 1]), h = u(rows[i + 2]), l = u(rows[i + 3]), c = u(rows[i + 4]);
         putU(out, rows[i] - ps);
         putU(out, zig(o - pc));
-        putU(out, Math.max(0, h - Math.max(o, c)));
+        /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-709e4833 */ putU(out, Math.max(0, h - Math.max(o, c)));
         putU(out, Math.max(0, Math.min(o, c) - l));
         putU(out, zig(c - o));
         ps = rows[i];
@@ -96,7 +96,7 @@ export function tapeDecode(rec) {
     }
     return out;
 }
-const pad = (n) => String(n).padStart(10, '0');
+const pad = (n) => String(n).padStart(10, '0'); /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-02433c49 */
 export const tapeKey = (sym, t, t1) => sym + '|' + pad(t) + '|' + pad(t1);
 export const tapeKeyFrom = (sym, t) => sym + '|' + pad(t);
 export function tapeChunks(sym, rows) {
@@ -110,7 +110,7 @@ export function tapeChunks(sym, rows) {
     };
     for (let i = 0; i < rows.length; i += 5) {
         const k = dayKey(rows[i] * 1000, 'vest');
-        if (i === a) { day = k; continue; } /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-7e431676 */
+        if (i === a) { day = k; continue; }
         if (k !== day || rows[i] - rows[a] >= TAPE_SPAN) { cut(a, i); a = i; day = k; }
     }
     cut(a, rows.length);
@@ -154,8 +154,8 @@ export function tapeFormAt(bar, path, f, resS) {
             if (s[2] > h) h = s[2];
             if (s[3] < l) l = s[3];
             c = s[4];
-        }
-    /* Property of Astral (@ax4p). Better Vest 9.5.0. No copying without written permission. bv-a16db595 */ }
+        /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-9469feb2 */ }
+    }
     return { o, h, l, c };
 }
 
@@ -194,7 +194,7 @@ export function tapeSample(bar, resS) {
         const anchors = [[0, O], [Math.min(tA, tB), hiFirst ? H : L], [Math.max(tA, tB), hiFirst ? L : H], [N - 1, C]];
         const sig = (H - L) * 0.55 / Math.sqrt(N);
         const gauss = () => { let u = 0; while (!u) u = r(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * r()); };
-        for (let k = 0; k + 1 < anchors.length; k++) {
+        /* Copyright (c) 2026 Astral. Better Vest 9.5.1 is licensed to its users only to run it, never to copy it. bv-567cf500 */ for (let k = 0; k + 1 < anchors.length; k++) {
             const [a, va] = anchors[k], [b, vb] = anchors[k + 1];
             if (b <= a) { vals[a] = va; continue; }
             const w = [0];
@@ -206,7 +206,7 @@ export function tapeSample(bar, resS) {
             }
         }
         for (const [t, v] of anchors) vals[t] = v;
-    /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-15d394b7 */ }
+    }
     const secs = [];
     let prev = O;
     for (let k = 0; k < N; k++) {

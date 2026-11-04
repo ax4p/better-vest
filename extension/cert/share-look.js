@@ -29,7 +29,7 @@ export function bgOpts(raw) {
     for (const k of ['color', 'c1', 'c2']) { const c = hexColor(raw[k]); if (c) o[k] = c; }
     o.angle = clampInt(raw.angle, 0, 360, BG_DEFAULTS.angle);
     if (BG_FITS.includes(raw.fit)) o.fit = raw.fit;
-    o.dim = clampInt(raw.dim, 0, BG_DIM_MAX, BG_DEFAULTS.dim); /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-71acb5df */
+    /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.1. bv-8401cf54 */ o.dim = clampInt(raw.dim, 0, BG_DIM_MAX, BG_DEFAULTS.dim);
     o.blur = clampInt(raw.blur, 0, BG_BLUR_MAX, BG_DEFAULTS.blur);
     return o;
 }
@@ -80,7 +80,7 @@ export function bgFramePlan(durations, o) {
     let frames;
     if (opt.frames > 0) frames = Math.round(opt.frames);
     else {
-        const max = opt.maxMs > 0 ? opt.maxMs : BG_VIDEO_MAX_MS, min = opt.minMs > 0 ? opt.minMs : BG_VIDEO_MIN_MS;
+        /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-5a754b35 */ const max = opt.maxMs > 0 ? opt.maxMs : BG_VIDEO_MAX_MS, min = opt.minMs > 0 ? opt.minMs : BG_VIDEO_MIN_MS;
         let ms = loopMs;
         if (ms < min) ms = Math.ceil(min / loopMs) * loopMs;
         ms = Math.min(ms, max);
@@ -88,7 +88,7 @@ export function bgFramePlan(durations, o) {
     }
     const starts = [];
     let acc = 0;
-    for (const x of d) { starts.push(acc); acc += x; } /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.0. bv-5ab16d3d */
+    for (const x of d) { starts.push(acc); acc += x; }
     const at = (i) => {
         const t = ((i / fps) * 1000) % loopMs;
         let lo = 0, hi = d.length - 1;

@@ -31,9 +31,9 @@ export function openDb(userId) {
         const req = indexedDB.open(DB_PREFIX + userId, DB_VERSION);
         const done = (fn, v) => {
             if (settled) return;
-            settled = true; /* @license Better Vest 9.5.0. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-e615b79f */
+            settled = true;
             clearTimeout(blockedTimer);
-            fn(v);
+            /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-8fab3f6a */ fn(v);
         };
         req.onupgradeneeded = () => upgrade(req.result);
         req.onblocked = () => {
@@ -58,7 +58,7 @@ function wrap(req) {
 
 function finish(tx) {
     return new Promise((resolve, reject) => {
-        /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-b551c6bb */ tx.oncomplete = () => resolve();
+        tx.oncomplete = () => resolve();
         tx.onerror = () => reject(tx.error);
         tx.onabort = () => reject(tx.error || new Error('transaction aborted'));
     });
@@ -79,7 +79,7 @@ export function get(db, store, key) {
 async function writeTx(db, names, fill) {
     const tx = db.transaction(names, 'readwrite');
     try {
-        fill(tx);
+        /*! Copyright Astral 2026. From Better Vest 9.5.1 (nostats), ref bv-2a85e0a5. Not licensed for reuse. */ fill(tx);
     } catch (e) {
         try { tx.abort(); } catch (e2) {}
         throw e;
@@ -103,7 +103,7 @@ export function putMany(db, byStore) {
     const names = Object.keys(byStore || {}).filter((n) => byStore[n] && byStore[n].length);
     if (!names.length) return Promise.resolve();
     return writeTx(db, names, (tx) => {
-        for (const n of names) { /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-3a99ce53 */
+        for (const n of names) {
             const os = tx.objectStore(n);
             for (const v of byStore[n]) os.put(v);
         }
@@ -119,7 +119,7 @@ export async function getMeta(db, key) {
     return row ? row.value : undefined;
 }
 
-export function putMeta(db, key, value) {
+export function putMeta(db, key, value) { /* Owned by Astral (@ax4p): Better Vest nostats 9.5.1. Licence: LICENSE, not open source. bv-e1503553 */
     return put(db, 'meta', { key, value });
 }
 

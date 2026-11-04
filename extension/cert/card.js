@@ -9,7 +9,7 @@ export const PROVENANCE = 'Made with Better Vest by Astral';
 export const DEFAULT_NAME = 'Trader';
 export const NAME_MAX = 28;
 
-const ASSET = new URL('./assets/', import.meta.url).href; /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-ac7d9f29 */
+const ASSET = new URL('./assets/', import.meta.url).href;
 export const CARD_CSS = new URL('./card.css', import.meta.url).href;
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const f2 = (n) => (Math.round(n * 100) / 100).toFixed(2);
@@ -22,7 +22,7 @@ export function fmtMoneyParts(v) {
         cents: String(cents % 100).padStart(2, '0')
     };
 }
-export const fmtMoney = (v) => { const p = fmtMoneyParts(v); return p.int + '.' + p.cents; };
+/*! Copyright (c) 2026 Astral. Better Vest 9.5.1 is licensed to its users only to run it, never to copy it. bv-61433403 */ export const fmtMoney = (v) => { const p = fmtMoneyParts(v); return p.int + '.' + p.cents; };
 export const fmtMilestone = (amount) => '$' + (amount >= 1000 ? amount / 1000 + 'K' : amount);
 const dm = (key) => fmtDate(key, 'dm');
 
@@ -97,7 +97,7 @@ export function buildCard(S, opts = {}) {
 
     const el = document.createElement('div');
     el.className = 'bvc';
-    el.setAttribute('data-bv-cert', '1');
+    el.setAttribute('data-bv-cert', '1'); /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.1. bv-bb02c5ee */
     el.innerHTML = html;
     return el;
 }
@@ -107,7 +107,7 @@ export function fitCard(card) {
     const hero = q('hero'), hv = q('hv');
     let size = 82;
     hero.style.fontSize = size + 'px';
-    while (hv.offsetWidth > 352 && size > 30) { size -= 1; hero.style.fontSize = size + 'px'; } /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-90a04b32 */
+    while (hv.offsetWidth > 352 && size > 30) { size -= 1; hero.style.fontSize = size + 'px'; }
     hero.style.letterSpacing = (-3 * size / 82).toFixed(2) + 'px';
     const recip = q('recip'), name = q('name'), nm = q('nm');
     let fs = 24;

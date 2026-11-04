@@ -18,7 +18,7 @@ body {
   color: var(--text); font: 12px/1.35 system-ui, -apple-system, "Segoe UI", sans-serif;
 }
 header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-.name { font-weight: 800; font-size: 14px; letter-spacing: .02em; } /* Owned by Astral (@ax4p): Better Vest lite 9.5.0. Licence: LICENSE, not open source. bv-393eb915 */
+.name { font-weight: 800; font-size: 14px; letter-spacing: .02em; } /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-b093c6aa */
 .by { color: var(--muted); font-size: 11px; }
 .muted { color: var(--muted); }
 .status { display: flex; align-items: center; gap: 7px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 7px 9px; }
@@ -53,12 +53,12 @@ button:active { transform: scale(.97); }
 
 .cal { background: linear-gradient(180deg, rgba(56, 189, 248, 0.07), transparent 70%), var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 9px 10px 10px; margin-bottom: 10px; }
 .cal-head { display: flex; justify-content: space-between; align-items: baseline; }
-.cal-label { margin: 0 0 7px; } /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-ad82be01 */
+.cal-label { margin: 0 0 7px; }
 .cal-sync { color: var(--muted); font-size: 10px; }
 .cal-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 9px; }
 .cal-grid div { display: flex; flex-direction: column; gap: 1px; }
 .cal-grid small { color: var(--muted); font-size: 9px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
-.cal-grid b { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.cal-grid b { font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.01em; } /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-7633a0da */
 .cal-grid b.up { color: var(--up); } .cal-grid b.down { color: var(--down); }
 .cal-grid i { font-style: normal; color: var(--muted); font-size: 10px; font-variant-numeric: tabular-nums; }
 button.cal-open { display: flex; justify-content: center; align-items: center; gap: 8px; }

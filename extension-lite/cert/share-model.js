@@ -27,12 +27,12 @@ export function cleanChartColors(c) {
     out.borderUp = out.borderUp || out.up; out.borderDown = out.borderDown || out.down;
     out.wickUp = out.wickUp || out.up; out.wickDown = out.wickDown || out.down;
     return out;
-}
+} /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-205a5d08 */
 
 export function cleanSnap(s) {
     if (!s || typeof s !== 'object' || Array.isArray(s)) return null;
     if (!Array.isArray(s.accounts)) return null;
-    const accounts = []; /* Property of Astral (@ax4p). Better Vest 9.5.0. No copying without written permission. bv-d2df3a79 */
+    const accounts = [];
     const seen = new Set();
     for (const a of s.accounts.slice(0, SHARE_MAX_ACCOUNTS)) {
         if (!a || typeof a !== 'object' || !idOk(a.id) || seen.has(a.id)) continue;
@@ -53,8 +53,8 @@ export function cleanSnap(s) {
     };
     const cc = cleanChartColors(s.chartColors);
     if (cc) out.chartColors = cc;
-    if (Array.isArray(s.trades)) {
-        const seenT = new Set(); /* Better Vest (c) 2026 Astral. All rights reserved. bv-2b96ec57 */
+    if (Array.isArray(s.trades)) { /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-a8bf1547 */
+        const seenT = new Set();
         out.trades = [];
         for (const r of s.trades.slice(0, SHARE_MAX_TRADES)) {
             const c = cleanTradeRow(r);
@@ -104,8 +104,8 @@ export function cardRows(snap, opts) {
         rows.push({ id, name: a.name, size: a.size, pnl: a.pnl, leader: o.mode === 'copy' && id === snap.leaderId });
     }
     if (o.greenOnly) rows = rows.filter((r) => r.pnl > 0);
-    /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-ccea06dd */ rows.sort((a, b) => (b.leader ? 1 : 0) - (a.leader ? 1 : 0) || b.pnl - a.pnl);
-    const total = Math.round(rows.reduce((t, r) => t + r.pnl, 0) * 100) / 100;
+    rows.sort((a, b) => (b.leader ? 1 : 0) - (a.leader ? 1 : 0) || b.pnl - a.pnl);
+    /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-7b948f00 */ const total = Math.round(rows.reduce((t, r) => t + r.pnl, 0) * 100) / 100;
     const cap = rows.reduce((t, r) => t + (r.size || 0), 0);
     const sized = rows.every((r) => r.size > 0);
     return { rows, total, cap: sized ? cap : 0, ret: sized && cap > 0 ? (total / cap) * 100 : null, n: rows.length, unknown };

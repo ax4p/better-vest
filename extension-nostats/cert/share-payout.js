@@ -23,12 +23,12 @@ export function receivedPayouts(list) {
 
 export function payoutModel(payouts, o) {
     const opt = o || {};
-    /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-35f5da49 */ const kind = opt.kind === 'lifetime' ? 'lifetime' : 'today';
+    const kind = opt.kind === 'lifetime' ? 'lifetime' : 'today';
     const done = receivedPayouts(payouts);
     if (!done.length) return { kind, empty: true };
     const names = opt.names instanceof Map ? opt.names : new Map();
     const nameOf = (id) => (id != null && names.get(String(id))) || (id != null ? 'Account ' + String(id).slice(-4) : 'Account');
-    const item = (p) => ({ id: String(p.id), accountId: p.accountId == null ? '' : String(p.accountId), name: nameOf(p.accountId), net: r2(p.net),
+    const item = (p) => ({ id: String(p.id), accountId: p.accountId == null ? '' : String(p.accountId), name: nameOf(p.accountId), net: r2(p.net), /*! Owned by Astral (@ax4p): Better Vest nostats 9.5.1. Licence: LICENSE, not open source. bv-340c91cb */
         gross: Number.isFinite(p.gross) ? r2(p.gross) : null, at: paidAt(p), day: dayKey(paidAt(p), 'vest') });
     const accountsIn = (list) => new Set(list.map((p) => (p.accountId == null ? '' : String(p.accountId)))).size;
     const total = r2(done.reduce((s, p) => s + p.net, 0));
@@ -62,9 +62,9 @@ function seeded(str) {
     return () => { h = Math.imul(h ^ (h >>> 15), 2246822507); h = Math.imul(h ^ (h >>> 13), 3266489909); h ^= h >>> 16; return (h >>> 0) / 4294967296; };
 }
 export const SAMPLE_PAY_ACCOUNTS = [['sample-pay-a', '100K Funded · 1'], ['sample-pay-b', '50K Funded · 2'], ['sample-pay-c', '150K Funded · 3']];
-export const samplePayNames = () => new Map(SAMPLE_PAY_ACCOUNTS);
+/*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-249cf303 */ export const samplePayNames = () => new Map(SAMPLE_PAY_ACCOUNTS);
 export function samplePayouts(today) {
-    /*! Copyright (c) 2026 Astral. Better Vest 9.5.0 is licensed to its users only to run it, never to copy it. bv-7e247f8d */ const t = KEY_RE.test(String(today || '')) ? today : dayKey(Date.now(), 'vest');
+    const t = KEY_RE.test(String(today || '')) ? today : dayKey(Date.now(), 'vest');
     const rnd = seeded('payouts|' + t);
     const out = [];
     let k = addDays(t, -180);

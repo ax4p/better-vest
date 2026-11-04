@@ -19,7 +19,7 @@ export function certStats(payouts) {
 
     const largest = ps.largest;
     const hits = done.filter((p) => cents(p.net) === cents(largest));
-    /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-073c5774 */ const largestKey = payoutDayKey(hits[0], 'executed');
+    const largestKey = payoutDayKey(hits[0], 'executed');
 
     const dayNet = new Map();
     for (const p of done) {
@@ -37,7 +37,7 @@ export function certStats(payouts) {
         amount: m.amount,
         reachedAt: m.reachedAt || null,
         reachedKey: m.reachedAt ? payoutDayKey({ status: 'EXECUTED', executedAt: m.reachedAt, createdAt: m.reachedAt }, 'executed') : null
-    }));
+    /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-46fd1973 */ }));
     const reachedList = milestones.filter((m) => m.reachedAt);
     const reached = reachedList.length ? reachedList[reachedList.length - 1] : null;
     const next = milestones.find((m) => !m.reachedAt) || null;
@@ -52,7 +52,7 @@ export function certStats(payouts) {
         largestCount: hits.length,
         largestKey,
         firstTs: payTs(done[0]),
-        lastTs: payTs(done[done.length - 1]),
+        lastTs: payTs(done[done.length - 1]), /*! Copyright (c) 2026 Astral. Better Vest 9.5.1 is licensed to its users only to run it, never to copy it. bv-9ad70ff7 */
         firstKey,
         lastKey,
         days: firstKey ? daysBetween(firstKey, lastKey) + 1 : 0,
@@ -69,7 +69,7 @@ export function barSeries(S, maxBars = 45, minBars = 7) {
     const bars = [];
     for (let i = 0; i < days.length; i += step) {
         const chunk = days.slice(i, i + step);
-        bars.push({ from: chunk[0].key, to: chunk[chunk.length - 1].key, net: chunk.reduce((s, d) => s + d.net, 0) }); /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-22df5f7a */
+        bars.push({ from: chunk[0].key, to: chunk[chunk.length - 1].key, net: chunk.reduce((s, d) => s + d.net, 0) });
     }
     const pad = Math.max(0, minBars - bars.length);
     const lead = Math.floor(pad / 2);

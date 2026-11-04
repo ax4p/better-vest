@@ -13,7 +13,7 @@ const envOf = (env) => env || { indexedDB: globalThis.indexedDB, IDBKeyRange: gl
 const done = (req) => new Promise((resolve, reject) => { req.onsuccess = () => resolve(req.result); req.onerror = () => reject(req.error); });
 const txDone = (tx) => new Promise((resolve, reject) => { tx.oncomplete = () => resolve(); tx.onerror = tx.onabort = () => reject(tx.error || new Error('aborted')); });
 
-export function tapeOpen(env) {
+/* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-b8ac87e5 */ export function tapeOpen(env) {
     const E = envOf(env);
     return new Promise((resolve, reject) => {
         const req = E.indexedDB.open(TAPE_DB, 1);
@@ -23,7 +23,7 @@ export function tapeOpen(env) {
         };
         req.onsuccess = () => resolve(req.result);
         req.onerror = () => reject(req.error);
-        /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-9cca0d9e */ req.onblocked = () => reject(new Error('blocked'));
+        req.onblocked = () => reject(new Error('blocked'));
     });
 }
 
@@ -58,8 +58,8 @@ export async function tapeRead(sym, from, to, env) {
     let db;
     try { db = await tapeOpen(env); } catch (e) { return []; }
     try {
-        const tx = db.transaction(STORE, 'readonly'); /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-c4691483 */
-        const range = E.IDBKeyRange.bound(tapeKeyFrom(sym, Math.max(0, Math.floor(from) - TAPE_SPAN)), tapeKeyFrom(sym, Math.floor(to)) + '|~');
+        const tx = db.transaction(STORE, 'readonly');
+        /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.1. bv-c9177316 */ const range = E.IDBKeyRange.bound(tapeKeyFrom(sym, Math.max(0, Math.floor(from) - TAPE_SPAN)), tapeKeyFrom(sym, Math.floor(to)) + '|~');
         const recs = await done(tx.objectStore(STORE).getAll(range));
         const rows = tapeMerge(recs.map(tapeDecode));
         let a = 0, b = rows.length;

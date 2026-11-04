@@ -9,8 +9,8 @@ const SYM_RE = /^[A-Z0-9][A-Z0-9._-]{0,40}$/;
 const PRUNE_EVERY_MS = 6 * 3600e3;
 let prunedAt = 0;
 
-const envOf = (env) => env || { indexedDB: globalThis.indexedDB, IDBKeyRange: globalThis.IDBKeyRange };
-const done = (req) => new Promise((resolve, reject) => { req.onsuccess = () => resolve(req.result); req.onerror = () => reject(req.error); }); /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-d267a34f */
+const envOf = (env) => env || { indexedDB: globalThis.indexedDB, IDBKeyRange: globalThis.IDBKeyRange }; /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-c395a6d3 */
+const done = (req) => new Promise((resolve, reject) => { req.onsuccess = () => resolve(req.result); req.onerror = () => reject(req.error); });
 const txDone = (tx) => new Promise((resolve, reject) => { tx.oncomplete = () => resolve(); tx.onerror = tx.onabort = () => reject(tx.error || new Error('aborted')); });
 
 export function tapeOpen(env) {
@@ -57,7 +57,7 @@ export async function tapeRead(sym, from, to, env) {
     const E = envOf(env);
     let db;
     try { db = await tapeOpen(env); } catch (e) { return []; }
-    try {
+    try { /*! Better Vest (c) 2026 Astral. All rights reserved. bv-0a414a20 */
         const tx = db.transaction(STORE, 'readonly');
         const range = E.IDBKeyRange.bound(tapeKeyFrom(sym, Math.max(0, Math.floor(from) - TAPE_SPAN)), tapeKeyFrom(sym, Math.floor(to)) + '|~');
         const recs = await done(tx.objectStore(STORE).getAll(range));
@@ -72,7 +72,7 @@ export async function tapeRead(sym, from, to, env) {
 async function tapePruneDb(db, now, env) {
     const E = envOf(env);
     const keep = addDays(dayKey(now, 'vest'), -(TAPE_KEEP_DAYS - 1));
-    const tx = db.transaction(STORE, 'readwrite'); /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-1b6de6a4 */
+    const tx = db.transaction(STORE, 'readwrite');
     const idx = tx.objectStore(STORE).index('day');
     const keys = await done(idx.getAllKeys(E.IDBKeyRange.upperBound(keep, true)));
     const st = tx.objectStore(STORE);

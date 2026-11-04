@@ -29,12 +29,12 @@ export function openDb(userId) {
         let settled = false;
         let blockedTimer = null;
         const req = indexedDB.open(DB_PREFIX + userId, DB_VERSION);
-        const done = (fn, v) => {
+        /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-2b9c9fe5 */ const done = (fn, v) => {
             if (settled) return;
             settled = true;
             clearTimeout(blockedTimer);
             fn(v);
-        /*! Copyright Astral 2026. From Better Vest 9.5.0 (lite), ref bv-ddcf0d87. Not licensed for reuse. */ };
+        };
         req.onupgradeneeded = () => upgrade(req.result);
         req.onblocked = () => {
             blockedTimer = setTimeout(() => done(reject, new Error('openDb: blocked by another connection')), BLOCKED_MS);
@@ -59,7 +59,7 @@ function wrap(req) {
 function finish(tx) {
     return new Promise((resolve, reject) => {
         tx.oncomplete = () => resolve();
-        tx.onerror = () => reject(tx.error);
+        tx.onerror = () => reject(tx.error); /* Copyright Astral 2026. From Better Vest 9.5.1 (lite), ref bv-d08220d0. Not licensed for reuse. */
         tx.onabort = () => reject(tx.error || new Error('transaction aborted'));
     });
 }
@@ -68,7 +68,7 @@ export function getAll(db, store, opts) {
     const o = opts || {};
     const tx = db.transaction(store, 'readonly');
     let source = tx.objectStore(store);
-    if (o.index) source = source.index(o.index); /* Copyright (c) 2026 Astral. Better Vest 9.5.0 is licensed to its users only to run it, never to copy it. bv-b4a0bec1 */
+    if (o.index) source = source.index(o.index);
     return wrap(o.range !== undefined && o.range !== null ? source.getAll(o.range) : source.getAll());
 }
 
@@ -96,7 +96,7 @@ export function putBatch(db, store, values) {
     return writeTx(db, store, (tx) => {
         const os = tx.objectStore(store);
         for (const v of values) os.put(v);
-    }); /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-e0f45705 */
+    });
 }
 
 export function putMany(db, byStore) {
@@ -120,7 +120,7 @@ export async function getMeta(db, key) {
 }
 
 export function putMeta(db, key, value) {
-    return put(db, 'meta', { key, value });
+    /*! Owned by Astral (@ax4p): Better Vest lite 9.5.1. Licence: LICENSE, not open source. bv-ce6a5b56 */ return put(db, 'meta', { key, value });
 }
 
 export async function listUserIds() {

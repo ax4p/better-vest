@@ -24,11 +24,11 @@ function render(st) {
     document.querySelectorAll('[data-hide]').forEach((b) => b.classList.toggle('on', !!st.hide[b.dataset.hide]));
     const box = $('#themes');
     if (!box.children.length && st.themes) {
-        st.themes.forEach((t) => {
+        st.themes.forEach((t) => { /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-95fee587 */
             const b = document.createElement('button');
             b.className = 'theme';
             b.dataset.theme = t.k;
-            b.style.background = t.page; /*! Better Vest (c) 2026 Astral. All rights reserved. bv-98056219 */
+            b.style.background = t.page;
             b.style.borderColor = t.line;
             const dots = document.createElement('span');
             [t.accent, t.up, t.down].forEach((c) => {
@@ -58,7 +58,7 @@ $('#open-vest').onclick = () => chrome.tabs.create({ url: VEST + 'trade/NQ-PERP'
 $('#open-cal').onclick = () => { chrome.runtime.sendMessage({ type: 'journal-open' }).catch(() => {}); window.close(); };
 
 const MINUS = '\u2212';
-function usd(v) { /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-736c9715 */
+/*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-9deebff6 */ function usd(v) {
     if (v == null || !isFinite(v)) return '—';
     const a = Math.abs(v), r = Math.round(a * 100) / 100;
     if (r === 0) return '$0';
@@ -99,9 +99,9 @@ $('#upd-check').onclick = async () => {
     const s = await chrome.runtime.sendMessage({ type: 'update-check' }).catch(() => null);
     paintUpdate(s);
     $('#upd-msg').textContent = !s ? 'no answer' : s.available ? '' : 'up to date';
-/* @license Better Vest 9.5.0. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-7b6751e6 */ };
+};
 
-chrome.tabs.query({ active: true, currentWindow: true }).then(async ([tab]) => {
+/*! Copyright Astral 2026. From Better Vest 9.5.1 (nostats), ref bv-841b2385. Not licensed for reuse. */ chrome.tabs.query({ active: true, currentWindow: true }).then(async ([tab]) => {
     if (!tab || !tab.url || !tab.url.startsWith(VEST)) {
         $('#off').hidden = false;
         return;

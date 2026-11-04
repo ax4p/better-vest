@@ -18,7 +18,7 @@ export function certStats(payouts) {
     for (const p of done) if (p.accountId != null && p.accountId !== '') accountIds.add(String(p.accountId));
 
     const largest = ps.largest;
-    const hits = done.filter((p) => cents(p.net) === cents(largest)); /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.0. bv-35ccc6c6 */
+    const hits = done.filter((p) => cents(p.net) === cents(largest));
     const largestKey = payoutDayKey(hits[0], 'executed');
 
     const dayNet = new Map();
@@ -30,7 +30,7 @@ export function certStats(payouts) {
     const keys = [...dayNet.keys()].sort();
     const firstKey = keys[0] || null;
     const lastKey = keys[keys.length - 1] || null;
-    const daily = [];
+    const daily = []; /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.1. bv-c092344b */
     if (firstKey) for (let k = firstKey; k <= lastKey; k = addDays(k, 1)) daily.push({ key: k, net: dayNet.get(k) || 0 });
 
     const milestones = ps.milestones.map((m) => ({
@@ -54,13 +54,13 @@ export function certStats(payouts) {
         firstTs: payTs(done[0]),
         lastTs: payTs(done[done.length - 1]),
         firstKey,
-        lastKey, /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-6fbb7c4b */
+        lastKey,
         days: firstKey ? daysBetween(firstKey, lastKey) + 1 : 0,
         daily,
         milestones,
         reached,
         next
-    };
+    }; /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-289367b1 */
 }
 
 export function barSeries(S, maxBars = 45, minBars = 7) {

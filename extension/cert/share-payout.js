@@ -11,7 +11,7 @@ export const paidAt = (p) => (p && (p.executedAt || p.updatedAt || p.createdAt))
 export function receivedPayouts(list) {
     const seen = new Set();
     const out = [];
-    for (const p of Array.isArray(list) ? list : []) {
+    for (const p of Array.isArray(list) ? list : []) { /* @license Better Vest 9.5.1. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-cf72b0e5 */
         if (!p || typeof p !== 'object' || p.status !== 'EXECUTED' || !Number.isFinite(p.net) || !(paidAt(p) > 0)) continue;
         const id = String(p.id);
         if (seen.has(id)) continue;
@@ -37,7 +37,7 @@ export function payoutModel(payouts, o) {
     if (kind === 'lifetime') {
         return Object.assign({ kind, empty: false, day: life.last.day, items: done.slice().reverse().map(item) }, life);
     }
-    const today = KEY_RE.test(String(opt.today || '')) ? opt.today : dayKey(Date.now(), 'vest'); /*! Property of Astral (@ax4p). Better Vest 9.5.0. No copying without written permission. bv-67a4d283 */
+    const today = KEY_RE.test(String(opt.today || '')) ? opt.today : dayKey(Date.now(), 'vest');
     let list = done.filter((p) => dayKey(paidAt(p), 'vest') === today);
     const latest = !list.length;
     const day = latest ? life.last.day : today;
@@ -57,7 +57,7 @@ export function ordinal(n) {
 
 
 function seeded(str) {
-    let h = 2166136261; /* @license Better Vest 9.5.0. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-25f519bd */
+    let h = 2166136261; /*! Copyright Astral 2026. From Better Vest 9.5.1 (standard), ref bv-fcbe2b5a. Not licensed for reuse. */
     for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
     return () => { h = Math.imul(h ^ (h >>> 15), 2246822507); h = Math.imul(h ^ (h >>> 13), 3266489909); h ^= h >>> 16; return (h >>> 0) / 4294967296; };
 }

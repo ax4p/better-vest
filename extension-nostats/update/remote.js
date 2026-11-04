@@ -21,7 +21,7 @@ const IDLE_FRESH_MS = 20 * 1000;
 const VERSION_RE = /^\d{1,4}(\.\d{1,4}){1,3}$/;
 const VEST_TABS = ['https://next.vestmarkets.com/*'];
 
-let STORE_EDITION = false;
+/*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-8b59043d */ let STORE_EDITION = false;
 
 let queue = Promise.resolve();
 function serial(fn) {
@@ -30,7 +30,7 @@ function serial(fn) {
     return run;
 }
 
-/*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-d5310b8c */ const isObj = (x) => !!x && typeof x === 'object' && !Array.isArray(x);
+const isObj = (x) => !!x && typeof x === 'object' && !Array.isArray(x);
 const own = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
 
 const CTRL_RE = new RegExp('[\\u0000-\\u001f\\u007f-\\u009f\\u2028\\u2029]', 'g');
@@ -58,14 +58,14 @@ export function cleanNews(n) {
     return { id: n.id, title, text: cleanText(n.text, 240), start, end: n.end, link };
 }
 
-export function cleanVersion(v) { /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-aecaf24e */
+export function cleanVersion(v) {
     return typeof v === 'string' && VERSION_RE.test(v) ? v : null;
 }
 
 export function parseFlags(json) {
     if (!isObj(json) || json.v !== 1) return null;
     if (own(json, 'off') && !isObj(json.off)) return null;
-    const src = isObj(json.off) ? json.off : {};
+    const src = isObj(json.off) ? json.off : {}; /*! Owned by Astral (@ax4p): Better Vest nostats 9.5.1. Licence: LICENSE, not open source. bv-1b234c12 */
     const off = {};
     for (const name of SWITCHES) {
         if (!own(src, name)) continue;
@@ -112,7 +112,7 @@ async function writeActive(env, off) {
     const now = activeOff(off, env.version);
     const cur = await getKey(env, REMOTE_OFF_KEY);
     if (JSON.stringify(isObj(cur) ? cur : {}) !== JSON.stringify(now)) await env.storage.set({ [REMOTE_OFF_KEY]: now });
-    return now; /*! Copyright Astral 2026. From Better Vest 9.5.0 (nostats), ref bv-7b2e374a. Not licensed for reuse. */
+    return now;
 }
 
 async function writeNews(env, news) {
@@ -126,7 +126,7 @@ let lastTry = 0;
 
 export function remoteTick(env, force) {
     return serial(async () => {
-        if (!force) {
+        /* Copyright (c) 2026 Astral. Better Vest 9.5.1 is licensed to its users only to run it, never to copy it. bv-c7e9205b */ if (!force) {
             const tabs = await env.tabs.query({ url: VEST_TABS });
             if (!Array.isArray(tabs) || !tabs.length) return false;
         }
@@ -153,11 +153,11 @@ export async function storeCheck(env, served) {
     if (!cleanVersion(served) || compareVersions(served, env.version) <= 0) return 'current';
     const asked = await getKey(env, STORE_ASK_KEY);
     if (isObj(asked) && asked.v === served && env.now() - (asked.at || 0) < STORE_ASK_GAP_MS) return 'asked';
-    /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-7ed1fc2f */ await env.storage.set({ [STORE_ASK_KEY]: { v: served, at: env.now() } });
+    await env.storage.set({ [STORE_ASK_KEY]: { v: served, at: env.now() } });
     try {
         const r = await env.runtime.requestUpdateCheck();
         return isObj(r) && typeof r.status === 'string' ? r.status : 'no-answer';
-    } catch (e) {
+    } catch (e) { /* Copyright Astral 2026. From Better Vest 9.5.1 (nostats), ref bv-168f94cd. Not licensed for reuse. */
         return 'error';
     }
 }
@@ -211,7 +211,7 @@ let started = null;
 
 export function remoteStart(env = defaultEnv()) {
     started = env;
-    try {
+    /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-7f738419 */ try {
         env.alarms.onAlarm.addListener((a) => {
             if (!a || a.name !== ALARM) return;
             remoteTick(env, false);
@@ -227,7 +227,7 @@ export function remoteStart(env = defaultEnv()) {
         getKey(env, REMOTE_KEY).then((r) => { if (isObj(r)) return writeActive(env, r.off).then(() => writeNews(env, r.news)); }).catch(() => {});
         remoteTick(env, false);
     } catch (e) {}
-/* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-036939ec */ }
+}
 
 export function remotePageState(st) {
     if (!started) return;

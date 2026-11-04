@@ -32,9 +32,9 @@ export async function byeUrl(env) {
     if (!url) return false;
     await env.runtime.setUninstallURL(url);
     return true;
-}
+/* Owned by Astral (@ax4p): Better Vest standard 9.5.1. Licence: LICENSE, not open source. bv-bcdae497 */ }
 const VERSION_RE = /^\d{1,4}\.\d{1,4}\.\d{1,4}$/;
-const COUNT_EDITIONS = ['standard', 'lite', 'wicked']; /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.0. bv-73691611 */
+const COUNT_EDITIONS = ['standard', 'lite', 'wicked'];
 
 export function installBody(version, edition) {
     if (!VERSION_RE.test(String(version)) || COUNT_EDITIONS.indexOf(edition) < 0) return null;
@@ -68,10 +68,10 @@ const VEST_TABS = ['https://next.vestmarkets.com/*'];
 
 export function newCountId(cryptoObj) {
     const b = new Uint8Array(16);
-    /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-26b670f1 */ cryptoObj.getRandomValues(b);
+    cryptoObj.getRandomValues(b);
     let s = '';
     for (const x of b) s += x.toString(16).padStart(2, '0');
-    return s;
+    return s; /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-4eee82e9 */
 }
 
 export function heartbeatBody(version, edition, id) {
@@ -116,7 +116,7 @@ async function scheduleHeartbeat(env) {
 }
 
 const USAGE_SCHEMA = {"set":{"acct.100k":{"num":[0,200]},"acct.10k":{"num":[0,200]},"acct.150k":{"num":[0,200]},"acct.200k":{"num":[0,200]},"acct.25k":{"num":[0,200]},"acct.50k":{"num":[0,200]},"acct.5k":{"num":[0,200]},"acct.count":["0","1","2","3","4-5","6-9","10-19","20+"],"acct.eval":{"num":[0,200]},"acct.funded":{"num":[0,200]},"acct.instant":{"num":[0,200]},"acct.otherSize":{"num":[0,200]},"acct.primary":{"num":[0,50]},"accts.menu":"bool","accts.panel":"bool","accts.points":"bool","accts.sort":["limit","name","value","today"],"accts.strip":"bool","accts.stripAt":["top","market"],"accts.warn":"bool","autobe.on":"bool","autobe.unit":["pt","usd"],"card.collapsed":"bool","card.partPct":{"num":[1,99]},"card.partials":"bool","card.place":["float","ticket","dock"],"card.preset":["5k","10k","25k","custom"],"card.prices":"bool","card.risk":"bool","card.slOn":"bool","card.slUnit":["pt","usd","price"],"card.targets":{"num":[1,10]},"card.tpOn":"bool","card.tpUnit":["pt","usd","price"],"card.vestTicket":"bool","ch":["github","store","wicked","phone"],"chart.hideGrid":"bool","chart.hideSessions":"bool","chart.hideVolume":"bool","chart.stars":["auto","on","off"],"chart.sync":"bool","copy.engine":["none","light","turbo","mixed"],"copy.followers":{"num":[0,50]},"copy.groups":{"num":[0,20]},"copy.limits":"bool","copy.on":"bool","copy.ultra":"bool","dll.flat":"bool","dll.on":"bool","dll.profit":"bool","dll.vest":"bool","font":["site","system","inter","geist","manrope","grotesk","plex","jetbrains","mono"],"heat.engine":["hide","show"],"heat.on":"bool","hide.banner":"bool","hide.book":"bool","hide.footer":"bool","hide.health":"bool","hide.leftRail":"bool","hide.leftTools":"bool","hide.nav":"bool","hide.positions":"bool","hide.stats":"bool","hide.ticket":"bool","hide.topStats":"bool","keys.be":"key","keys.bracket":"bool","keys.flat":"key","keys.limitBuy":"key","keys.limitSell":"key","keys.long":"key","keys.on":"bool","keys.short":"key","keys.toast":"bool","layout.posSize":["vest","small","tall"],"limit.show":"bool","look.accent":["theme","own"],"look.bg":["none","color","aurora","dusk","ocean","forest","image"],"look.compactDock":"bool","look.dockCalendar":"bool","look.glass":{"num":[0,100]},"look.updown":["theme","classic","cvd","teal","custom"],"mch.layout":["1","2h","2v","3","4"],"mnq":"bool","news.cpi":"bool","news.fomc":"bool","news.gdp":"bool","news.nfp":"bool","news.pce":"bool","news.ppi":"bool","onb.goals":["none","copy","fast","prop","clean","copy+fast","copy+prop","copy+clean","fast+prop","fast+clean","prop+clean","copy+fast+prop","copy+fast+clean","copy+prop+clean","fast+prop+clean","copy+fast+prop+clean"],"onb.state":["new","done","skipped"],"phone.hold":"bool","phone.mini":"bool","phone.vestOrder":"bool","phone.vestToasts":"bool","pnl.autoPop":"bool","pnl.tape":"bool","session.lead1":"bool","session.lead5":"bool","session.on":"bool","session.open":"bool","stops.show":"bool","theme":["astral","dark","oled","light","nebula","starfield","midnight","native","dracula","catppuccin","custom"],"tilt.on":"bool","tpsl.beMode":["pctProfit","ticks","points"],"tpsl.beShow":"bool","tpsl.followBars":"bool","tpsl.makeRoom":"bool","tpsl.on":"bool","tpsl.showR":"bool","trail.now":"bool","trail.on":"bool","trail.unit":["pt","usd"],"vc.mode":["ptt","wake"],"vc.on":"bool","vc.open":"bool","voice.exits":"bool","voice.on":"bool","voice.orders":"bool","voice.pack":["arthur","eddie","elara","belle","emma","tala"],"voice.risk":"bool","voice.session":"bool","voice.vol":{"num":[0,100]},"wick.always":"bool","wick.ask":"bool","wick.variant":["3","4","5"],"widget.spread":"bool"},"use":{"accts.manage":1,"accts.menu":1,"accts.panel":1,"accts.payout":1,"alert.add":1,"alert.hit":1,"alert.remove":1,"buy.none":1,"buy.other":1,"buy.wick":1,"cal.open":1,"card.collapse":1,"card.cxl":1,"card.flat":1,"card.flatReduce":1,"card.half":1,"card.limit":1,"card.lock":1,"card.long":1,"card.part":1,"card.rev":1,"card.short":1,"card.stop":1,"cert.open":1,"chart.be":1,"chart.drag":1,"copy.light":1,"copy.on":1,"copy.turbo":1,"dock.charts":1,"dock.macros":1,"fb.open":1,"fb.sent":1,"heat.on":1,"hk.be":1,"hk.flat":1,"hk.limitBuy":1,"hk.limitSell":1,"hk.long":1,"hk.short":1,"mch.change":1,"onb.copyHow":1,"onb.copyOpen":1,"onb.done":1,"onb.list":1,"onb.look":1,"onb.shown":1,"onb.skip":1,"onb.step":1,"onb.tour":1,"phone.card":1,"phone.copy":1,"phone.draw":1,"phone.full":1,"phone.menu":1,"phone.min":1,"phone.restore":1,"phone.strip":1,"pnl.gif":1,"pnl.open":1,"pnl.png":1,"pnl.video":1,"set.alerts":1,"set.chart":1,"set.exec":1,"set.focus":1,"set.keys":1,"set.look":1,"set.market":1,"set.more":1,"set.open":1,"set.risk":1,"set.tpsl":1,"spend.none":1,"spend.other":1,"spend.wick":1,"time.active":1,"trade.autobe":1,"trade.eval":1,"trade.funded":1,"trade.instant":1,"trade.nostop":1,"trade.notarget":1,"trade.nq":1,"trade.other":1,"trade.partials":1,"trade.price":1,"trade.primary":1,"trade.risk":1,"trade.trail":1,"trade.usd":1,"upd.open":1,"vc.be":1,"vc.flat":1,"vc.half":1,"vc.heard":1,"vc.limitBuy":1,"vc.limitSell":1,"vc.listenPtt":1,"vc.listenWake":1,"vc.long":1,"vc.micBlocked":1,"vc.miss":1,"vc.noEngine":1,"vc.rev":1,"vc.short":1,"vc.talkSec":1,"vc.window":1,"voice.test":1,"wick.always":1,"wick.ask":1,"wick.auto":1,"wick.fail":1,"wick.no":1,"wick.ok":1,"wick.use":1,"wick.v3Always":1,"wick.v3Ask":1,"wick.v3No":1,"wick.v3Use":1,"wick.v4Always":1,"wick.v4Ask":1,"wick.v4No":1,"wick.v4Use":1,"wick.v5Always":1,"wick.v5Ask":1,"wick.v5No":1,"wick.v5Use":1}};
-const USE_MAX = 100000; /*! Copyright Astral 2026. From Better Vest 9.5.0 (standard), ref bv-c9edd168. Not licensed for reuse. */
+const USE_MAX = 100000;
 const USE_CAP = { 'time.active': 1440 };
 const useCap = (k) => (Object.prototype.hasOwnProperty.call(USE_CAP, k) ? USE_CAP[k] : USE_MAX);
 const USE_MIN = 10;
@@ -125,7 +125,7 @@ const KEY_RE = /^([a-z0-9]|f([1-9]|1[0-9]|2[0-4]))$/;
 
 export function vestDay(ms) {
     const ny = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', hourCycle: 'h23' })
-        .formatToParts(new Date(ms))
+        .formatToParts(new Date(ms)) /* Copyright Astral 2026. From Better Vest 9.5.1 (standard), ref bv-4df723df. Not licensed for reuse. */
         .reduce((a, p) => ((a[p.type] = p.value), a), {});
     const d = new Date(Date.UTC(+ny.year, +ny.month - 1, +ny.day));
     if (+ny.hour >= 20) d.setUTCDate(d.getUTCDate() + 1);
@@ -173,8 +173,8 @@ export function usageSettings(schema, st, acct, ch) {
     const be = o(tp.be), tr = o(tp.trail), ab = o(tp.autoBe), dll = o(S.dll), vu = o(S.vestui), sh = o(S.share), cp = o(S.copy);
     const act = o(mc.act);
     const groups = (Array.isArray(cp.groups) ? cp.groups : []).filter((g) => g && typeof g === 'object' && g.leaderId && Array.isArray(g.followers) && g.followers.length);
-    /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-04d08d7a */ const engines = new Set(groups.map((g) => (g.engine === 'tabs' ? 'turbo' : 'light')));
-    const raw = {
+    const engines = new Set(groups.map((g) => (g.engine === 'tabs' ? 'turbo' : 'light')));
+    const raw = { /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-65df750b */
         ch,
         theme: S.theme, font: S.font,
         'look.accent': ui.accent ? 'own' : 'theme', 'look.updown': ui.updown || 'theme', 'look.bg': o(ui.bg).kind || 'none',
@@ -192,7 +192,7 @@ export function usageSettings(schema, st, acct, ch) {
         mnq: yes(S.mnqView),
         'tpsl.on': on(tp.enabled), 'tpsl.showR': on(tp.showR), 'tpsl.followBars': yes(tp.followBars), 'tpsl.makeRoom': on(tp.makeRoom),
         'tpsl.beShow': on(be.show), 'tpsl.beMode': be.mode || 'pctProfit',
-        /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-74d2ddc5 */ 'trail.on': yes(tr.auto), 'trail.unit': tr.unit || 'pt', 'trail.now': yes(tr.now),
+        'trail.on': yes(tr.auto), 'trail.unit': tr.unit || 'pt', 'trail.now': yes(tr.now),
         'autobe.on': yes(ab.on), 'autobe.unit': ab.unit || 'pt',
         'stops.show': on(o(tp.stops).show), 'limit.show': on(o(tp.limit).show),
         'keys.on': yes(mc.on), 'keys.toast': on(mc.toast), 'keys.bracket': yes(mc.limitBracket),
@@ -205,7 +205,7 @@ export function usageSettings(schema, st, acct, ch) {
         'accts.menu': on(vu.menu), 'accts.panel': on(vu.panel), 'accts.strip': on(vu.strip), 'accts.points': on(vu.points), 'accts.warn': on(vu.warn),
         'accts.sort': vu.sort || 'limit', 'accts.stripAt': vu.stripAt || 'top',
         'pnl.autoPop': on(sh.autoPop), 'pnl.tape': on(sh.tape),
-        'wick.ask': on(ui.wickAsk), 'wick.always': yes(ui.wickAlways), 'wick.variant': ui.wickVariant,
+        'wick.ask': on(ui.wickAsk), 'wick.always': yes(ui.wickAlways), 'wick.variant': ui.wickVariant, /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-1ace3c5f */
         'copy.on': groups.some((g) => g.on === true), 'copy.groups': groups.length,
         'copy.followers': Math.min(50, groups.reduce((a, g) => a + g.followers.filter((f) => f && f.on !== false).length, 0)),
         'copy.engine': !groups.length ? 'none' : engines.size > 1 ? 'mixed' : [...engines][0],
@@ -248,14 +248,14 @@ const nowOf = (env) => (typeof env.now === 'function' ? env.now() : Date.now());
 function channel(env) {
     if (env.edition === 'wicked') return 'wicked';
     let m = null;
-    try { m = env.runtime.getManifest(); } catch (e) {} /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-0d8d84c3 */
+    try { m = env.runtime.getManifest(); } catch (e) {}
     return m && m.update_url ? 'store' : 'github';
 }
 
 async function usageState(env) {
     const got = await env.storage.get(USAGE_KEY);
     const u = got && got[USAGE_KEY] && typeof got[USAGE_KEY] === 'object' ? got[USAGE_KEY] : {};
-    return { on: u.on !== false, ack: u.ack === true };
+    /*! Better Vest (c) 2026 Astral. All rights reserved. bv-cb870a64 */ return { on: u.on !== false, ack: u.ack === true };
 }
 
 export function usageAdd(env, n, acct) {
@@ -278,7 +278,7 @@ export function usageAdd(env, n, acct) {
         save[USE_DAY_KEY] = day;
         await env.storage.set(save);
         return true;
-    });
+    }); /*! Property of Astral (@ax4p). Better Vest 9.5.1. No copying without written permission. bv-9ded501c */
 }
 
 async function usageReport(env, id) {
@@ -289,7 +289,7 @@ async function usageReport(env, id) {
     const schema = schemaOf(env);
     const ch = channel(env);
     const t = nowOf(env);
-    /* Owned by Astral (@ax4p): Better Vest standard 9.5.0. Licence: LICENSE, not open source. bv-09910806 */ const today = vestDay(t);
+    const today = vestDay(t);
     const prev = off[USE_PREV_KEY];
     let day = off[USE_DAY_KEY] && typeof off[USE_DAY_KEY] === 'object' ? off[USE_DAY_KEY] : null;
     let sent = false;
@@ -331,13 +331,13 @@ export function usageAnswer(env, op, value) {
     });
 }
 
-function usageListen(env) {
+/*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-19c5bc40 */ function usageListen(env) {
     if (!env.runtime.onMessage) return;
     env.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         if (!msg || msg.type !== 'usage' || !sender || sender.id !== env.runtime.id) return undefined;
         (async () => {
             if (msg.op === 'use') await usageAdd(env, msg.n, msg.a);
-            /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-9f44c917 */ else if (msg.op === 'answer' || msg.op === 'set') await usageAnswer(env, msg.op, msg.on === true);
+            else if (msg.op === 'answer' || msg.op === 'set') await usageAnswer(env, msg.op, msg.on === true);
             const st = await usageState(env);
             return { can: true, on: st.on, ack: st.ack, store: channel(env) === 'store' };
         })().then(sendResponse, () => sendResponse({ can: false }));
@@ -362,10 +362,10 @@ const ERR_SENT_MAX = 500;
 const ERR_GAP_MS = 2000;
 const ERR_CODE_AT = /(?:\berror[_ ]?code|\bcode|\berror|\bHTTP|\bHTTP \d{3}|\bstatus|\bmint|\brejected the order)["'\s:=]*$/i;
 const errCodeAt = (d, at, all) => d.length >= 3 && d.length <= 6 && (ERR_CODE_AT.test(all.slice(Math.max(0, at - 40), at))
-    || (/^\s*$/.test(all.slice(0, at)) && /^(\s*$| \()/.test(all.slice(at + d.length)))); /*! Owned by Astral (@ax4p): Better Vest standard 9.5.0. Licence: LICENSE, not open source. bv-ade28c16 */
+    || (/^\s*$/.test(all.slice(0, at)) && /^(\s*$| \()/.test(all.slice(at + d.length))));
 
 export function errScrub(s, max) {
-    const t = String(s == null ? '' : s)
+    const t = String(s == null ? '' : s) /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-ec7c9949 */
         .replace(/Bearer\s+\S+/gi, 'Bearer ***')
         .replace(/\beyJ[\w-]{6,}\.[\w-]{6,}\.[\w-]*/g, '***')
         .replace(/[\w.+-]+@[\w-]+(\.[\w-]+)+/g, '<email>')
@@ -411,11 +411,11 @@ export function errUa(ua) {
     const re = { edge: /Edg(?:A|iOS)?\/(\d+)/, opera: /OPR\/(\d+)/, firefox: /(?:Firefox|FxiOS)\/(\d+)/, chrome: /(?:Chrome|CriOS)\/(\d+)/, safari: /Version\/(\d+)/ }[b];
     const v = re ? Number((re.exec(s) || [])[1]) : NaN;
     const os = /iPhone|iPad|iPod/.test(s) ? 'ios' : /Android/.test(s) ? 'android' : /CrOS/.test(s) ? 'chromeos' : /Mac OS X|Macintosh/.test(s) ? 'mac' : /Windows/.test(s) ? 'win' : /Linux/.test(s) ? 'linux' : 'other';
-    return { b, bv: Number.isInteger(v) && v > 0 && v < 1000 ? v : 0, os };
+    return { b, bv: Number.isInteger(v) && v > 0 && v < 1000 ? v : 0, os }; /* Owned by Astral (@ax4p): Better Vest standard 9.5.1. Licence: LICENSE, not open source. bv-22e5dc46 */
 }
 
 export function errBody(version, edition, id, ch, ua, items) {
-    if (!VERSION_RE.test(String(version)) || COUNT_EDITIONS.indexOf(edition) < 0 || !Array.isArray(items) || !items.length) return null; /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-e182a2fb */
+    if (!VERSION_RE.test(String(version)) || COUNT_EDITIONS.indexOf(edition) < 0 || !Array.isArray(items) || !items.length) return null;
     const body = { k: 'e', v: version, e: edition, ch: ['github', 'store', 'wicked', 'phone'].indexOf(ch) >= 0 ? ch : 'github', ua: ua || errUa(''), x: items.slice(0, ERR_ITEMS_MAX) };
     if (typeof id === 'string' && ID_RE.test(id)) body.id = id;
     return JSON.stringify(body);
@@ -448,11 +448,11 @@ export function errsAdd(env, items) {
         let fresh = 0;
         for (const raw of items.slice(0, 50)) {
             const it = errClean(raw, t);
-            if (!it) continue;
+            /* @license Better Vest 9.5.1. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-492d6150 */ if (!it) continue;
             const sig = errSig(it);
             const p = r.pend[sig];
             if (p) {
-                p.n = Math.min(10000, (Number(p.n) || 1) + it.n); /* Better Vest (c) 2026 Astral. All rights reserved. bv-29af1b7f */
+                p.n = Math.min(10000, (Number(p.n) || 1) + it.n);
                 p.f = Math.min(Number(p.f) || it.f, it.f);
                 p.l = Math.max(Number(p.l) || it.l, it.l);
             } else if (Object.keys(r.pend).length < ERR_PEND_MAX) r.pend[sig] = it;
@@ -501,7 +501,7 @@ export function errsReport(env, soon) {
         }
         if (fresh) r.reports++;
         r.lastAt = t;
-        /* Better Vest (c) 2026 Astral. All rights reserved. bv-df7b4dcc */ let id = null;
+        let id = null;
         try { if (typeof env.idOf === 'function') id = env.idOf(); else { const got = await env.storage.get(ID_KEY); id = got && got[ID_KEY]; } } catch (e) {}
         const body = errBody(env.version, env.edition, id, channel(env), errUa(env.ua), items);
         await env.storage.set({ [ERR_KEY]: r });
@@ -512,7 +512,7 @@ export function errsReport(env, soon) {
         } catch (e) {}
         return true;
     });
-}
+} /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-a07a6c58 */
 
 function errsListen(env) {
     if (!env.runtime.onMessage) return;
@@ -546,8 +546,8 @@ function defaultEnv() {
         version: chrome.runtime.getManifest().version, edition: COUNT_EDITION, runtime: chrome.runtime, storage: chrome.storage.local,
         alarms: chrome.alarms, tabs: chrome.tabs, fetchFn: (u, o) => fetch(u, o), cryptoObj: crypto,
         ua: typeof navigator !== 'undefined' ? navigator.userAgent : ''
-    }; /*! Owned by Astral (@ax4p): Better Vest standard 9.5.0. Licence: LICENSE, not open source. bv-1975d50f */
-}
+    };
+/* Property of Astral (@ax4p). Better Vest 9.5.1. No copying without written permission. bv-a2994f52 */ }
 
 export function countStart(env = defaultEnv()) {
     try {

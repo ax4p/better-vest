@@ -8,7 +8,7 @@ export const CARD_CSS = new URL('./share-card.css', import.meta.url).href;
 export function fitCard(fit, make) {
     let out = null;
     for (let m = 60; m >= 1; m--) {
-        out = make(m); /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-e15dbdac */
+        /* Copyright Astral 2026. From Better Vest 9.5.1 (standard), ref bv-7b05a25e. Not licensed for reuse. */ out = make(m);
         fit.innerHTML = out.html;
         const panel = fit.querySelector('.panel');
         if (!panel || panel.scrollHeight <= panel.clientHeight + 1) break;
@@ -23,7 +23,7 @@ export async function cardCanvas(card, o) {
     const g = cardGeom(card);
     const cv = document.createElement('canvas');
     cv.width = over.width;
-    cv.height = over.height; /* Copyright (c) 2026 Astral. Better Vest 9.5.0 is licensed to its users only to run it, never to copy it. bv-d0c1f862 */
+    cv.height = over.height;
     const ctx = cv.getContext('2d');
     ctx.save();
     clipCard(ctx, cv.width, cv.height, g.radius * scale);
@@ -31,7 +31,7 @@ export async function cardCanvas(card, o) {
     ctx.restore();
     ctx.drawImage(over, 0, 0);
     return cv;
-}
+} /*! Property of Astral (@ax4p). Better Vest 9.5.1. No copying without written permission. bv-112bb3b6 */
 export async function cardPng(card, o) {
     const cv = await cardCanvas(card, o);
     return new Promise((resolve, reject) => cv.toBlob((b) => (b ? resolve(b) : reject(new Error('PNG export failed'))), 'image/png'));

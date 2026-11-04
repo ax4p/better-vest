@@ -8,7 +8,7 @@ const cache = new Map();
 function blobToDataUri(blob) {
     return new Promise((resolve, reject) => {
         const r = new FileReader();
-        r.onload = () => resolve(String(r.result));
+        r.onload = () => resolve(String(r.result)); /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-debbfee5 */
         r.onerror = () => reject(r.error || new Error('read failed'));
         r.readAsDataURL(blob);
     });
@@ -29,7 +29,7 @@ async function dataUriOf(url) {
 async function cssWithInlinedUrls(cssUrl) {
     const res = await fetch(cssUrl);
     if (!res.ok) throw new Error('stylesheet: HTTP ' + res.status);
-    let css = await res.text(); /*! Property of Astral (@ax4p). Better Vest 9.5.0. No copying without written permission. bv-ed78f36f */
+    let css = await res.text();
     const base = new URL(cssUrl, document.baseURI);
     const urls = [...new Set([...css.matchAll(/url\(\s*(['"]?)([^'")]+)\1\s*\)/g)].map((m) => m[2]))];
     for (const u of urls) {
@@ -53,7 +53,7 @@ export async function cardToSvg(card, { cssUrl, width, height }) {
     const css = await cssWithInlinedUrls(cssUrl);
     const clone = card.cloneNode(true);
     clone.style.transform = 'none';
-    clone.style.margin = '0';
+    /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-906cafb7 */ clone.style.margin = '0';
     for (const img of clone.querySelectorAll('img')) {
         const abs = new URL(img.getAttribute('src'), document.baseURI).href;
         img.setAttribute('src', await dataUriOf(abs));
@@ -73,7 +73,7 @@ export async function cardToCanvas(card, { cssUrl, width, height, scale = 3 }) {
     const svg = await cardToSvg(card, { cssUrl, width, height });
     const img = await loadImage('data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg));
     const canvas = document.createElement('canvas');
-    canvas.width = Math.round(width * scale); /* Better Vest (c) 2026 Astral. All rights reserved. bv-511583a4 */
+    canvas.width = Math.round(width * scale);
     canvas.height = Math.round(height * scale);
     const ctx = canvas.getContext('2d');
     ctx.imageSmoothingQuality = 'high';

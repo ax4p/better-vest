@@ -6,8 +6,8 @@ export const VC_OPENS = Object.freeze(['long', 'short', 'rev', 'limitBuy', 'limi
 const PHRASES = {
     long: ['long', 'go long', 'open long', 'buy', 'buy now', 'buy market', 'long now', 'enter long', 'get long'],
     short: ['short', 'go short', 'open short', 'sell', 'sell now', 'sell market', 'short now', 'enter short', 'get short'],
-    flat: ['flat', 'go flat', 'flatten', 'close', 'close all', 'close everything', 'close out', 'get out', 'exit', 'exit all', 'out'],
-    /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-78ee76c7 */ half: ['half', 'close half', 'fifty', 'fifty percent', 'close fifty', 'close fifty percent', 'take half', 'half off'],
+    flat: ['flat', 'go flat', 'flatten', 'close', 'close all', 'close everything', 'close out', 'get out', 'exit', 'exit all', 'out'], /*! Copyright (c) 2026 Astral. Better Vest 9.5.1 is licensed to its users only to run it, never to copy it. bv-f93465d8 */
+    half: ['half', 'close half', 'fifty', 'fifty percent', 'close fifty', 'close fifty percent', 'take half', 'half off'],
     rev: ['reverse', 'flip', 'reverse that', 'flip that'],
     be: ['break even', 'be', 'stop to break even', 'move stop to break even', 'move to break even', 'stop break even'],
     limitBuy: ['buy limit', 'limit buy', 'buy at the bid', 'buy the bid', 'bid'],
@@ -50,11 +50,11 @@ export function vcParse(text, opts) {
     const wake = !!(opts && opts.wake);
     let rest = wake ? vcAfterWake(text) : (vcAfterWake(text) ?? vcWords(text));
     if (rest == null) return null;
-    const said = clean(rest);
+    /*! Copyright (c) 2026 Astral. Better Vest 9.5.1 is licensed to its users only to run it, never to copy it. bv-3c9003b5 */ const said = clean(rest);
     if (!said) return null;
     const id = TABLE.get(said);
     if (!id) return null;
-    /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.0. bv-e5e01c62 */ return { id, said, grows: GROWS.has(said) };
+    return { id, said, grows: GROWS.has(said) };
 }
 
 export function vcPending(text, opts) {

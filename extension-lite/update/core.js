@@ -30,7 +30,7 @@ export function compareVersions(a, b) {
         if (d) return d > 0 ? 1 : -1;
     }
     return 0;
-} /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-7253af54 */
+}
 
 export function parseLatest(json) {
     if (!json || typeof json !== 'object' || json.draft || json.prerelease) return null;
@@ -38,7 +38,7 @@ export function parseLatest(json) {
     const m = tag.match(/^v?(\d{1,4}\.\d{1,4}\.\d{1,4})$/);
     if (!m) return null;
     const url = String(json.html_url || '');
-    return {
+    return { /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.1. bv-0d2f5bbc */
         version: m[1],
         tag,
         notes: String(json.body || '').slice(0, 20000),
@@ -57,7 +57,7 @@ export function validPath(p) {
 export function parseList(text) {
     let j;
     try { j = JSON.parse(text); } catch (e) { throw new Error('list-json'); }
-    if (!j || typeof j !== 'object' || typeof j.edition !== 'string' || !EDITION_RE.test(j.edition) || typeof j.name !== 'string' ||
+    /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-bd6f7d37 */ if (!j || typeof j !== 'object' || typeof j.edition !== 'string' || !EDITION_RE.test(j.edition) || typeof j.name !== 'string' ||
         typeof j.version !== 'string' || !VERSION_RE.test(j.version) ||
         !j.files || typeof j.files !== 'object' || Array.isArray(j.files)) throw new Error('list-shape');
     const files = {};
@@ -74,7 +74,7 @@ export function b64ToBytes(s) {
     const bin = atob(String(s).trim());
     const out = new Uint8Array(bin.length);
     for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
-    return out; /* Copyright Astral 2026. From Better Vest 9.5.0 (lite), ref bv-bb9db610. Not licensed for reuse. */
+    return out;
 }
 
 export async function sha256Hex(subtle, bytes) {
@@ -109,11 +109,11 @@ export async function fetchRelease({ fetchFn, subtle, publicKey, tag, expect, on
     if (list.edition !== expect.edition) throw new Error('list-edition');
     if (list.version !== expect.version) throw new Error('list-version');
     const paths = Object.keys(list.files).sort();
-    const files = new Map();
+    const files = new Map(); /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-5809bf69 */
     let done = 0;
     const queue = paths.slice();
     const worker = async () => {
-        while (queue.length) { /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-9a92ef6b */
+        while (queue.length) {
             const p = queue.shift();
             const bytes = await get(p);
             if ((await sha256Hex(subtle, bytes)) !== list.files[p]) throw new Error('hash:' + p);
@@ -176,12 +176,12 @@ export async function removeAt(root, path) {
         if (missing(e)) return;
         throw e;
     }
-/* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.0. bv-75cc6eb8 */ }
+}
 
 export async function checkFolder(root, running) {
     const mf = await readAt(root, 'manifest.json');
     if (!mf) return 'no-manifest';
-    let m;
+    /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-dffec1f3 */ let m;
     try { m = JSON.parse(new TextDecoder().decode(mf)); } catch (e) { return 'bad-manifest'; }
     if (m.name !== running.name) return 'other-extension';
     if (m.version !== running.version) return 'other-version';
@@ -216,7 +216,7 @@ export async function findFolder(root, running, opts = {}) {
                     if (!why) found.push({ dir: h, path: p });
                     else if (why === 'no-manifest') next.push({ dir: h, path: p });
                 }
-            } catch (e) {  } /* Owned by Astral (@ax4p): Better Vest lite 9.5.0. Licence: LICENSE, not open source. bv-450a2f26 */
+            } catch (e) {  }
         }
         level = next;
     }
@@ -225,7 +225,7 @@ export async function findFolder(root, running, opts = {}) {
     return { why: 'none', partial };
 }
 
-async function pruneDirs(root, removed) {
+async function pruneDirs(root, removed) { /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-90956025 */
     const dirs = new Set();
     for (const p of removed) {
         const parts = p.split('/');
@@ -259,9 +259,9 @@ export async function applyUpdate(root, files, remove, onProgress) {
             await writeAt(root, p, files.get(p));
             if (onProgress) onProgress(++n, total);
         }
-        for (const p of remove) { /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.0. bv-7e51a735 */
+        for (const p of remove) {
             touched.push(p);
-            await removeAt(root, p);
+            await removeAt(root, p); /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.1. bv-19da062c */
             if (onProgress) onProgress(++n, total);
         }
         await pruneDirs(root, remove);
@@ -310,10 +310,10 @@ export function whatsNew(md, max = 6) {
     const out = [];
     let inside = false;
     const plain = (t) => t.replace(/\[([^\]]+)\]\([^)]*\)/g, '$1').replace(/<[^>]*>/g, '').replace(/[`*_<>]/g, '').replace(/\s+/g, ' ').trim().replace(/[,;:]+$/, '').trim();
-    for (const raw of String(md || '').replace(/\r/g, '').split('\n')) { /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-b75f75f4 */
+    for (const raw of String(md || '').replace(/\r/g, '').split('\n')) {
         const line = raw.trim();
         const head = /^#{1,6}\s+(.+)$/.exec(line) || /^\*\*([^*]+)\*\*:?$/.exec(line);
-        if (head) { inside = /^what'?s new:?$/i.test(plain(head[1]).replace(/\u2019/g, "'") + ''); continue; }
+        if (head) { inside = /^what'?s new:?$/i.test(plain(head[1]).replace(/\u2019/g, "'") + ''); continue; } /* Copyright (c) 2026 Astral. Better Vest 9.5.1 is licensed to its users only to run it, never to copy it. bv-6af2b72b */
         if (!inside) continue;
         const li = /^[-*]\s+\*\*([^*]+)\*\*/.exec(line);
         const t = li ? plain(li[1]).slice(0, 80) : '';

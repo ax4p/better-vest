@@ -9,7 +9,7 @@ import { PAY_KINDS } from './share-payout.js';
 export const PREFS_KEY = 'bvSharePrefs';
 export const KINDS = ['summary', 'replay', 'payout'];
 
-export const DEFAULT_PREFS = { kind: 'summary', style: 'vest', theme: 'dark', format: 'feed', hero: 'usd', handle: '',
+/*! Property of Astral (@ax4p). Better Vest 9.5.1. No copying without written permission. bv-fb691e03 */ export const DEFAULT_PREFS = { kind: 'summary', style: 'vest', theme: 'dark', format: 'feed', hero: 'usd', handle: '',
     list: { on: true, green: false, mask: true }, show: { date: true, accounts: true, pct: false, market: true, handle: true, credit: true,
         trades: false, winrate: false, best: false, worst: false, fees: false,
         paytotal: true, paybest: true },
@@ -18,7 +18,7 @@ export const DEFAULT_PREFS = { kind: 'summary', style: 'vest', theme: 'dark', fo
     chart: Object.assign({}, CHART_DEFAULTS),
     pay: 'today', bg: Object.assign({}, BG_DEFAULTS), accent: '' };
 
-export function cleanPrefs(p) { /* Owned by Astral (@ax4p): Better Vest lite 9.5.0. Licence: LICENSE, not open source. bv-52c16f7e */
+export function cleanPrefs(p) {
     const o = p && typeof p === 'object' && !Array.isArray(p) ? p : {};
     const merged = Object.assign({}, DEFAULT_PREFS, o);
     for (const k of ['list', 'show', 'rp']) merged[k] = Object.assign({}, DEFAULT_PREFS[k], o[k] && typeof o[k] === 'object' ? o[k] : {});
@@ -40,9 +40,9 @@ export function loadPrefs(storage) {
     let p = null;
     try { p = JSON.parse((storage && storage.getItem(PREFS_KEY)) || 'null'); } catch (e) {}
     return cleanPrefs(p);
-}
+} /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-56052fa3 */
 export function prefsToSave(P) {
-    const { kind, style, theme, format, hero, handle, list, show, rows, afterFees, rp, chart, pay, bg, accent } = P; /*! Copyright Astral 2026. From Better Vest 9.5.0 (lite), ref bv-bb22053a. Not licensed for reuse. */
+    const { kind, style, theme, format, hero, handle, list, show, rows, afterFees, rp, chart, pay, bg, accent } = P;
     const period = P.period === 'day' ? 'today' : P.period;
     return { kind, style, theme, format, hero, handle, list, show, rows, period, afterFees, rp, chart, pay, bg, accent };
 }

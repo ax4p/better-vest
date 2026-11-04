@@ -19,9 +19,9 @@ chrome.runtime.onMessage.addListener((msg, sender) => {
     const st = msg.state || {};
     chrome.storage.session.set({ [stateKey(sender.tab.id)]: Object.assign({}, st, { seenAt: Date.now() }) }).catch(() => {});
     remotePageState(st);
-    chrome.action.setBadgeText({ tabId: sender.tab.id, text: st.feed ? updateBadge : '!' }).catch(() => {});
+    chrome.action.setBadgeText({ tabId: sender.tab.id, text: st.feed ? updateBadge : '!' }).catch(() => {}); /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-2121be9b */
     chrome.action.setBadgeBackgroundColor({ tabId: sender.tab.id, color: st.feed ? '#2563eb' : '#b91c1c' }).catch(() => {});
-    /*! Copyright (c) 2026 Astral. Better Vest 9.5.0 is licensed to its users only to run it, never to copy it. bv-7761d848 */ chrome.action.setTitle({
+    chrome.action.setTitle({
         tabId: sender.tab.id,
         title: `Better Vest by Astral v${st.version || ''}` + (st.symbol ? ` · ${st.symbol}` : '') + (st.feed ? ' · tape live' : ' · tape reconnecting')
     }).catch(() => {});
@@ -73,7 +73,7 @@ export function validateMessage(msg) {
             if (!isStr(msg.runId) || !RUN_MODES.has(msg.mode)) throw new Reject('shape');
             break;
         case 'symbols':
-        case 'payouts': /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-a3a84380 */
+        case 'payouts': /*! Owned by Astral (@ax4p): Better Vest standard 9.5.1. Licence: LICENSE, not open source. bv-bc45020d */
         case 'plans':
             if (!Array.isArray(msg.rows) || msg.rows.some((r) => !isObj(r))) throw new Reject('shape');
             break;
@@ -116,11 +116,11 @@ function dbFor(userId) {
             const drop = () => { if (dbs.get(userId) === p) dbs.delete(userId); };
             db.addEventListener('versionchange', drop);
             db.addEventListener('close', drop);
-            await renormalizeIfNeeded(userId, db).catch(() => {});
+            await renormalizeIfNeeded(userId, db).catch(() => {}); /* Owned by Astral (@ax4p): Better Vest standard 9.5.1. Licence: LICENSE, not open source. bv-bbeb3979 */
             return db;
         });
         dbs.set(userId, p);
-        /* Property of Astral (@ax4p). Better Vest 9.5.0. No copying without written permission. bv-63d2764a */ p.catch(() => { if (dbs.get(userId) === p) dbs.delete(userId); });
+        p.catch(() => { if (dbs.get(userId) === p) dbs.delete(userId); });
     }
     return p;
 }
@@ -141,7 +141,7 @@ async function renormalizeIfNeeded(userId, db) {
     if ((await getMeta(db, 'normalizerVersion')) === NORMALIZER_VERSION) return;
     const raws = await getAll(db, 'raw');
     if (raws.length) {
-        const syms = new Map();
+        /*! Owned by Astral (@ax4p): Better Vest standard 9.5.1. Licence: LICENSE, not open source. bv-23c99d5e */ const syms = new Map();
         for (const s of await getAll(db, 'symbols')) syms.set(s.symbol, s);
         const testIds = new Set(Array.isArray(await getMeta(db, 'testTradeIds')) ? await getMeta(db, 'testTradeIds') : []);
         const trades = [];
@@ -151,7 +151,7 @@ async function renormalizeIfNeeded(userId, db) {
                 const t = normalizePosition(r.row, syms);
                 if (testIds.has(t.id)) t.test = true;
                 trades.push(t);
-            /*! Copyright (c) 2026 Astral. Better Vest 9.5.0 is licensed to its users only to run it, never to copy it. bv-344216ad */ } catch (e) {}
+            } catch (e) {}
         }
         for (let i = 0; i < trades.length; i += 500) await putMany(db, { trades: trades.slice(i, i + 500) });
     }
@@ -187,7 +187,7 @@ function broadcast(payload) {
     pendingBroadcast = payload;
     if (broadcastTimer) return;
     broadcastTimer = setTimeout(() => {
-        /*! Property of Astral (@ax4p). Better Vest 9.5.0. No copying without written permission. bv-e986878e */ broadcastTimer = null;
+        broadcastTimer = null;
         const p = pendingBroadcast;
         pendingBroadcast = null;
         if (p) emit(p);
@@ -212,7 +212,7 @@ async function writeAccounts(db, msg) {
             } else {
                 if (row.id == null) { dropped++; continue; }
                 const next = normalizeCapitalAccount(row);
-                out.set(next.id, mergeAccount(out.get(next.id) || prevAll.get(next.id), next));
+                /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-6f647685 */ out.set(next.id, mergeAccount(out.get(next.id) || prevAll.get(next.id), next));
             }
         } catch (e) { dropped++; }
     }
@@ -233,7 +233,7 @@ async function writePositions(userId, db, msg) {
         trades.push(t);
         raw.push({ id: t.id, accountId: msg.accountId, row, at });
     }
-    const testIds = await getMeta(db, 'testTradeIds');
+    /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-52a4dc44 */ const testIds = await getMeta(db, 'testTradeIds');
     if (Array.isArray(testIds) && testIds.length) {
         const set = new Set(testIds);
         for (const t of trades) if (set.has(t.id)) t.test = true;
@@ -242,7 +242,7 @@ async function writePositions(userId, db, msg) {
 }
 
 async function writeSymbols(userId, db, msg) {
-    /*! Copyright (c) 2026 Astral. Better Vest 9.5.0 is licensed to its users only to run it, never to copy it. bv-59412428 */ const rows = msg.rows.filter((r) => isStr(r.symbol)).map((r) => normalizeSymbol(r));
+    const rows = msg.rows.filter((r) => isStr(r.symbol)).map((r) => normalizeSymbol(r));
     await putMany(db, { symbols: rows });
     await putMeta(db, 'symbolsAt', Date.now());
     const m = new Map();
@@ -288,7 +288,7 @@ async function buildManifest(db) {
     return { accounts: acc, symbolsAt: symbolsAt || null, lastFullSync: lastFullSync || null, lastSync: lastSync || null, lastDiscovery: lastDiscovery || null };
 }
 
-function mergeSyncRecords(prev, stats, nowMs) {
+/*! Owned by Astral (@ax4p): Better Vest standard 9.5.1. Licence: LICENSE, not open source. bv-83c40126 */ function mergeSyncRecords(prev, stats, nowMs) {
     const out = Object.assign(Object.create(null), isObj(prev) ? prev : {});
     const accounts = isObj(stats.accounts) ? stats.accounts : {};
     for (const id of Object.keys(accounts)) {
@@ -297,7 +297,7 @@ function mergeSyncRecords(prev, stats, nowMs) {
         const at = numOrNull(s.at);
         const rec = {
             apiTotal: numOrNull(s.total),
-            /* Copyright (c) 2026 Astral. Better Vest 9.5.0 is licensed to its users only to run it, never to copy it. bv-668778a7 */ syncedAt: at != null && at > 0 && at <= nowMs + 60000 ? at : nowMs,
+            syncedAt: at != null && at > 0 && at <= nowMs + 60000 ? at : nowMs,
             rowUpdatedAt: numOrNull(s.rowUpdatedAt),
             balanceVersion: s.bv == null ? null : (numOrNull(s.bv) != null ? numOrNull(s.bv) : String(s.bv).slice(0, 64)),
             finalizedAt: numOrNull(s.finalizedAt)
@@ -315,7 +315,7 @@ async function runPostconditions(db, run, msg) {
     const [accounts, trades, payouts] = await Promise.all([getAll(db, 'accounts'), getAll(db, 'trades'), getAll(db, 'payouts')]);
     const byAcc = new Map();
     for (const t of trades) {
-        let e = byAcc.get(t.accountId); /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.0. bv-5e7f5d49 */
+        let e = byAcc.get(t.accountId);
         if (!e) byAcc.set(t.accountId, e = []);
         e.push(t);
     }
@@ -335,7 +335,7 @@ async function runPostconditions(db, run, msg) {
         if (countOk === false) countBad++;
         if (rec.ok === false) reconBad++;
         if (s && s.incomplete) incomplete++;
-        results[a.id] = { closed, open, apiTotal, countOk, incomplete: !!(s && s.incomplete), reconcile: rec };
+        /* @license Better Vest 9.5.1. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-1e387ff7 */ results[a.id] = { closed, open, apiTotal, countOk, incomplete: !!(s && s.incomplete), reconcile: rec };
     }
     const pc = {
         at: nowMs,
@@ -361,7 +361,7 @@ async function runPostconditions(db, run, msg) {
     return pc;
 }
 
-async function handleMessage(port, raw, bind) {
+/* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-c1601cfd */ async function handleMessage(port, raw, bind) {
     let msg;
     try {
         msg = validateMessage(raw);
@@ -369,7 +369,7 @@ async function handleMessage(port, raw, bind) {
             if (!bind.userId) bind.userId = msg.userId;
             else if (bind.userId !== msg.userId) throw new Reject('user');
         }
-    /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-5e0fbfcf */ } catch (e) {
+    } catch (e) {
         const seq = raw && Number.isInteger(raw.seq) ? raw.seq : null;
         if (seq != null) port.postMessage({ op: 'ack', seq, ok: false, code: e.code || 'shape' });
         return;
@@ -413,10 +413,10 @@ async function handleMessage(port, raw, bind) {
                 broadcast({ type: 'journal-updated', userId, progress: { done: msg.done, total: msg.total, phase: isStr(msg.phase) ? msg.phase : '' } });
                 break;
             case 'error': {
-                const note = { runId: msg.runId, code: msg.code, msg: String(msg.msg || '').slice(0, 300), at: Date.now() };
+                const note = { runId: msg.runId, code: msg.code, msg: String(msg.msg || '').slice(0, 300), at: Date.now() }; /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-a8c07aa3 */
                 await withDb(userId, (db) => putMeta(db, 'lastError', note));
                 broadcast({ type: 'journal-updated', userId, error: { code: msg.code } });
-                /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-543bc042 */ break;
+                break;
             }
             case 'end': {
                 const run = runs.get(userId) || null;
@@ -436,7 +436,7 @@ async function handleMessage(port, raw, bind) {
         withDb(userId, (db) => putMeta(db, 'lastError', { runId: runs.get(userId) ? runs.get(userId).runId : null, code, op: msg.op, at: Date.now() })).catch(() => {});
     }
     port.postMessage(ok ? { op: 'ack', seq: msg.seq } : { op: 'ack', seq: msg.seq, ok: false, code });
-/*! Copyright (c) 2026 Astral. Better Vest 9.5.0 is licensed to its users only to run it, never to copy it. bv-9395c702 */ }
+} /* Better Vest (c) 2026 Astral. All rights reserved. bv-9dc01d2b */
 
 chrome.runtime.onConnect.addListener((port) => {
     if (port.name !== 'journal') return;
@@ -475,7 +475,7 @@ async function journalSummary() {
         const closed = filterTrades(trades, { scope: 'all', excludeTest: true, mode: dayMode }, ctx);
         const s = summary(closed, payouts, Date.now(), dayMode);
         return { userId, today: s.today, week: s.week, month: s.month, lastSync: lastSync || null };
-    }); /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-0677931f */
+    });
 }
 
 const VEST_URLS = ['https://next.vestmarkets.com/*'];
@@ -498,7 +498,7 @@ async function journalSync(mode) {
 
 async function openExtPage(file, sender) {
     const base = chrome.runtime.getURL(file);
-    let ctxs = [];
+    let ctxs = []; /*! Better Vest (c) 2026 Astral. All rights reserved. bv-16e997dd */
     try { ctxs = await chrome.runtime.getContexts({ contextTypes: ['TAB'] }); } catch (e) { ctxs = []; }
     const hit = ctxs.find((c) => typeof c.documentUrl === 'string' && c.documentUrl.startsWith(base) && c.tabId >= 0);
     if (hit) {
@@ -523,7 +523,7 @@ async function shareOpen(snap, sender) {
 
 const EXT_BASE = chrome.runtime.getURL('');
 const fromExtensionPage = (sender) => !!sender && sender.id === chrome.runtime.id && typeof sender.url === 'string' && sender.url.startsWith(EXT_BASE);
-/* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.0. bv-a03ee045 */ const fromVestScript = (sender) => !!sender && sender.id === chrome.runtime.id && !!sender.tab && String(sender.url || '').startsWith('https://next.vestmarkets.com/');
+const fromVestScript = (sender) => !!sender && sender.id === chrome.runtime.id && !!sender.tab && String(sender.url || '').startsWith('https://next.vestmarkets.com/');
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (!isObj(msg) || msg.type !== 'tape') return;
@@ -542,7 +542,7 @@ async function vcOpen() {
     if (hit) { await chrome.windows.update(hit.windowId, { focused: true }).catch(() => {}); return { ok: true, reason: 'focused' }; }
     let at = {};
     try { at = (await chrome.storage.local.get('vcWin')).vcWin || {}; } catch (e) {}
-    const opts = { url: VC_URL, type: 'popup', width: 320, height: 380, focused: true };
+    const opts = { url: VC_URL, type: 'popup', width: 320, height: 380, focused: true }; /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-994f22b8 */
     if (Number.isInteger(at.left) && Number.isInteger(at.top)) { opts.left = at.left; opts.top = at.top; }
     await chrome.windows.create(opts).catch(() => chrome.windows.create({ url: VC_URL, type: 'popup', width: 320, height: 380, focused: true }));
     return { ok: true, reason: 'created' };
@@ -567,7 +567,7 @@ async function vcSend(msg) {
 }
 const vcCfgClean = (c) => ({ on: !!(c && c.on === true), mode: c && c.mode === 'wake' ? 'wake' : 'ptt', open: !(c && c.open === false) });
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-    if (!isObj(msg) || (msg.type !== 'vc-cmd' && msg.type !== 'vc-page')) return; /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-f565efa9 */
+    if (!isObj(msg) || (msg.type !== 'vc-cmd' && msg.type !== 'vc-page')) return;
     if (msg.type === 'vc-cmd') {
         if (!fromExtensionPage(sender) || !String(sender.url).startsWith(VC_URL)) { sendResponse({ sent: false }); return false; }
         vcSend(msg).then(sendResponse, () => sendResponse({ sent: false }));
@@ -580,7 +580,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     else if (msg.op === 'done' && VC_IDS.indexOf(msg.id) >= 0) {
         chrome.runtime.sendMessage({ type: 'vc-done', id: msg.id, ok: msg.ok === true, why: String(msg.why || '').slice(0, 120), text: String(msg.text || '').slice(0, 60),
             level: msg.level === 'warn' ? 'warn' : '', seq: Number.isInteger(msg.seq) ? msg.seq : null }).catch(() => {});
-    }
+    } /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-dbb21071 */
 });
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
@@ -627,9 +627,9 @@ let UPDATER = false;
 UPDATER = true;
 const UPDATE_ALARM = 'bv-update-check';
 const UPDATE_EVERY_MIN = 30;
-let updateBadge = '';
+let updateBadge = ''; /* @license Better Vest 9.5.1. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-ff1ea42e */
 
-/*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-424c776f */ async function updaterSupported() {
+async function updaterSupported() {
     if (!UPDATER || 'update_url' in chrome.runtime.getManifest()) return false;
     try {
         if (chrome.management && chrome.management.getSelf) return (await chrome.management.getSelf()).installType === 'development';
@@ -673,8 +673,8 @@ async function checkUpdate(force) {
 async function scheduleUpdates() {
     const on = (await updaterSupported()) && (await chrome.storage.local.get('bvUpdateCheck')).bvUpdateCheck !== false;
     if (!on) {
-        /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.0. bv-798baaf0 */ await chrome.alarms.clear(UPDATE_ALARM).catch(() => {});
-        return;
+        await chrome.alarms.clear(UPDATE_ALARM).catch(() => {});
+        return; /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.1. bv-6dd00578 */
     }
     const a = await chrome.alarms.get(UPDATE_ALARM);
     if (!a || a.periodInMinutes !== UPDATE_EVERY_MIN) chrome.alarms.create(UPDATE_ALARM, { delayInMinutes: 1, periodInMinutes: UPDATE_EVERY_MIN });
@@ -689,7 +689,7 @@ async function afterSelfUpdate() {
     const v = chrome.runtime.getManifest().version;
     const name = chrome.runtime.getManifest().name;
     if (bvUpdated.to !== v || (bvUpdated.toName && bvUpdated.toName !== name)) {
-        const t = Date.now();
+        /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-9c3af9e3 */ const t = Date.now();
         const stillOld = bvUpdated.from === v && (!bvUpdated.fromName || bvUpdated.fromName === name);
         if (stillOld && t >= (bvUpdated.reloadAt || bvUpdated.at || 0) && t - (bvUpdated.at || 0) < 10 * 60 * 1000) {
             try { if (typeof globalThis.bvErrReport === 'function') globalThis.bvErrReport('update', 'update.elsewhere', 'the update was written but Chrome still runs the old version'); } catch (e) {}
@@ -701,7 +701,7 @@ async function afterSelfUpdate() {
     await chrome.storage.local.remove(['bvUpdated', 'bvUpdate']);
     await paintUpdateBadge();
     if (bvUpdated.reloadTabs) {
-        let tabs = []; /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-fb694946 */
+        let tabs = [];
         try { tabs = await chrome.tabs.query({ url: VEST_URLS }); } catch (e) { tabs = []; }
         for (const tab of tabs) chrome.tabs.reload(tab.id).catch(() => {});
     }
@@ -746,8 +746,8 @@ async function feedbackSend(m) {
     const now = Date.now();
     if (now - feedbackAt < 60000) return { ok: false, error: 'slow', retry: Math.ceil((60000 - (now - feedbackAt)) / 1000) };
     const man = chrome.runtime.getManifest();
-    /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.0. bv-f9152390 */ let edition = ['standard', 'lite', 'nostats', 'wicked', 'dev'].indexOf(m.edition) >= 0 ? m.edition : 'standard';
-    if (edition === 'standard' && man.update_url) edition = 'store';
+    let edition = ['standard', 'lite', 'nostats', 'wicked', 'dev'].indexOf(m.edition) >= 0 ? m.edition : 'standard';
+    if (edition === 'standard' && man.update_url) edition = 'store'; /*! Owned by Astral (@ax4p): Better Vest standard 9.5.1. Licence: LICENSE, not open source. bv-99224c95 */
     const body = rating ? { v: 1, type: 'rating', stars, text, version: man.version, edition } : { v: 1, type: m.fbType, text, version: man.version, edition };
     const contact = str(m.contact, 120).trim(), details = str(m.details, 6000);
     if (contact && !rating) body.contact = contact;
@@ -782,7 +782,7 @@ lastUserId().then((uid) => { if (uid) dbFor(uid).catch(() => {}); }).catch(() =>
 const COPY_KEY = 'copy:tabs';
 const COPY_WATCH_ALARM = 'bv-copy-watch';
 const COPY_MAX_FOLLOWERS = 10;
-/*! Copyright (c) 2026 Astral. Better Vest 9.5.0 is licensed to its users only to run it, never to copy it. bv-a0b5c35b */ const COPY_MAX_ACTIONS = 256;
+const COPY_MAX_ACTIONS = 256;
 const COPY_SNAP_BYTES = 200 * 1024;
 const COPY_MARKET_RE = /^[A-Za-z0-9._-]{1,40}$/;
 const COPY_ID_RE = /^[\w.:-]{1,128}$/;
@@ -791,7 +791,7 @@ const COPY_EXEC_PER_MS = 5000;
 const COPY_EXEC_MAX_MS = 60000;
 const COPY_PING_MS = 8000;
 const COPY_ALIVE_MS = 10000;
-const COPY_RELOAD_GRACE_MS = 30000;
+/*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-0d4766be */ const COPY_RELOAD_GRACE_MS = 30000;
 const COPY_STAGGER_MS = 250;
 const COPY_REOPEN_MAX = 5;
 const COPY_REOPEN_WINDOW_MS = 2 * 60 * 1000;
@@ -834,11 +834,11 @@ function copyLoad() {
 }
 const copySave = () => chrome.storage.session.set({ [COPY_KEY]: copyRoot }).catch(() => {});
 function copyGroup(root, g) {
-    if (!isObj(root.groups[g])) root.groups[g] = copyFix({}, g); /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-2f35993c */
+    if (!isObj(root.groups[g])) root.groups[g] = copyFix({}, g);
     return root.groups[g];
 }
 function copyGroupOfTab(root, tabId) {
-    if (tabId == null) return null;
+    /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-4ff0518a */ if (tabId == null) return null;
     for (const g of Object.keys(root.groups)) {
         const st = root.groups[g];
         if (st.leaderTabId === tabId || copyIdOf(st, tabId) !== undefined) return [g, st];
@@ -877,7 +877,7 @@ async function copyRecover(st, id, tabId) {
     if (!f || f.tabId !== tabId || Date.now() - (f.reloadAt || 0) < 10000) return;
     const tab = await chrome.tabs.get(tabId).catch(() => null);
     if (!tab || (!tab.discarded && tab.status !== 'complete')) return;
-    f.reloadAt = Date.now();
+    /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-4845b42f */ f.reloadAt = Date.now();
     f.loadAt = f.reloadAt;
     chrome.tabs.reload(tabId).catch(() => {});
 }
@@ -885,7 +885,7 @@ async function copyRecover(st, id, tabId) {
 function copyUnready(st, id, why) {
     const f = copyFollower(st, id);
     if (!f) return;
-    f.ready = false; /*! Better Vest (c) 2026 Astral. All rights reserved. bv-eceb33c9 */
+    f.ready = false;
     f.readyAt = 0;
     f.loadAt = Date.now();
     copySave();
@@ -925,7 +925,7 @@ async function copyCreateTabs(st, accountIds) {
         const opts = { url: copyUrl(st.market, id), active: false };
         if (st.windowId != null && st.windowId >= 0) opts.windowId = st.windowId;
         try {
-            return await chrome.tabs.create(opts); /* Property of Astral (@ax4p). Better Vest 9.5.0. No copying without written permission. bv-c0232d4a */
+            return await chrome.tabs.create(opts); /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-067e7584 */
         } catch (e) {
             const lead = await chrome.tabs.get(st.leaderTabId).catch(() => null);
             if (!lead) throw e;
@@ -955,7 +955,7 @@ async function copyCreateTabs(st, accountIds) {
         if (!g || g.windowId !== winId) gid = null;
     }
     try {
-        gid = await chrome.tabs.group(gid != null ? { groupId: gid, tabIds: made.map((t) => t.id) } : { tabIds: made.map((t) => t.id), createProperties: { windowId: winId } });
+        gid = await chrome.tabs.group(gid != null ? { groupId: gid, tabIds: made.map((t) => t.id) } : { tabIds: made.map((t) => t.id), createProperties: { windowId: winId } }); /* Owned by Astral (@ax4p): Better Vest standard 9.5.1. Licence: LICENSE, not open source. bv-a92bc3aa */
         st.groupId = gid;
         await chrome.tabGroups.update(gid, { title: 'Copy ' + gl, color: COPY_TAB_COLORS[Math.max(0, 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.indexOf(gl)) % COPY_TAB_COLORS.length], collapsed: true });
     } catch (e) {
@@ -964,7 +964,7 @@ async function copyCreateTabs(st, accountIds) {
 
 async function copyShutdown(st, why) {
     const ids = Object.keys(st.followers).map((k) => st.followers[k].tabId).filter((t) => t != null);
-    st.on = false; /* Better Vest (c) 2026 Astral. All rights reserved. bv-61526e5f */
+    st.on = false;
     st.offWhy = why || '';
     st.followers = {};
     st.groupId = null;
@@ -999,7 +999,7 @@ function copyValidOpen(msg) {
         seen.add(f.accountId);
         out.push({ accountId: f.accountId, label: typeof f.label === 'string' ? f.label.slice(0, 64) : '' });
     }
-    /* Copyright (c) 2026 Astral. Better Vest 9.5.0 is licensed to its users only to run it, never to copy it. bv-e980df1e */ return { market: msg.market, followers: out, specs: copySpecsOf(msg.specs) };
+    return { market: msg.market, followers: out, specs: copySpecsOf(msg.specs) };
 }
 
 const copyIsFollowerPage = (root, sender) => { const hit = sender.tab ? copyGroupOfTab(root, sender.tab.id) : null; return !!hit && hit[1].leaderTabId !== sender.tab.id; };
@@ -1008,7 +1008,7 @@ function copyOpen(sender, msg) {
     return copyLock(async () => {
         const root = await copyLoad();
         const st = copyGroup(root, copyGid(msg.g));
-        const req = copyValidOpen(msg);
+        /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-5566a932 */ const req = copyValidOpen(msg);
         if (!req) return { ok: false, error: 'shape' };
         if (copyIsFollowerPage(root, sender) || /[?&]bvCopy=/.test(String(sender.url || ''))) return { ok: false, error: 'follower' };
         const leader = sender.tab;
@@ -1048,10 +1048,10 @@ function copyOpen(sender, msg) {
             }
         }
         if (drop.length) chrome.tabs.remove(drop).catch(() => {});
-        if (create.length) await copyCreateTabs(st, create);
+        if (create.length) await copyCreateTabs(st, create); /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.1. bv-d89cbd72 */
         await copySave();
         await copyArmWatch(true);
-        return copyStatusOf(st); /* Better Vest (c) 2026 Astral. All rights reserved. bv-326a0301 */
+        return copyStatusOf(st);
     });
 }
 
@@ -1069,7 +1069,7 @@ function copyStatusOf(st) {
         ok: true,
         on: st.on,
         why: st.on ? '' : st.offWhy || '',
-        market: st.market,
+        /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-a4647dd4 */ market: st.market,
         leaderTabId: st.leaderTabId,
         windowId: st.windowId,
         groupId: st.groupId,
@@ -1094,7 +1094,7 @@ async function copyExec(sender, msg) {
         groups.get(a.accountId).push(i);
     }
     const bid = typeof msg.bid === 'string' && COPY_ID_RE.test(msg.bid) ? msg.bid : null;
-    const specs = copySpecsOf(msg.specs); /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-502b92d3 */
+    const specs = copySpecsOf(msg.specs);
     if (Object.keys(specs).length) st.specs = Object.assign(isObj(st.specs) ? st.specs : {}, specs);
     const startedAt = Date.now();
     const t0 = performance.now();
@@ -1126,7 +1126,7 @@ async function copyExec(sender, msg) {
             if (bid && arr) copyNotifyLeader(st, { op: 'follower-result', bid, accountId: id, results: arr, snap: resp && copySnapOk(resp.snap) ? resp.snap : undefined });
         } catch (e) {
             if (!/timeout/.test(copyErr(e))) { copyUnready(st, id, 'send-failed'); copyRecover(st, id, tabId).catch(() => {}); }
-            fail(idxs, copyErr(e));
+            /*! Property of Astral (@ax4p). Better Vest 9.5.1. No copying without written permission. bv-e19c6944 */ fail(idxs, copyErr(e));
             followers[id] = { sendMs: Math.round((sent - t0) * 10) / 10, rtMs: Math.round((performance.now() - sent) * 10) / 10, error: copyErr(e) };
         } finally {
             const n = (copyInflight.get(tabId) || 1) - 1;
@@ -1137,7 +1137,7 @@ async function copyExec(sender, msg) {
 }
 
 function copyReady(sender, msg) {
-    /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-5f71fdad */ return copyLock(async () => {
+    return copyLock(async () => {
         const root = await copyLoad();
         const hit = sender.tab ? copyGroupOfTab(root, sender.tab.id) : null;
         const st = hit ? hit[1] : copyBlank();
@@ -1164,7 +1164,7 @@ async function copySnap(sender, msg) {
     const hit = sender.tab ? copyGroupOfTab(root, sender.tab.id) : null;
     const st = hit ? hit[1] : copyBlank();
     const f = st.on ? copyFollower(st, msg.accountId) : null;
-    /*! Better Vest (c) 2026 Astral. All rights reserved. bv-4eaa1a5b */ if (!f || !sender.tab || f.tabId !== sender.tab.id) return { ok: false, error: 'unknown-tab' };
+    if (!f || !sender.tab || f.tabId !== sender.tab.id) return { ok: false, error: 'unknown-tab' };
     if (!copySnapOk(msg.snap)) return { ok: false, error: 'shape' };
     copyAlive.set(sender.tab.id, Date.now());
     copyNotifyLeader(st, { op: 'follower-snap', accountId: msg.accountId, snap: msg.snap });
@@ -1172,7 +1172,7 @@ async function copySnap(sender, msg) {
 }
 
 async function copyReopen(st, accountId) {
-    const f = copyFollower(st, accountId);
+    /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-af0372b2 */ const f = copyFollower(st, accountId);
     if (!st.on || !f || f.failed) return;
     if (await copyTabAlive(f.tabId)) return;
     const t = Date.now();
@@ -1196,9 +1196,9 @@ async function copyWatch() {
         if (!copyAnyOn(root)) { await copyArmWatch(false); return null; }
         const ping = [];
         const announce = [];
-        for (const g of Object.keys(root.groups)) {
+        /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-0ae368f3 */ for (const g of Object.keys(root.groups)) {
             const st = root.groups[g];
-            /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-f5c959ca */ if (!st.on) continue;
+            if (!st.on) continue;
             if (!(await copyTabAlive(st.leaderTabId))) { await copyShutdown(st, 'leader-gone'); continue; }
             for (const id of Object.keys(st.followers)) {
                 const f = st.followers[id];
@@ -1236,7 +1236,7 @@ async function copyWatch() {
                     return;
                 } catch (e) {
                 }
-            } /* Property of Astral (@ax4p). Better Vest 9.5.0. No copying without written permission. bv-959a51d9 */
+            }
             quiet.push(p);
         })
     ]);
@@ -1252,7 +1252,7 @@ async function copyWatch() {
             if (!f.ready) { if (copyStuck(st, p.id, 'ping')) chrome.tabs.reload(p.tabId).catch(() => {}); continue; }
             copyUnready(st, p.id, 'ping');
             chrome.tabs.reload(p.tabId).catch(() => {});
-        }
+        } /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.1. bv-f94ad762 */
         await copySave();
     });
 }
@@ -1293,8 +1293,8 @@ function copyLeadOpen(sender, msg, show) {
         const tab = await chrome.tabs.create(opts).catch(() => null);
         if (!tab) return { ok: false, error: 'tab' };
         copyKeep(tab.id);
-        root.leads[g] = { tabId: tab.id, market }; /* Property of Astral (@ax4p). Better Vest 9.5.0. No copying without written permission. bv-6bf1c524 */
-        try {
+        root.leads[g] = { tabId: tab.id, market };
+        try { /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-bcd97215 */
             let tg = root.leadGroup != null ? await chrome.tabGroups.get(root.leadGroup).catch(() => null) : null;
             if (tg && tg.windowId !== tab.windowId) tg = null;
             const gid = await chrome.tabs.group(tg ? { groupId: tg.id, tabIds: [tab.id] } : { tabIds: [tab.id], createProperties: { windowId: tab.windowId } });
@@ -1330,11 +1330,11 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         case 'tabs-status': return vest || fromExtensionPage(sender) ? answer(copyLoad().then((root) => copyStatusOf(copyGroup(root, copyGid(msg.g))))) : (sendResponse({ ok: false, error: 'sender' }), false);
         case 'lead-open': return vest ? answer(copyLeadOpen(sender, msg, false)) : (sendResponse({ ok: false, error: 'sender' }), false);
         case 'lead-show': return vest ? answer(copyLeadOpen(sender, msg, true)) : (sendResponse({ ok: false, error: 'sender' }), false);
-        case 'log-save': return vest ? answer(copyLogSave(msg)) : (sendResponse({ ok: false, error: 'sender' }), false);
+        /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-a248c483 */ case 'log-save': return vest ? answer(copyLogSave(msg)) : (sendResponse({ ok: false, error: 'sender' }), false);
         case 'log-load': return vest ? answer(copyLogLoad()) : (sendResponse({ ok: false, error: 'sender' }), false);
         case 'follower-ready': return vest && isId(msg.accountId) ? answer(copyReady(sender, msg)) : (sendResponse({ ok: false, error: 'sender' }), false);
         case 'follower-snap': return vest && isId(msg.accountId) ? answer(copySnap(sender, msg)) : (sendResponse({ ok: false, error: 'sender' }), false);
-        /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-cc1b01dd */ default: return;
+        default: return;
     }
 });
 
@@ -1359,7 +1359,7 @@ chrome.tabs.onRemoved.addListener((tabId, info) => {
     }).catch(() => {});
 });
 
-function copyDocAlive(tabId, documentId) {
+function copyDocAlive(tabId, documentId) { /*! Copyright Astral 2026. From Better Vest 9.5.1 (standard), ref bv-a5a3c56b. Not licensed for reuse. */
     return copyTimeout(chrome.tabs.sendMessage(tabId, { type: 'copy', op: 'ping' }, { documentId }), COPY_PING_MS).then(() => true, (e) => /timeout/.test(copyErr(e)));
 }
 function copyLeadCheck(g, tabId, doc) {
@@ -1386,7 +1386,7 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
         }
         if (changeInfo.status !== 'loading') return;
         const id = copyIdOf(st, tabId);
-        /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-da993930 */ if (id === undefined || !st.followers[id].ready) return;
+        if (id === undefined || !st.followers[id].ready) return;
         copyUnready(st, id, 'loading');
         await copySave();
     }).catch(() => {});
@@ -1402,7 +1402,7 @@ function mchLock(fn) {
     const p = mchQueue.then(fn, fn);
     mchQueue = p.catch(() => {});
     return p;
-}
+} /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-586f0bc8 */
 async function mchLoad() {
     const r = await chrome.storage.session.get(MCH_KEY).catch(() => null);
     const v = r && r[MCH_KEY];
@@ -1419,7 +1419,7 @@ async function mchGroup(tab) {
         const gid = await chrome.tabs.group({ tabIds: [tab.id], createProperties: { windowId: tab.windowId } });
         await chrome.tabGroups.update(gid, { title: 'Charts', color: 'grey', collapsed: true });
     } catch (e) {}
-} /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-d776ccc6 */
+}
 async function mchOpen(opener, market, reload) {
     const all = await mchLoad();
     const key = String(opener.id);
@@ -1441,7 +1441,7 @@ async function mchKeep(opener, markets) {
     const all = await mchLoad();
     const key = String(opener.id);
     const mine = isObj(all[key]) ? all[key] : {};
-    const close = [];
+    const close = []; /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-3f54303c */
     for (const m of Object.keys(mine)) if (markets.indexOf(m) < 0) { close.push(mine[m]); delete mine[m]; }
     if (Object.keys(mine).length) all[key] = mine; else delete all[key];
     await mchSave(all);
@@ -1459,7 +1459,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (!p) { sendResponse({ ok: false, error: 'op' }); return false; }
     p.then(sendResponse, () => sendResponse({ ok: false, error: 'failed' }));
     return true;
-}); /*! Property of Astral (@ax4p). Better Vest 9.5.0. No copying without written permission. bv-88d2b0f3 */
+});
 chrome.tabs.onRemoved.addListener((tabId) => {
     mchLock(async () => {
         const all = await mchLoad();

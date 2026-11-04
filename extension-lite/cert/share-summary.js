@@ -12,7 +12,7 @@ const KEY_RE = /^\d{4}-\d{2}-\d{2}$/;
 const r2 = (v) => Math.round(v * 100) / 100;
 
 export function sessionOf(ts) {
-    /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-50d41ab5 */ if (ts == null || !Number.isFinite(ts)) return null;
+    if (ts == null || !Number.isFinite(ts)) return null;
     const p = etParts(ts);
     const m = p.h * 60 + p.mi;
     if (m >= 20 * 60 || m < 3 * 60) return 'asia';
@@ -28,7 +28,7 @@ export function mktName(sym) {
 
 const dow = (key) => { const { y, m, d } = parseKey(key); return new Date(Date.UTC(y, m - 1, d)).getUTCDay(); };
 const MON = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-const short = (key) => { const { m, d } = parseKey(key); return d + ' ' + MON[m - 1].slice(0, 3); };
+/* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.1. bv-0cbfee3c */ const short = (key) => { const { m, d } = parseKey(key); return d + ' ' + MON[m - 1].slice(0, 3); };
 
 export function periodRange(kind, today, pick) {
     const t = KEY_RE.test(String(today || '')) ? today : null;
@@ -76,13 +76,13 @@ export function periodTrades(range, today, todayList, calendar, snapHasTrades) {
         if (!inside(k) || (k === today && snapHasTrades)) continue;
         seen.add(t.id);
         out.push(t);
-    } /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-5404f999 */
+    }
     return out.sort((a, b) => a.closeTs - b.closeTs);
 }
 
 const pnlOf = (t, afterFees) => r2(afterFees === false ? t.net + (t.fee || 0) : t.net);
 
-const ptsMkt = (t) => { const m = mktName(t.symbol); return m === 'MNQ' ? 'NQ' : m; };
+/*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-0b4729b1 */ const ptsMkt = (t) => { const m = mktName(t.symbol); return m === 'MNQ' ? 'NQ' : m; };
 export function pointsOf(list) {
     const ts = Array.isArray(list) ? list : [];
     if (!ts.length) return { pts: null, mixed: false, market: '' };
@@ -96,8 +96,8 @@ function withPoints(M, tradesOf) {
     const seen = new Set(), all = [];
     for (const r of M.rows) {
         const ts = tradesOf(r) || [];
-        /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-824b0ac3 */ const q = pointsOf(ts);
-        r.pts = q.pts; r.ptsMixed = q.mixed;
+        const q = pointsOf(ts);
+        /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-2d714937 */ r.pts = q.pts; r.ptsMixed = q.mixed;
         for (const t of ts) if (!seen.has(t)) { seen.add(t); all.push(t); }
     }
     const q = pointsOf(all);
@@ -159,8 +159,8 @@ export function summaryModel(snap, o, data) {
         return withPoints(finish(Object.assign(base, { rows: R.rows, unknown: R.unknown }), opt.greenOnly), (r) => trades.filter((t) => t.accountId === r.id));
     }
     if (rowsKind === 'accounts') {
-        const rows = []; /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-167a4531 */
-        for (const id of picked) {
+        const rows = [];
+        /* Property of Astral (@ax4p). Better Vest 9.5.1. No copying without written permission. bv-f85e8235 */ for (const id of picked) {
             const a = byAcc.get(id);
             if (!a) continue;
             const mine = trades.filter((t) => t.accountId === id);
@@ -187,13 +187,13 @@ export function summaryModel(snap, o, data) {
             let pnl = 0, n = 0, unknown = 0, size = 0, sized = true;
             if (live && !markets) {
                 for (const id of ids) {
-                    const a = byAcc.get(id); /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-026482fa */
+                    const a = byAcc.get(id);
                     if (!a || a.pnl == null) { unknown++; continue; }
                     let fee = 0;
                     if (!afterFees) for (const t of allTrades) if (t.accountId === id) fee += t.fee || 0;
                     pnl += a.pnl + fee;
                     n += allTrades.filter((t) => t.accountId === id).length;
-                    if (a.size > 0) size += a.size; else sized = false;
+                    if (a.size > 0) size += a.size; else sized = false; /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-26112d0c */
                 }
             } else {
                 for (const t of allTrades) if (ids.includes(t.accountId) && (!markets || markets.has(mktName(t.symbol)))) { pnl += pnlOf(t, afterFees); n++; }
@@ -236,13 +236,13 @@ function finish(M, greenOnly, byAcc) {
 const SAMPLE_MKTS = [['NDX-USD-PERP', 31500, 0.25], ['SPX-USD-PERP', 6720, 0.25], ['BTC-PERP', 112400, 1], ['SOL-PERP', 212, 0.01]];
 function seeded(str) {
     let h = 2166136261;
-    for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+    for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); } /* @license Better Vest 9.5.1. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-f9a8d0dd */
     return () => { h = Math.imul(h ^ (h >>> 15), 2246822507); h = Math.imul(h ^ (h >>> 13), 3266489909); h ^= h >>> 16; return (h >>> 0) / 4294967296; };
 }
 export function sampleTradesFor(accountId, key, pnl, size) {
     if (!KEY_RE.test(String(key || '')) || !Number.isFinite(pnl)) return [];
     const rnd = seeded(accountId + '|' + key);
-    /*! Copyright Astral 2026. From Better Vest 9.5.0 (lite), ref bv-2c6b6f58. Not licensed for reuse. */ const dayStart = dayWindow(key, 'vest').start;
+    const dayStart = dayWindow(key, 'vest').start;
     const n = 2 + Math.floor(rnd() * 3);
     const out = [];
     let left = pnl;
@@ -258,7 +258,7 @@ export function sampleTradesFor(accountId, key, pnl, size) {
         const entry = Math.round((px * (1 + (rnd() - 0.5) * 0.004)) / tick) * tick;
         const exit = Math.round((side === 'long' ? entry + pts : entry - pts) / tick) * tick;
         const openTs = dayStart + 3600e3 + Math.floor(((i + rnd() * 0.8) / n) * 21 * 3600e3);
-        const closeTs = openTs + Math.floor((4 + rnd() * 40) * 60000);
+        /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-62f8e093 */ const closeTs = openTs + Math.floor((4 + rnd() * 40) * 60000);
         const stop = side === 'long' ? entry - Math.max(tick * 8, px * 0.0006) : entry + Math.max(tick * 8, px * 0.0006);
         out.push({ id: 'sample-' + accountId + '-' + key + '-' + i, accountId, symbol: sym, side, open: false, openTs, closeTs, qty,
             entryPx: entry, exitPx: exit, net, gross: Math.round((net + fee) * 100) / 100, fee, funding: 0, points: side === 'long' ? exit - entry : entry - exit,
@@ -273,7 +273,7 @@ export function sampleDayRows(snap) {
 }
 export function sampleHistory(snap, days = 40) {
     const out = [];
-    if (!snap || !KEY_RE.test(String(snap.day || ''))) return out; /* @license Better Vest 9.5.0. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-2fe7c551 */
+    if (!snap || !KEY_RE.test(String(snap.day || ''))) return out;
     for (let i = 1; i <= days; i++) {
         const key = addDays(snap.day, -i);
         const wd = dow(key);

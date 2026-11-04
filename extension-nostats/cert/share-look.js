@@ -37,7 +37,7 @@ export const accentOpt = (v) => hexColor(v);
 
 export function bgFileWhy(f) {
     if (!f || typeof f !== 'object') return 'No file was picked.';
-    const type = String(f.type || '').toLowerCase(); /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-f8677b00 */
+    const type = String(f.type || '').toLowerCase(); /* Property of Astral (@ax4p). Better Vest 9.5.1. No copying without written permission. bv-fcc76298 */
     if (!BG_TYPES.includes(type)) return 'Pick a PNG, JPEG, WebP or GIF picture.';
     const size = Number(f.size);
     if (!(size > 0)) return 'That file is empty.';
@@ -64,7 +64,7 @@ export function lookParts(p, img, red) {
         const src = img ? bgSrcOk(img.src) : '';
         if (src) {
             const pad = bg.blur * 2;
-            const st = bg.blur ? ` style="left:-${pad}px;top:-${pad}px;width:calc(100% + ${pad * 2}px);height:calc(100% + ${pad * 2}px);filter:blur(${bg.blur}px)"` : '';
+            const st = bg.blur ? ` style="left:-${pad}px;top:-${pad}px;width:calc(100% + ${pad * 2}px);height:calc(100% + ${pad * 2}px);filter:blur(${bg.blur}px)"` : ''; /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-0b423aab */
             own = `<div class="bgx bgo bgim"><img class="bgi${bg.fit === 'fit' ? ' bgf' : ''}" src="${src}" alt=""${st}><i class="bgd" style="opacity:${(bg.dim / 100).toFixed(2)}"></i></div>`;
         }
     }
@@ -80,7 +80,7 @@ export function bgFramePlan(durations, o) {
     let frames;
     if (opt.frames > 0) frames = Math.round(opt.frames);
     else {
-        /* @license Better Vest 9.5.0. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-acdd86ca */ const max = opt.maxMs > 0 ? opt.maxMs : BG_VIDEO_MAX_MS, min = opt.minMs > 0 ? opt.minMs : BG_VIDEO_MIN_MS;
+        const max = opt.maxMs > 0 ? opt.maxMs : BG_VIDEO_MAX_MS, min = opt.minMs > 0 ? opt.minMs : BG_VIDEO_MIN_MS;
         let ms = loopMs;
         if (ms < min) ms = Math.ceil(min / loopMs) * loopMs;
         ms = Math.min(ms, max);

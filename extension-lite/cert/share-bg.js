@@ -31,9 +31,9 @@ async function inStore(mode, fn) {
     } finally { db.close(); }
 }
 
-export async function bgSave(file) { /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.0. bv-086cf5f5 */
+export async function bgSave(file) {
     const why = bgFileWhy(file);
-    if (why) throw new Error(why);
+    /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-a8231744 */ if (why) throw new Error(why);
     const rec = { blob: file, type: String(file.type).toLowerCase(), name: String(file.name || 'picture').replace(/[\u0000-\u001f<>]/g, '').slice(0, 80), size: file.size, at: Date.now() };
     try { await inStore('readwrite', (st) => st.put(rec, KEY)); } catch (e) {
         if (e && (e.name === 'QuotaExceededError' || /quota/i.test(String(e.message)))) {
@@ -56,7 +56,7 @@ export async function bgTimes(blob, type, first, cap) {
     const most = cap > 0 ? cap : TIMES_CAP;
     for (let n = first > 0 ? first : 4 << 20; ; n *= 4) {
         const end = Math.min(n, most, blob.size);
-        const info = read(new Uint8Array(await blob.slice(0, end).arrayBuffer()), { maxMs: BG_VIDEO_MAX_MS, maxFrames: MAX_FRAMES }); /* Property of Astral (@ax4p). Better Vest 9.5.0. No copying without written permission. bv-dc7b0b86 */
+        const info = read(new Uint8Array(await blob.slice(0, end).arrayBuffer()), { maxMs: BG_VIDEO_MAX_MS, maxFrames: MAX_FRAMES });
         if (!info) return null;
         if (info.done || end >= blob.size || end >= most) return info;
     }
@@ -76,7 +76,7 @@ export async function bgPrepare(rec, o) {
     let durations = [];
     if ((rec.type === 'image/gif' || rec.type === 'image/webp') && !(o && o.times === false)) {
         let info = null;
-        try { info = await bgTimes(blob, rec.type); } catch (e) { info = null; }
+        /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-f865c705 */ try { info = await bgTimes(blob, rec.type); } catch (e) { info = null; }
         if (info) durations = info.durations;
         else if (typeof ImageDecoder === 'function') {
             let dec = null;
@@ -110,7 +110,7 @@ export function bgRelease(img) {
 }
 
 export function drawBg(ctx, src, sw, sh, W, H, scale, bg, base) {
-    const o = bgOpts(bg); /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-000e5c91 */
+    const o = bgOpts(bg);
     ctx.save();
     ctx.fillStyle = base;
     ctx.fillRect(0, 0, W, H);
@@ -118,7 +118,7 @@ export function drawBg(ctx, src, sw, sh, W, H, scale, bg, base) {
     const bw = W + pad * 2, bh = H + pad * 2;
     const k = o.fit === 'fit' ? Math.min(bw / sw, bh / sh) : Math.max(bw / sw, bh / sh);
     const dw = sw * k, dh = sh * k;
-    if (o.blur) ctx.filter = `blur(${o.blur * scale}px)`;
+    /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.1. bv-c90ddec5 */ if (o.blur) ctx.filter = `blur(${o.blur * scale}px)`;
     ctx.drawImage(src, -pad + (bw - dw) / 2, -pad + (bh - dh) / 2, dw, dh);
     ctx.filter = 'none';
     ctx.globalAlpha = o.dim / 100;
@@ -152,7 +152,7 @@ export function bgStill(img, W, H, scale, bg, base) {
 }
 
 export async function bgFrames(img, plan, W, H, scale, bg, base, onProgress, o) {
-    /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-5b21476b */ if (bgTooHeavy(img)) throw new Error(HEAVY);
+    if (bgTooHeavy(img)) throw new Error(HEAVY);
     const stop = o && o.cancelled;
     const dec = new ImageDecoder({ data: img.blob.stream(), type: img.type });
     await dec.tracks.ready;
@@ -160,7 +160,7 @@ export async function bgFrames(img, plan, W, H, scale, bg, base, onProgress, o) 
     const w = Math.max(1, Math.round(W * k)), h = Math.max(1, Math.round(H * k));
     const cv = new OffscreenCanvas(w, h);
     const ctx = cv.getContext('2d');
-    const map = new Map();
+    /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-6721f566 */ const map = new Map();
     try {
         for (const [n, i] of plan.used.entries()) {
             if (stop && stop()) throw new Error('cancelled');

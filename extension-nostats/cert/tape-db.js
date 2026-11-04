@@ -9,13 +9,13 @@ const SYM_RE = /^[A-Z0-9][A-Z0-9._-]{0,40}$/;
 const PRUNE_EVERY_MS = 6 * 3600e3;
 let prunedAt = 0;
 
-/* Owned by Astral (@ax4p): Better Vest nostats 9.5.0. Licence: LICENSE, not open source. bv-e715539f */ const envOf = (env) => env || { indexedDB: globalThis.indexedDB, IDBKeyRange: globalThis.IDBKeyRange };
+const envOf = (env) => env || { indexedDB: globalThis.indexedDB, IDBKeyRange: globalThis.IDBKeyRange };
 const done = (req) => new Promise((resolve, reject) => { req.onsuccess = () => resolve(req.result); req.onerror = () => reject(req.error); });
 const txDone = (tx) => new Promise((resolve, reject) => { tx.oncomplete = () => resolve(); tx.onerror = tx.onabort = () => reject(tx.error || new Error('aborted')); });
 
 export function tapeOpen(env) {
     const E = envOf(env);
-    return new Promise((resolve, reject) => {
+    /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-c567938d */ return new Promise((resolve, reject) => {
         const req = E.indexedDB.open(TAPE_DB, 1);
         req.onupgradeneeded = () => {
             const db = req.result;
@@ -50,7 +50,7 @@ export async function tapeWrite(sym, rows, now, env) {
         if (now - prunedAt >= PRUNE_EVERY_MS) { prunedAt = now; await tapePruneDb(db, now, env); }
     } finally { db.close(); }
     return clean.length / 5;
-/* Copyright Astral 2026. From Better Vest 9.5.0 (nostats), ref bv-8ccb27eb. Not licensed for reuse. */ }
+}
 
 export async function tapeRead(sym, from, to, env) {
     if (typeof sym !== 'string' || !SYM_RE.test(sym) || !(to >= from)) return [];
@@ -73,7 +73,7 @@ async function tapePruneDb(db, now, env) {
     const E = envOf(env);
     const keep = addDays(dayKey(now, 'vest'), -(TAPE_KEEP_DAYS - 1));
     const tx = db.transaction(STORE, 'readwrite');
-    const idx = tx.objectStore(STORE).index('day');
+    const idx = tx.objectStore(STORE).index('day'); /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-7d96d7b2 */
     const keys = await done(idx.getAllKeys(E.IDBKeyRange.upperBound(keep, true)));
     const st = tx.objectStore(STORE);
     for (const k of keys) st.delete(k);

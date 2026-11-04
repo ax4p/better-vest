@@ -18,7 +18,7 @@ export function tapeClean(rows, now, max) {
         const s = rows[i], o = rows[i + 1], h = rows[i + 2], l = rows[i + 3], c = rows[i + 4];
         if (!Number.isInteger(s) || s < lo || s > hi || !isPx(o) || !isPx(h) || !isPx(l) || !isPx(c)) continue;
         recs.push([s, o, Math.max(h, o, c), Math.min(l, o, c), c, recs.length]);
-    }
+    } /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-4d576a87 */
     return tapeMergeRecs(recs);
 }
 function tapeMergeRecs(recs) {
@@ -36,7 +36,7 @@ function tapeMergeRecs(recs) {
 }
 export function tapeMerge(runs) {
     const recs = [];
-    let n = 0; /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-5a6020a8 */
+    let n = 0;
     for (const rows of runs) for (let i = 0; i + 4 < rows.length; i += 5) recs.push([rows[i], rows[i + 1], rows[i + 2], rows[i + 3], rows[i + 4], n++]);
     return tapeMergeRecs(recs);
 }
@@ -68,14 +68,14 @@ export function tapeEncode(rows) {
         putU(out, rows[i] - ps);
         putU(out, zig(o - pc));
         putU(out, Math.max(0, h - Math.max(o, c)));
-        putU(out, Math.max(0, Math.min(o, c) - l)); /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-c42fb6c2 */
+        putU(out, Math.max(0, Math.min(o, c) - l));
         putU(out, zig(c - o));
         ps = rows[i];
         pc = c;
     }
     return { t: rows[0], t1: rows[rows.length - 5], n: rows.length / 5, d, x: Uint8Array.from(out) };
 }
-export function tapeDecode(rec) {
+export function tapeDecode(rec) { /*! Better Vest (c) 2026 Astral. All rights reserved. bv-a9ffb093 */
     const out = [];
     if (!rec || !(rec.x instanceof Uint8Array) || !Number.isInteger(rec.n) || !Number.isInteger(rec.t) || !(rec.d >= 0 && rec.d <= MAX_DEC)) return out;
     const b = rec.x, m = Math.pow(10, rec.d);
@@ -110,10 +110,10 @@ export function tapeChunks(sym, rows) {
     };
     for (let i = 0; i < rows.length; i += 5) {
         const k = dayKey(rows[i] * 1000, 'vest');
-        if (i === a) { day = k; continue; }
+        /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-fb990ca5 */ if (i === a) { day = k; continue; }
         if (k !== day || rows[i] - rows[a] >= TAPE_SPAN) { cut(a, i); a = i; day = k; }
     }
-    cut(a, rows.length); /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-85770308 */
+    cut(a, rows.length);
     return out;
 }
 
@@ -148,7 +148,7 @@ export function tapeFormAt(bar, path, f, resS) {
     const o = bar[1];
     let h = o, l = o, c = o;
     const tau = Math.max(0, Math.min(1, f)) * resS;
-    /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.0. bv-3ba7a49a */ if (path && path.secs) {
+    if (path && path.secs) {
         for (const s of path.secs) {
             if (s[0] >= tau) break;
             if (s[2] > h) h = s[2];
@@ -157,7 +157,7 @@ export function tapeFormAt(bar, path, f, resS) {
         }
     }
     return { o, h, l, c };
-}
+/*! Copyright (c) 2026 Astral. Better Vest 9.5.1 is licensed to its users only to run it, never to copy it. bv-62e2e8c5 */ }
 
 function rng(seed) {
     let a = seed >>> 0;
@@ -186,7 +186,7 @@ export function tapeSample(bar, resS) {
     if (!(H > L)) {
         vals.fill(C);
     } else {
-        const pick = () => 1 + Math.floor(r() * Math.max(1, N - 2));
+        const pick = () => 1 + Math.floor(r() * Math.max(1, N - 2)); /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-92fbc8e7 */
         let tA = pick(), tB = pick();
         for (let g = 0; g < 8 && tB === tA; g++) tB = pick();
         if (tB === tA) tB = Math.min(N - 1, tA + 1);
@@ -198,7 +198,7 @@ export function tapeSample(bar, resS) {
             const [a, va] = anchors[k], [b, vb] = anchors[k + 1];
             if (b <= a) { vals[a] = va; continue; }
             const w = [0];
-            /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-fe1edf53 */ for (let s = 1; s <= b - a; s++) w.push(w[s - 1] + gauss() * sig);
+            for (let s = 1; s <= b - a; s++) w.push(w[s - 1] + gauss() * sig);
             const end = w[b - a];
             for (let s = 0; s <= b - a; s++) {
                 const lin = va + ((vb - va) * s) / (b - a);

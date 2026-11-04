@@ -14,7 +14,7 @@ export const CARD_CSS = new URL('./card.css', import.meta.url).href;
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const f2 = (n) => (Math.round(n * 100) / 100).toFixed(2);
 
-export function fmtMoneyParts(v) { /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-de16b8ca */
+export function fmtMoneyParts(v) {
     const cents = Math.round(Math.abs(v) * 100);
     const whole = Math.floor(cents / 100);
     return {
@@ -23,7 +23,7 @@ export function fmtMoneyParts(v) { /*! Astral / Better Vest. Copying this file, 
     };
 }
 export const fmtMoney = (v) => { const p = fmtMoneyParts(v); return p.int + '.' + p.cents; };
-export const fmtMilestone = (amount) => '$' + (amount >= 1000 ? amount / 1000 + 'K' : amount);
+/* Better Vest (c) 2026 Astral. All rights reserved. bv-aa54c863 */ export const fmtMilestone = (amount) => '$' + (amount >= 1000 ? amount / 1000 + 'K' : amount);
 const dm = (key) => fmtDate(key, 'dm');
 
 function bars(vals, w, h, gap, uid) {
@@ -67,7 +67,7 @@ export function buildCard(S, opts = {}) {
     const pill = ms ? `<span class="bvc-pill"><b></b>${esc(fmtMilestone(ms.amount))} milestone &middot; ${esc(dm(ms.reachedKey))}</span>` : '';
 
     let strip = '';
-    if (chart) {
+    if (chart) { /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-0d8256b3 */
         const series = barSeries(S, 40, 7);
         const n = series.bars.length;
         const gap = n > 24 ? 3 : n > 14 ? 4.5 : 6;
@@ -96,7 +96,7 @@ export function buildCard(S, opts = {}) {
  <p class="bvc-a bvc-prov" style="left:20px;top:560px;width:375px">${esc(PROVENANCE)}</p>`;
 
     const el = document.createElement('div');
-    /* Property of Astral (@ax4p). Better Vest 9.5.0. No copying without written permission. bv-665a463d */ el.className = 'bvc';
+    el.className = 'bvc';
     el.setAttribute('data-bv-cert', '1');
     el.innerHTML = html;
     return el;

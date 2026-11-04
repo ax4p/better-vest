@@ -23,8 +23,8 @@ function upgrade(db) {
 export function openDb(userId) {
     return new Promise((resolve, reject) => {
         if (typeof userId !== 'string' || !userId) {
-            reject(new TypeError('openDb: userId required'));
-            return; /*! Copyright Astral 2026. From Better Vest 9.5.0 (standard), ref bv-f1586eaa. Not licensed for reuse. */
+            /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-4c2bf852 */ reject(new TypeError('openDb: userId required'));
+            return;
         }
         let settled = false;
         let blockedTimer = null;
@@ -59,10 +59,10 @@ function wrap(req) {
 function finish(tx) {
     return new Promise((resolve, reject) => {
         tx.oncomplete = () => resolve();
-        tx.onerror = () => reject(tx.error);
+        /*! Better Vest (c) 2026 Astral. All rights reserved. bv-0af26b83 */ tx.onerror = () => reject(tx.error);
         tx.onabort = () => reject(tx.error || new Error('transaction aborted'));
     });
-/*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-265fd892 */ }
+}
 
 export function getAll(db, store, opts) {
     const o = opts || {};
@@ -106,9 +106,9 @@ export function putMany(db, byStore) {
         for (const n of names) {
             const os = tx.objectStore(n);
             for (const v of byStore[n]) os.put(v);
-        }
+        } /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-78b59cd0 */
     });
-/*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-73daa737 */ }
+}
 
 export function del(db, store, key) {
     return writeTx(db, store, (tx) => { tx.objectStore(store).delete(key); });

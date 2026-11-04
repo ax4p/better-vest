@@ -12,9 +12,9 @@ export const NAME_MAX = 28;
 const ASSET = new URL('./assets/', import.meta.url).href;
 export const CARD_CSS = new URL('./card.css', import.meta.url).href;
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
-const f2 = (n) => (Math.round(n * 100) / 100).toFixed(2);
+/*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-4eb4ac1d */ const f2 = (n) => (Math.round(n * 100) / 100).toFixed(2);
 
-/*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-47e9506f */ export function fmtMoneyParts(v) {
+export function fmtMoneyParts(v) {
     const cents = Math.round(Math.abs(v) * 100);
     const whole = Math.floor(cents / 100);
     return {
@@ -68,7 +68,7 @@ export function buildCard(S, opts = {}) {
 
     let strip = '';
     if (chart) {
-        const series = barSeries(S, 40, 7); /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-9b06a451 */
+        const series = barSeries(S, 40, 7);
         const n = series.bars.length;
         const gap = n > 24 ? 3 : n > 14 ? 4.5 : 6;
         const dayLabel = S.days === 1 ? '1 day' : S.days + ' days';
@@ -77,7 +77,7 @@ export function buildCard(S, opts = {}) {
     }
 
     const cell = (label, value) => `<div class="bvc-stat"><dt class="bvc-lbl">${label}</dt><dd class="bvc-val">${esc(value)}</dd></div>`;
-    const html = `${backdrop()}
+    /*! Copyright (c) 2026 Astral. Better Vest 9.5.1 is licensed to its users only to run it, never to copy it. bv-5a6b58ce */ const html = `${backdrop()}
  <div class="bvc-a bvc-vw" style="left:30px;top:30px">VEST</div>
  <div class="bvc-a" data-k="head" style="left:30px;top:${Y.hero}px;width:355.5px;text-align:center">
   <p class="bvc-kick">Total Payouts</p>
