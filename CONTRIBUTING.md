@@ -17,7 +17,7 @@ Start with your smallest size, and watch your first few orders the way you would
 
 ## Updating
 
-When a new version is out, an **Update** button shows up in the dock. Click it, read what's new, then **Update**. The first time, Chrome asks for your Better Vest folder; after that it's one click. Before it writes anything it checks my signature and every file, and your settings and Calendar stay as they are. The same page can switch you to another edition (Standard, Lite or No stats). Settings > More > About > **Check for updates** opens it any time.
+When a new version is out, an **Update** button shows up in the dock. Click it, read what's new, then **Update**. The first time, Chrome asks for your Better Vest folder; after that it's one click. Before it writes anything it checks my signature and every file, and your settings and Calendar stay as they are. The same page can switch you to another edition (Standard, Lite or No stats). Settings > About and help > **Check for updates** opens it any time.
 
 ## If something's off
 

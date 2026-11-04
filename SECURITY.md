@@ -43,7 +43,7 @@ Every address in the code, and when each one is used:
 | `api-gateway.hz.vestmarkets.com` | Read-only (GET) requests: your trade history and payouts for the Calendar and the Payout card, open positions for the chart TP/SL and the copy trader, today's positions for the P&L card, the daily profit limit and the tilt guard, and your accounts' resting orders for the copy trader's limit-order mirror. They use the login your Vest tab already has and keep it in memory only, never on disk. The chart's and the copy trader's reads can only ask for positions, resting orders and market info. Request payouts' claims, and the copy trader's orders in Light and Turbo, go here too, sent by Vest's own code the same way it sends yours. In Flash mode the copy trader sends here itself: one request per follower account for that account's own sign-in (`/v3/auth/account-token`, made with the login your tab already has), then each of that follower's orders with that sign-in. Flash only sends to the address Vest's own page uses for its API, which is this one. | When the Calendar syncs, while you hold a position with chart TP/SL on, while copying is on, when you press P&L or the card pops up after a big close, and every 15 seconds while the daily profit limit or the tilt guard is on. |
 | `api.github.com` | "Which version is the latest?" Nothing about you is in that request. | Every 30 minutes, and when Chrome starts. You can turn it off in the toolbar popup. |
 | `raw.githubusercontent.com` | The files of a new version, from this repo. | Only when you click Update. |
-| `bv.astrals.dev` | My site: the usage stats, the error reports, the safety switches, and what you write me with **Tell Astral** (Settings > More). When you remove Better Vest, Chrome opens one page of it that asks why (Standard and Lite). See [The usage stats](#the-usage-stats), [Error reports](#error-reports) and [Safety switches](#safety-switches). | The stats: once when it's installed or updated, every 3 minutes while a Vest tab is open, and every 10 minutes once you've said yes (Standard and Lite). The error reports: when something in Better Vest fails (Standard and Lite). The switches: every 3 minutes while a Vest tab is open. Tell Astral: only when you press Send: your words, a way to reach you if you give one, the version and the edition, and for a bug the details the window showed you first. The removal page: its address carries only the version, the edition and how many days Better Vest was installed. |
+| `bv.astrals.dev` | My site: the usage stats, the error reports, the safety switches, and what you write me with **Tell Astral** (Settings > About and help) or the rating card. When you remove Better Vest, Chrome opens one page of it that asks why (Standard and Lite). See [The usage stats](#the-usage-stats), [Error reports](#error-reports) and [Safety switches](#safety-switches). | The stats: once when it's installed or updated, every 3 minutes while a Vest tab is open, and every 10 minutes once you've said yes (Standard and Lite). The error reports: when something in Better Vest fails (Standard and Lite). The switches: every 3 minutes while a Vest tab is open. Tell Astral: only when you press Send: your words, a way to reach you if you give one, the version and the edition, and for a bug the details the window showed you first. The rating card (once, after about 90 minutes of use): only when you press Send: your stars, your words if you add any, the version and the edition. The removal page: its address carries only the version, the edition and how many days Better Vest was installed. |
 | `fonts.googleapis.com` | A font (the file itself comes from `fonts.gstatic.com`). | Only if you pick one of the Google fonts in Settings > Look. The default is Vest's own font, which loads nothing. |
 
 There's no other address in the code. No ads, and no analytics company. The voice, the news dates and the P&L pop-up are files inside the extension. Multi-chart's hidden tabs are Vest's own page, so they make Vest's own requests, the same as any Vest tab you open.
@@ -60,11 +60,11 @@ Standard and Lite send me anonymous usage stats, so I know how many people use B
 
 - **The random number** is made on your computer the first time, with the browser's own random generator, and kept in the extension's storage. It isn't built from anything: not your Vest account, not your computer, not your address. It only lets me count the same person once. Removing the extension removes it, and so does switching to No stats.
 - **Feature use and setup:** how many times a day Better Vest's own buttons and keys were used (like FLAT, a hotkey or the P&L card), how many minutes a day it was in use (a minute counts while its Vest tab is in front and you used it in the last 2 minutes; never when), and its settings (like the theme, where the Execute card sits, which options are on, which keys are set), plus how many accounts of each kind and size you have. When you buy a Vest plan, the purchase too, once it's paid: whether my code WICK, another code or no code was on, and the price after its discount. Never which plan, which account, your card or another code's name. Only names from a fixed list in the code (`update/count.js`), and my site checks them again and drops anything else. Never a price, a size, an account id, anything you type, or the time of day.
-- **You're asked first:** after the update, a small note says what it sends and why. That part goes out only once you say yes, and Settings > More turns it off any time.
+- **You're asked first:** after the update, a small note says what it sends and why. That part goes out only once you say yes, and Settings > Privacy and data turns it off any time.
 - **Where it goes:** `bv.astrals.dev/api/count`, my site, as one small request from the extension's background script. No cookies, and nothing is read back.
 - **What I keep:** counts. Installs per version and edition, how many different numbers per day, and how many in the last 15 minutes, and for 40 days each computer's day of feature use and setup, under a scrambled form of its number. After that only daily totals stay: how many used each feature or picked each setting, and how many minutes it was in use. The numbers themselves go into a form that can't be turned back into them, except the ones seen in the last 15 minutes, which is what "online now" counts.
 - **What I never get:** your Vest account, trades, balances, P&L, positions, orders or the pages you open. Vercel, which hosts the site, sees the IP address of every request the way any website does; the stats don't keep it.
-- **Don't want it?** Turn it off in Settings > More, or take the No stats zip (or switch to it on the update page). No stats sends nothing at all.
+- **Don't want it?** Turn it off in Settings > Privacy and data, or take the No stats zip (or switch to it on the update page). No stats sends nothing at all.
 
 ## Error reports
 
@@ -76,7 +76,7 @@ Since 9.3.6, when something in Better Vest fails, Standard and Lite tell me what
 - **When:** a new kind of failure goes right away, and repeats are counted and go every 5 minutes. At most 100 reports a day carry a new kind; after that, a new kind waits for the next day.
 - **Where it goes:** `bv.astrals.dev/api/errors`, my site, as one small request from the extension's background script. No cookies, and nothing is read back.
 - **What I keep:** each kind of failure with how many times it happened, and for 40 days how many times per version, edition, system and computer (under the scrambled form of the random number).
-- **Don't want it?** It's on by default. Turn it off in Settings > More > Error reports, or take the No stats zip.
+- **Don't want it?** It's on by default. Turn it off in Settings > Privacy and data > Error reports, or take the No stats zip.
 
 ## Safety switches
 
@@ -112,11 +112,11 @@ It doesn't have its own way to trade. It works the page the way you would:
 
 Apart from the copy trader's Flash mode, Better Vest never builds a trading request of its own: Vest's code sends everything, exactly as if you'd clicked. Flash builds each request the way Vest's own order ticket does, to the same addresses with the same fields, and sends it from your Vest tab.
 
-One more thing it does to your clicks: while a lock is on (your own lock, the daily loss limit, the daily profit limit or the tilt guard), it swallows a click on Vest's own Buy and Sell on your screen, until the lock runs out. **Also block Vest's own Buy and Sell** in Settings > Risk turns that off. It never blocks a close. With **Close my positions at the limit** on (the default), hitting the daily loss limit also closes every position of that account, one by one through Vest's own Close button and close window, the way FLAT does, and any position that opens on that account until Vest's day resets at 8 pm New York. The profit limit never closes anything.
+One more thing it does to your clicks: while a lock is on (your own lock, the daily loss limit, the daily profit limit or the tilt guard), it swallows a click on Vest's own Buy and Sell on your screen, until the lock runs out. **Also block Vest's own Buy and Sell** in Settings > Risk and limits turns that off. It never blocks a close. With **Close my positions at the limit** on (the default), hitting the daily loss limit also closes every position of that account, one by one through Vest's own Close button and close window, the way FLAT does, and any position that opens on that account until Vest's day resets at 8 pm New York. The profit limit never closes anything.
 
 The P&L card makes its image, its video and its GIF in your browser. For Replay it takes the candles from Vest's own chart, and for an older day, another market you traded that day, or a finer timeframe, it asks Vest's own chart code for them, the way the chart does when you scroll back. **My chart** takes the candle colors from your own chart's settings on the page. The image, video or GIF only leaves your computer if you post it. The pop-up after a big close is that small page of the extension inside Vest's page: it only draws the card it's given, and Save and Copy work on your computer.
 
-And one thing it does to the chart by itself: while you hold a position, it widens TradingView's right margin just enough for the TP/SL labels, and puts it back when you're flat. Settings > TP/SL turns that off.
+And one thing it does to the chart by itself: while you hold a position, it widens TradingView's right margin just enough for the TP/SL labels, and puts it back when you're flat. Settings > Stops and exits turns that off.
 
 ## The copy trader
 
@@ -173,14 +173,14 @@ It's in Manage accounts, in the account menu, and does nothing until you press i
 
 This is how Better Vest stays free.
 
-- **An empty code box** (off until you switch it on): with **Put code WICK in when Vest's code box is empty** on in Settings > More > Support Astral, or Always use code WICK on, when a purchase screen opens and Vest's code box has no code in it, Better Vest puts WICK in through Vest's own box and Vest's own button, once per purchase, and a note says so. Nothing is bought by it. It never replaces a code that is on, and if you press into the code box first, the box is yours.
+- **An empty code box** (off until you switch it on): with **Put code WICK in when Vest's code box is empty** on in Settings > About and help > Support Astral, or Always use code WICK on, when a purchase screen opens and Vest's code box has no code in it, Better Vest puts WICK in through Vest's own box and Vest's own button, once per purchase, and a note says so. Nothing is bought by it. It never replaces a code that is on, and if you press into the code box first, the box is yours.
 - **The question:** when you press Purchase Evaluation Account, Buy Your Bespoke Account, Add Funded Account or Buy Without a Discount, while you're logged in and WICK isn't the code on (no code, or another one). Your press waits, and a pop-up asks.
 - **Use code WICK** puts WICK in Vest's own code box and presses Vest's own button for it. If Vest takes it and the discount is the same or more, your purchase goes on: Better Vest presses your button once more. If not, your code goes back, the pop-up says so, and nothing goes on until you press again.
 - **No thanks**, or pressing the button again, goes on at once, as it was.
 - **Always use code WICK** (off until you switch it on) skips the question: your press puts WICK in and goes on. It never replaces a code you typed or picked in that purchase, and never keeps WICK when it gives less off.
 - When something is unsure (no code box, or no answer from Vest within a few seconds), your press goes through as it was.
 - The pop-up has one of three looks, picked once on each computer: your month with Better Vest (counted on this computer only), the plan's price from Vest's own card with and without WICK, or a short note from me.
-- **Settings > More > Support Astral** has the switches: **Ask about code WICK when I buy**, **Put code WICK in when Vest's code box is empty** and **Always use code WICK**.
+- **Settings > About and help > Support Astral** has the switches: **Ask about code WICK when I buy**, **Put code WICK in when Vest's code box is empty** and **Always use code WICK**.
 
 With WICK you pay the same or less, and the purchase supports me.
 
@@ -193,7 +193,7 @@ With WICK you pay the same or less, and the purchase supports me.
 - The P&L card's look (theme, style, size, what shows) in its own page's storage, and the numbers for the card you opened in Chrome's session storage, which Chrome clears when it closes.
 - If you use the copy trader: its settings (groups, leaders, followers, ratios, the markets it copies, the ids of limit orders it placed) with your other settings, and its log in Chrome's storage for the extension. With **Size by account** on, the account sizes each trade started with, in that Vest tab's session storage (`ax4p-copy-size`) until the leader is flat on that market; Chrome clears it when the tab closes.
 - The account menu's nicknames, pins and hidden accounts, and whether the limits panel is open, with your other settings. For accounts Vest gives no daily reset for, each account's first value of the trading day (`ax4p_vu_day` in the Vest page's storage), read from the page. For the warning near an account's limit, which warnings it already gave today (`ax4p_vu_warned`), so a reload doesn't repeat them.
-- The price of every second while a Vest trade page is open, for the P&L card's replays, in the extension's own database, kept for 30 days (under 1 MB a day for a market). Settings > More > P&L card turns it off.
+- The price of every second while a Vest trade page is open, for the P&L card's replays, in the extension's own database, kept for 30 days (under 1 MB a day for a market). Settings > Privacy and data turns it off.
 - Your own picture or GIF for the P&L card's background, in the extension's own database, until you remove it.
 - Locks and the tilt guard's cooldown, with the loss limit's numbers (`ax4p_dll`). The profit limit and the tilt guard read your closed trades from Vest each time and keep no history of them.
 - Multi-chart's layout and each chart's drawings, with your other settings.
@@ -218,7 +218,7 @@ When you click Update, Better Vest:
 2. checks the signature and every hash;
 3. writes the files only if all of it matches.
 
-If anything is off, nothing changes. If writing fails halfway, the old files go back. **Settings > More > About > Check for updates** opens the update page any time.
+If anything is off, nothing changes. If writing fails halfway, the old files go back. **Settings > About and help > Check for updates** opens the update page any time.
 
 Your copy stays the edition it is. The update page can also switch it to another one (Standard, Lite or No stats), even at the same version: the same checks, from that edition's own folder in this repo, and the files the new edition doesn't have are removed.
 

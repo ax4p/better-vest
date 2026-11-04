@@ -62,7 +62,7 @@ Vest's [terms](https://next.vestmarkets.com/terms) don't mention browser extensi
 
 ## Support
 
-Better Vest is free. If you buy a Vest account, the code **WICK** costs you nothing extra and keeps this going. When you buy, the extension asks first whether to use it, and only keeps WICK when you get the same discount or more. If you'd like it to put WICK into an empty code box for you, switch that on in Settings > More > Support Astral. If you'd rather tip, my EVM address is `0x9F308B10780f9b8FD65C6B94071529b75a3A9dA4`.
+Better Vest is free. If you buy a Vest account, the code **WICK** costs you nothing extra and keeps this going. When you buy, the extension asks first whether to use it, and only keeps WICK when you get the same discount or more. If you'd like it to put WICK into an empty code box for you, switch that on in Settings > About and help > Support Astral. If you'd rather tip, my EVM address is `0x9F308B10780f9b8FD65C6B94071529b75a3A9dA4`.
 
 Bugs and ideas: Discord **@ax4p**.
 
