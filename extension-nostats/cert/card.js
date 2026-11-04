@@ -9,12 +9,12 @@ export const PROVENANCE = 'Made with Better Vest by Astral';
 export const DEFAULT_NAME = 'Trader';
 export const NAME_MAX = 28;
 
-const ASSET = new URL('./assets/', import.meta.url).href; /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-e70f237a */
+const ASSET = new URL('./assets/', import.meta.url).href;
 export const CARD_CSS = new URL('./card.css', import.meta.url).href;
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const f2 = (n) => (Math.round(n * 100) / 100).toFixed(2);
 
-export function fmtMoneyParts(v) {
+export function fmtMoneyParts(v) { /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-de16b8ca */
     const cents = Math.round(Math.abs(v) * 100);
     const whole = Math.floor(cents / 100);
     return {
@@ -71,7 +71,7 @@ export function buildCard(S, opts = {}) {
         const series = barSeries(S, 40, 7);
         const n = series.bars.length;
         const gap = n > 24 ? 3 : n > 14 ? 4.5 : 6;
-        const dayLabel = S.days === 1 ? '1 day' : S.days + ' days'; /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-e6aebcb3 */
+        const dayLabel = S.days === 1 ? '1 day' : S.days + ' days';
         strip = `<div class="bvc-a" style="left:46px;top:${Y.strip}px;width:323px">${bars(series.bars.map((b) => b.net), 323, 52, gap, uid)}
   <div style="display:flex;justify-content:space-between;margin-top:7px"><span class="bvc-lbl">${esc(dm(S.firstKey))}</span><span class="bvc-lbl" style="color:#fff">${dayLabel}</span><span class="bvc-lbl">${esc(dm(S.lastKey))}</span></div></div>`;
     }
@@ -96,7 +96,7 @@ export function buildCard(S, opts = {}) {
  <p class="bvc-a bvc-prov" style="left:20px;top:560px;width:375px">${esc(PROVENANCE)}</p>`;
 
     const el = document.createElement('div');
-    el.className = 'bvc';
+    /* Property of Astral (@ax4p). Better Vest 9.5.0. No copying without written permission. bv-665a463d */ el.className = 'bvc';
     el.setAttribute('data-bv-cert', '1');
     el.innerHTML = html;
     return el;

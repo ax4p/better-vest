@@ -9,10 +9,10 @@ export const PROVENANCE = 'Made with Better Vest by Astral';
 export const DEFAULT_NAME = 'Trader';
 export const NAME_MAX = 28;
 
-const ASSET = new URL('./assets/', import.meta.url).href;
+const ASSET = new URL('./assets/', import.meta.url).href; /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-ac7d9f29 */
 export const CARD_CSS = new URL('./card.css', import.meta.url).href;
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
-/*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-1be756f4 */ const f2 = (n) => (Math.round(n * 100) / 100).toFixed(2);
+const f2 = (n) => (Math.round(n * 100) / 100).toFixed(2);
 
 export function fmtMoneyParts(v) {
     const cents = Math.round(Math.abs(v) * 100);
@@ -76,7 +76,7 @@ export function buildCard(S, opts = {}) {
   <div style="display:flex;justify-content:space-between;margin-top:7px"><span class="bvc-lbl">${esc(dm(S.firstKey))}</span><span class="bvc-lbl" style="color:#fff">${dayLabel}</span><span class="bvc-lbl">${esc(dm(S.lastKey))}</span></div></div>`;
     }
 
-    const cell = (label, value) => `<div class="bvc-stat"><dt class="bvc-lbl">${label}</dt><dd class="bvc-val">${esc(value)}</dd></div>`; /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.7. bv-d64f0609 */
+    const cell = (label, value) => `<div class="bvc-stat"><dt class="bvc-lbl">${label}</dt><dd class="bvc-val">${esc(value)}</dd></div>`;
     const html = `${backdrop()}
  <div class="bvc-a bvc-vw" style="left:30px;top:30px">VEST</div>
  <div class="bvc-a" data-k="head" style="left:30px;top:${Y.hero}px;width:355.5px;text-align:center">
@@ -107,7 +107,7 @@ export function fitCard(card) {
     const hero = q('hero'), hv = q('hv');
     let size = 82;
     hero.style.fontSize = size + 'px';
-    while (hv.offsetWidth > 352 && size > 30) { size -= 1; hero.style.fontSize = size + 'px'; }
+    while (hv.offsetWidth > 352 && size > 30) { size -= 1; hero.style.fontSize = size + 'px'; } /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-90a04b32 */
     hero.style.letterSpacing = (-3 * size / 82).toFixed(2) + 'px';
     const recip = q('recip'), name = q('name'), nm = q('nm');
     let fs = 24;

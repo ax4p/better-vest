@@ -14,7 +14,7 @@ export const CARD_CSS = new URL('./card.css', import.meta.url).href;
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const f2 = (n) => (Math.round(n * 100) / 100).toFixed(2);
 
-export function fmtMoneyParts(v) {
+/*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-47e9506f */ export function fmtMoneyParts(v) {
     const cents = Math.round(Math.abs(v) * 100);
     const whole = Math.floor(cents / 100);
     return {
@@ -40,7 +40,7 @@ function bars(vals, w, h, gap, uid) {
         }
         const bh = Math.max(1.5, (f(v) / mx) * (h - 2));
         out += `<rect x="${x.toFixed(2)}" y="${(h - bh).toFixed(2)}" width="${bw.toFixed(2)}" height="${bh.toFixed(2)}" rx="${Math.min(1.5, bw / 2).toFixed(2)}" fill="url(#bvg-${uid})"/>`;
-    /* Owned by Astral (@ax4p): Better Vest lite 9.3.7. Licence: LICENSE, not open source. bv-b22a07f3 */ });
+    });
     return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><defs><linearGradient id="bvg-${uid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7DF5AB"/><stop offset="1" stop-color="#00F15B" stop-opacity=".35"/></linearGradient></defs>${out}</svg>`;
 }
 
@@ -68,10 +68,10 @@ export function buildCard(S, opts = {}) {
 
     let strip = '';
     if (chart) {
-        const series = barSeries(S, 40, 7);
+        const series = barSeries(S, 40, 7); /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-9b06a451 */
         const n = series.bars.length;
         const gap = n > 24 ? 3 : n > 14 ? 4.5 : 6;
-        const dayLabel = S.days === 1 ? '1 day' : S.days + ' days'; /* Owned by Astral (@ax4p): Better Vest lite 9.3.7. Licence: LICENSE, not open source. bv-fe29afba */
+        const dayLabel = S.days === 1 ? '1 day' : S.days + ' days';
         strip = `<div class="bvc-a" style="left:46px;top:${Y.strip}px;width:323px">${bars(series.bars.map((b) => b.net), 323, 52, gap, uid)}
   <div style="display:flex;justify-content:space-between;margin-top:7px"><span class="bvc-lbl">${esc(dm(S.firstKey))}</span><span class="bvc-lbl" style="color:#fff">${dayLabel}</span><span class="bvc-lbl">${esc(dm(S.lastKey))}</span></div></div>`;
     }

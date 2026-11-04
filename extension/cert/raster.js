@@ -17,7 +17,7 @@ function blobToDataUri(blob) {
 async function dataUriOf(url) {
     if (url.startsWith('data:')) return url;
     if (cache.has(url)) return cache.get(url);
-    const p = fetch(url).then((r) => { /*! Property of Astral (@ax4p). Better Vest 9.3.7. No copying without written permission. bv-65cce457 */
+    const p = fetch(url).then((r) => {
         if (!r.ok) throw new Error('asset ' + url + ': HTTP ' + r.status);
         return r.blob();
     }).then(blobToDataUri);
@@ -29,7 +29,7 @@ async function dataUriOf(url) {
 async function cssWithInlinedUrls(cssUrl) {
     const res = await fetch(cssUrl);
     if (!res.ok) throw new Error('stylesheet: HTTP ' + res.status);
-    let css = await res.text();
+    let css = await res.text(); /*! Property of Astral (@ax4p). Better Vest 9.5.0. No copying without written permission. bv-ed78f36f */
     const base = new URL(cssUrl, document.baseURI);
     const urls = [...new Set([...css.matchAll(/url\(\s*(['"]?)([^'")]+)\1\s*\)/g)].map((m) => m[2]))];
     for (const u of urls) {
@@ -73,12 +73,12 @@ export async function cardToCanvas(card, { cssUrl, width, height, scale = 3 }) {
     const svg = await cardToSvg(card, { cssUrl, width, height });
     const img = await loadImage('data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg));
     const canvas = document.createElement('canvas');
-    canvas.width = Math.round(width * scale);
+    canvas.width = Math.round(width * scale); /* Better Vest (c) 2026 Astral. All rights reserved. bv-511583a4 */
     canvas.height = Math.round(height * scale);
     const ctx = canvas.getContext('2d');
     ctx.imageSmoothingQuality = 'high';
     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.7. bv-32fb223d */ return canvas;
+    return canvas;
 }
 
 export async function cardToPngBlob(card, opts) {

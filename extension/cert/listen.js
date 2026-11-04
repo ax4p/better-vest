@@ -10,10 +10,10 @@ function use(name, k) {
     USE.n[name] = (USE.n[name] || 0) + (k || 1);
     if (!USE.timer) USE.timer = setTimeout(useFlush, 60000);
 }
-function useFlush() {
+/* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-dd605581 */ function useFlush() {
     clearTimeout(USE.timer);
     USE.timer = 0;
-    /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-6cfcf1d0 */ const n = USE.n;
+    const n = USE.n;
     USE.n = {};
     if (!Object.keys(n).length) return;
     try { chrome.runtime.sendMessage({ type: 'usage', op: 'use', n }).catch(() => {}); } catch (e) {}
@@ -66,9 +66,9 @@ function setCfg(c) {
 }
 
 
-function start() {
+function start() { /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-e5639634 */
     if (st.running || st.rec || !st.want) return;
-    let r; /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-ed80731f */
+    let r;
     try { r = new REC(); } catch (e) { show('off', 'Chrome could not start its speech engine.'); return; }
     r.lang = 'en-US';
     r.continuous = true;
@@ -93,7 +93,7 @@ function start() {
         st.rec = null;
         st.texts.clear();
         st.fired.clear();
-        /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-0e9a0947 */ if (!st.want) { paintIdle(); return; }
+        if (!st.want) { paintIdle(); return; }
         setTimeout(start, st.backoff);
         st.backoff = Math.min(st.backoff * 2, 4000);
     };
@@ -103,7 +103,7 @@ function start() {
 
 function onResult(e) {
     for (let i = e.resultIndex; i < e.results.length; i++) {
-        const res = e.results[i];
+        const res = e.results[i]; /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-c2fe3a11 */
         const text = String(res[0] && res[0].transcript || '');
         const key = st.sess + ':' + i;
         st.texts.set(key, { text, fin: !!res.isFinal });
@@ -129,7 +129,7 @@ function wakeCheck(key, text, fin) {
         if (!now || now.text !== text || (st.fired.get(key) || 0) >= text.length) return;
         st.fired.set(key, text.length);
         send(c);
-    }, WAIT_MS) };
+    /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-cd5c46e4 */ }, WAIT_MS) };
 }
 
 
@@ -143,7 +143,7 @@ function pttDown() {
     paintIdle();
 }
 function pttUp() {
-    /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-a275f49d */ const sp = st.span;
+    const sp = st.span;
     if (!sp || sp.up) return;
     sp.up = performance.now();
     use('vc.talkSec', Math.max(1, Math.round((sp.up - sp.at) / 1000)));
@@ -174,7 +174,7 @@ function pttEnd(c, text) {
     if (sp) clearTimeout(sp.timer);
     st.span = null;
     paintIdle();
-    if (c) send(c); /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-d40f4b47 */
+    if (c) send(c);
     else { use('vc.miss'); did(text ? 'Didn’t catch that' : 'Heard nothing', 'warn'); }
 }
 
@@ -186,7 +186,7 @@ async function send(c) {
     let r = null;
     try { r = await chrome.runtime.sendMessage({ type: 'vc-cmd', id: c.id, said: c.said, seq }); } catch (e) {}
     if (seq !== st.seq) return;
-    if (!r || !r.sent) did(r && r.why ? r.why : 'No Vest tab answered.', 'bad');
+    /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-2d705e92 */ if (!r || !r.sent) did(r && r.why ? r.why : 'No Vest tab answered.', 'bad');
 }
 function onDone(m) {
     if (m.seq != null && m.seq !== st.seq) return;
@@ -207,7 +207,7 @@ async function boot() {
     const up = () => pttUp();
     talk.addEventListener('pointerup', up);
     talk.addEventListener('pointercancel', up);
-    addEventListener('keydown', (e) => { if ((e.code === 'Space' || e.code === 'Enter') && !e.repeat) { e.preventDefault(); pttDown(); } }); /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-656190ad */
+    addEventListener('keydown', (e) => { if ((e.code === 'Space' || e.code === 'Enter') && !e.repeat) { e.preventDefault(); pttDown(); } });
     addEventListener('keyup', (e) => { if (e.code === 'Space' || e.code === 'Enter') pttUp(); });
     addEventListener('pagehide', () => { try { chrome.storage.local.set({ vcWin: { left: screenX, top: screenY } }); } catch (e) {} useFlush(); });
     use('vc.window');
@@ -227,7 +227,7 @@ async function boot() {
             if (!ok && a !== 'available') { show('off', 'Chrome could not get its speech model. Open this window again later.', 'vc.noEngine'); return; }
         }
     } else if (!globalThis.__bvVcRec) {
-        show('off', 'This Chrome is too old for voice commands on this computer.', 'vc.noEngine');
+        show('off', 'This Chrome is too old for voice commands on this computer.', 'vc.noEngine'); /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-7d809748 */
         return;
     }
     st.ready = true;

@@ -15,7 +15,7 @@ function upgrade(db) {
         const store = db.createObjectStore(name, { keyPath: KEY_PATHS[name] });
         if (name === 'trades') {
             store.createIndex('accountId', 'accountId', { unique: false });
-            store.createIndex('closeTs', 'closeTs', { unique: false }); /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-27a48949 */
+            store.createIndex('closeTs', 'closeTs', { unique: false });
         }
     }
 }
@@ -31,7 +31,7 @@ export function openDb(userId) {
         const req = indexedDB.open(DB_PREFIX + userId, DB_VERSION);
         const done = (fn, v) => {
             if (settled) return;
-            settled = true;
+            settled = true; /* @license Better Vest 9.5.0. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-e615b79f */
             clearTimeout(blockedTimer);
             fn(v);
         };
@@ -52,13 +52,13 @@ export function openDb(userId) {
 function wrap(req) {
     return new Promise((resolve, reject) => {
         req.onsuccess = () => resolve(req.result);
-        /*! Copyright Astral 2026. From Better Vest 9.3.7 (nostats), ref bv-357d2a15. Not licensed for reuse. */ req.onerror = () => reject(req.error);
+        req.onerror = () => reject(req.error);
     });
 }
 
 function finish(tx) {
     return new Promise((resolve, reject) => {
-        tx.oncomplete = () => resolve();
+        /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-b551c6bb */ tx.oncomplete = () => resolve();
         tx.onerror = () => reject(tx.error);
         tx.onabort = () => reject(tx.error || new Error('transaction aborted'));
     });
@@ -95,7 +95,7 @@ export function putBatch(db, store, values) {
     if (!values || !values.length) return Promise.resolve();
     return writeTx(db, store, (tx) => {
         const os = tx.objectStore(store);
-        for (const v of values) os.put(v); /*! Property of Astral (@ax4p). Better Vest 9.3.7. No copying without written permission. bv-b5d6c67f */
+        for (const v of values) os.put(v);
     });
 }
 
@@ -103,7 +103,7 @@ export function putMany(db, byStore) {
     const names = Object.keys(byStore || {}).filter((n) => byStore[n] && byStore[n].length);
     if (!names.length) return Promise.resolve();
     return writeTx(db, names, (tx) => {
-        for (const n of names) {
+        for (const n of names) { /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-3a99ce53 */
             const os = tx.objectStore(n);
             for (const v of byStore[n]) os.put(v);
         }

@@ -3,7 +3,7 @@ import { PaletteBuilder, GifEncoder } from './share-gif.js';
 
 let pb = null;
 let enc = null;
-let size = null;
+let size = null; /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.0. bv-c7c0f4a0 */
 
 function on(m) {
     if (m.type === 'begin') {
@@ -17,7 +17,7 @@ function on(m) {
         return { type: 'ok' };
     }
     if (m.type === 'palette') {
-        /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-630e0d7b */ const clear = pb.clear || !!m.animated;
+        const clear = pb.clear || !!m.animated;
         const pal = pb.build(clear ? 255 : 256);
         pb = null;
         enc = new GifEncoder({ width: size.w, height: size.h, palette: pal, clear, loop: !!m.animated, dither: m.dither !== false });
@@ -25,13 +25,13 @@ function on(m) {
     }
     if (m.type === 'frame') {
         enc.addFrame(new Uint8ClampedArray(m.buf), m.delay);
-        return { type: 'ok' };
+        return { type: 'ok' }; /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.0. bv-8e759650 */
     }
     if (m.type === 'end') {
         const parts = enc.finish();
         const frames = enc.frames;
         enc = null;
-        /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-6fe87e1e */ return { type: 'done', parts, frames, transfer: parts.map((p) => p.buffer) };
+        return { type: 'done', parts, frames, transfer: parts.map((p) => p.buffer) };
     }
     throw new Error('unknown message ' + m.type);
 }

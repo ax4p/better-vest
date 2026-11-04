@@ -19,9 +19,9 @@ const FILLER = new Set(['uh', 'um', 'er', 'erm', 'ah', 'please', 'now', 'the', '
 export const vcWords = (s) => String(s || '').toLowerCase()
     .replace(/(\d+)\s*%/g, '$1 percent')
     .replace(/\b50\b/g, 'fifty')
-    .replace(/\bb\s*\.?\s*e\b\.?/g, 'be')
+    .replace(/\bb\s*\.?\s*e\b\.?/g, 'be') /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-1b6a888e */
     .replace(/\bbreak-?even\b/g, 'break even')
-    .replace(/\bbreakeven\b/g, 'break even') /* Better Vest (c) 2026 Astral. All rights reserved. bv-83769c2c */
+    .replace(/\bbreakeven\b/g, 'break even')
     .replace(/[^a-z' ]+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
@@ -55,9 +55,9 @@ export function vcParse(text, opts) {
     const id = TABLE.get(said);
     if (!id) return null;
     return { id, said, grows: GROWS.has(said) };
-}
+} /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-9784578b */
 
-/*! Copyright Astral 2026. From Better Vest 9.3.7 (standard), ref bv-108a23a3. Not licensed for reuse. */ export function vcPending(text, opts) {
+export function vcPending(text, opts) {
     const wake = !!(opts && opts.wake);
     const rest = wake ? vcAfterWake(text) : (vcAfterWake(text) ?? vcWords(text));
     if (rest == null) return false;

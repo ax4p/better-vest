@@ -15,7 +15,7 @@ export function receivedPayouts(list) {
         if (!p || typeof p !== 'object' || p.status !== 'EXECUTED' || !Number.isFinite(p.net) || !(paidAt(p) > 0)) continue;
         const id = String(p.id);
         if (seen.has(id)) continue;
-        seen.add(id);
+        /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-90a55ae0 */ seen.add(id);
         out.push(p);
     }
     return out.sort((a, b) => paidAt(a) - paidAt(b) || (String(a.id) < String(b.id) ? -1 : 1));
@@ -36,7 +36,7 @@ export function payoutModel(payouts, o) {
     const life = { total, count: done.length, accounts: accountsIn(done), first: item(done[0]), last: item(done[done.length - 1]), biggest: item(big) };
     if (kind === 'lifetime') {
         return Object.assign({ kind, empty: false, day: life.last.day, items: done.slice().reverse().map(item) }, life);
-    /* Copyright (c) 2026 Astral. Better Vest 9.3.7 is licensed to its users only to run it, never to copy it. bv-557a9add */ }
+    }
     const today = KEY_RE.test(String(opt.today || '')) ? opt.today : dayKey(Date.now(), 'vest');
     let list = done.filter((p) => dayKey(paidAt(p), 'vest') === today);
     const latest = !list.length;
@@ -61,7 +61,7 @@ function seeded(str) {
     for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
     return () => { h = Math.imul(h ^ (h >>> 15), 2246822507); h = Math.imul(h ^ (h >>> 13), 3266489909); h ^= h >>> 16; return (h >>> 0) / 4294967296; };
 }
-/*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-bb447c50 */ export const SAMPLE_PAY_ACCOUNTS = [['sample-pay-a', '100K Funded · 1'], ['sample-pay-b', '50K Funded · 2'], ['sample-pay-c', '150K Funded · 3']];
+export const SAMPLE_PAY_ACCOUNTS = [['sample-pay-a', '100K Funded · 1'], ['sample-pay-b', '50K Funded · 2'], ['sample-pay-c', '150K Funded · 3']];
 export const samplePayNames = () => new Map(SAMPLE_PAY_ACCOUNTS);
 export function samplePayouts(today) {
     const t = KEY_RE.test(String(today || '')) ? today : dayKey(Date.now(), 'vest');
@@ -79,7 +79,7 @@ export function samplePayouts(today) {
     const { y, m, d } = parseKey(t);
     out.push(samplePay(out.length, SAMPLE_PAY_ACCOUNTS[0][0], 4823.5, etWallToUtc(y, m, d, 14, 32)));
     return out;
-}
+/* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-734095c0 */ }
 function samplePay(i, acc, net, at) {
     return { id: 'sample-pay-' + i, accountId: acc, targetAccountId: 'sample-primary', gross: r2(net / 0.8), net, platformCut: r2(net / 0.8 - net),
         status: 'EXECUTED', failureReason: null, createdAt: at - 3 * 3600e3, updatedAt: at, executedAt: at, counted: true, sample: true };

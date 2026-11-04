@@ -11,7 +11,7 @@ let prunedAt = 0;
 
 const envOf = (env) => env || { indexedDB: globalThis.indexedDB, IDBKeyRange: globalThis.IDBKeyRange };
 const done = (req) => new Promise((resolve, reject) => { req.onsuccess = () => resolve(req.result); req.onerror = () => reject(req.error); });
-/*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-845d31d3 */ const txDone = (tx) => new Promise((resolve, reject) => { tx.oncomplete = () => resolve(); tx.onerror = tx.onabort = () => reject(tx.error || new Error('aborted')); });
+const txDone = (tx) => new Promise((resolve, reject) => { tx.oncomplete = () => resolve(); tx.onerror = tx.onabort = () => reject(tx.error || new Error('aborted')); });
 
 export function tapeOpen(env) {
     const E = envOf(env);
@@ -23,7 +23,7 @@ export function tapeOpen(env) {
         };
         req.onsuccess = () => resolve(req.result);
         req.onerror = () => reject(req.error);
-        req.onblocked = () => reject(new Error('blocked'));
+        /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-9cca0d9e */ req.onblocked = () => reject(new Error('blocked'));
     });
 }
 
@@ -56,9 +56,9 @@ export async function tapeRead(sym, from, to, env) {
     if (typeof sym !== 'string' || !SYM_RE.test(sym) || !(to >= from)) return [];
     const E = envOf(env);
     let db;
-    /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-6f5d2560 */ try { db = await tapeOpen(env); } catch (e) { return []; }
+    try { db = await tapeOpen(env); } catch (e) { return []; }
     try {
-        const tx = db.transaction(STORE, 'readonly');
+        const tx = db.transaction(STORE, 'readonly'); /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-c4691483 */
         const range = E.IDBKeyRange.bound(tapeKeyFrom(sym, Math.max(0, Math.floor(from) - TAPE_SPAN)), tapeKeyFrom(sym, Math.floor(to)) + '|~');
         const recs = await done(tx.objectStore(STORE).getAll(range));
         const rows = tapeMerge(recs.map(tapeDecode));

@@ -10,7 +10,7 @@ export const PREFS_KEY = 'bvSharePrefs';
 export const KINDS = ['summary', 'replay', 'payout'];
 
 export const DEFAULT_PREFS = { kind: 'summary', style: 'vest', theme: 'dark', format: 'feed', hero: 'usd', handle: '',
-    list: { on: true, green: false, mask: true }, show: { date: true, accounts: true, pct: false, market: true, handle: true, credit: true, /*! Better Vest (c) 2026 Astral. All rights reserved. bv-abb78707 */
+    list: { on: true, green: false, mask: true }, show: { date: true, accounts: true, pct: false, market: true, handle: true, credit: true,
         trades: false, winrate: false, best: false, worst: false, fees: false,
         paytotal: true, paybest: true },
     rows: 'accounts', period: 'today', afterFees: true,
@@ -18,7 +18,7 @@ export const DEFAULT_PREFS = { kind: 'summary', style: 'vest', theme: 'dark', fo
     chart: Object.assign({}, CHART_DEFAULTS),
     pay: 'today', bg: Object.assign({}, BG_DEFAULTS), accent: '' };
 
-export function cleanPrefs(p) {
+export function cleanPrefs(p) { /* Owned by Astral (@ax4p): Better Vest lite 9.5.0. Licence: LICENSE, not open source. bv-52c16f7e */
     const o = p && typeof p === 'object' && !Array.isArray(p) ? p : {};
     const merged = Object.assign({}, DEFAULT_PREFS, o);
     for (const k of ['list', 'show', 'rp']) merged[k] = Object.assign({}, DEFAULT_PREFS[k], o[k] && typeof o[k] === 'object' ? o[k] : {});
@@ -42,7 +42,7 @@ export function loadPrefs(storage) {
     return cleanPrefs(p);
 }
 export function prefsToSave(P) {
-    const { kind, style, theme, format, hero, handle, list, show, rows, afterFees, rp, chart, pay, bg, accent } = P;
+    const { kind, style, theme, format, hero, handle, list, show, rows, afterFees, rp, chart, pay, bg, accent } = P; /*! Copyright Astral 2026. From Better Vest 9.5.0 (lite), ref bv-bb22053a. Not licensed for reuse. */
     const period = P.period === 'day' ? 'today' : P.period;
     return { kind, style, theme, format, hero, handle, list, show, rows, period, afterFees, rp, chart, pay, bg, accent };
 }
@@ -50,7 +50,7 @@ export function savePrefs(storage, P) {
     try { storage.setItem(PREFS_KEY, JSON.stringify(prefsToSave(P))); } catch (e) {}
 }
 
-/* @license Better Vest 9.3.7. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-81dcdb27 */ export function snapPicks(snap, prefer) {
+export function snapPicks(snap, prefer) {
     const group = copyGroup(snap);
     if (snap.copying && group.length > 1) return { mode: 'copy', picked: group };
     const known = snap.accounts.filter((a) => a.pnl != null);

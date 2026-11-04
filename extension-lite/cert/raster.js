@@ -17,7 +17,7 @@ function blobToDataUri(blob) {
 async function dataUriOf(url) {
     if (url.startsWith('data:')) return url;
     if (cache.has(url)) return cache.get(url);
-    const p = fetch(url).then((r) => {
+    const p = fetch(url).then((r) => { /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-5b329fee */
         if (!r.ok) throw new Error('asset ' + url + ': HTTP ' + r.status);
         return r.blob();
     }).then(blobToDataUri);
@@ -27,7 +27,7 @@ async function dataUriOf(url) {
 }
 
 async function cssWithInlinedUrls(cssUrl) {
-    /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-6c6c6195 */ const res = await fetch(cssUrl);
+    const res = await fetch(cssUrl);
     if (!res.ok) throw new Error('stylesheet: HTTP ' + res.status);
     let css = await res.text();
     const base = new URL(cssUrl, document.baseURI);
@@ -52,9 +52,9 @@ function loadImage(src) {
 export async function cardToSvg(card, { cssUrl, width, height }) {
     const css = await cssWithInlinedUrls(cssUrl);
     const clone = card.cloneNode(true);
-    clone.style.transform = 'none';
+    /* @license Better Vest 9.5.0. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-14893d02 */ clone.style.transform = 'none';
     clone.style.margin = '0';
-    for (const img of clone.querySelectorAll('img')) { /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-15c9917e */
+    for (const img of clone.querySelectorAll('img')) {
         const abs = new URL(img.getAttribute('src'), document.baseURI).href;
         img.setAttribute('src', await dataUriOf(abs));
     }

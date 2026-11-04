@@ -12,7 +12,7 @@ export function certStats(payouts) {
     if (!ps.count) return null;
     const done = list
         .filter((p) => p.status === 'EXECUTED')
-        .sort((a, b) => ((payTs(a) ?? 0) - (payTs(b) ?? 0)) || (a.id < b.id ? -1 : 1)); /*! Copyright Astral 2026. From Better Vest 9.3.7 (lite), ref bv-638faf9a. Not licensed for reuse. */
+        .sort((a, b) => ((payTs(a) ?? 0) - (payTs(b) ?? 0)) || (a.id < b.id ? -1 : 1));
 
     const accountIds = new Set();
     for (const p of done) if (p.accountId != null && p.accountId !== '') accountIds.add(String(p.accountId));
@@ -33,7 +33,7 @@ export function certStats(payouts) {
     const daily = [];
     if (firstKey) for (let k = firstKey; k <= lastKey; k = addDays(k, 1)) daily.push({ key: k, net: dayNet.get(k) || 0 });
 
-    const milestones = ps.milestones.map((m) => ({
+    const milestones = ps.milestones.map((m) => ({ /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-3ecfd54d */
         amount: m.amount,
         reachedAt: m.reachedAt || null,
         reachedKey: m.reachedAt ? payoutDayKey({ status: 'EXECUTED', executedAt: m.reachedAt, createdAt: m.reachedAt }, 'executed') : null
@@ -59,7 +59,7 @@ export function certStats(payouts) {
         daily,
         milestones,
         reached,
-        next
+        next /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-604d6c10 */
     };
 }
 
@@ -71,7 +71,7 @@ export function barSeries(S, maxBars = 45, minBars = 7) {
         const chunk = days.slice(i, i + step);
         bars.push({ from: chunk[0].key, to: chunk[chunk.length - 1].key, net: chunk.reduce((s, d) => s + d.net, 0) });
     }
-    /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-bb088a17 */ const pad = Math.max(0, minBars - bars.length);
+    const pad = Math.max(0, minBars - bars.length);
     const lead = Math.floor(pad / 2);
     const out = [];
     for (let i = 0; i < lead; i++) out.push({ from: null, to: null, net: 0 });

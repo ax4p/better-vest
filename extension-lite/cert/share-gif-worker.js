@@ -6,7 +6,7 @@ let enc = null;
 let size = null;
 
 function on(m) {
-    if (m.type === 'begin') { /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-efd7f634 */
+    /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-e6d273d7 */ if (m.type === 'begin') {
         size = { w: m.w, h: m.h };
         pb = new PaletteBuilder();
         enc = null;
@@ -26,7 +26,7 @@ function on(m) {
     if (m.type === 'frame') {
         enc.addFrame(new Uint8ClampedArray(m.buf), m.delay);
         return { type: 'ok' };
-    } /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-10c2008a */
+    /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.0. bv-409692e7 */ }
     if (m.type === 'end') {
         const parts = enc.finish();
         const frames = enc.frames;

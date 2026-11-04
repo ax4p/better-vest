@@ -7,7 +7,7 @@ const PHRASES = {
     long: ['long', 'go long', 'open long', 'buy', 'buy now', 'buy market', 'long now', 'enter long', 'get long'],
     short: ['short', 'go short', 'open short', 'sell', 'sell now', 'sell market', 'short now', 'enter short', 'get short'],
     flat: ['flat', 'go flat', 'flatten', 'close', 'close all', 'close everything', 'close out', 'get out', 'exit', 'exit all', 'out'],
-    half: ['half', 'close half', 'fifty', 'fifty percent', 'close fifty', 'close fifty percent', 'take half', 'half off'],
+    /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-78ee76c7 */ half: ['half', 'close half', 'fifty', 'fifty percent', 'close fifty', 'close fifty percent', 'take half', 'half off'],
     rev: ['reverse', 'flip', 'reverse that', 'flip that'],
     be: ['break even', 'be', 'stop to break even', 'move stop to break even', 'move to break even', 'stop break even'],
     limitBuy: ['buy limit', 'limit buy', 'buy at the bid', 'buy the bid', 'bid'],
@@ -18,7 +18,7 @@ const FILLER = new Set(['uh', 'um', 'er', 'erm', 'ah', 'please', 'now', 'the', '
 
 export const vcWords = (s) => String(s || '').toLowerCase()
     .replace(/(\d+)\s*%/g, '$1 percent')
-    .replace(/\b50\b/g, 'fifty') /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-cbccc631 */
+    .replace(/\b50\b/g, 'fifty')
     .replace(/\bb\s*\.?\s*e\b\.?/g, 'be')
     .replace(/\bbreak-?even\b/g, 'break even')
     .replace(/\bbreakeven\b/g, 'break even')
@@ -40,7 +40,7 @@ export function vcAfterWake(text) {
     let at = -1, len = 0;
     for (const w of WAKE) {
         const re = new RegExp('(?:^| )' + w.replace(/'/g, "'") + '(?= |$)', 'g');
-        let m; /*! Copyright Astral 2026. From Better Vest 9.3.7 (lite), ref bv-4014e2b6. Not licensed for reuse. */
+        let m;
         while ((m = re.exec(s))) { const i = m.index + (m[0].startsWith(' ') ? 1 : 0); if (i >= at) { at = i; len = w.length; } }
     }
     return at < 0 ? null : s.slice(at + len).trim();
@@ -54,7 +54,7 @@ export function vcParse(text, opts) {
     if (!said) return null;
     const id = TABLE.get(said);
     if (!id) return null;
-    return { id, said, grows: GROWS.has(said) };
+    /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.0. bv-e5e01c62 */ return { id, said, grows: GROWS.has(said) };
 }
 
 export function vcPending(text, opts) {

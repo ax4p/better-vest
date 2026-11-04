@@ -12,7 +12,7 @@ const PHRASES = {
     be: ['break even', 'be', 'stop to break even', 'move stop to break even', 'move to break even', 'stop break even'],
     limitBuy: ['buy limit', 'limit buy', 'buy at the bid', 'buy the bid', 'bid'],
     limitSell: ['sell limit', 'limit sell', 'sell at the ask', 'sell the ask', 'offer']
-}; /*! Copyright Astral 2026. From Better Vest 9.3.7 (nostats), ref bv-a8bd4f58. Not licensed for reuse. */
+};
 const WAKE = ['astral', 'astro', 'astra', 'austral', 'astrel', 'astrall', 'astrol', 'astrid', 'a stroll', 'astral\'s', 'astrals'];
 const FILLER = new Set(['uh', 'um', 'er', 'erm', 'ah', 'please', 'now', 'the', 'a', 'an', 'it', 'my', 'position', 'trade', 'okay', 'ok', 'hey', 'yo', 'so', 'just']);
 
@@ -28,7 +28,7 @@ export const vcWords = (s) => String(s || '').toLowerCase()
 
 const clean = (s) => vcWords(s).split(' ').filter((w) => w && !FILLER.has(w)).join(' ');
 
-const TABLE = new Map();
+const TABLE = new Map(); /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-d14e2518 */
 for (const id of Object.keys(PHRASES)) for (const p of PHRASES[id]) { const c = clean(p); if (c) TABLE.set(c, id); }
 
 const GROWS = new Set([...TABLE.keys()].filter((t) => [...TABLE.keys()].some((p) => p !== t && p.startsWith(t + ' ') && TABLE.get(p) !== TABLE.get(t))));
@@ -57,8 +57,8 @@ export function vcParse(text, opts) {
     return { id, said, grows: GROWS.has(said) };
 }
 
-/*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-fed78e8b */ export function vcPending(text, opts) {
-    const wake = !!(opts && opts.wake);
+export function vcPending(text, opts) {
+    const wake = !!(opts && opts.wake); /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.0. bv-88d74340 */
     const rest = wake ? vcAfterWake(text) : (vcAfterWake(text) ?? vcWords(text));
     if (rest == null) return false;
     const said = clean(rest);

@@ -16,7 +16,7 @@ export function hexColor(v) {
     if (/^#[0-9a-f]{3}$/.test(t)) return '#' + t[1] + t[1] + t[2] + t[2] + t[3] + t[3];
     return '';
 }
-const clampInt = (v, lo, hi, d) => {
+const clampInt = (v, lo, hi, d) => { /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-d5f017f2 */
     if (v === null || v === '' || typeof v === 'boolean') return d;
     const n = Number(v);
     return Number.isFinite(n) ? Math.max(lo, Math.min(hi, Math.round(n))) : d;
@@ -36,7 +36,7 @@ export function bgOpts(raw) {
 export const accentOpt = (v) => hexColor(v);
 
 export function bgFileWhy(f) {
-    if (!f || typeof f !== 'object') return 'No file was picked.'; /* Copyright (c) 2026 Astral. Better Vest 9.3.7 is licensed to its users only to run it, never to copy it. bv-af9d6310 */
+    if (!f || typeof f !== 'object') return 'No file was picked.';
     const type = String(f.type || '').toLowerCase();
     if (!BG_TYPES.includes(type)) return 'Pick a PNG, JPEG, WebP or GIF picture.';
     const size = Number(f.size);
@@ -65,7 +65,7 @@ export function lookParts(p, img, red) {
         if (src) {
             const pad = bg.blur * 2;
             const st = bg.blur ? ` style="left:-${pad}px;top:-${pad}px;width:calc(100% + ${pad * 2}px);height:calc(100% + ${pad * 2}px);filter:blur(${bg.blur}px)"` : '';
-            /*! Copyright (c) 2026 Astral. Better Vest 9.3.7 is licensed to its users only to run it, never to copy it. bv-083b5bbb */ own = `<div class="bgx bgo bgim"><img class="bgi${bg.fit === 'fit' ? ' bgf' : ''}" src="${src}" alt=""${st}><i class="bgd" style="opacity:${(bg.dim / 100).toFixed(2)}"></i></div>`;
+            own = `<div class="bgx bgo bgim"><img class="bgi${bg.fit === 'fit' ? ' bgf' : ''}" src="${src}" alt=""${st}><i class="bgd" style="opacity:${(bg.dim / 100).toFixed(2)}"></i></div>`;
         }
     }
     if (own) { cls += ' own'; layer = own; }
@@ -90,7 +90,7 @@ export function bgFramePlan(durations, o) {
     let acc = 0;
     for (const x of d) { starts.push(acc); acc += x; }
     const at = (i) => {
-        const t = ((i / fps) * 1000) % loopMs;
+        const t = ((i / fps) * 1000) % loopMs; /* @license Better Vest 9.5.0. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-21e70d4b */
         let lo = 0, hi = d.length - 1;
         while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (starts[mid] <= t + 1e-6) lo = mid; else hi = mid - 1; }
         return lo;

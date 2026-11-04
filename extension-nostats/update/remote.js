@@ -23,14 +23,14 @@ const VEST_TABS = ['https://next.vestmarkets.com/*'];
 
 let STORE_EDITION = false;
 
-/* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-f69ea58b */ let queue = Promise.resolve();
+let queue = Promise.resolve();
 function serial(fn) {
     const run = queue.then(fn, fn).catch(() => false);
     queue = run;
     return run;
 }
 
-const isObj = (x) => !!x && typeof x === 'object' && !Array.isArray(x);
+/*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-d5310b8c */ const isObj = (x) => !!x && typeof x === 'object' && !Array.isArray(x);
 const own = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
 
 const CTRL_RE = new RegExp('[\\u0000-\\u001f\\u007f-\\u009f\\u2028\\u2029]', 'g');
@@ -58,7 +58,7 @@ export function cleanNews(n) {
     return { id: n.id, title, text: cleanText(n.text, 240), start, end: n.end, link };
 }
 
-export function cleanVersion(v) {
+export function cleanVersion(v) { /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-aecaf24e */
     return typeof v === 'string' && VERSION_RE.test(v) ? v : null;
 }
 
@@ -84,7 +84,7 @@ export function activeOff(off, version) {
         if (e.below && compareVersions(version, e.below) >= 0) continue;
         out[name] = cleanWhy(e.why);
     }
-    /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-9e0b32d9 */ return out;
+    return out;
 }
 
 export async function fetchFlags(env) {
@@ -103,7 +103,7 @@ export async function fetchFlags(env) {
     }
 }
 
-async function getKey(env, key) { /*! Copyright Astral 2026. From Better Vest 9.3.7 (nostats), ref bv-0407cd7a. Not licensed for reuse. */
+async function getKey(env, key) {
     const got = await env.storage.get(key);
     return got ? got[key] : undefined;
 }
@@ -112,7 +112,7 @@ async function writeActive(env, off) {
     const now = activeOff(off, env.version);
     const cur = await getKey(env, REMOTE_OFF_KEY);
     if (JSON.stringify(isObj(cur) ? cur : {}) !== JSON.stringify(now)) await env.storage.set({ [REMOTE_OFF_KEY]: now });
-    return now;
+    return now; /*! Copyright Astral 2026. From Better Vest 9.5.0 (nostats), ref bv-7b2e374a. Not licensed for reuse. */
 }
 
 async function writeNews(env, news) {
@@ -153,8 +153,8 @@ export async function storeCheck(env, served) {
     if (!cleanVersion(served) || compareVersions(served, env.version) <= 0) return 'current';
     const asked = await getKey(env, STORE_ASK_KEY);
     if (isObj(asked) && asked.v === served && env.now() - (asked.at || 0) < STORE_ASK_GAP_MS) return 'asked';
-    await env.storage.set({ [STORE_ASK_KEY]: { v: served, at: env.now() } });
-    try { /* Owned by Astral (@ax4p): Better Vest nostats 9.3.7. Licence: LICENSE, not open source. bv-ea37e607 */
+    /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-7ed1fc2f */ await env.storage.set({ [STORE_ASK_KEY]: { v: served, at: env.now() } });
+    try {
         const r = await env.runtime.requestUpdateCheck();
         return isObj(r) && typeof r.status === 'string' ? r.status : 'no-answer';
     } catch (e) {
@@ -201,7 +201,7 @@ export async function storeAfter(env) {
 function defaultEnv() {
     const m = chrome.runtime.getManifest();
     return {
-        version: m.version, store: STORE_EDITION, storeInstall: own(m, 'update_url'), runtime: chrome.runtime, storage: chrome.storage.local, /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-2afd7cca */
+        version: m.version, store: STORE_EDITION, storeInstall: own(m, 'update_url'), runtime: chrome.runtime, storage: chrome.storage.local,
         alarms: chrome.alarms, tabs: chrome.tabs, fetchFn: (u, o) => fetch(u, o), now: () => Date.now(),
         tabState: async (id) => { const k = 'tab:' + id; const got = await chrome.storage.session.get(k); return got ? got[k] : null; }
     };
@@ -227,7 +227,7 @@ export function remoteStart(env = defaultEnv()) {
         getKey(env, REMOTE_KEY).then((r) => { if (isObj(r)) return writeActive(env, r.off).then(() => writeNews(env, r.news)); }).catch(() => {});
         remoteTick(env, false);
     } catch (e) {}
-}
+/* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-036939ec */ }
 
 export function remotePageState(st) {
     if (!started) return;

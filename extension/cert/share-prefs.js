@@ -13,14 +13,14 @@ export const DEFAULT_PREFS = { kind: 'summary', style: 'vest', theme: 'dark', fo
     list: { on: true, green: false, mask: true }, show: { date: true, accounts: true, pct: false, market: true, handle: true, credit: true,
         trades: false, winrate: false, best: false, worst: false, fees: false,
         paytotal: true, paybest: true },
-    rows: 'accounts', period: 'today', afterFees: true,
+    rows: 'accounts', period: 'today', afterFees: true, /* @license Better Vest 9.5.0. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-b7b58add */
     rp: { labels: 'usd', prices: false, pnl: false, sessions: false, best: false },
     chart: Object.assign({}, CHART_DEFAULTS),
     pay: 'today', bg: Object.assign({}, BG_DEFAULTS), accent: '' };
 
 export function cleanPrefs(p) {
     const o = p && typeof p === 'object' && !Array.isArray(p) ? p : {};
-    /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-c8408afe */ const merged = Object.assign({}, DEFAULT_PREFS, o);
+    const merged = Object.assign({}, DEFAULT_PREFS, o);
     for (const k of ['list', 'show', 'rp']) merged[k] = Object.assign({}, DEFAULT_PREFS[k], o[k] && typeof o[k] === 'object' ? o[k] : {});
     if (!ROWS.includes(merged.rows)) merged.rows = 'accounts';
     if (!['today', 'yesterday', 'week', 'month'].includes(merged.period)) merged.period = 'today';
@@ -46,9 +46,9 @@ export function prefsToSave(P) {
     const period = P.period === 'day' ? 'today' : P.period;
     return { kind, style, theme, format, hero, handle, list, show, rows, period, afterFees, rp, chart, pay, bg, accent };
 }
-export function savePrefs(storage, P) {
+export function savePrefs(storage, P) { /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-3a3a1887 */
     try { storage.setItem(PREFS_KEY, JSON.stringify(prefsToSave(P))); } catch (e) {}
-/* Better Vest (c) 2026 Astral. All rights reserved. bv-abc78c26 */ }
+}
 
 export function snapPicks(snap, prefer) {
     const group = copyGroup(snap);

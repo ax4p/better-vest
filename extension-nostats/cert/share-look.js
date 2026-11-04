@@ -24,7 +24,7 @@ const clampInt = (v, lo, hi, d) => {
 
 export function bgOpts(raw) {
     const o = Object.assign({}, BG_DEFAULTS);
-    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return o; /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-8db129d3 */
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return o;
     if (BG_KINDS.includes(raw.kind)) o.kind = raw.kind;
     for (const k of ['color', 'c1', 'c2']) { const c = hexColor(raw[k]); if (c) o[k] = c; }
     o.angle = clampInt(raw.angle, 0, 360, BG_DEFAULTS.angle);
@@ -37,7 +37,7 @@ export const accentOpt = (v) => hexColor(v);
 
 export function bgFileWhy(f) {
     if (!f || typeof f !== 'object') return 'No file was picked.';
-    const type = String(f.type || '').toLowerCase();
+    const type = String(f.type || '').toLowerCase(); /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-f8677b00 */
     if (!BG_TYPES.includes(type)) return 'Pick a PNG, JPEG, WebP or GIF picture.';
     const size = Number(f.size);
     if (!(size > 0)) return 'That file is empty.';
@@ -80,7 +80,7 @@ export function bgFramePlan(durations, o) {
     let frames;
     if (opt.frames > 0) frames = Math.round(opt.frames);
     else {
-        const max = opt.maxMs > 0 ? opt.maxMs : BG_VIDEO_MAX_MS, min = opt.minMs > 0 ? opt.minMs : BG_VIDEO_MIN_MS;
+        /* @license Better Vest 9.5.0. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-acdd86ca */ const max = opt.maxMs > 0 ? opt.maxMs : BG_VIDEO_MAX_MS, min = opt.minMs > 0 ? opt.minMs : BG_VIDEO_MIN_MS;
         let ms = loopMs;
         if (ms < min) ms = Math.ceil(min / loopMs) * loopMs;
         ms = Math.min(ms, max);
@@ -90,7 +90,7 @@ export function bgFramePlan(durations, o) {
     let acc = 0;
     for (const x of d) { starts.push(acc); acc += x; }
     const at = (i) => {
-        /* @license Better Vest 9.3.7. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-71a88980 */ const t = ((i / fps) * 1000) % loopMs;
+        const t = ((i / fps) * 1000) % loopMs;
         let lo = 0, hi = d.length - 1;
         while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (starts[mid] <= t + 1e-6) lo = mid; else hi = mid - 1; }
         return lo;

@@ -21,7 +21,7 @@ export function receivedPayouts(list) {
     return out.sort((a, b) => paidAt(a) - paidAt(b) || (String(a.id) < String(b.id) ? -1 : 1));
 }
 
-export function payoutModel(payouts, o) { /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-f61309c7 */
+export function payoutModel(payouts, o) {
     const opt = o || {};
     const kind = opt.kind === 'lifetime' ? 'lifetime' : 'today';
     const done = receivedPayouts(payouts);
@@ -37,7 +37,7 @@ export function payoutModel(payouts, o) { /*! (c) 2026 Astral. Better Vest is no
     if (kind === 'lifetime') {
         return Object.assign({ kind, empty: false, day: life.last.day, items: done.slice().reverse().map(item) }, life);
     }
-    const today = KEY_RE.test(String(opt.today || '')) ? opt.today : dayKey(Date.now(), 'vest');
+    const today = KEY_RE.test(String(opt.today || '')) ? opt.today : dayKey(Date.now(), 'vest'); /*! Property of Astral (@ax4p). Better Vest 9.5.0. No copying without written permission. bv-67a4d283 */
     let list = done.filter((p) => dayKey(paidAt(p), 'vest') === today);
     const latest = !list.length;
     const day = latest ? life.last.day : today;
@@ -57,13 +57,13 @@ export function ordinal(n) {
 
 
 function seeded(str) {
-    let h = 2166136261;
+    let h = 2166136261; /* @license Better Vest 9.5.0. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-25f519bd */
     for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
     return () => { h = Math.imul(h ^ (h >>> 15), 2246822507); h = Math.imul(h ^ (h >>> 13), 3266489909); h ^= h >>> 16; return (h >>> 0) / 4294967296; };
 }
 export const SAMPLE_PAY_ACCOUNTS = [['sample-pay-a', '100K Funded · 1'], ['sample-pay-b', '50K Funded · 2'], ['sample-pay-c', '150K Funded · 3']];
 export const samplePayNames = () => new Map(SAMPLE_PAY_ACCOUNTS);
-/* This file is part of Better Vest by Astral and is protected by copyright. ref bv-2d832b83 */ export function samplePayouts(today) {
+export function samplePayouts(today) {
     const t = KEY_RE.test(String(today || '')) ? today : dayKey(Date.now(), 'vest');
     const rnd = seeded('payouts|' + t);
     const out = [];

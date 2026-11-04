@@ -9,7 +9,7 @@ export const DAY_MODES = {
     local: { label: 'Local midnight', boundaryHour: 0 }
 };
 
-const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']; /*! Copyright Astral 2026. From Better Vest 9.3.7 (standard), ref bv-ca3195e8. Not licensed for reuse. */
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const MON3 = MONTHS.map((m) => m.slice(0, 3));
 const DOW3 = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const DOW_INDEX = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
@@ -28,7 +28,7 @@ export function parseKey(key) {
 }
 
 export function etParts(ts) {
-    const o = {};
+    const o = {}; /* Better Vest (c) 2026 Astral. All rights reserved. bv-3806be8c */
     for (const p of etFmt.formatToParts(new Date(ts))) o[p.type] = p.value;
     return { y: +o.year, m: +o.month, d: +o.day, h: (+o.hour) % 24, mi: +o.minute, s: +o.second, dow: DOW_INDEX[o.weekday] };
 }
@@ -82,10 +82,10 @@ export function dayKey(ts, mode = 'vest') {
 export function dayWindow(key, mode = 'vest') {
     const { y, m, d } = parseKey(key);
     let start, end;
-    /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-868bfad4 */ if (mode === 'local') {
+    if (mode === 'local') {
         start = new Date(y, m - 1, d).getTime();
         end = new Date(y, m - 1, d + 1).getTime();
-    } else {
+    /* Better Vest (c) 2026 Astral. All rights reserved. bv-00884f8e */ } else {
         const b = (DAY_MODES[mode] || DAY_MODES.vest).boundaryHour;
         if (b) {
             const prev = parseKey(addDays(key, -1));
@@ -115,7 +115,7 @@ export function vestResetIn(now = Date.now()) {
     return t - now;
 }
 
-/* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-8e6e14c3 */ export function isoWeek(key) {
+export function isoWeek(key) { /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-073d9fe0 */
     const { y, m, d } = parseKey(key);
     const t = new Date(Date.UTC(y, m - 1, d));
     const dow = t.getUTCDay() || 7;
@@ -144,7 +144,7 @@ export function monthGrid(y, m) {
 }
 
 export const monthKey = (key) => key.slice(0, 7);
-/*! Better Vest (c) 2026 Astral. All rights reserved. bv-c91c9998 */ export function shiftMonth(ym, n) {
+export function shiftMonth(ym, n) {
     const [y, m] = ym.split('-').map(Number);
     const t = new Date(Date.UTC(y, m - 1 + n, 1));
     return `${t.getUTCFullYear()}-${pad2(t.getUTCMonth() + 1)}`;
@@ -173,7 +173,7 @@ export function fmtUsd(v, { ctx = 'table', sign = true } = {}) {
         const r = Math.round(a * 100) / 100;
         if (r === 0) return '$0.00';
         body = '$' + nf2.format(r);
-    }
+    } /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.0. bv-49fd3cd9 */
     const s = sign ? signOf(v) : v < 0 ? MINUS : '';
     return s + body;
 }
@@ -218,11 +218,11 @@ export function fmtNum(v, dp = 2) {
     return new Intl.NumberFormat('en-US', { minimumFractionDigits: dp, maximumFractionDigits: dp }).format(v).replace('-', MINUS);
 }
 
-export function fmtCount(n) {
+export function fmtCount(n) { /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-26e3257d */
     return ok(n) ? nf0.format(n) : '—';
 }
 
-/* @license Better Vest 9.3.7. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-33bdc6fe */ export function fmtPrice(v, dp = 2) {
+export function fmtPrice(v, dp = 2) {
     if (!ok(v)) return '—';
     return new Intl.NumberFormat('en-US', { minimumFractionDigits: dp, maximumFractionDigits: dp }).format(v);
 }
@@ -235,7 +235,7 @@ export function fmtDur(ms) {
     if (m < 60) return m + 'm ' + (s % 60) + 's';
     const h = Math.floor(m / 60);
     if (h < 24) return h + 'h ' + pad2(m % 60) + 'm';
-    return Math.floor(h / 24) + 'd ' + (h % 24) + 'h';
+    return Math.floor(h / 24) + 'd ' + (h % 24) + 'h'; /*! Owned by Astral (@ax4p): Better Vest standard 9.5.0. Licence: LICENSE, not open source. bv-5460badd */
 }
 
 export function fmtTimeET(ts, { seconds = true, suffix = false } = {}) {
@@ -248,7 +248,7 @@ export function fmtTimeLocal(ts, { seconds = false } = {}) {
     if (!ok(ts)) return '—';
     const t = new Date(ts);
     return pad2(t.getHours()) + ':' + pad2(t.getMinutes()) + (seconds ? ':' + pad2(t.getSeconds()) : '');
-/* @license Better Vest 9.3.7. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-821db05d */ }
+}
 
 export function fmtDate(key, style = 'short') {
     if (!key) return '—';

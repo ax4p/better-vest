@@ -15,7 +15,7 @@ function upgrade(db) {
         const store = db.createObjectStore(name, { keyPath: KEY_PATHS[name] });
         if (name === 'trades') {
             store.createIndex('accountId', 'accountId', { unique: false });
-            store.createIndex('closeTs', 'closeTs', { unique: false }); /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.7. bv-46040e60 */
+            store.createIndex('closeTs', 'closeTs', { unique: false });
         }
     }
 }
@@ -24,7 +24,7 @@ export function openDb(userId) {
     return new Promise((resolve, reject) => {
         if (typeof userId !== 'string' || !userId) {
             reject(new TypeError('openDb: userId required'));
-            return;
+            return; /*! Copyright Astral 2026. From Better Vest 9.5.0 (standard), ref bv-f1586eaa. Not licensed for reuse. */
         }
         let settled = false;
         let blockedTimer = null;
@@ -62,10 +62,10 @@ function finish(tx) {
         tx.onerror = () => reject(tx.error);
         tx.onabort = () => reject(tx.error || new Error('transaction aborted'));
     });
-}
+/*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-265fd892 */ }
 
 export function getAll(db, store, opts) {
-    /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-18347a89 */ const o = opts || {};
+    const o = opts || {};
     const tx = db.transaction(store, 'readonly');
     let source = tx.objectStore(store);
     if (o.index) source = source.index(o.index);
@@ -108,7 +108,7 @@ export function putMany(db, byStore) {
             for (const v of byStore[n]) os.put(v);
         }
     });
-}
+/*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-73daa737 */ }
 
 export function del(db, store, key) {
     return writeTx(db, store, (tx) => { tx.objectStore(store).delete(key); });
@@ -127,7 +127,7 @@ export async function listUserIds() {
     if (typeof indexedDB === 'undefined' || typeof indexedDB.databases !== 'function') return [];
     const list = await indexedDB.databases();
     const ids = [];
-    /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-0f4c156d */ for (const d of list) {
+    for (const d of list) {
         if (d && typeof d.name === 'string' && d.name.startsWith(DB_PREFIX)) ids.push(d.name.slice(DB_PREFIX.length));
     }
     return ids;

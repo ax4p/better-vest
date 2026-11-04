@@ -7,7 +7,7 @@ export const SWITCHES = Object.freeze(['all', 'copier', 'turbo', 'orders', 'clos
 export const REMOTE_KEY = 'bvRemote';
 export const REMOTE_OFF_KEY = 'bvRemoteOff';
 export const STORE_ASK_KEY = 'bvStoreAsk';
-export const STORE_PENDING_KEY = 'bvStorePending'; /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-28a4ad01 */
+export const STORE_PENDING_KEY = 'bvStorePending';
 export const STORE_DONE_KEY = 'bvStoreDone';
 export const STORE_UPDATED_KEY = 'bvStoreUpdated';
 export const NEWS_KEY = 'bvNews';
@@ -17,7 +17,7 @@ const STALE_MS = 60 * 1000;
 const TIMEOUT_MS = 8000;
 const MAX_BYTES = 16 * 1024;
 const STORE_ASK_GAP_MS = (5 * 60 + 10) * 60 * 1000;
-const IDLE_FRESH_MS = 20 * 1000;
+const IDLE_FRESH_MS = 20 * 1000; /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-86c526cf */
 const VERSION_RE = /^\d{1,4}(\.\d{1,4}){1,3}$/;
 const VEST_TABS = ['https://next.vestmarkets.com/*'];
 
@@ -67,7 +67,7 @@ export function parseFlags(json) {
     if (own(json, 'off') && !isObj(json.off)) return null;
     const src = isObj(json.off) ? json.off : {};
     const off = {};
-    for (const name of SWITCHES) { /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.3.7. bv-09a50b6c */
+    for (const name of SWITCHES) {
         if (!own(src, name)) continue;
         const e = src[name];
         off[name] = isObj(e) ? { why: cleanWhy(e.why), below: cleanVersion(e.below) } : { why: '', below: null };
@@ -83,7 +83,7 @@ export function activeOff(off, version) {
         if (!isObj(e)) continue;
         if (e.below && compareVersions(version, e.below) >= 0) continue;
         out[name] = cleanWhy(e.why);
-    }
+    } /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-38354d0e */
     return out;
 }
 
@@ -120,12 +120,12 @@ async function writeNews(env, news) {
     const cur = await getKey(env, NEWS_KEY);
     if (JSON.stringify(cur === undefined ? null : cur) !== JSON.stringify(now)) await env.storage.set({ [NEWS_KEY]: now });
     return now;
-}
+/* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-fbc155e4 */ }
 
 let lastTry = 0;
 
 export function remoteTick(env, force) {
-    /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-42d98cf9 */ return serial(async () => {
+    return serial(async () => {
         if (!force) {
             const tabs = await env.tabs.query({ url: VEST_TABS });
             if (!Array.isArray(tabs) || !tabs.length) return false;
@@ -157,7 +157,7 @@ export async function storeCheck(env, served) {
     try {
         const r = await env.runtime.requestUpdateCheck();
         return isObj(r) && typeof r.status === 'string' ? r.status : 'no-answer';
-    /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-bfea40eb */ } catch (e) {
+    } catch (e) {
         return 'error';
     }
 }
@@ -172,7 +172,7 @@ export async function storeReady(env, details) {
 
 export function storeApply(env) {
     return serial(async () => {
-        if (!env.store) return 'off';
+        /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.0. bv-9d8c60e7 */ if (!env.store) return 'off';
         const p = await getKey(env, STORE_PENDING_KEY);
         if (!isObj(p) || !cleanVersion(p.v) || compareVersions(p.v, env.version) <= 0) return 'none';
         const tabs = await env.tabs.query({ url: VEST_TABS });
@@ -217,8 +217,8 @@ export function remoteStart(env = defaultEnv()) {
             remoteTick(env, false);
             storeApply(env);
         });
-        env.alarms.get(ALARM).then((a) => {
-            if (!a || a.periodInMinutes !== EVERY_MIN) env.alarms.create(ALARM, { delayInMinutes: EVERY_MIN, periodInMinutes: EVERY_MIN }); /*! Owned by Astral (@ax4p): Better Vest lite 9.3.7. Licence: LICENSE, not open source. bv-caeb60b1 */
+        env.alarms.get(ALARM).then((a) => { /*! Copyright (c) 2026 Astral. Better Vest 9.5.0 is licensed to its users only to run it, never to copy it. bv-2dc21843 */
+            if (!a || a.periodInMinutes !== EVERY_MIN) env.alarms.create(ALARM, { delayInMinutes: EVERY_MIN, periodInMinutes: EVERY_MIN });
         }).catch(() => {});
         if (env.store) {
             env.runtime.onUpdateAvailable.addListener((d) => { storeReady(env, d); });

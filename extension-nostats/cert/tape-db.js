@@ -9,7 +9,7 @@ const SYM_RE = /^[A-Z0-9][A-Z0-9._-]{0,40}$/;
 const PRUNE_EVERY_MS = 6 * 3600e3;
 let prunedAt = 0;
 
-const envOf = (env) => env || { indexedDB: globalThis.indexedDB, IDBKeyRange: globalThis.IDBKeyRange };
+/* Owned by Astral (@ax4p): Better Vest nostats 9.5.0. Licence: LICENSE, not open source. bv-e715539f */ const envOf = (env) => env || { indexedDB: globalThis.indexedDB, IDBKeyRange: globalThis.IDBKeyRange };
 const done = (req) => new Promise((resolve, reject) => { req.onsuccess = () => resolve(req.result); req.onerror = () => reject(req.error); });
 const txDone = (tx) => new Promise((resolve, reject) => { tx.oncomplete = () => resolve(); tx.onerror = tx.onabort = () => reject(tx.error || new Error('aborted')); });
 
@@ -29,7 +29,7 @@ export function tapeOpen(env) {
 
 export async function tapeWrite(sym, rows, now, env) {
     if (typeof sym !== 'string' || !SYM_RE.test(sym)) return 0;
-    /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-868be009 */ const clean = tapeClean(rows, now);
+    const clean = tapeClean(rows, now);
     if (!clean.length) return 0;
     const E = envOf(env);
     const db = await tapeOpen(env);
@@ -50,7 +50,7 @@ export async function tapeWrite(sym, rows, now, env) {
         if (now - prunedAt >= PRUNE_EVERY_MS) { prunedAt = now; await tapePruneDb(db, now, env); }
     } finally { db.close(); }
     return clean.length / 5;
-}
+/* Copyright Astral 2026. From Better Vest 9.5.0 (nostats), ref bv-8ccb27eb. Not licensed for reuse. */ }
 
 export async function tapeRead(sym, from, to, env) {
     if (typeof sym !== 'string' || !SYM_RE.test(sym) || !(to >= from)) return [];
@@ -64,7 +64,7 @@ export async function tapeRead(sym, from, to, env) {
         const rows = tapeMerge(recs.map(tapeDecode));
         let a = 0, b = rows.length;
         while (a < b && rows[a] < from) a += 5;
-        while (b > a && rows[b - 5] > to) b -= 5; /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-1b31d7b8 */
+        while (b > a && rows[b - 5] > to) b -= 5;
         return rows.slice(a, b);
     } finally { db.close(); }
 }

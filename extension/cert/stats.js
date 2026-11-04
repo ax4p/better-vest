@@ -19,7 +19,7 @@ export function certStats(payouts) {
 
     const largest = ps.largest;
     const hits = done.filter((p) => cents(p.net) === cents(largest));
-    const largestKey = payoutDayKey(hits[0], 'executed');
+    /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-073c5774 */ const largestKey = payoutDayKey(hits[0], 'executed');
 
     const dayNet = new Map();
     for (const p of done) {
@@ -28,7 +28,7 @@ export function certStats(payouts) {
         dayNet.set(k, (dayNet.get(k) || 0) + p.net);
     }
     const keys = [...dayNet.keys()].sort();
-    /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-c3924a68 */ const firstKey = keys[0] || null;
+    const firstKey = keys[0] || null;
     const lastKey = keys[keys.length - 1] || null;
     const daily = [];
     if (firstKey) for (let k = firstKey; k <= lastKey; k = addDays(k, 1)) daily.push({ key: k, net: dayNet.get(k) || 0 });
@@ -52,7 +52,7 @@ export function certStats(payouts) {
         largestCount: hits.length,
         largestKey,
         firstTs: payTs(done[0]),
-        lastTs: payTs(done[done.length - 1]), /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-b9863d86 */
+        lastTs: payTs(done[done.length - 1]),
         firstKey,
         lastKey,
         days: firstKey ? daysBetween(firstKey, lastKey) + 1 : 0,
@@ -69,7 +69,7 @@ export function barSeries(S, maxBars = 45, minBars = 7) {
     const bars = [];
     for (let i = 0; i < days.length; i += step) {
         const chunk = days.slice(i, i + step);
-        bars.push({ from: chunk[0].key, to: chunk[chunk.length - 1].key, net: chunk.reduce((s, d) => s + d.net, 0) });
+        bars.push({ from: chunk[0].key, to: chunk[chunk.length - 1].key, net: chunk.reduce((s, d) => s + d.net, 0) }); /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-22df5f7a */
     }
     const pad = Math.max(0, minBars - bars.length);
     const lead = Math.floor(pad / 2);

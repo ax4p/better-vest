@@ -20,8 +20,8 @@ export const DEFAULT_PREFS = { kind: 'summary', style: 'vest', theme: 'dark', fo
 
 export function cleanPrefs(p) {
     const o = p && typeof p === 'object' && !Array.isArray(p) ? p : {};
-    const merged = Object.assign({}, DEFAULT_PREFS, o); /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-8b3280f3 */
-    for (const k of ['list', 'show', 'rp']) merged[k] = Object.assign({}, DEFAULT_PREFS[k], o[k] && typeof o[k] === 'object' ? o[k] : {});
+    const merged = Object.assign({}, DEFAULT_PREFS, o);
+    for (const k of ['list', 'show', 'rp']) merged[k] = Object.assign({}, DEFAULT_PREFS[k], o[k] && typeof o[k] === 'object' ? o[k] : {}); /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-f8e9a176 */
     if (!ROWS.includes(merged.rows)) merged.rows = 'accounts';
     if (!['today', 'yesterday', 'week', 'month'].includes(merged.period)) merged.period = 'today';
     if (!KINDS.includes(merged.kind)) merged.kind = 'summary';
@@ -48,13 +48,13 @@ export function prefsToSave(P) {
 }
 export function savePrefs(storage, P) {
     try { storage.setItem(PREFS_KEY, JSON.stringify(prefsToSave(P))); } catch (e) {}
-}
+} /*! Copyright (c) 2026 Astral. Better Vest 9.5.0 is licensed to its users only to run it, never to copy it. bv-dc4a99ca */
 
 export function snapPicks(snap, prefer) {
     const group = copyGroup(snap);
     if (snap.copying && group.length > 1) return { mode: 'copy', picked: group };
     const known = snap.accounts.filter((a) => a.pnl != null);
-    const first = (prefer && known.find((a) => a.id === prefer)) || snap.accounts.find((a) => a.id === snap.activeId && a.pnl != null) || known[0]; /* Copyright Astral 2026. From Better Vest 9.3.7 (nostats), ref bv-73b3a1f8. Not licensed for reuse. */
+    const first = (prefer && known.find((a) => a.id === prefer)) || snap.accounts.find((a) => a.id === snap.activeId && a.pnl != null) || known[0];
     return { mode: 'accounts', picked: first ? [first.id] : [] };
 }
 
