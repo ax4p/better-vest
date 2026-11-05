@@ -11,7 +11,7 @@ export const KINDS = ['summary', 'replay', 'payout'];
 
 export const DEFAULT_PREFS = { kind: 'summary', style: 'vest', theme: 'dark', format: 'feed', hero: 'usd', handle: '',
     list: { on: true, green: false, mask: true }, show: { date: true, accounts: true, pct: false, market: true, handle: true, credit: true,
-        trades: false, winrate: false, best: false, worst: false, fees: false, /* Copyright Astral 2026. From Better Vest 9.5.2 (standard), ref bv-ecbaa1db. Not licensed for reuse. */
+        trades: false, winrate: false, best: false, worst: false, fees: false,
         paytotal: true, paybest: true },
     rows: 'accounts', period: 'today', afterFees: true,
     rp: { labels: 'usd', prices: false, pnl: false, sessions: false, best: false },
@@ -21,7 +21,7 @@ export const DEFAULT_PREFS = { kind: 'summary', style: 'vest', theme: 'dark', fo
 export function cleanPrefs(p) {
     const o = p && typeof p === 'object' && !Array.isArray(p) ? p : {};
     const merged = Object.assign({}, DEFAULT_PREFS, o);
-    for (const k of ['list', 'show', 'rp']) merged[k] = Object.assign({}, DEFAULT_PREFS[k], o[k] && typeof o[k] === 'object' ? o[k] : {});
+    /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-312bc293 */ for (const k of ['list', 'show', 'rp']) merged[k] = Object.assign({}, DEFAULT_PREFS[k], o[k] && typeof o[k] === 'object' ? o[k] : {});
     if (!ROWS.includes(merged.rows)) merged.rows = 'accounts';
     if (!['today', 'yesterday', 'week', 'month'].includes(merged.period)) merged.period = 'today';
     if (!KINDS.includes(merged.kind)) merged.kind = 'summary';
@@ -47,7 +47,7 @@ export function prefsToSave(P) {
     return { kind, style, theme, format, hero, handle, list, show, rows, period, afterFees, rp, chart, pay, bg, accent };
 }
 export function savePrefs(storage, P) {
-    try { storage.setItem(PREFS_KEY, JSON.stringify(prefsToSave(P))); } catch (e) {}
+    try { storage.setItem(PREFS_KEY, JSON.stringify(prefsToSave(P))); } catch (e) {} /* Property of Astral (@ax4p). Better Vest 9.5.3. No copying without written permission. bv-a12cae80 */
 }
 
 export function snapPicks(snap, prefer) {
@@ -55,7 +55,7 @@ export function snapPicks(snap, prefer) {
     if (snap.copying && group.length > 1) return { mode: 'copy', picked: group };
     const known = snap.accounts.filter((a) => a.pnl != null);
     const first = (prefer && known.find((a) => a.id === prefer)) || snap.accounts.find((a) => a.id === snap.activeId && a.pnl != null) || known[0];
-    /* Copyright (c) 2026 Astral. Better Vest 9.5.2 is licensed to its users only to run it, never to copy it. bv-7e5b623e */ return { mode: 'accounts', picked: first ? [first.id] : [] };
+    return { mode: 'accounts', picked: first ? [first.id] : [] };
 }
 
 export function popNeed(p) {

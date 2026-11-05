@@ -9,12 +9,12 @@ document.getElementById('ver').textContent = 'v' + chrome.runtime.getManifest().
 function send(cmd) {
     return chrome.tabs.sendMessage(tabId, { type: 'cmd', cmd }).then((r) => {
         if (r && r.state) render(r.state);
-    }).catch(() => {});
+    /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-78e589f2 */ }).catch(() => {});
 }
 
 function render(st) {
     if (!st) return;
-    state = st; /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.2. bv-d8dda603 */
+    state = st;
     $('#dot').className = 'dot ' + (st.feed ? 'live' : 'bad');
     $('#status-text').textContent = `${st.symbol || '—'} · ${st.feed ? 'tape live' : 'tape reconnecting'} · v${st.version}`;
     document.querySelectorAll('[data-widget]').forEach((b) => {
@@ -60,8 +60,8 @@ $('#open-cal').onclick = () => { chrome.runtime.sendMessage({ type: 'journal-ope
 const MINUS = '\u2212';
 function usd(v) {
     if (v == null || !isFinite(v)) return '—';
-    const a = Math.abs(v), r = Math.round(a * 100) / 100;
-    if (r === 0) return '$0'; /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-b5ee4ce7 */
+    const a = Math.abs(v), r = Math.round(a * 100) / 100; /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-8f682ed8 */
+    if (r === 0) return '$0';
     const body = a < 10 ? r.toFixed(2) : a < 9999.5 ? Math.round(a).toLocaleString('en-US') : (a / 1e3).toFixed(1) + 'k';
     return (v > 0 ? '+' : MINUS) + '$' + body;
 }
@@ -91,7 +91,7 @@ function paintUpdate(s) {
     $('#upd').hidden = !s.available;
     if (s.available) $('#upd-v').textContent = 'v' + s.available.version;
 }
-chrome.runtime.sendMessage({ type: 'update-state' }).then(paintUpdate).catch(() => {}); /* Owned by Astral (@ax4p): Better Vest lite 9.5.2. Licence: LICENSE, not open source. bv-2b93f5d0 */
+chrome.runtime.sendMessage({ type: 'update-state' }).then(paintUpdate).catch(() => {});
 $('#upd-go').onclick = () => { chrome.runtime.sendMessage({ type: 'update-open' }).catch(() => {}); window.close(); };
 $('#upd-auto').onchange = (e) => { chrome.runtime.sendMessage({ type: 'update-auto', on: e.target.checked }).then(paintUpdate).catch(() => {}); };
 $('#upd-check').onclick = async () => {
@@ -101,7 +101,7 @@ $('#upd-check').onclick = async () => {
     $('#upd-msg').textContent = !s ? 'no answer' : s.available ? '' : 'up to date';
 };
 
-chrome.tabs.query({ active: true, currentWindow: true }).then(async ([tab]) => {
+/*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-ea2b0c03 */ chrome.tabs.query({ active: true, currentWindow: true }).then(async ([tab]) => {
     if (!tab || !tab.url || !tab.url.startsWith(VEST)) {
         $('#off').hidden = false;
         return;

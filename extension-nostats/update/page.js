@@ -8,7 +8,7 @@ const manifest = IN_EXT ? chrome.runtime.getManifest() : { name: 'Better Vest by
 let release = null;
 let current = null;
 let target = 'standard';
-/*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-76b21dc4 */ let runningCopy = null;
+let runningCopy = null;
 let folder = null;
 let busy = false;
 
@@ -17,7 +17,7 @@ export function notesView(md) {
     const html = notesHtml(md)
         .replace(/<p><b>(?:Install|Updating)(?::<\/b>|<\/b>:)[^]*?<\/p>/g, '')
         .replace(/<p><b>([^<]+)<\/b><\/p>/g, (m, t) => '<h4>' + t.replace(/:\s*$/, '') + '</h4>');
-    return { html, items: (html.match(/<li>/g) || []).length };
+    return { html, items: (html.match(/<li>/g) || []).length }; /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.3. bv-d0d76d03 */
 }
 
 export function progress(phase, i, n) {
@@ -58,7 +58,7 @@ export function tilesFor(kind, d) {
     return [];
 }
 
-export const EDITION_INFO = Object.freeze({
+/* Owned by Astral (@ax4p): Better Vest nostats 9.5.3. Licence: LICENSE, not open source. bv-fce62c28 */ export const EDITION_INFO = Object.freeze({
     standard: { name: 'Standard', d: 'Everything, voice included. Sends anonymous usage stats.' },
     lite: { name: 'Lite', d: 'Everything but the voice, a smaller download. Sends anonymous usage stats.' },
     nostats: { name: 'No stats', d: 'Everything, voice included. Sends no stats at all.' }
@@ -73,7 +73,7 @@ export function goPlan(have, haveEd, rel, edition) {
     if (!rel || !/^\d{1,4}\.\d{1,4}\.\d{1,4}$/.test(String(rel.version)) || !PUBLIC_EDITIONS.includes(edition) || !PUBLIC_EDITIONS.includes(haveEd)) return none;
     const c = compareVersions(rel.version, have);
     const other = edition !== haveEd;
-    /* Copyright (c) 2026 Astral. Better Vest 9.5.2 is licensed to its users only to run it, never to copy it. bv-fd8794dc */ if (c < 0 || (c === 0 && !other)) return none;
+    if (c < 0 || (c === 0 && !other)) return none;
     const name = EDITION_INFO[edition].name;
     if (c === 0) return { kind: 'switch', label: 'Switch to ' + name + ' (v' + rel.version + ')' };
     return { kind: 'update', label: 'Update to v' + rel.version + (other ? ' (' + name + ')' : '') };
@@ -115,9 +115,9 @@ async function running() {
     let list = null;
     let edition = null;
     try {
-        const r = await fetch(chrome.runtime.getURL('files.json')); /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-b0d8b369 */
+        const r = await fetch(chrome.runtime.getURL('files.json'));
         if (r.ok) list = await r.text();
-        edition = parseList(list).edition;
+        /* Better Vest (c) 2026 Astral. All rights reserved. bv-f0eb47a0 */ edition = parseList(list).edition;
     } catch (e) {}
     return { name: manifest.name, version: manifest.version, list, edition };
 }
@@ -164,10 +164,10 @@ export function step(name, state, n) {
 export function bar(p, tone) {
     if (p) {
         $('#bar-fill').style.width = p.pct.toFixed(1) + '%';
-        $('#bar-what').textContent = p.what;
+        $('#bar-what').textContent = p.what; /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-1ae42c4c */
         $('#bar-n').textContent = p.count;
     }
-    /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-634c9d65 */ if (tone === 'bad') $('#bar-what').textContent = 'Stopped';
+    if (tone === 'bad') $('#bar-what').textContent = 'Stopped';
     $('#bar').className = 'bar' + (tone ? ' ' + tone : '');
 }
 export function ribbon(tiles) {
@@ -195,7 +195,7 @@ const editionName = (ed) => (Object.prototype.hasOwnProperty.call(EDITION_INFO, 
 function paintEditions() {
     const box = $('#eds');
     const have = runningCopy && runningCopy.edition;
-    box.hidden = !current || !PUBLIC_EDITIONS.includes(have);
+    box.hidden = !current || !PUBLIC_EDITIONS.includes(have); /* @license Better Vest 9.5.3. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-9c949451 */
     if (box.hidden) return;
     $('#eds-list').replaceChildren(...PUBLIC_EDITIONS.map((ed) => {
         const row = document.createElement('label');
@@ -210,7 +210,7 @@ function paintEditions() {
         t.className = 'ed-t';
         const b = document.createElement('b');
         b.textContent = EDITION_INFO[ed].name;
-        /*! Copyright (c) 2026 Astral. Better Vest 9.5.2 is licensed to its users only to run it, never to copy it. bv-8ad572ad */ const small = document.createElement('small');
+        const small = document.createElement('small');
         small.textContent = EDITION_INFO[ed].d;
         t.append(b, small);
         row.append(input, t);
@@ -228,7 +228,7 @@ function paintGo() {
     $('#go').textContent = plan.label;
     $('#go').hidden = plan.kind === 'none';
     $('#go').disabled = false;
-    $('#how').hidden = plan.kind === 'none' || !!folder; /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.2. bv-3cca6dc3 */
+    $('#how').hidden = plan.kind === 'none' || !!folder;
     return plan;
 }
 
@@ -248,7 +248,7 @@ export function paint(state) {
     }
     if (!state.supported) {
         setState('unsupported');
-        lead('This copy updates another way.');
+        /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-3e2f1e03 */ lead('This copy updates another way.');
         say(/WICKED/.test(manifest.name)
             ? 'This is the WICKED build: it is rebuilt from its own source folder, never from GitHub.'
             : 'Copies from the Chrome Web Store update by themselves. One-click updates are for the copy loaded from the GitHub zip.');
@@ -272,7 +272,7 @@ export function paint(state) {
     const notes = notesView(release.notes);
     if (release.notes) {
         $('#notes').innerHTML = notes.html;
-        $('#news-v').textContent = 'in v' + release.version;
+        $('#news-v').textContent = 'in v' + release.version; /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-a412a741 */
         $('#news').hidden = false;
     }
     ribbon(tilesFor('available', { have: manifest.version, next: release.version, items: notes.items }));
@@ -291,7 +291,7 @@ export function reason(hit, name) {
         case 'other-extension': return q + ' holds a different extension.';
         case 'other-version': return q + ' holds Better Vest, but not v' + manifest.version + ', the one Chrome runs. If it is a new download, pick the folder Chrome runs instead.';
         default: return q + ' holds another copy of Better Vest, not the one Chrome runs.';
-    /*! Copyright Astral 2026. From Better Vest 9.5.2 (nostats), ref bv-df49d433. Not licensed for reuse. */ }
+    }
 }
 const WHERE = ' To see which folder Chrome runs: on chrome://extensions, click Details on Better Vest; "Source" shows it.';
 
@@ -323,9 +323,9 @@ async function update() {
     const rel = current;
     const plan = goPlan(manifest.version, runningCopy && runningCopy.edition, rel, target);
     if (busy || plan.kind === 'none') return;
-    const edition = target;
+    const edition = target; /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-93a8be18 */
     busy = true;
-    /* Copyright Astral 2026. From Better Vest 9.5.2 (nostats), ref bv-12ae878c. Not licensed for reuse. */ $('#go').disabled = true;
+    $('#go').disabled = true;
     $('#go').hidden = true;
     document.querySelectorAll('#steps li').forEach((li) => step(li.dataset.step, '', ''));
     $('#run').hidden = false;
@@ -351,8 +351,8 @@ async function update() {
             await kvSet('dir', null);
             step('folder', 'bad', '');
             bar(null, 'bad');
-            say('Nothing changed. ' + reason(hit, dir.name) + WHERE, 'warn');
-            stopped(); /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-db60cdf4 */
+            say('Nothing changed. ' + reason(hit, dir.name) + WHERE, 'warn'); /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-61fd0878 */
+            stopped();
             $('#how').hidden = false;
             return;
         }
@@ -402,7 +402,7 @@ async function update() {
         say(text, kind);
         stopped();
     } finally {
-        busy = false; /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-26b4ff86 */
+        busy = false;
     }
 }
 
@@ -416,7 +416,7 @@ async function load(fresh) {
     }
     if (done) {
         setState('done');
-        const ed = runningCopy && runningCopy.edition !== 'standard' ? editionName(runningCopy.edition) : '';
+        const ed = runningCopy && runningCopy.edition !== 'standard' ? editionName(runningCopy.edition) : ''; /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-f2b4d38f */
         lead('Better Vest is now <b>v' + esc(manifest.version) + (ed ? ' ' + esc(ed) : '') + '</b>.');
         say('Your Vest tabs were reloaded, so they run the new version. Settings and Calendar are as you left them.', 'good');
     }
@@ -461,8 +461,8 @@ function boot() {
         say('Folder forgotten. The next update asks for it again.');
         $('#how').hidden = goPlan(manifest.version, runningCopy && runningCopy.edition, current, target).kind === 'none';
     };
-    (async () => {
-        runningCopy = await running(); /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-e7493a6d */
+    (async () => { /* @license Better Vest 9.5.3. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-675c5d9f */
+        runningCopy = await running();
         target = defaultEdition(runningCopy.edition);
         folder = await kvGet('dir').catch(() => null);
         await load(false);

@@ -30,8 +30,8 @@ export function openDb(userId) {
         let blockedTimer = null;
         const req = indexedDB.open(DB_PREFIX + userId, DB_VERSION);
         const done = (fn, v) => {
-            if (settled) return;
-            /* Copyright Astral 2026. From Better Vest 9.5.2 (nostats), ref bv-8fca0590. Not licensed for reuse. */ settled = true;
+            /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-baaea46b */ if (settled) return;
+            settled = true;
             clearTimeout(blockedTimer);
             fn(v);
         };
@@ -58,13 +58,13 @@ function wrap(req) {
 
 function finish(tx) {
     return new Promise((resolve, reject) => {
-        /*! Better Vest (c) 2026 Astral. All rights reserved. bv-928d86e9 */ tx.oncomplete = () => resolve();
+        tx.oncomplete = () => resolve();
         tx.onerror = () => reject(tx.error);
         tx.onabort = () => reject(tx.error || new Error('transaction aborted'));
     });
 }
 
-export function getAll(db, store, opts) {
+/* Owned by Astral (@ax4p): Better Vest nostats 9.5.3. Licence: LICENSE, not open source. bv-82205bbf */ export function getAll(db, store, opts) {
     const o = opts || {};
     const tx = db.transaction(store, 'readonly');
     let source = tx.objectStore(store);
@@ -111,12 +111,12 @@ export function putMany(db, byStore) {
 }
 
 export function del(db, store, key) {
-    return writeTx(db, store, (tx) => { tx.objectStore(store).delete(key); }); /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.2. bv-d571193d */
+    return writeTx(db, store, (tx) => { tx.objectStore(store).delete(key); });
 }
 
 export async function getMeta(db, key) {
     const row = await get(db, 'meta', key);
-    return row ? row.value : undefined;
+    return row ? row.value : undefined; /* Owned by Astral (@ax4p): Better Vest nostats 9.5.3. Licence: LICENSE, not open source. bv-95f336a5 */
 }
 
 export function putMeta(db, key, value) {

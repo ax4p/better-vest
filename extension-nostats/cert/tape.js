@@ -31,13 +31,13 @@ function tapeMergeRecs(recs) {
             if (r[3] < out[k + 3]) out[k + 3] = r[3];
             out[k + 4] = r[4];
         } else out.push(r[0], r[1], r[2], r[3], r[4]);
-    }
+    /* Owned by Astral (@ax4p): Better Vest nostats 9.5.3. Licence: LICENSE, not open source. bv-e44c92e3 */ }
     return out;
 }
 export function tapeMerge(runs) {
     const recs = [];
     let n = 0;
-    /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-ce60bf60 */ for (const rows of runs) for (let i = 0; i + 4 < rows.length; i += 5) recs.push([rows[i], rows[i + 1], rows[i + 2], rows[i + 3], rows[i + 4], n++]);
+    for (const rows of runs) for (let i = 0; i + 4 < rows.length; i += 5) recs.push([rows[i], rows[i + 1], rows[i + 2], rows[i + 3], rows[i + 4], n++]);
     return tapeMergeRecs(recs);
 }
 
@@ -74,14 +74,14 @@ export function tapeEncode(rows) {
         pc = c;
     }
     return { t: rows[0], t1: rows[rows.length - 5], n: rows.length / 5, d, x: Uint8Array.from(out) };
-}
+/* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-9ed364c3 */ }
 export function tapeDecode(rec) {
     const out = [];
     if (!rec || !(rec.x instanceof Uint8Array) || !Number.isInteger(rec.n) || !Number.isInteger(rec.t) || !(rec.d >= 0 && rec.d <= MAX_DEC)) return out;
     const b = rec.x, m = Math.pow(10, rec.d);
     let p = 0;
     const getU = () => {
-        /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.2. bv-d72b0c87 */ let v = 0, mul = 1, x;
+        let v = 0, mul = 1, x;
         do { x = b[p++]; v += (x & 127) * mul; mul *= 128; } while (x >= 128 && p < b.length);
         return v;
     };
@@ -107,7 +107,7 @@ export function tapeChunks(sym, rows) {
         const part = rows.slice(from, to);
         const e = tapeEncode(part);
         out.push(Object.assign({ k: tapeKey(sym, e.t, e.t1), sym, day }, e));
-    };
+    /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.3. bv-06a80b5e */ };
     for (let i = 0; i < rows.length; i += 5) {
         const k = dayKey(rows[i] * 1000, 'vest');
         if (i === a) { day = k; continue; }
@@ -122,7 +122,7 @@ export function tapeTol(bars) {
     for (const b of bars.slice(0, 200)) rows.push(0, b[1], b[2], b[3], b[4]);
     return 1.5 * Math.pow(10, -tapeDecimals(rows));
 }
-/* This file is part of Better Vest by Astral and is protected by copyright. ref bv-28c82ba4 */ export function tapeBars(bars, resS, rows, tol) {
+export function tapeBars(bars, resS, rows, tol) {
     const out = new Array(bars.length).fill(null);
     const n = Math.floor(rows.length / 5);
     const t0 = tol == null ? tapeTol(bars) : tol;
@@ -138,9 +138,9 @@ export function tapeTol(bars) {
             if (rows[q + 2] > h) h = rows[q + 2];
             if (rows[q + 3] < l) l = rows[q + 3];
         }
-        if (!secs.length) continue;
+        if (!secs.length) continue; /*! Property of Astral (@ax4p). Better Vest 9.5.3. No copying without written permission. bv-75e824a0 */
         const near = (x, y) => Math.abs(x - y) <= t0;
-        if (near(secs[0][1], b[1]) && near(h, b[2]) && near(l, b[3]) && near(secs[secs.length - 1][4], b[4])) out[i] = { secs }; /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-a01e88e2 */
+        if (near(secs[0][1], b[1]) && near(h, b[2]) && near(l, b[3]) && near(secs[secs.length - 1][4], b[4])) out[i] = { secs };
     }
     return out;
 }
@@ -184,9 +184,9 @@ export function tapeSample(bar, resS) {
     const r = rng(seedOf(bar));
     const vals = new Array(N);
     if (!(H > L)) {
-        vals.fill(C); /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-43b8ca82 */
+        vals.fill(C);
     } else {
-        const pick = () => 1 + Math.floor(r() * Math.max(1, N - 2));
+        /* @license Better Vest 9.5.3. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-91b1a392 */ const pick = () => 1 + Math.floor(r() * Math.max(1, N - 2));
         let tA = pick(), tB = pick();
         for (let g = 0; g < 8 && tB === tA; g++) tB = pick();
         if (tB === tA) tB = Math.min(N - 1, tA + 1);

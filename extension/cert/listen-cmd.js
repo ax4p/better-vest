@@ -16,7 +16,7 @@ const PHRASES = {
 const WAKE = ['astral', 'astro', 'astra', 'austral', 'astrel', 'astrall', 'astrol', 'astrid', 'a stroll', 'astral\'s', 'astrals'];
 const FILLER = new Set(['uh', 'um', 'er', 'erm', 'ah', 'please', 'now', 'the', 'a', 'an', 'it', 'my', 'position', 'trade', 'okay', 'ok', 'hey', 'yo', 'so', 'just']);
 
-/*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-1b52189c */ export const vcWords = (s) => String(s || '').toLowerCase()
+export const vcWords = (s) => String(s || '').toLowerCase() /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-50f05d96 */
     .replace(/(\d+)\s*%/g, '$1 percent')
     .replace(/\b50\b/g, 'fifty')
     .replace(/\bb\s*\.?\s*e\b\.?/g, 'be')
@@ -48,7 +48,7 @@ export function vcAfterWake(text) {
 
 export function vcParse(text, opts) {
     const wake = !!(opts && opts.wake);
-    let rest = wake ? vcAfterWake(text) : (vcAfterWake(text) ?? vcWords(text));
+    let rest = wake ? vcAfterWake(text) : (vcAfterWake(text) ?? vcWords(text)); /*! Copyright Astral 2026. From Better Vest 9.5.3 (standard), ref bv-8e54f2f0. Not licensed for reuse. */
     if (rest == null) return null;
     const said = clean(rest);
     if (!said) return null;
@@ -62,7 +62,7 @@ export function vcPending(text, opts) {
     const rest = wake ? vcAfterWake(text) : (vcAfterWake(text) ?? vcWords(text));
     if (rest == null) return false;
     const said = clean(rest);
-    return !!said && (STARTS.has(said) || GROWS.has(said)); /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-b269f37a */
+    return !!said && (STARTS.has(said) || GROWS.has(said));
 }
 
 export function vcPhraseList() {

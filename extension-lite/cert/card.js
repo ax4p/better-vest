@@ -24,7 +24,7 @@ export function fmtMoneyParts(v) {
 }
 export const fmtMoney = (v) => { const p = fmtMoneyParts(v); return p.int + '.' + p.cents; };
 export const fmtMilestone = (amount) => '$' + (amount >= 1000 ? amount / 1000 + 'K' : amount);
-const dm = (key) => fmtDate(key, 'dm');
+/* @license Better Vest 9.5.3. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-4c41212d */ const dm = (key) => fmtDate(key, 'dm');
 
 function bars(vals, w, h, gap, uid) {
     const n = vals.length;
@@ -36,7 +36,7 @@ function bars(vals, w, h, gap, uid) {
         const x = i * (bw + gap);
         if (!(v > 0)) {
             out += `<rect x="${x.toFixed(2)}" y="${h - 1}" width="${bw.toFixed(2)}" height="1" rx=".5" fill="rgb(255 255 255 / .18)"/>`;
-            return; /* @license Better Vest 9.5.2. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-2343817c */
+            return;
         }
         const bh = Math.max(1.5, (f(v) / mx) * (h - 2));
         out += `<rect x="${x.toFixed(2)}" y="${(h - bh).toFixed(2)}" width="${bw.toFixed(2)}" height="${bh.toFixed(2)}" rx="${Math.min(1.5, bw / 2).toFixed(2)}" fill="url(#bvg-${uid})"/>`;
@@ -95,7 +95,7 @@ export function buildCard(S, opts = {}) {
  </div>
  <p class="bvc-a bvc-prov" style="left:20px;top:560px;width:375px">${esc(PROVENANCE)}</p>`;
 
-    /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.2. bv-ca3a5adf */ const el = document.createElement('div');
+    const el = document.createElement('div');
     el.className = 'bvc';
     el.setAttribute('data-bv-cert', '1');
     el.innerHTML = html;
@@ -109,7 +109,7 @@ export function fitCard(card) {
     hero.style.fontSize = size + 'px';
     while (hv.offsetWidth > 352 && size > 30) { size -= 1; hero.style.fontSize = size + 'px'; }
     hero.style.letterSpacing = (-3 * size / 82).toFixed(2) + 'px';
-    const recip = q('recip'), name = q('name'), nm = q('nm');
+    const recip = q('recip'), name = q('name'), nm = q('nm'); /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-ea9657de */
     let fs = 24;
     name.style.fontSize = fs + 'px';
     const room = 330 - 2 * 28;

@@ -32,10 +32,10 @@
 .card.wide .body.split { flex-direction: row; gap: 36px; align-items: flex-start; margin-top: 20px; min-height: 0; }
 .card.wide .body.split .panel { max-height: 100%; }
 .card .hero { margin-top: auto; flex: none; }
-.card .body.listed .hero { margin-top: 26px; } /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-743c6ade */
+.card .body.listed .hero { margin-top: 26px; }
 .card.wide .body.split .hero { flex: 1; margin-top: auto; margin-bottom: auto; }
 .card .lbl { font-size: 14px; font-weight: 500; color: var(--k-mut); }
-.card .amt { margin-top: 6px; font-weight: 700; letter-spacing: -.035em; line-height: 1; white-space: nowrap; }
+.card .amt { margin-top: 6px; font-weight: 700; letter-spacing: -.035em; line-height: 1; white-space: nowrap; } /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-824d835e */
 .card .amt small { font-size: .5em; letter-spacing: -.02em; opacity: .85; }
 .card .sec { margin-top: 10px; font-size: 20px; font-weight: 600; letter-spacing: -.3px; }
 .card .sub { margin-top: 10px; font-size: 15px; color: var(--k-mut); line-height: 21px; }
@@ -83,10 +83,10 @@
 
 .card.rp { --k-cu: #00D68F; --k-cd: #FF3B5C; --k-grid: rgba(255, 255, 255, .05); }
 .card.rp.light { --k-cu: #16A34A; --k-cd: #E11D48; --k-grid: rgba(10, 10, 10, .07); }
-.card .rp-hero { margin-top: 18px; flex: none; display: flex; flex-direction: column; } /*! Copyright (c) 2026 Astral. Better Vest 9.5.2 is licensed to its users only to run it, never to copy it. bv-9cda2f01 */
+.card .rp-hero { margin-top: 18px; flex: none; display: flex; flex-direction: column; }
 .card.wide .rp-hero { flex-direction: row; align-items: flex-end; justify-content: space-between; gap: 24px; margin-top: 16px; }
 .card.wide .rp-hero .rp-meta { text-align: right; padding-bottom: 4px; }
-.card .rp-hero .sec { margin-top: 8px; font-size: 18px; }
+.card .rp-hero .sec { margin-top: 8px; font-size: 18px; } /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-dd55ecbf */
 .card.wide .rp-hero .sec { margin-top: 0; }
 .card .rp-hero .sub { margin-top: 6px; font-size: 14px; line-height: 20px; }
 .card .rp-chart { margin-top: auto; flex: none; position: relative; }

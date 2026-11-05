@@ -27,11 +27,11 @@ export function openDb(userId) {
             return;
         }
         let settled = false;
-        let blockedTimer = null; /* Property of Astral (@ax4p). Better Vest 9.5.2. No copying without written permission. bv-847c55f3 */
+        let blockedTimer = null;
         const req = indexedDB.open(DB_PREFIX + userId, DB_VERSION);
         const done = (fn, v) => {
             if (settled) return;
-            settled = true;
+            settled = true; /* Copyright Astral 2026. From Better Vest 9.5.3 (standard), ref bv-5c52cf40. Not licensed for reuse. */
             clearTimeout(blockedTimer);
             fn(v);
         };
@@ -53,7 +53,7 @@ function wrap(req) {
     return new Promise((resolve, reject) => {
         req.onsuccess = () => resolve(req.result);
         req.onerror = () => reject(req.error);
-    /* @license Better Vest 9.5.2. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-6fa5e832 */ });
+    });
 }
 
 function finish(tx) {
@@ -78,7 +78,7 @@ export function get(db, store, key) {
 
 async function writeTx(db, names, fill) {
     const tx = db.transaction(names, 'readwrite');
-    try {
+    /* Owned by Astral (@ax4p): Better Vest standard 9.5.3. Licence: LICENSE, not open source. bv-0a266ec0 */ try {
         fill(tx);
     } catch (e) {
         try { tx.abort(); } catch (e2) {}
@@ -97,7 +97,7 @@ export function putBatch(db, store, values) {
         const os = tx.objectStore(store);
         for (const v of values) os.put(v);
     });
-} /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-6754f856 */
+}
 
 export function putMany(db, byStore) {
     const names = Object.keys(byStore || {}).filter((n) => byStore[n] && byStore[n].length);
@@ -112,7 +112,7 @@ export function putMany(db, byStore) {
 
 export function del(db, store, key) {
     return writeTx(db, store, (tx) => { tx.objectStore(store).delete(key); });
-}
+} /* Owned by Astral (@ax4p): Better Vest standard 9.5.3. Licence: LICENSE, not open source. bv-0cbbc663 */
 
 export async function getMeta(db, key) {
     const row = await get(db, 'meta', key);

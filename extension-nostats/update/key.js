@@ -1,4 +1,4 @@
 /* Better Vest by Astral. Copyright (c) 2026 Astral (@ax4p). All rights reserved. Not open source: see LICENSE. */
 export const RELEASE_PUBLIC_KEY = 'MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEuSwvKFgVxX7pcGnefmtNW9gGH6qMED+1V7KbOe787OXiR4xa6jLu4M8vwpmQa6hLUf3XLboj8ijRkC/n/RtKZw==';
-/* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-ff022eb9 */ export const RELEASE_KEY_ID = 'dd66bcd666d48d5c';
-/*! Copyright Astral 2026. From Better Vest 9.5.2 (nostats), ref bv-3070227d. Not licensed for reuse. */ 
+/* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.3. bv-bcd284ef */ export const RELEASE_KEY_ID = 'dd66bcd666d48d5c';
+/* This file is part of Better Vest by Astral and is protected by copyright. ref bv-a955e870 */ 

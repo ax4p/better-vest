@@ -12,14 +12,14 @@ export const KINDS = ['summary', 'replay', 'payout'];
 export const DEFAULT_PREFS = { kind: 'summary', style: 'vest', theme: 'dark', format: 'feed', hero: 'usd', handle: '',
     list: { on: true, green: false, mask: true }, show: { date: true, accounts: true, pct: false, market: true, handle: true, credit: true,
         trades: false, winrate: false, best: false, worst: false, fees: false,
-        paytotal: true, paybest: true }, /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-ff998006 */
+        paytotal: true, paybest: true },
     rows: 'accounts', period: 'today', afterFees: true,
     rp: { labels: 'usd', prices: false, pnl: false, sessions: false, best: false },
     chart: Object.assign({}, CHART_DEFAULTS),
     pay: 'today', bg: Object.assign({}, BG_DEFAULTS), accent: '' };
 
 export function cleanPrefs(p) {
-    const o = p && typeof p === 'object' && !Array.isArray(p) ? p : {};
+    const o = p && typeof p === 'object' && !Array.isArray(p) ? p : {}; /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-ca7fe9ab */
     const merged = Object.assign({}, DEFAULT_PREFS, o);
     for (const k of ['list', 'show', 'rp']) merged[k] = Object.assign({}, DEFAULT_PREFS[k], o[k] && typeof o[k] === 'object' ? o[k] : {});
     if (!ROWS.includes(merged.rows)) merged.rows = 'accounts';
@@ -37,11 +37,11 @@ export function cleanPrefs(p) {
     return merged;
 }
 export function loadPrefs(storage) {
-    let p = null;
+    /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-d0b92225 */ let p = null;
     try { p = JSON.parse((storage && storage.getItem(PREFS_KEY)) || 'null'); } catch (e) {}
     return cleanPrefs(p);
 }
-export function prefsToSave(P) { /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-4312c5ab */
+export function prefsToSave(P) {
     const { kind, style, theme, format, hero, handle, list, show, rows, afterFees, rp, chart, pay, bg, accent } = P;
     const period = P.period === 'day' ? 'today' : P.period;
     return { kind, style, theme, format, hero, handle, list, show, rows, period, afterFees, rp, chart, pay, bg, accent };

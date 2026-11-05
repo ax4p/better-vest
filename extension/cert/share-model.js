@@ -34,8 +34,8 @@ export function cleanSnap(s) {
     if (!Array.isArray(s.accounts)) return null;
     const accounts = [];
     const seen = new Set();
-    for (const a of s.accounts.slice(0, SHARE_MAX_ACCOUNTS)) { /* Copyright Astral 2026. From Better Vest 9.5.2 (standard), ref bv-a2e5fcb1. Not licensed for reuse. */
-        if (!a || typeof a !== 'object' || !idOk(a.id) || seen.has(a.id)) continue;
+    for (const a of s.accounts.slice(0, SHARE_MAX_ACCOUNTS)) {
+        /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-4271dff1 */ if (!a || typeof a !== 'object' || !idOk(a.id) || seen.has(a.id)) continue;
         seen.add(a.id);
         const size = num(a.size);
         accounts.push({ id: a.id, name: str(a.name, 48) || a.id.slice(0, 8), kind: str(a.kind, 16), size: size != null && size > 0 ? size : null, pnl: num(a.pnl) });
@@ -49,11 +49,11 @@ export function cleanSnap(s) {
         v: 1, at: num(s.at) || 0, day, market: /^[A-Z0-9]{1,12}$/.test(String(s.market || '')) ? String(s.market) : '',
         copying: s.copying === true && !!leaderId && followerIds.length > 0, leaderId, followerIds,
         activeId: idOk(s.activeId) && ids.has(s.activeId) ? s.activeId : '', demo: s.demo === true, accounts,
-        replay: cleanReplay(s.replay)
+        /*! Better Vest (c) 2026 Astral. All rights reserved. bv-b8d34188 */ replay: cleanReplay(s.replay)
     };
     const cc = cleanChartColors(s.chartColors);
     if (cc) out.chartColors = cc;
-    /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.2. bv-9255d2c4 */ if (Array.isArray(s.trades)) {
+    if (Array.isArray(s.trades)) {
         const seenT = new Set();
         out.trades = [];
         for (const r of s.trades.slice(0, SHARE_MAX_TRADES)) {
@@ -112,7 +112,7 @@ export function cardRows(snap, opts) {
 }
 
 export function dayLong(day) {
-    /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-cc4573c0 */ const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(day || ''));
+    /* @license Better Vest 9.5.3. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-eb9035dd */ const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(day || ''));
     if (!m) return '';
     const d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));
     return d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).replace(/^(\w+) /, '$1, ');

@@ -176,13 +176,14 @@ It's in Manage accounts, in the account menu, and does nothing until you press i
 This is how Better Vest stays free.
 
 - **An empty code box** (off until you switch it on): with **Put code WICK in when Vest's code box is empty** on in Settings > About and help > Support Astral, or Always use code WICK on, when a purchase screen opens and Vest's code box has no code in it, Better Vest puts WICK in through Vest's own box and Vest's own button, once per purchase, and a note says so. Nothing is bought by it. It never replaces a code that is on, and if you press into the code box first, the box is yours.
-- **The question:** when you press Purchase Evaluation Account, Buy Your Bespoke Account, Add Funded Account or Buy Without a Discount, while you're logged in and WICK isn't the code on (no code, or another one). Your press waits, and a pop-up asks.
+- **The question:** when you press Purchase Evaluation Account, Buy Your Bespoke Account, Add Funded Account or Buy Without a Discount, while you're logged in and WICK isn't the code on (no code, or another one that gives less off). Your press waits, and a pop-up asks.
 - **Use code WICK** puts WICK in Vest's own code box and presses Vest's own button for it. If Vest takes it and the discount is the same or more, your purchase goes on: Better Vest presses your button once more. If not, your code goes back, the pop-up says so, and nothing goes on until you press again.
 - **No thanks**, or pressing the button again, goes on at once, as it was.
 - **Always use code WICK** (off until you switch it on) skips the question: your press puts WICK in and goes on. It never replaces a code you typed or picked in that purchase, and never keeps WICK when it gives less off.
 - When something is unsure (no code box, or no answer from Vest within a few seconds), your press goes through as it was.
-- The pop-up has one of three looks, picked once on each computer: your month with Better Vest (counted on this computer only), the plan's price from Vest's own card with and without WICK, or a short note from me.
-- **Settings > About and help > Support Astral** has the switches: **Ask about code WICK when I buy**, **Put code WICK in when Vest's code box is empty** and **Always use code WICK**.
+- The pop-up shows the plan's price from Vest's own card with and without WICK, or, if you copy trades, your copier's month (counted on this computer only).
+- **Reminders:** now and then a short note may ask about code WICK: a line under Vest's empty code box, or a small card in the corner at a calm moment (flat on every account, no copying, not around the open), at most once a day. They are worked out on your computer and buy nothing.
+- **Settings > About and help > Support Astral** has the switches: **Code WICK reminders** (it turns off the question and the reminders), **Put code WICK in when Vest's code box is empty** and **Always use code WICK**.
 
 With WICK you pay the same or less, and the purchase supports me.
 
@@ -229,15 +230,15 @@ When a new version is out and you're flat, a small panel at the bottom right of 
 ## Check it yourself
 
 1. **Read the code.** The [`extension`](extension) folder in this repo is the Standard zip, file for file ([`extension-lite`](extension-lite) and [`extension-nostats`](extension-nostats) are the other two). It isn't minified or obfuscated, so you can read it in your browser.
-2. **Check the zip is that code.** The SHA-256 of `better-vest-9.5.2.zip` is:
+2. **Check the zip is that code.** The SHA-256 of `better-vest-9.5.3.zip` is:
 
-   `f88e4c1bcb4b8604745c56b12102df1651638775f34bee734d534fe0d39a9c44`
+   `0bfe348847d33da3226223b81157102d6467d2a16c7bd250cefbe173dc3d9f47`
 
-   Lite: `1b6c1099893099ca42b700a56dd5b69d7f73b805cc38d8f1d44e6d2d2f2d2793`. No stats: `6555ba0ee43817e9223301f9e3c4150ba8625792d9ccf5fe824162b5e0001722`.
+   Lite: `81ed5324ef14f18650eaeb3cffe383fc8e973291f5608aea719d627388655f11`. No stats: `22fd4a91cec322c1add6e494a4fd56898cab9e3f112570fb23cbb135fa2f2a6b`.
 
-   - On Mac: `shasum -a 256 better-vest-9.5.2.zip`
-   - On Windows: `certutil -hashfile better-vest-9.5.2.zip SHA256`
-3. **Scan it.** VirusTotal checks a file with more than 60 antivirus engines. Upload the zip at [virustotal.com](https://www.virustotal.com) and you get the result for that exact file. The version here, 9.5.2, came back with no engine flagging it: Standard ([report](https://www.virustotal.com/gui/file/f88e4c1bcb4b8604745c56b12102df1651638775f34bee734d534fe0d39a9c44)), Lite ([report](https://www.virustotal.com/gui/file/1b6c1099893099ca42b700a56dd5b69d7f73b805cc38d8f1d44e6d2d2f2d2793)), No stats ([report](https://www.virustotal.com/gui/file/6555ba0ee43817e9223301f9e3c4150ba8625792d9ccf5fe824162b5e0001722)). The one released before, 9.5.1, did too: Standard ([report](https://www.virustotal.com/gui/file/c6d2dfcc09a8660ee9f9358d298aab4e37a268ea58d16f915125b4bbbaf03d2a)), Lite ([report](https://www.virustotal.com/gui/file/562fe10f4a85689aa487ec8990f14af63c5a772a072fd0080fba3a23b4b72be5)), No stats ([report](https://www.virustotal.com/gui/file/bf1464031ea5fffd805f4555a1b0d3e8554abafbc319370259749846563034a5)).
+   - On Mac: `shasum -a 256 better-vest-9.5.3.zip`
+   - On Windows: `certutil -hashfile better-vest-9.5.3.zip SHA256`
+3. **Scan it.** VirusTotal checks a file with more than 60 antivirus engines. Upload the zip at [virustotal.com](https://www.virustotal.com) and you get the result for that exact file. The version here, 9.5.3, came back with no engine flagging it: Standard ([report](https://www.virustotal.com/gui/file/0bfe348847d33da3226223b81157102d6467d2a16c7bd250cefbe173dc3d9f47)), Lite ([report](https://www.virustotal.com/gui/file/81ed5324ef14f18650eaeb3cffe383fc8e973291f5608aea719d627388655f11)), No stats ([report](https://www.virustotal.com/gui/file/22fd4a91cec322c1add6e494a4fd56898cab9e3f112570fb23cbb135fa2f2a6b)). The one released before, 9.5.1, did too: Standard ([report](https://www.virustotal.com/gui/file/c6d2dfcc09a8660ee9f9358d298aab4e37a268ea58d16f915125b4bbbaf03d2a)), Lite ([report](https://www.virustotal.com/gui/file/562fe10f4a85689aa487ec8990f14af63c5a772a072fd0080fba3a23b4b72be5)), No stats ([report](https://www.virustotal.com/gui/file/bf1464031ea5fffd805f4555a1b0d3e8554abafbc319370259749846563034a5)).
 
    Reports for earlier versions also had an AI summary, "Code insights", which marked two things as suspicious. Both are on this page: the WICK code switch ([The WICK code](#the-wick-code)) and the updater writing its own files ([Updates are signed](#updates-are-signed)).
 4. **Watch it work.** Open Chrome's DevTools on the Vest tab (F12), go to Network, and use Better Vest. You'll only see the addresses listed above.

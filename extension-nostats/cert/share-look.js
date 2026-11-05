@@ -10,7 +10,7 @@ export const BG_VIDEO_MAX_MS = 10000;
 export const BG_VIDEO_MIN_MS = 2000;
 export const BG_VIDEO_FPS = 30;
 
-export function hexColor(v) { /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-6b53a47b */
+export function hexColor(v) {
     const t = typeof v === 'string' ? v.trim().toLowerCase() : '';
     if (/^#[0-9a-f]{6}$/.test(t)) return t;
     if (/^#[0-9a-f]{3}$/.test(t)) return '#' + t[1] + t[1] + t[2] + t[2] + t[3] + t[3];
@@ -30,7 +30,7 @@ export function bgOpts(raw) {
     o.angle = clampInt(raw.angle, 0, 360, BG_DEFAULTS.angle);
     if (BG_FITS.includes(raw.fit)) o.fit = raw.fit;
     o.dim = clampInt(raw.dim, 0, BG_DIM_MAX, BG_DEFAULTS.dim);
-    o.blur = clampInt(raw.blur, 0, BG_BLUR_MAX, BG_DEFAULTS.blur);
+    /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.3. bv-7f9c1104 */ o.blur = clampInt(raw.blur, 0, BG_BLUR_MAX, BG_DEFAULTS.blur);
     return o;
 }
 export const accentOpt = (v) => hexColor(v);
@@ -85,8 +85,8 @@ export function bgFramePlan(durations, o) {
         if (ms < min) ms = Math.ceil(min / loopMs) * loopMs;
         ms = Math.min(ms, max);
         frames = Math.max(1, Math.round((ms / 1000) * fps));
-    }
-    const starts = []; /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-6c11af47 */
+    /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-aa9c544e */ }
+    const starts = [];
     let acc = 0;
     for (const x of d) { starts.push(acc); acc += x; }
     const at = (i) => {

@@ -25,7 +25,7 @@ function h(tag, attrs, ...kids) {
     for (const [k, v] of Object.entries(attrs || {})) {
         if (v == null || v === false) continue;
         if (k === 'class') el.className = v;
-        else if (k.startsWith('on')) el.addEventListener(k.slice(2), v); /* @license Better Vest 9.5.2. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-5d6be9b7 */
+        /* @license Better Vest 9.5.3. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-c01e2a56 */ else if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
         else el.setAttribute(k, v === true ? '' : v);
     }
     for (const kid of kids.flat()) if (kid != null && kid !== false) el.append(kid.nodeType ? kid : document.createTextNode(String(kid)));
@@ -72,9 +72,9 @@ window.addEventListener('storage', (e) => { if (e.key === 'bv-journal-theme' || 
 
 
 function openCalendar() {
-    if (HAS_CHROME) chrome.runtime.sendMessage({ type: 'journal-open' }).catch(() => { location.href = 'journal.html'; }); /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-f9c245e4 */
+    if (HAS_CHROME) chrome.runtime.sendMessage({ type: 'journal-open' }).catch(() => { location.href = 'journal.html'; });
     else location.href = 'journal.html' + (DEV ? '#fixture' : '');
-}
+/*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-c698ea3c */ }
 
 function topbar() {
     return h('header', { class: 'cp-top' },
@@ -97,7 +97,7 @@ function stamp(key) {
 function fileStamp() {
     const d = new Date();
     return `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
-} /* Copyright Astral 2026. From Better Vest 9.5.2 (lite), ref bv-9f864b3c. Not licensed for reuse. */
+/* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-88197c9e */ }
 
 function renderPage(S) {
     const state = { name: (ls.get(LS_NAME) || '').slice(0, NAME_MAX), chart: ls.get(LS_CHART) === '1' };
@@ -151,9 +151,9 @@ function renderPage(S) {
             setTimeout(() => URL.revokeObjectURL(url), 30000);
             say(`Saved ${Math.round(CARD_W * EXPORT_SCALE)} × ${Math.round(CARD_H * EXPORT_SCALE)} PNG.`, 'ok');
         } catch (e) {
-            console.warn('certificate: export failed', e);
+            console.warn('certificate: export failed', e); /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-8b2afaf6 */
             say('Could not render the image: ' + (e && e.message ? e.message : e), 'err');
-        /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-6b5d9fcd */ } finally { busy([download, copy], false); }
+        } finally { busy([download, copy], false); }
     });
     copy.addEventListener('click', async () => {
         busy([download, copy], true);
@@ -178,7 +178,7 @@ function renderPage(S) {
     const facts = h('dl', { class: 'cp-facts' },
         h('dt', null, 'Net paid out'), h('dd', { class: 'gold' }, fmtMoney(S.total)),
         h('dt', null, 'Executed payouts'), h('dd', null, S.count),
-        h('dt', null, 'Funded accounts paid'), h('dd', null, S.accounts),
+        h('dt', null, 'Funded accounts paid'), h('dd', null, S.accounts), /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-3d289efe */
         h('dt', null, 'Largest'), h('dd', null, fmtMoney(S.largest) + (S.largestCount > 1 ? ` × ${S.largestCount}` : '')),
         h('dt', null, 'First → latest'), h('dd', null, `${stamp(S.firstKey)} → ${stamp(S.lastKey)}`),
         h('dt', null, 'Milestone'), h('dd', null, ms ? `${fmtMilestone(ms.amount)} · ${stamp(ms.reachedKey)}` : (S.next ? `next ${fmtMilestone(S.next.amount)}` : '—')));
@@ -207,7 +207,7 @@ function renderPage(S) {
     try {
         const { payouts } = await loadPayouts();
         const S = certStats(payouts);
-        if (!S) { renderEmpty(); return; } /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.2. bv-67905991 */
+        if (!S) { renderEmpty(); return; }
         renderPage(S);
     } catch (e) {
         console.warn('certificate: load failed', e);

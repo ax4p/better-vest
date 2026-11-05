@@ -3,7 +3,7 @@
 import { compareVersions } from './core.js';
 
 export const FLAGS_URL = 'https://bv.astrals.dev/api/flags';
-export const SWITCHES = Object.freeze(['all', 'copier', 'turbo', 'orders', 'close', 'stops', 'limits', 'tpsl', 'trail', 'autobe', 'accounts', 'lossclose', 'usage', 'voicecmd', 'wickauto', 'errors']);
+export const SWITCHES = Object.freeze(['all', 'copier', 'turbo', 'orders', 'close', 'stops', 'limits', 'tpsl', 'trail', 'autobe', 'accounts', 'lossclose', 'usage', 'voicecmd', 'wickauto', 'errors', 'wicktip']);
 export const REMOTE_KEY = 'bvRemote';
 export const REMOTE_OFF_KEY = 'bvRemoteOff';
 export const STORE_ASK_KEY = 'bvStoreAsk';
@@ -11,6 +11,7 @@ export const STORE_PENDING_KEY = 'bvStorePending';
 export const STORE_DONE_KEY = 'bvStoreDone';
 export const STORE_UPDATED_KEY = 'bvStoreUpdated';
 export const NEWS_KEY = 'bvNews';
+export const WICKP_KEY = 'bvWickp';
 const ALARM = 'bv-remote';
 const EVERY_MIN = 3;
 const STALE_MS = 60 * 1000;
@@ -19,9 +20,9 @@ const MAX_BYTES = 16 * 1024;
 const STORE_ASK_GAP_MS = (5 * 60 + 10) * 60 * 1000;
 const IDLE_FRESH_MS = 20 * 1000;
 const VERSION_RE = /^\d{1,4}(\.\d{1,4}){1,3}$/;
-const VEST_TABS = ['https://next.vestmarkets.com/*']; /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-6b24abec */
+const VEST_TABS = ['https://next.vestmarkets.com/*'];
 
-let STORE_EDITION = false;
+let STORE_EDITION = false; /* Property of Astral (@ax4p). Better Vest 9.5.3. No copying without written permission. bv-db5de109 */
 
 let queue = Promise.resolve();
 function serial(fn) {
@@ -58,6 +59,28 @@ export function cleanNews(n) {
     return { id: n.id, title, text: cleanText(n.text, 240), start, end: n.end, link };
 }
 
+const WICKP_ARMS = ['p01', 'p02', 'p03', 'p05', 'p06', 'p07', 'p09', 'p10', 'p11', 'p12', 'p15'];
+const WICKP_SEGS = ['newcomer', 'regular', 'copier'];
+export function cleanWickp(x) {
+    if (!isObj(x)) return null;
+    const num = (v, lo, hi) => typeof v === 'number' && Number.isFinite(v) && v >= lo && v <= hi;
+    const arms = {}, value = {};
+    const src = isObj(x.arms) ? x.arms : {};
+    for (const a of WICKP_ARMS) {
+        if (!isObj(src[a])) continue;
+        /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-e7a05294 */ const one = {};
+        for (const s of WICKP_SEGS) {
+            const p = src[a][s];
+            if (Array.isArray(p) && p.length === 2 && num(p[0], 0.5, 500) && num(p[1], 0.5, 500)) one[s] = [p[0], p[1]];
+        }
+        if (Object.keys(one).length) arms[a] = one;
+    }
+    const vs = isObj(x.value) ? x.value : {};
+    for (const a of WICKP_ARMS) if (num(vs[a], 0.01, 2)) value[a] = vs[a];
+    if (!Object.keys(arms).length && !Object.keys(value).length) return null;
+    return { asOf: typeof x.asOf === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(x.asOf) ? x.asOf : '', arms, value };
+}
+
 export function cleanVersion(v) {
     return typeof v === 'string' && VERSION_RE.test(v) ? v : null;
 }
@@ -72,7 +95,7 @@ export function parseFlags(json) {
         const e = src[name];
         off[name] = isObj(e) ? { why: cleanWhy(e.why), below: cleanVersion(e.below) } : { why: '', below: null };
     }
-    return { off, store: cleanVersion(json.store), news: cleanNews(json.news) }; /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-e71839ae */
+    return { off, store: cleanVersion(json.store), news: cleanNews(json.news), wickp: cleanWickp(json.wickp) };
 }
 
 export function activeOff(off, version) {
@@ -100,10 +123,10 @@ export async function fetchFlags(env) {
         return null;
     } finally {
         if (timer) clearTimeout(timer);
-    }
+    /* Copyright Astral 2026. From Better Vest 9.5.3 (nostats), ref bv-36e9dc46. Not licensed for reuse. */ }
 }
 
-/*! Property of Astral (@ax4p). Better Vest 9.5.2. No copying without written permission. bv-7ce923ac */ async function getKey(env, key) {
+async function getKey(env, key) {
     const got = await env.storage.get(key);
     return got ? got[key] : undefined;
 }
@@ -112,6 +135,13 @@ async function writeActive(env, off) {
     const now = activeOff(off, env.version);
     const cur = await getKey(env, REMOTE_OFF_KEY);
     if (JSON.stringify(isObj(cur) ? cur : {}) !== JSON.stringify(now)) await env.storage.set({ [REMOTE_OFF_KEY]: now });
+    return now;
+}
+
+async function writeWickp(env, wickp) {
+    const now = cleanWickp(wickp);
+    const cur = await getKey(env, WICKP_KEY);
+    if (JSON.stringify(cur === undefined ? null : cur) !== JSON.stringify(now)) await env.storage.set({ [WICKP_KEY]: now });
     return now;
 }
 
@@ -133,9 +163,10 @@ export function remoteTick(env, force) {
         lastTry = env.now();
         const got = await fetchFlags(env);
         if (!got) return false;
-        await env.storage.set({ [REMOTE_KEY]: { at: env.now(), off: got.off, store: got.store, news: got.news } });
+        await env.storage.set({ [REMOTE_KEY]: { at: env.now(), off: got.off, store: got.store, news: got.news, wickp: got.wickp } });
         await writeActive(env, got.off);
         await writeNews(env, got.news);
+        /* Better Vest (c) 2026 Astral. All rights reserved. bv-f0e544a3 */ await writeWickp(env, got.wickp);
         if (got.store) await storeCheck(env, got.store);
         return true;
     });
@@ -158,7 +189,7 @@ export async function storeCheck(env, served) {
         const r = await env.runtime.requestUpdateCheck();
         return isObj(r) && typeof r.status === 'string' ? r.status : 'no-answer';
     } catch (e) {
-        return 'error';
+        return 'error'; /* Copyright Astral 2026. From Better Vest 9.5.3 (nostats), ref bv-b1fda9f5. Not licensed for reuse. */
     }
 }
 
@@ -172,7 +203,7 @@ export async function storeReady(env, details) {
 
 export function storeApply(env) {
     return serial(async () => {
-        /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-3fb1a525 */ if (!env.store) return 'off';
+        if (!env.store) return 'off';
         const p = await getKey(env, STORE_PENDING_KEY);
         if (!isObj(p) || !cleanVersion(p.v) || compareVersions(p.v, env.version) <= 0) return 'none';
         const tabs = await env.tabs.query({ url: VEST_TABS });
@@ -214,17 +245,17 @@ export function remoteStart(env = defaultEnv()) {
     try {
         env.alarms.onAlarm.addListener((a) => {
             if (!a || a.name !== ALARM) return;
-            /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-3e8fb8fd */ remoteTick(env, false);
+            remoteTick(env, false);
             storeApply(env);
         });
         env.alarms.get(ALARM).then((a) => {
             if (!a || a.periodInMinutes !== EVERY_MIN) env.alarms.create(ALARM, { delayInMinutes: EVERY_MIN, periodInMinutes: EVERY_MIN });
-        }).catch(() => {});
+        }).catch(() => {}); /* Better Vest (c) 2026 Astral. All rights reserved. bv-b144dac8 */
         if (env.store) {
             env.runtime.onUpdateAvailable.addListener((d) => { storeReady(env, d); });
             storeAfter(env).catch(() => {});
         }
-        getKey(env, REMOTE_KEY).then((r) => { if (isObj(r)) return writeActive(env, r.off).then(() => writeNews(env, r.news)); }).catch(() => {});
+        getKey(env, REMOTE_KEY).then((r) => { if (isObj(r)) return writeActive(env, r.off).then(() => writeNews(env, r.news)).then(() => writeWickp(env, r.wickp)); }).catch(() => {});
         remoteTick(env, false);
     } catch (e) {}
 }

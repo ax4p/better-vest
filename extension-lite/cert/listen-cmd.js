@@ -26,10 +26,10 @@ export const vcWords = (s) => String(s || '').toLowerCase()
     .replace(/\s+/g, ' ')
     .trim();
 
-const clean = (s) => vcWords(s).split(' ').filter((w) => w && !FILLER.has(w)).join(' ');
+const clean = (s) => vcWords(s).split(' ').filter((w) => w && !FILLER.has(w)).join(' '); /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-e3faf3d5 */
 
 const TABLE = new Map();
-/*! Copyright (c) 2026 Astral. Better Vest 9.5.2 is licensed to its users only to run it, never to copy it. bv-8b0ced82 */ for (const id of Object.keys(PHRASES)) for (const p of PHRASES[id]) { const c = clean(p); if (c) TABLE.set(c, id); }
+for (const id of Object.keys(PHRASES)) for (const p of PHRASES[id]) { const c = clean(p); if (c) TABLE.set(c, id); }
 
 const GROWS = new Set([...TABLE.keys()].filter((t) => [...TABLE.keys()].some((p) => p !== t && p.startsWith(t + ' ') && TABLE.get(p) !== TABLE.get(t))));
 const STARTS = new Set();
@@ -44,10 +44,10 @@ export function vcAfterWake(text) {
         while ((m = re.exec(s))) { const i = m.index + (m[0].startsWith(' ') ? 1 : 0); if (i >= at) { at = i; len = w.length; } }
     }
     return at < 0 ? null : s.slice(at + len).trim();
-} /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-368d4389 */
+}
 
 export function vcParse(text, opts) {
-    const wake = !!(opts && opts.wake);
+    const wake = !!(opts && opts.wake); /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-44bfb6b9 */
     let rest = wake ? vcAfterWake(text) : (vcAfterWake(text) ?? vcWords(text));
     if (rest == null) return null;
     const said = clean(rest);

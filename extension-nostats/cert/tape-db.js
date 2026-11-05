@@ -18,12 +18,12 @@ export function tapeOpen(env) {
     return new Promise((resolve, reject) => {
         const req = E.indexedDB.open(TAPE_DB, 1);
         req.onupgradeneeded = () => {
-            const db = req.result;
+            /*! Better Vest (c) 2026 Astral. All rights reserved. bv-e7835fba */ const db = req.result;
             if (!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE, { keyPath: 'k' }).createIndex('day', 'day');
         };
         req.onsuccess = () => resolve(req.result);
         req.onerror = () => reject(req.error);
-        /*! Copyright (c) 2026 Astral. Better Vest 9.5.2 is licensed to its users only to run it, never to copy it. bv-904e52bd */ req.onblocked = () => reject(new Error('blocked'));
+        req.onblocked = () => reject(new Error('blocked'));
     });
 }
 
@@ -53,7 +53,7 @@ export async function tapeWrite(sym, rows, now, env) {
 }
 
 export async function tapeRead(sym, from, to, env) {
-    if (typeof sym !== 'string' || !SYM_RE.test(sym) || !(to >= from)) return [];
+    /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.3. bv-963d298d */ if (typeof sym !== 'string' || !SYM_RE.test(sym) || !(to >= from)) return [];
     const E = envOf(env);
     let db;
     try { db = await tapeOpen(env); } catch (e) { return []; }
@@ -74,7 +74,7 @@ async function tapePruneDb(db, now, env) {
     const keep = addDays(dayKey(now, 'vest'), -(TAPE_KEEP_DAYS - 1));
     const tx = db.transaction(STORE, 'readwrite');
     const idx = tx.objectStore(STORE).index('day');
-    /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-9439bd64 */ const keys = await done(idx.getAllKeys(E.IDBKeyRange.upperBound(keep, true)));
+    const keys = await done(idx.getAllKeys(E.IDBKeyRange.upperBound(keep, true)));
     const st = tx.objectStore(STORE);
     for (const k of keys) st.delete(k);
     await txDone(tx);

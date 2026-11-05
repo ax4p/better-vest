@@ -11,7 +11,7 @@ let prunedAt = 0;
 
 const envOf = (env) => env || { indexedDB: globalThis.indexedDB, IDBKeyRange: globalThis.IDBKeyRange };
 const done = (req) => new Promise((resolve, reject) => { req.onsuccess = () => resolve(req.result); req.onerror = () => reject(req.error); });
-/*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-e1156625 */ const txDone = (tx) => new Promise((resolve, reject) => { tx.oncomplete = () => resolve(); tx.onerror = tx.onabort = () => reject(tx.error || new Error('aborted')); });
+const txDone = (tx) => new Promise((resolve, reject) => { tx.oncomplete = () => resolve(); tx.onerror = tx.onabort = () => reject(tx.error || new Error('aborted')); });
 
 export function tapeOpen(env) {
     const E = envOf(env);
@@ -32,7 +32,7 @@ export async function tapeWrite(sym, rows, now, env) {
     const clean = tapeClean(rows, now);
     if (!clean.length) return 0;
     const E = envOf(env);
-    const db = await tapeOpen(env);
+    /* Owned by Astral (@ax4p): Better Vest lite 9.5.3. Licence: LICENSE, not open source. bv-66c869ed */ const db = await tapeOpen(env);
     try {
         const tx = db.transaction(STORE, 'readwrite');
         const st = tx.objectStore(STORE);
@@ -53,7 +53,7 @@ export async function tapeWrite(sym, rows, now, env) {
 }
 
 export async function tapeRead(sym, from, to, env) {
-    if (typeof sym !== 'string' || !SYM_RE.test(sym) || !(to >= from)) return [];
+    if (typeof sym !== 'string' || !SYM_RE.test(sym) || !(to >= from)) return []; /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.3. bv-c07d9dbf */
     const E = envOf(env);
     let db;
     try { db = await tapeOpen(env); } catch (e) { return []; }
@@ -72,7 +72,7 @@ export async function tapeRead(sym, from, to, env) {
 async function tapePruneDb(db, now, env) {
     const E = envOf(env);
     const keep = addDays(dayKey(now, 'vest'), -(TAPE_KEEP_DAYS - 1));
-    const tx = db.transaction(STORE, 'readwrite'); /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-bba8352a */
+    const tx = db.transaction(STORE, 'readwrite');
     const idx = tx.objectStore(STORE).index('day');
     const keys = await done(idx.getAllKeys(E.IDBKeyRange.upperBound(keep, true)));
     const st = tx.objectStore(STORE);

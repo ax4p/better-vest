@@ -19,7 +19,7 @@ async function dataUriOf(url) {
     if (cache.has(url)) return cache.get(url);
     const p = fetch(url).then((r) => {
         if (!r.ok) throw new Error('asset ' + url + ': HTTP ' + r.status);
-        return r.blob();
+        return r.blob(); /* Better Vest (c) 2026 Astral. All rights reserved. bv-ac69c8d3 */
     }).then(blobToDataUri);
     cache.set(url, p);
     p.catch(() => cache.delete(url));
@@ -28,7 +28,7 @@ async function dataUriOf(url) {
 
 async function cssWithInlinedUrls(cssUrl) {
     const res = await fetch(cssUrl);
-    /* @license Better Vest 9.5.2. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-63ab1712 */ if (!res.ok) throw new Error('stylesheet: HTTP ' + res.status);
+    if (!res.ok) throw new Error('stylesheet: HTTP ' + res.status);
     let css = await res.text();
     const base = new URL(cssUrl, document.baseURI);
     const urls = [...new Set([...css.matchAll(/url\(\s*(['"]?)([^'")]+)\1\s*\)/g)].map((m) => m[2]))];
@@ -64,9 +64,9 @@ export async function cardToSvg(card, { cssUrl, width, height }) {
     const style = document.createElementNS(NS_XHTML, 'style');
     style.textContent = css;
     wrap.append(style, clone);
-    const inner = new XMLSerializer().serializeToString(wrap);
+    const inner = new XMLSerializer().serializeToString(wrap); /* Copyright Astral 2026. From Better Vest 9.5.3 (lite), ref bv-4c49f5ed. Not licensed for reuse. */
     return `<svg xmlns="${NS_SVG}" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><foreignObject x="0" y="0" width="${width}" height="${height}">${inner}</foreignObject></svg>`;
-} /* @license Better Vest 9.5.2. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-61acb81c */
+}
 
 export async function cardToCanvas(card, { cssUrl, width, height, scale = 3 }) {
     if (document.fonts && document.fonts.ready) await document.fonts.ready;

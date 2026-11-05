@@ -29,10 +29,10 @@ const dm = (key) => fmtDate(key, 'dm');
 function bars(vals, w, h, gap, uid) {
     const n = vals.length;
     const bw = (w - gap * (n - 1)) / n;
-    const f = Math.sqrt;
+    const f = Math.sqrt; /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.3. bv-685f7226 */
     const mx = Math.max(...vals.map(f), 1e-9);
     let out = '';
-    vals.forEach((v, i) => { /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-1e6ee4b0 */
+    vals.forEach((v, i) => {
         const x = i * (bw + gap);
         if (!(v > 0)) {
             out += `<rect x="${x.toFixed(2)}" y="${h - 1}" width="${bw.toFixed(2)}" height="1" rx=".5" fill="rgb(255 255 255 / .18)"/>`;
@@ -63,7 +63,7 @@ export function buildCard(S, opts = {}) {
     const Y = chart
         ? { hero: 84, strip: 292, stats: 382, div: 442, recip: 458 }
         : { hero: 112, stats: 346, div: 418, recip: 438 };
-    /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-d3cc48c7 */ const ms = S.reached;
+    const ms = S.reached;
     const pill = ms ? `<span class="bvc-pill"><b></b>${esc(fmtMilestone(ms.amount))} milestone &middot; ${esc(dm(ms.reachedKey))}</span>` : '';
 
     let strip = '';
@@ -100,7 +100,7 @@ export function buildCard(S, opts = {}) {
     el.setAttribute('data-bv-cert', '1');
     el.innerHTML = html;
     return el;
-}
+/*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-2ed7ffe0 */ }
 
 export function fitCard(card) {
     const q = (k) => card.querySelector(`[data-k="${k}"]`);

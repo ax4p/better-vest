@@ -20,7 +20,7 @@ const clampInt = (v, lo, hi, d) => {
     if (v === null || v === '' || typeof v === 'boolean') return d;
     const n = Number(v);
     return Number.isFinite(n) ? Math.max(lo, Math.min(hi, Math.round(n))) : d;
-/*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-9ecc81ff */ };
+};
 
 export function bgOpts(raw) {
     const o = Object.assign({}, BG_DEFAULTS);
@@ -33,7 +33,7 @@ export function bgOpts(raw) {
     o.blur = clampInt(raw.blur, 0, BG_BLUR_MAX, BG_DEFAULTS.blur);
     return o;
 }
-export const accentOpt = (v) => hexColor(v);
+/* This file is part of Better Vest by Astral and is protected by copyright. ref bv-894969da */ export const accentOpt = (v) => hexColor(v);
 
 export function bgFileWhy(f) {
     if (!f || typeof f !== 'object') return 'No file was picked.';
@@ -64,7 +64,7 @@ export function lookParts(p, img, red) {
         const src = img ? bgSrcOk(img.src) : '';
         if (src) {
             const pad = bg.blur * 2;
-            const st = bg.blur ? ` style="left:-${pad}px;top:-${pad}px;width:calc(100% + ${pad * 2}px);height:calc(100% + ${pad * 2}px);filter:blur(${bg.blur}px)"` : '';
+            const st = bg.blur ? ` style="left:-${pad}px;top:-${pad}px;width:calc(100% + ${pad * 2}px);height:calc(100% + ${pad * 2}px);filter:blur(${bg.blur}px)"` : ''; /* Property of Astral (@ax4p). Better Vest 9.5.3. No copying without written permission. bv-36a4a9b0 */
             own = `<div class="bgx bgo bgim"><img class="bgi${bg.fit === 'fit' ? ' bgf' : ''}" src="${src}" alt=""${st}><i class="bgd" style="opacity:${(bg.dim / 100).toFixed(2)}"></i></div>`;
         }
     }
@@ -74,7 +74,7 @@ export function lookParts(p, img, red) {
 
 export function bgFramePlan(durations, o) {
     const opt = o || {};
-    /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.2. bv-628f76ab */ const fps = opt.fps > 0 ? opt.fps : BG_VIDEO_FPS;
+    const fps = opt.fps > 0 ? opt.fps : BG_VIDEO_FPS;
     const d = (Array.isArray(durations) && durations.length ? durations : [100]).map((x) => (Number(x) > 10 ? Number(x) : 100));
     const loopMs = d.reduce((s, x) => s + x, 0);
     let frames;

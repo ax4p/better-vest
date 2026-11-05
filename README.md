@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/media/hero.jpg" alt="Better Vest on the Vest Markets trade page: the dock, the Execute card and a position with its TP and SL on the chart" width="100%">
+  <img src="docs/media/hero.jpg" alt="Better Vest on the Vest Markets trade page: the dock, the Execute card with its pinned tools, and the copier copying to nine accounts" width="100%">
 </p>
 
 <h1 align="center">Better Vest</h1>
@@ -26,16 +26,16 @@ Each [release](https://github.com/ax4p/better-vest/releases/latest) has three zi
 
 | Zip | What's in it |
 |---|---|
-| `better-vest-9.5.2.zip` | **Standard.** Everything. Take this one if you're not sure. |
-| `better-vest-lite-9.5.2.zip` | **Lite.** Everything but the spoken voice lines, under 1 MB. |
-| `better-vest-nostats-9.5.2.zip` | **No stats.** Standard without the usage stats and the error reports. See [Security](SECURITY.md#the-usage-stats). |
+| `better-vest-9.5.3.zip` | **Standard.** Everything. Take this one if you're not sure. |
+| `better-vest-lite-9.5.3.zip` | **Lite.** Everything but the spoken voice lines, under 1 MB. |
+| `better-vest-nostats-9.5.3.zip` | **No stats.** Standard without the usage stats and the error reports. See [Security](SECURITY.md#the-usage-stats). |
 
 Then load it in Chrome: the [video and steps](https://bv.astrals.dev/#install) on the site, or the [install guide](CONTRIBUTING.md) here. After that it updates itself.
 
 ## What it does
 
 - **[Copy trader](https://bv.astrals.dev/features/copy-trader):** trade one account and up to ten others follow it, in as many groups as you like, each at its own ratio or sized to its account.
-- **[Trading on the chart](https://bv.astrals.dev/features/chart-trading):** drag your stop and target, stop and limit orders in one click, a trailing stop and auto breakeven.
+- **[Orders on the chart](https://bv.astrals.dev/features/chart-trading):** stop and limit orders in one click, price alerts, a trailing stop and auto breakeven.
 - **The Execute card:** long or short in one click with the stop and target attached, in points, dollars or at a price, your size from the dollars you risk, and FLAT, 50% (hover it for 10%, 25%, 75% or your own share) and REV. Float it, put it in place of Vest's ticket or under the chart, and hide the buttons you don't use.
 - **Price alerts:** click the chart where you want one. When price gets there you hear it and see a note. It never places an order.
 - **Voice commands (beta):** hold a key and say "long" or "close half", or say "Astral" first. Your voice stays on your computer.
@@ -48,7 +48,7 @@ Then load it in Chrome: the [video and steps](https://bv.astrals.dev/#install) o
 
 ## Is it safe?
 
-- **Scanned.** `better-vest-9.5.2.zip` comes back clean on VirusTotal, with no engine flagging it ([report](https://www.virustotal.com/gui/file/f88e4c1bcb4b8604745c56b12102df1651638775f34bee734d534fe0d39a9c44)).
+- **Scanned.** `better-vest-9.5.3.zip` comes back clean on VirusTotal, with no engine flagging it ([report](https://www.virustotal.com/gui/file/0bfe348847d33da3226223b81157102d6467d2a16c7bd250cefbe173dc3d9f47)).
 - **Readable.** The [`extension`](extension) folder is the Standard zip, file for file, not minified.
 - **Signed updates.** Your copy checks my signature and every file before it writes anything.
 - **Safety switches.** If Vest changes something, I can pause one feature for everyone until it's fixed ([how](SECURITY.md#safety-switches)).

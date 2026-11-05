@@ -16,7 +16,7 @@ export function receivedPayouts(list) {
         const id = String(p.id);
         if (seen.has(id)) continue;
         seen.add(id);
-        out.push(p);
+        out.push(p); /*! Better Vest (c) 2026 Astral. All rights reserved. bv-1a03a8bb */
     }
     return out.sort((a, b) => paidAt(a) - paidAt(b) || (String(a.id) < String(b.id) ? -1 : 1));
 }
@@ -26,7 +26,7 @@ export function payoutModel(payouts, o) {
     const kind = opt.kind === 'lifetime' ? 'lifetime' : 'today';
     const done = receivedPayouts(payouts);
     if (!done.length) return { kind, empty: true };
-    /* Better Vest (c) 2026 Astral. All rights reserved. bv-c090d0e5 */ const names = opt.names instanceof Map ? opt.names : new Map();
+    const names = opt.names instanceof Map ? opt.names : new Map();
     const nameOf = (id) => (id != null && names.get(String(id))) || (id != null ? 'Account ' + String(id).slice(-4) : 'Account');
     const item = (p) => ({ id: String(p.id), accountId: p.accountId == null ? '' : String(p.accountId), name: nameOf(p.accountId), net: r2(p.net),
         gross: Number.isFinite(p.gross) ? r2(p.gross) : null, at: paidAt(p), day: dayKey(paidAt(p), 'vest') });
@@ -64,8 +64,8 @@ function seeded(str) {
 export const SAMPLE_PAY_ACCOUNTS = [['sample-pay-a', '100K Funded · 1'], ['sample-pay-b', '50K Funded · 2'], ['sample-pay-c', '150K Funded · 3']];
 export const samplePayNames = () => new Map(SAMPLE_PAY_ACCOUNTS);
 export function samplePayouts(today) {
-    /* Copyright Astral 2026. From Better Vest 9.5.2 (standard), ref bv-897fb916. Not licensed for reuse. */ const t = KEY_RE.test(String(today || '')) ? today : dayKey(Date.now(), 'vest');
-    const rnd = seeded('payouts|' + t);
+    const t = KEY_RE.test(String(today || '')) ? today : dayKey(Date.now(), 'vest');
+    const rnd = seeded('payouts|' + t); /*! Better Vest (c) 2026 Astral. All rights reserved. bv-a22eca6e */
     const out = [];
     let k = addDays(t, -180);
     for (let i = 0; k < t && out.length < 11; i++) {

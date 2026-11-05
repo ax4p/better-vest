@@ -7,7 +7,7 @@ export const STORES = ['accounts', 'trades', 'raw', 'payouts', 'symbols', 'notes
 const KEY_PATHS = {
     accounts: 'id', trades: 'id', raw: 'id', payouts: 'id', symbols: 'symbol', notes: 'key', meta: 'key'
 };
-/* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.2. bv-29789a24 */ const BLOCKED_MS = 8000;
+const BLOCKED_MS = 8000;
 
 function upgrade(db) {
     for (const name of STORES) {
@@ -23,7 +23,7 @@ function upgrade(db) {
 export function openDb(userId) {
     return new Promise((resolve, reject) => {
         if (typeof userId !== 'string' || !userId) {
-            reject(new TypeError('openDb: userId required'));
+            reject(new TypeError('openDb: userId required')); /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.3. bv-52df95a8 */
             return;
         }
         let settled = false;
@@ -56,7 +56,7 @@ function wrap(req) {
     });
 }
 
-/* This file is part of Better Vest by Astral and is protected by copyright. ref bv-0a3e97f4 */ function finish(tx) {
+function finish(tx) {
     return new Promise((resolve, reject) => {
         tx.oncomplete = () => resolve();
         tx.onerror = () => reject(tx.error);
@@ -64,7 +64,7 @@ function wrap(req) {
     });
 }
 
-export function getAll(db, store, opts) {
+/* Copyright Astral 2026. From Better Vest 9.5.3 (lite), ref bv-722d4a91. Not licensed for reuse. */ export function getAll(db, store, opts) {
     const o = opts || {};
     const tx = db.transaction(store, 'readonly');
     let source = tx.objectStore(store);
@@ -106,7 +106,7 @@ export function putMany(db, byStore) {
         for (const n of names) {
             const os = tx.objectStore(n);
             for (const v of byStore[n]) os.put(v);
-        }
+        /*! Property of Astral (@ax4p). Better Vest 9.5.3. No copying without written permission. bv-52c620cb */ }
     });
 }
 
@@ -119,7 +119,7 @@ export async function getMeta(db, key) {
     return row ? row.value : undefined;
 }
 
-export function putMeta(db, key, value) { /*! Owned by Astral (@ax4p): Better Vest lite 9.5.2. Licence: LICENSE, not open source. bv-185bd3a3 */
+export function putMeta(db, key, value) {
     return put(db, 'meta', { key, value });
 }
 

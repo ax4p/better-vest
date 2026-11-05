@@ -6,7 +6,7 @@ let enc = null;
 let size = null;
 
 function on(m) {
-    if (m.type === 'begin') { /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.2. bv-ab8a9113 */
+    /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-caf01404 */ if (m.type === 'begin') {
         size = { w: m.w, h: m.h };
         pb = new PaletteBuilder();
         enc = null;
@@ -33,11 +33,11 @@ function on(m) {
         enc = null;
         return { type: 'done', parts, frames, transfer: parts.map((p) => p.buffer) };
     }
-    throw new Error('unknown message ' + m.type);
+    throw new Error('unknown message ' + m.type); /* Better Vest (c) 2026 Astral. All rights reserved. bv-0694775e */
 }
 
 self.onmessage = (e) => {
-    /* Property of Astral (@ax4p). Better Vest 9.5.2. No copying without written permission. bv-aca10170 */ let out;
+    let out;
     try { out = on(e.data || {}); } catch (err) { out = { type: 'error', message: String((err && err.message) || err) }; }
     const transfer = out.transfer || [];
     delete out.transfer;

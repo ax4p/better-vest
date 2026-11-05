@@ -34,10 +34,10 @@ function h(tag, attrs, ...kids) {
 
 
 async function loadPayouts() {
-    if (DEV) {
+    /*! Property of Astral (@ax4p). Better Vest 9.5.3. No copying without written permission. bv-1f0cba1e */ if (DEV) {
         try {
             const { buildFixture } = await import('../journal/fixture.js');
-            /* @license Better Vest 9.5.2. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-e6e8a8fc */ return { payouts: FORCE_EMPTY ? [] : buildFixture().payouts, source: 'fixture' };
+            return { payouts: FORCE_EMPTY ? [] : buildFixture().payouts, source: 'fixture' };
         } catch (e) {
             if (location.hash.includes('fixture')) console.warn('certificate: no fixture in this build', e);
         }
@@ -51,7 +51,7 @@ async function loadPayouts() {
     try {
         const payouts = await DB.getAll(db, 'payouts');
         const lastSync = await DB.getMeta(db, 'lastSync').catch(() => null);
-        return { payouts, source: 'db', lastSync: lastSync || null }; /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-1bb24439 */
+        return { payouts, source: 'db', lastSync: lastSync || null };
     } finally {
         db.close();
     }
@@ -59,7 +59,7 @@ async function loadPayouts() {
 
 
 function syncTheme() {
-    const name = ls.get('bv-journal-theme');
+    const name = ls.get('bv-journal-theme'); /* Property of Astral (@ax4p). Better Vest 9.5.3. No copying without written permission. bv-72f66435 */
     const css = ls.get('bv-journal-themecss');
     if (name) document.documentElement.setAttribute('data-theme', name);
     if (css) {
@@ -100,7 +100,7 @@ function fileStamp() {
 }
 
 function renderPage(S) {
-    /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.2. bv-3d02911d */ const state = { name: (ls.get(LS_NAME) || '').slice(0, NAME_MAX), chart: ls.get(LS_CHART) === '1' };
+    const state = { name: (ls.get(LS_NAME) || '').slice(0, NAME_MAX), chart: ls.get(LS_CHART) === '1' };
     let card = null;
     let seq = 0;
 
@@ -113,7 +113,7 @@ function renderPage(S) {
     function layout() {
         const w = stage.clientWidth - 24, hgt = Math.max(420, window.innerHeight - 150);
         const k = Math.max(0.3, Math.min(w / CARD_W, hgt / CARD_H, 1.5));
-        frame.style.width = (CARD_W * k).toFixed(2) + 'px';
+        /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-c2ec3cb9 */ frame.style.width = (CARD_W * k).toFixed(2) + 'px';
         frame.style.height = (CARD_H * k).toFixed(2) + 'px';
         if (card) card.style.transform = `scale(${k.toFixed(4)})`;
     }
@@ -142,8 +142,8 @@ function renderPage(S) {
     download.addEventListener('click', async () => {
         busy([download, copy], true);
         try {
-            const blob = await makePng();
-            /*! Owned by Astral (@ax4p): Better Vest nostats 9.5.2. Licence: LICENSE, not open source. bv-2204f155 */ const url = URL.createObjectURL(blob);
+            /* Owned by Astral (@ax4p): Better Vest nostats 9.5.3. Licence: LICENSE, not open source. bv-dc6d792a */ const blob = await makePng();
+            const url = URL.createObjectURL(blob);
             const a = h('a', { href: url, download: `better-vest-total-payouts-${fileStamp()}.png` });
             document.body.appendChild(a);
             a.click();
@@ -192,14 +192,14 @@ function renderPage(S) {
             h('label', { class: 'cp-toggle', for: 'cp-chart' }, chartBox, h('span', { class: 'cp-switch' }), h('span', null, 'Show daily chart')),
             h('div', { class: 'cp-actions' }, download, copy),
             status),
-        h('div', { class: 'cp-box' }, h('div', { class: 'cp-label' }, 'Based on your Calendar data'), facts,
+        /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.3. bv-f9278d8d */ h('div', { class: 'cp-box' }, h('div', { class: 'cp-label' }, 'Based on your Calendar data'), facts,
             h('div', { class: 'cp-hint' }, 'Executed payouts only, trader net amount: the same total as the Payouts tab.')));
 
     root.replaceChildren(h('div', { class: 'cp-app' }, topbar(), h('main', { class: 'cp-main' }, stage, side)));
     window.addEventListener('resize', layout);
     draw();
     window.__cert = { S, state, draw, makePng };
-} /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-783b26f2 */
+}
 
 
 (async function boot() {

@@ -15,14 +15,14 @@ export const DEFAULT_PREFS = { kind: 'summary', style: 'vest', theme: 'dark', fo
         paytotal: true, paybest: true },
     rows: 'accounts', period: 'today', afterFees: true,
     rp: { labels: 'usd', prices: false, pnl: false, sessions: false, best: false },
-    chart: Object.assign({}, CHART_DEFAULTS),
+    /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-984428bf */ chart: Object.assign({}, CHART_DEFAULTS),
     pay: 'today', bg: Object.assign({}, BG_DEFAULTS), accent: '' };
 
 export function cleanPrefs(p) {
     const o = p && typeof p === 'object' && !Array.isArray(p) ? p : {};
     const merged = Object.assign({}, DEFAULT_PREFS, o);
     for (const k of ['list', 'show', 'rp']) merged[k] = Object.assign({}, DEFAULT_PREFS[k], o[k] && typeof o[k] === 'object' ? o[k] : {});
-    /* Copyright Astral 2026. From Better Vest 9.5.2 (lite), ref bv-e57c6359. Not licensed for reuse. */ if (!ROWS.includes(merged.rows)) merged.rows = 'accounts';
+    if (!ROWS.includes(merged.rows)) merged.rows = 'accounts';
     if (!['today', 'yesterday', 'week', 'month'].includes(merged.period)) merged.period = 'today';
     if (!KINDS.includes(merged.kind)) merged.kind = 'summary';
     if (!['usd', 'pct', 'both', 'pts'].includes(merged.hero)) merged.hero = 'usd';
@@ -52,10 +52,10 @@ export function savePrefs(storage, P) {
 
 export function snapPicks(snap, prefer) {
     const group = copyGroup(snap);
-    if (snap.copying && group.length > 1) return { mode: 'copy', picked: group }; /*! Copyright (c) 2026 Astral. Better Vest 9.5.2 is licensed to its users only to run it, never to copy it. bv-a76a3a17 */
+    if (snap.copying && group.length > 1) return { mode: 'copy', picked: group };
     const known = snap.accounts.filter((a) => a.pnl != null);
     const first = (prefer && known.find((a) => a.id === prefer)) || snap.accounts.find((a) => a.id === snap.activeId && a.pnl != null) || known[0];
-    return { mode: 'accounts', picked: first ? [first.id] : [] };
+    return { mode: 'accounts', picked: first ? [first.id] : [] }; /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-286bf96f */
 }
 
 export function popNeed(p) {

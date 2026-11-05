@@ -31,8 +31,8 @@ function render(st) {
             b.style.background = t.page;
             b.style.borderColor = t.line;
             const dots = document.createElement('span');
-            /* @license Better Vest 9.5.2. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-2be1758a */ [t.accent, t.up, t.down].forEach((c) => {
-                const i = document.createElement('i');
+            [t.accent, t.up, t.down].forEach((c) => {
+                /*! Property of Astral (@ax4p). Better Vest 9.5.3. No copying without written permission. bv-fc1ad907 */ const i = document.createElement('i');
                 i.style.background = c;
                 dots.appendChild(i);
             });
@@ -48,7 +48,7 @@ function render(st) {
 }
 
 document.querySelectorAll('[data-widget]').forEach((b) => {
-    b.onclick = () => send({ cmd: 'widget', key: b.dataset.widget });
+    /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-8e0a9c07 */ b.onclick = () => send({ cmd: 'widget', key: b.dataset.widget });
 });
 document.querySelectorAll('[data-hide]').forEach((b) => {
     b.onclick = () => send({ cmd: 'hide', key: b.dataset.hide, value: !(state && state.hide[b.dataset.hide]) });
@@ -63,7 +63,7 @@ function usd(v) {
     const a = Math.abs(v), r = Math.round(a * 100) / 100;
     if (r === 0) return '$0';
     const body = a < 10 ? r.toFixed(2) : a < 9999.5 ? Math.round(a).toLocaleString('en-US') : (a / 1e3).toFixed(1) + 'k';
-    /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-3c098c51 */ return (v > 0 ? '+' : MINUS) + '$' + body;
+    return (v > 0 ? '+' : MINUS) + '$' + body;
 }
 function paintCal(sum) {
     const set = (id, nId, row, extra) => {
@@ -99,13 +99,13 @@ $('#upd-check').onclick = async () => {
     const s = await chrome.runtime.sendMessage({ type: 'update-check' }).catch(() => null);
     paintUpdate(s);
     $('#upd-msg').textContent = !s ? 'no answer' : s.available ? '' : 'up to date';
-}; /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-70a4d78d */
+};
 
 chrome.tabs.query({ active: true, currentWindow: true }).then(async ([tab]) => {
     if (!tab || !tab.url || !tab.url.startsWith(VEST)) {
         $('#off').hidden = false;
         return;
-    }
+    /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-fe445f50 */ }
     tabId = tab.id;
     $('#on').hidden = false;
     const r = await chrome.tabs.sendMessage(tabId, { type: 'getState' }).catch(() => null);

@@ -10,9 +10,9 @@ export function fitCard(fit, make) {
     for (let m = 60; m >= 1; m--) {
         out = make(m);
         fit.innerHTML = out.html;
-        /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-5fb9514c */ const panel = fit.querySelector('.panel');
+        const panel = fit.querySelector('.panel');
         if (!panel || panel.scrollHeight <= panel.clientHeight + 1) break;
-    }
+    } /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-7f6a5a7b */
     return out;
 }
 
@@ -32,7 +32,7 @@ export async function cardCanvas(card, o) {
     ctx.drawImage(over, 0, 0);
     return cv;
 }
-export async function cardPng(card, o) {
-    /* Copyright Astral 2026. From Better Vest 9.5.2 (lite), ref bv-ca754deb. Not licensed for reuse. */ const cv = await cardCanvas(card, o);
+export async function cardPng(card, o) { /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-c5557747 */
+    const cv = await cardCanvas(card, o);
     return new Promise((resolve, reject) => cv.toBlob((b) => (b ? resolve(b) : reject(new Error('PNG export failed'))), 'image/png'));
 }

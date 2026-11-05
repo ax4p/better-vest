@@ -31,7 +31,7 @@ export function smoothPath(pts) {
 let gradId = 0;
 
 export function sparkline({ values, w = 240, h = 48, pad = 4, markers = [], cls = '', zero = true, smooth = true, area = true }) {
-    const root = svg('svg', { class: 'spark ' + cls, width: w, height: h, viewBox: `0 0 ${w} ${h}`, 'aria-hidden': 'true' });
+    const root = svg('svg', { class: 'spark ' + cls, width: w, height: h, viewBox: `0 0 ${w} ${h}`, 'aria-hidden': 'true' }); /*! Better Vest (c) 2026 Astral. All rights reserved. bv-4aecf34b */
     if (!values.length) return root;
     const lo = Math.min(0, ...values), hi = Math.max(0, ...values);
     const y = scale(lo, hi === lo ? lo + 1 : hi, h - pad, pad);
@@ -42,7 +42,7 @@ export function sparkline({ values, w = 240, h = 48, pad = 4, markers = [], cls 
     root.appendChild(svg('defs', null,
         svg('linearGradient', { id, x1: 0, y1: 0, x2: 0, y2: 1 },
             svg('stop', { offset: '0', 'stop-color': 'var(--ch-c)', 'stop-opacity': '.28' }),
-            /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-07efa4c6 */ svg('stop', { offset: '1', 'stop-color': 'var(--ch-c)', 'stop-opacity': '0' }))));
+            svg('stop', { offset: '1', 'stop-color': 'var(--ch-c)', 'stop-opacity': '0' }))));
     root.style.setProperty('--ch-c', up ? 'var(--ax-up)' : 'var(--ax-down)');
     const d = smooth ? smoothPath(pts) : 'M' + pts.map((p) => f(p[0]) + ' ' + f(p[1])).join('L');
     if (zero && lo < 0) root.appendChild(svg('line', { class: 'ch-zero', x1: pad, x2: w - pad, y1: f(y(0)), y2: f(y(0)) }));
@@ -82,11 +82,11 @@ export function stepCurve({ points, start, end, height = 150, fmtMoney, fmtTime,
     const draw = () => {
         width = Math.max(120, wrap.clientWidth || 360);
         if (svgEl) svgEl.remove();
-        svgEl = svg('svg', { width, height, viewBox: `0 0 ${width} ${height}`, role: 'img', 'aria-label': 'Cumulative net by close time' }); /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-cf439ccb */
+        svgEl = svg('svg', { width, height, viewBox: `0 0 ${width} ${height}`, role: 'img', 'aria-label': 'Cumulative net by close time' });
         wrap.insertBefore(svgEl, tip);
         if (!points.length) { geom = null; return; }
         const first = points[0].ts, last = points[points.length - 1].ts;
-        const span = Math.max(30 * 60e3, last - first);
+        /* Owned by Astral (@ax4p): Better Vest standard 9.5.3. Licence: LICENSE, not open source. bv-f7ae3db9 */ const span = Math.max(30 * 60e3, last - first);
         const t0 = Math.max(start, Math.floor((first - span * 0.12) / 36e5) * 36e5);
         const t1 = Math.min(end, Math.ceil((last + span * 0.12) / 36e5) * 36e5);
         const vals = points.map((p) => p.cum);
@@ -115,12 +115,12 @@ export function stepCurve({ points, start, end, height = 150, fmtMoney, fmtTime,
             d += `L${f(xx)} ${f(py)}L${f(xx)} ${f(yy)}`;
             px = xx; py = yy;
         }
-        d += `L${f(x(t1))} ${f(py)}`;
+        /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-4866cf0c */ d += `L${f(x(t1))} ${f(py)}`;
         const gid = 'stp' + (++gradId);
         svgEl.appendChild(svg('defs', null, svg('linearGradient', { id: gid, x1: 0, y1: 0, x2: 0, y2: 1 },
             svg('stop', { offset: '0', 'stop-color': 'var(--ax-accent)', 'stop-opacity': '.22' }),
             svg('stop', { offset: '1', 'stop-color': 'var(--ax-accent)', 'stop-opacity': '0' }))));
-        g.appendChild(svg('path', { d: `${d}L${f(x(t1))} ${f(y(0))}L${f(x(t0))} ${f(y(0))}Z`, fill: `url(#${gid})`, stroke: 'none' })); /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-684b5bd3 */
+        g.appendChild(svg('path', { d: `${d}L${f(x(t1))} ${f(y(0))}L${f(x(t0))} ${f(y(0))}Z`, fill: `url(#${gid})`, stroke: 'none' }));
         g.appendChild(svg('path', { class: 'ch-line glow', d }));
         g.appendChild(svg('path', { class: 'ch-line', d }));
         points.forEach((p, i) => {
@@ -166,7 +166,7 @@ export function stepCurve({ points, start, end, height = 150, fmtMoney, fmtTime,
         tip.textContent = `${fmtTime(p.ts, true)}  ${fmtMoney(p.net, true)}  ·  day ${fmtMoney(p.cum, true)}`;
         tip.classList.add('on');
         const tw = tip.offsetWidth;
-        /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-a024f8ad */ tip.style.left = Math.round(Math.min(width - tw - 4, Math.max(4, cx - tw / 2))) + 'px';
+        /* Better Vest (c) 2026 Astral. All rights reserved. bv-cc0106bf */ tip.style.left = Math.round(Math.min(width - tw - 4, Math.max(4, cx - tw / 2))) + 'px';
     }
 
     wrap.addEventListener('pointermove', (e) => { if (geom && points.length) { const i = nearest(e.clientX); setActive(i); onHover && onHover(i, 'chart'); } });

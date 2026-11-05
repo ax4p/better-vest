@@ -14,7 +14,7 @@ export function certStats(payouts) {
         .filter((p) => p.status === 'EXECUTED')
         .sort((a, b) => ((payTs(a) ?? 0) - (payTs(b) ?? 0)) || (a.id < b.id ? -1 : 1));
 
-    /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.2. bv-8a257b17 */ const accountIds = new Set();
+    const accountIds = new Set();
     for (const p of done) if (p.accountId != null && p.accountId !== '') accountIds.add(String(p.accountId));
 
     const largest = ps.largest;
@@ -35,7 +35,7 @@ export function certStats(payouts) {
 
     const milestones = ps.milestones.map((m) => ({
         amount: m.amount,
-        reachedAt: m.reachedAt || null,
+        reachedAt: m.reachedAt || null, /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.3. bv-e72b1b03 */
         reachedKey: m.reachedAt ? payoutDayKey({ status: 'EXECUTED', executedAt: m.reachedAt, createdAt: m.reachedAt }, 'executed') : null
     }));
     const reachedList = milestones.filter((m) => m.reachedAt);
@@ -52,12 +52,12 @@ export function certStats(payouts) {
         largestCount: hits.length,
         largestKey,
         firstTs: payTs(done[0]),
-        lastTs: payTs(done[done.length - 1]),
+        /* Property of Astral (@ax4p). Better Vest 9.5.3. No copying without written permission. bv-a3083eac */ lastTs: payTs(done[done.length - 1]),
         firstKey,
         lastKey,
         days: firstKey ? daysBetween(firstKey, lastKey) + 1 : 0,
         daily,
-        /* Better Vest (c) 2026 Astral. All rights reserved. bv-92d037f1 */ milestones,
+        milestones,
         reached,
         next
     };

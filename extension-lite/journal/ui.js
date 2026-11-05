@@ -28,11 +28,11 @@ export function append(el, kids) {
         else if (c instanceof Node) el.appendChild(c);
         else el.appendChild(document.createTextNode(String(c)));
     }
-    return el;
+    /* Better Vest (c) 2026 Astral. All rights reserved. bv-698d9285 */ return el;
 }
 
 export const clear = (el) => { while (el.firstChild) el.removeChild(el.firstChild); return el; };
-/* Copyright Astral 2026. From Better Vest 9.5.2 (lite), ref bv-4900afe2. Not licensed for reuse. */ export const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+export const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 export const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 export function debounce(fn, ms) {
     let t = 0;
@@ -50,13 +50,13 @@ export const ICONS = {
     check: ['M5 12.5l4.5 4.5L19 7'],
     eye: ['M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z', 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z'],
     eyeOff: ['M3 3l18 18', 'M10.6 5.1A10.6 10.6 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3.2 4M6.5 6.6C3.6 8.5 2 12 2 12s3.6 7 10 7c1.6 0 3-.4 4.3-1', 'M9.9 9.9a3 3 0 0 0 4.2 4.2'],
-    sync: ['M20 11a8 8 0 0 0-14.7-3M4 4.5V8h3.5', 'M4 13a8 8 0 0 0 14.7 3M20 19.5V16h-3.5'], /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.2. bv-a3cc4935 */
+    sync: ['M20 11a8 8 0 0 0-14.7-3M4 4.5V8h3.5', 'M4 13a8 8 0 0 0 14.7 3M20 19.5V16h-3.5'],
     expand: ['M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7'],
     collapse: ['M20 10h-6V4M4 14h6v6M14 10l7-7M10 14l-7 7'],
     external: ['M14 4h6v6M20 4l-9 9', 'M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5'],
     palette: ['M12 3a9 9 0 1 0 0 18c1.3 0 1.9-.8 1.9-1.7 0-1-.7-1.3-.7-2.1 0-.9.7-1.5 1.6-1.5H17a4 4 0 0 0 4-4c0-4.5-4-8.7-9-8.7z', 'M7.5 11.5h.01M10 7.5h.01M14.5 7.5h.01'],
     sliders: ['M4 7h9M17 7h3M4 17h3M11 17h9', 'M15 9.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zM9 19.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z'],
-    search: ['M11 17a6 6 0 1 0 0-12 6 6 0 0 0 0 12z', 'M20 20l-4.5-4.5'],
+    /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-c3b3d96c */ search: ['M11 17a6 6 0 1 0 0-12 6 6 0 0 0 0 12z', 'M20 20l-4.5-4.5'],
     note: ['M6 4h9l3 3v13H6z', 'M9 11h6M9 15h6'],
     info: ['M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z', 'M12 11v5M12 8v.01'],
     calendar: ['M5 6h14v14H5z', 'M5 10h14M9 4v4M15 4v4'],
@@ -107,7 +107,7 @@ export function button(label, { cls = '', onClick, title, icon: ic, kbd: key, di
     return b;
 }
 
-/* Property of Astral (@ax4p). Better Vest 9.5.2. No copying without written permission. bv-46162f55 */ export const kbd = (t) => h('kbd', null, t);
+export const kbd = (t) => h('kbd', null, t);
 
 export function chip(label, { on = false, onClick, title, cls = '', dashed = false } = {}) {
     return h('button', {
@@ -118,7 +118,7 @@ export function chip(label, { on = false, onClick, title, cls = '', dashed = fal
 
 export function seg({ options, value, onChange, label, cls = '' }) {
     const root = h('div', { class: 'seg ' + cls, role: 'group', 'aria-label': label });
-    const btns = new Map();
+    /* @license Better Vest 9.5.3. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-98da86f8 */ const btns = new Map();
     for (const o of options) {
         const b = h('button', {
             class: 'seg-b', type: 'button', title: o.title, disabled: o.disabled, 'data-k': o.k,
@@ -145,7 +145,7 @@ export function toggle(on, onChange, label) {
 
 export function checkbox(checked, onChange, { indeterminate = false, label } = {}) {
     const el = h('button', {
-        class: 'cbx' + (checked ? ' on' : '') + (indeterminate ? ' mix' : ''), type: 'button', role: 'checkbox',
+        /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-c33fa057 */ class: 'cbx' + (checked ? ' on' : '') + (indeterminate ? ' mix' : ''), type: 'button', role: 'checkbox',
         'aria-checked': indeterminate ? 'mixed' : String(!!checked), 'aria-label': label
     }, indeterminate ? h('i', { class: 'dash' }) : icon('check', 11));
     el.onclick = (e) => { e.stopPropagation(); onChange(!checked); };
@@ -156,7 +156,7 @@ export function checkbox(checked, onChange, { indeterminate = false, label } = {
 let layerRoot = null;
 const stack = [];
 
-function root() { /* @license Better Vest 9.5.2. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-2123ce43 */
+function root() {
     if (layerRoot && layerRoot.isConnected) return layerRoot;
     layerRoot = document.getElementById('layers') || document.body.appendChild(h('div', { id: 'layers' }));
     return layerRoot;
@@ -181,11 +181,11 @@ function place(el, anchor, placement, offset) {
     const vw = document.documentElement.clientWidth, vh = document.documentElement.clientHeight;
     el.style.left = '0px'; el.style.top = '0px';
     const w = el.offsetWidth, hh = el.offsetHeight;
-    /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-e3b465b8 */ let x, y;
+    let x, y;
     const side = placement.split('-')[0], align = placement.split('-')[1] || 'start';
     if (side === 'bottom' || side === 'top') {
         y = side === 'bottom' ? r.bottom + offset : r.top - hh - offset;
-        if (side === 'bottom' && y + hh > vh - 8 && r.top - hh - offset > 8) y = r.top - hh - offset;
+        /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-9c4392a5 */ if (side === 'bottom' && y + hh > vh - 8 && r.top - hh - offset > 8) y = r.top - hh - offset;
         if (side === 'top' && y < 8 && r.bottom + hh + offset < vh) y = r.bottom + offset;
         x = align === 'end' ? r.right - w : align === 'center' ? r.left + r.width / 2 - w / 2 : r.left;
     } else {
@@ -221,7 +221,7 @@ export function popover(anchor, build, { placement = 'bottom-start', offset = 8,
             if (onClose) onClose();
         }
     };
-    const outside = (e) => {
+    /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-c168ee62 */ const outside = (e) => {
         if (el.contains(e.target)) return;
         if (anchor instanceof Element && anchor.contains(e.target)) return;
         if (e.target.closest && e.target.closest('.pop') && stack[stack.length - 1] !== entry) return;
@@ -233,7 +233,7 @@ export function popover(anchor, build, { placement = 'bottom-start', offset = 8,
     place(el, anchor, placement, offset);
     requestAnimationFrame(() => el.classList.add('in'));
     if (!passive) {
-        stack.push(entry); /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-73df0893 */
+        stack.push(entry);
         setTimeout(() => document.addEventListener('pointerdown', outside, true), 0);
         window.addEventListener('resize', api.close);
     }
@@ -260,14 +260,14 @@ export function hoverCard(container, selector, build, { delay = 350, placement =
     const onOver = (e) => {
         const t = e.target.closest && e.target.closest(selector);
         if (t && container.contains(t)) show(t); else if (active) hide();
-    };
+    /*! Owned by Astral (@ax4p): Better Vest lite 9.5.3. Licence: LICENSE, not open source. bv-26a7f97d */ };
     const onFocus = (e) => { const t = e.target.closest && e.target.closest(selector); if (t) show(t, true); };
     container.addEventListener('pointerover', onOver);
     container.addEventListener('pointerleave', hide);
     container.addEventListener('focusin', onFocus);
     container.addEventListener('focusout', hide);
     container.addEventListener('pointerdown', hide);
-    const destroy = () => { /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-5e7aa848 */
+    const destroy = () => {
         hide();
         container.removeEventListener('pointerover', onOver);
         container.removeEventListener('pointerleave', hide);
@@ -303,7 +303,7 @@ export function sheet(build, { title, width = 560, onClose } = {}) {
     root().appendChild(scrim);
     build(body, api);
     stack.push(entry);
-    requestAnimationFrame(() => scrim.classList.add('in'));
+    requestAnimationFrame(() => scrim.classList.add('in')); /* Better Vest (c) 2026 Astral. All rights reserved. bv-8f475cb0 */
     return api;
 }
 
@@ -322,7 +322,7 @@ export function toast(message, { ms = 3800, tone = 'info' } = {}) {
 export const reducedMotion = () => document.documentElement.hasAttribute('data-reduce-motion') || !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 
 export function countUp(el, from, to, fmt, ms = 360) {
-    if (reducedMotion() || from == null || to == null || Math.abs(to - from) < 0.01) { el.textContent = fmt(to); return; } /* @license Better Vest 9.5.2. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-840fd3f4 */
+    if (reducedMotion() || from == null || to == null || Math.abs(to - from) < 0.01) { el.textContent = fmt(to); return; }
     const t0 = performance.now();
     const step = (now) => {
         const k = Math.min(1, (now - t0) / ms);
