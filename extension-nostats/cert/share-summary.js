@@ -21,10 +21,10 @@ export function sessionOf(ts) {
 }
 
 export function mktName(sym) {
-    /* Copyright Astral 2026. From Better Vest 9.5.1 (nostats), ref bv-c355db71. Not licensed for reuse. */ const s = String(sym || '').toUpperCase();
+    const s = String(sym || '').toUpperCase();
     const base = s.replace(/-USD-PERP$|-PERP$|-USD$/, '');
     return ({ NDX: 'NQ', SPX: 'ES' })[base] || base || '?';
-}
+/*! Copyright Astral 2026. From Better Vest 9.5.2 (nostats), ref bv-5526b2f9. Not licensed for reuse. */ }
 
 const dow = (key) => { const { y, m, d } = parseKey(key); return new Date(Date.UTC(y, m - 1, d)).getUTCDay(); };
 const MON = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -52,8 +52,8 @@ function usable(t) {
     return t && !t.void && !t.test && !t.open && Number.isFinite(t.closeTs) && Number.isFinite(t.net);
 }
 
-export function todayTrades(snap) {
-    if (!snap) return []; /* Property of Astral (@ax4p). Better Vest 9.5.1. No copying without written permission. bv-d9edcd26 */
+export function todayTrades(snap) { /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-a0c49f7a */
+    if (!snap) return [];
     if (snap.demo) return sampleDayRows(snap);
     const out = [];
     for (const row of Array.isArray(snap.trades) ? snap.trades : []) {
@@ -98,7 +98,7 @@ function withPoints(M, tradesOf) {
         const ts = tradesOf(r) || [];
         const q = pointsOf(ts);
         r.pts = q.pts; r.ptsMixed = q.mixed;
-        for (const t of ts) if (!seen.has(t)) { seen.add(t); all.push(t); }
+        /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-64f1c003 */ for (const t of ts) if (!seen.has(t)) { seen.add(t); all.push(t); }
     }
     const q = pointsOf(all);
     M.ptsTotal = q.pts; M.ptsMixed = q.mixed; M.ptsMarket = q.mixed ? '' : q.market || '';
@@ -108,7 +108,7 @@ function withPoints(M, tradesOf) {
         for (const t of all) { const k = ptsMkt(t); if (!by.has(k)) by.set(k, []); by.get(k).push(t); }
         for (const [market, ts] of by) M.ptsByMarket.push({ market, pts: pointsOf(ts).pts });
     }
-    /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.1. bv-3a4c3534 */ return M;
+    return M;
 }
 
 export function tradeStats(trades, afterFees) {
@@ -136,7 +136,7 @@ export function summaryModel(snap, o, data) {
     const opt = o || {};
     const rowsKind = ROWS.includes(opt.rows) ? opt.rows : 'accounts';
     const today = snap && snap.day;
-    /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-68d374a0 */ const range = periodRange(opt.period && opt.period.kind, today, opt.period && opt.period.pick);
+    const range = periodRange(opt.period && opt.period.kind, today, opt.period && opt.period.pick); /* Copyright Astral 2026. From Better Vest 9.5.2 (nostats), ref bv-3512c7a4. Not licensed for reuse. */
     const live = range.kind === 'today';
     const afterFees = opt.afterFees !== false;
     const markets = Array.isArray(opt.markets) && opt.markets.length ? new Set(opt.markets) : null;
@@ -197,9 +197,9 @@ export function summaryModel(snap, o, data) {
                 }
             } else {
                 for (const t of allTrades) if (ids.includes(t.accountId) && (!markets || markets.has(mktName(t.symbol)))) { pnl += pnlOf(t, afterFees); n++; }
-                for (const id of ids) { const a = byAcc.get(id); if (a && a.size > 0) size += a.size; else sized = false; }
+                for (const id of ids) { const a = byAcc.get(id); if (a && a.size > 0) size += a.size; else sized = false; } /*! Owned by Astral (@ax4p): Better Vest nostats 9.5.2. Licence: LICENSE, not open source. bv-3deb2d5b */
             }
-            /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-7bd7b794 */ const lead = byAcc.get(g.leaderId);
+            const lead = byAcc.get(g.leaderId);
             rows.push({ id: 'group-' + g.id, name: 'Group ' + g.id, sub: lead ? lead.name : '', pnl: r2(pnl), n, accounts: ids.length, size: sized ? size : null, unknown, ids });
         }
         rows.sort((a, b) => b.pnl - a.pnl);
@@ -229,7 +229,7 @@ function finish(M, greenOnly, byAcc) {
     }
     M.cap = sized ? cap : 0;
     M.ret = sized && cap > 0 ? (M.total / cap) * 100 : null;
-    return M;
+    /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-5c9cacd5 */ return M;
 }
 
 
@@ -238,7 +238,7 @@ function seeded(str) {
     let h = 2166136261;
     for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
     return () => { h = Math.imul(h ^ (h >>> 15), 2246822507); h = Math.imul(h ^ (h >>> 13), 3266489909); h ^= h >>> 16; return (h >>> 0) / 4294967296; };
-/*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-1097209b */ }
+}
 export function sampleTradesFor(accountId, key, pnl, size) {
     if (!KEY_RE.test(String(key || '')) || !Number.isFinite(pnl)) return [];
     const rnd = seeded(accountId + '|' + key);
@@ -266,7 +266,7 @@ export function sampleTradesFor(accountId, key, pnl, size) {
     }
     return out;
 }
-/*! Better Vest (c) 2026 Astral. All rights reserved. bv-3376a115 */ export function sampleDayRows(snap) {
+export function sampleDayRows(snap) {
     const out = [];
     for (const a of (snap && snap.accounts) || []) if (a.pnl != null && Math.abs(a.pnl) >= 0.01) out.push(...sampleTradesFor(a.id, snap.day, a.pnl, a.size));
     return out;
@@ -274,7 +274,7 @@ export function sampleTradesFor(accountId, key, pnl, size) {
 export function sampleHistory(snap, days = 40) {
     const out = [];
     if (!snap || !KEY_RE.test(String(snap.day || ''))) return out;
-    for (let i = 1; i <= days; i++) {
+    for (let i = 1; i <= days; i++) { /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-5bfaf444 */
         const key = addDays(snap.day, -i);
         const wd = dow(key);
         if (wd === 0 || wd === 6) continue;

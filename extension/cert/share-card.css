@@ -17,7 +17,7 @@
 .card.light.red { --k-glow: 225, 29, 72; }
 .card.feed { width: 540px; height: 675px; } .card.square { width: 540px; height: 540px; } .card.wide { width: 960px; height: 540px; } .card.story { width: 540px; height: 960px; }
 .card .bgx { position: absolute; inset: 0; z-index: -1; }
-.card .in { position: absolute; inset: 0; display: flex; flex-direction: column; padding: 32px 34px 26px; }
+.card .in { position: absolute; inset: 0; display: flex; flex-direction: column; padding: 32px 34px 26px; } /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-e6116aa9 */
 .card.wide .in { padding: 32px 40px 26px; }
 .card.story .in { padding: 50px 38px 38px; }
 .card .hd { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex: none; }
@@ -44,7 +44,7 @@
 .card .rule { display: none; margin-top: 22px; height: 3px; width: 96px; background: var(--k-neon); box-shadow: 0 0 18px rgba(var(--k-glow), .6); }
 .card .panel { margin-top: 22px; flex: 0 1 auto; min-height: 0; display: flex; flex-direction: column; border-radius: 14px; background: var(--k-panel); box-shadow: inset 0 0 0 1px var(--k-panel-line); overflow: hidden; }
 .card.wide .body.split .panel { margin-top: 0; width: 420px; flex: none; }
-.card .panel .ph { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px 12px; } /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-04911cf4 */
+.card .panel .ph { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px 12px; }
 .card .panel .ph b { font-size: 14px; font-weight: 600; }
 .card .panel .mkt { display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 8px 0 3px; border-radius: 999px; background: var(--k-badge); font-size: 11px; font-weight: 700; }
 .card .panel .mkt span { display: inline-grid; place-items: center; width: 16px; height: 16px; border-radius: 50%; background: #1d4ed8; color: #fff; font-size: 6px; font-weight: 800; }
@@ -100,7 +100,7 @@
 .rp-svg .zw { fill: var(--k-up); fill-opacity: .11; }
 .rp-svg .zl { fill: var(--k-down); fill-opacity: .11; }
 .rp-svg .zo { fill: var(--k-mut); fill-opacity: .08; }
-.rp-svg .cw, .rp-svg .cl, .rp-svg .co { fill: none; stroke-width: 1.5; stroke-dasharray: 3 3; }
+.rp-svg .cw, .rp-svg .cl, .rp-svg .co { fill: none; stroke-width: 1.5; stroke-dasharray: 3 3; } /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-88c052bd */
 .rp-svg .cw { stroke: var(--k-up); }
 .rp-svg .cl { stroke: var(--k-down); }
 .rp-svg .co { stroke: var(--k-mut); }
@@ -133,7 +133,7 @@
 .rp-svg .px { fill: var(--k-mut); font-size: 9.5px; font-weight: 600; paint-order: stroke; stroke: var(--k-bg); stroke-width: 3px; stroke-linejoin: round; }
 .rp-svg .ss { fill: var(--k-text); fill-opacity: .035; }
 .rp-svg .sl { fill: var(--k-dim); font-size: 9px; font-weight: 700; letter-spacing: .08em; }
-.rp-svg .zb { fill-opacity: .26; } /* @license Better Vest 9.5.1. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-92047f0e */
+.rp-svg .zb { fill-opacity: .26; }
 .rp-svg .pb { fill: var(--k-text); font-size: 9px; letter-spacing: .1em; }
 .rp-svg .pz { stroke: var(--k-grid); stroke-width: 1; stroke-dasharray: 2 3; }
 .rp-svg .pn { fill: none; stroke-width: 2; stroke-linejoin: round; }

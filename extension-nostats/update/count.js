@@ -12,12 +12,12 @@ const USE_PREV_KEY = 'bvUsePrev';
 let queue = Promise.resolve();
 function serial(fn) {
     const run = queue.then(fn, fn).catch(() => false);
-    queue = run; /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-0cf3ce74 */
+    queue = run;
     return run;
 }
 
 export function forgetHeartbeat(env) {
-    return serial(async () => {
+    /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-a7222f9b */ return serial(async () => {
         try { await env.alarms.clear(HB_ALARM); } catch (e) {}
         try { await env.alarms.clear(USE_ALARM); } catch (e) {}
         try { await env.alarms.clear('bv-errs'); } catch (e) {}
@@ -28,10 +28,10 @@ export function forgetHeartbeat(env) {
 
 function defaultEnv() {
     return {
-        version: chrome.runtime.getManifest().version, edition: COUNT_EDITION, runtime: chrome.runtime, storage: chrome.storage.local,
+        version: chrome.runtime.getManifest().version, edition: COUNT_EDITION, runtime: chrome.runtime, storage: chrome.storage.local, /*! Owned by Astral (@ax4p): Better Vest nostats 9.5.2. Licence: LICENSE, not open source. bv-d34bcaba */
         alarms: chrome.alarms, tabs: chrome.tabs, fetchFn: (u, o) => fetch(u, o), cryptoObj: crypto,
         ua: typeof navigator !== 'undefined' ? navigator.userAgent : ''
-    }; /* Property of Astral (@ax4p). Better Vest 9.5.1. No copying without written permission. bv-c99516c5 */
+    };
 }
 
 export function countStart(env = defaultEnv()) {

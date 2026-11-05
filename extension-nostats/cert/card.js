@@ -11,7 +11,7 @@ export const NAME_MAX = 28;
 
 const ASSET = new URL('./assets/', import.meta.url).href;
 export const CARD_CSS = new URL('./card.css', import.meta.url).href;
-const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]); /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-791a78be */
 const f2 = (n) => (Math.round(n * 100) / 100).toFixed(2);
 
 export function fmtMoneyParts(v) {
@@ -23,7 +23,7 @@ export function fmtMoneyParts(v) {
     };
 }
 export const fmtMoney = (v) => { const p = fmtMoneyParts(v); return p.int + '.' + p.cents; };
-/* Better Vest (c) 2026 Astral. All rights reserved. bv-aa54c863 */ export const fmtMilestone = (amount) => '$' + (amount >= 1000 ? amount / 1000 + 'K' : amount);
+export const fmtMilestone = (amount) => '$' + (amount >= 1000 ? amount / 1000 + 'K' : amount);
 const dm = (key) => fmtDate(key, 'dm');
 
 function bars(vals, w, h, gap, uid) {
@@ -67,7 +67,7 @@ export function buildCard(S, opts = {}) {
     const pill = ms ? `<span class="bvc-pill"><b></b>${esc(fmtMilestone(ms.amount))} milestone &middot; ${esc(dm(ms.reachedKey))}</span>` : '';
 
     let strip = '';
-    if (chart) { /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-0d8256b3 */
+    if (chart) {
         const series = barSeries(S, 40, 7);
         const n = series.bars.length;
         const gap = n > 24 ? 3 : n > 14 ? 4.5 : 6;
@@ -112,7 +112,7 @@ export function fitCard(card) {
     const recip = q('recip'), name = q('name'), nm = q('nm');
     let fs = 24;
     name.style.fontSize = fs + 'px';
-    const room = 330 - 2 * 28;
+    /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.2. bv-9e1bf7b1 */ const room = 330 - 2 * 28;
     while (nm.offsetWidth > room && fs > 12) { fs -= 1; name.style.fontSize = fs + 'px'; }
     const w = Math.min(330, Math.max(173, Math.ceil(nm.offsetWidth) + 2 * 28));
     recip.style.width = w + 'px';

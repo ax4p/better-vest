@@ -6,7 +6,7 @@ export const VC_OPENS = Object.freeze(['long', 'short', 'rev', 'limitBuy', 'limi
 const PHRASES = {
     long: ['long', 'go long', 'open long', 'buy', 'buy now', 'buy market', 'long now', 'enter long', 'get long'],
     short: ['short', 'go short', 'open short', 'sell', 'sell now', 'sell market', 'short now', 'enter short', 'get short'],
-    flat: ['flat', 'go flat', 'flatten', 'close', 'close all', 'close everything', 'close out', 'get out', 'exit', 'exit all', 'out'], /*! Copyright (c) 2026 Astral. Better Vest 9.5.1 is licensed to its users only to run it, never to copy it. bv-f93465d8 */
+    flat: ['flat', 'go flat', 'flatten', 'close', 'close all', 'close everything', 'close out', 'get out', 'exit', 'exit all', 'out'],
     half: ['half', 'close half', 'fifty', 'fifty percent', 'close fifty', 'close fifty percent', 'take half', 'half off'],
     rev: ['reverse', 'flip', 'reverse that', 'flip that'],
     be: ['break even', 'be', 'stop to break even', 'move stop to break even', 'move to break even', 'stop break even'],
@@ -29,7 +29,7 @@ export const vcWords = (s) => String(s || '').toLowerCase()
 const clean = (s) => vcWords(s).split(' ').filter((w) => w && !FILLER.has(w)).join(' ');
 
 const TABLE = new Map();
-for (const id of Object.keys(PHRASES)) for (const p of PHRASES[id]) { const c = clean(p); if (c) TABLE.set(c, id); }
+/*! Copyright (c) 2026 Astral. Better Vest 9.5.2 is licensed to its users only to run it, never to copy it. bv-8b0ced82 */ for (const id of Object.keys(PHRASES)) for (const p of PHRASES[id]) { const c = clean(p); if (c) TABLE.set(c, id); }
 
 const GROWS = new Set([...TABLE.keys()].filter((t) => [...TABLE.keys()].some((p) => p !== t && p.startsWith(t + ' ') && TABLE.get(p) !== TABLE.get(t))));
 const STARTS = new Set();
@@ -44,13 +44,13 @@ export function vcAfterWake(text) {
         while ((m = re.exec(s))) { const i = m.index + (m[0].startsWith(' ') ? 1 : 0); if (i >= at) { at = i; len = w.length; } }
     }
     return at < 0 ? null : s.slice(at + len).trim();
-}
+} /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-368d4389 */
 
 export function vcParse(text, opts) {
     const wake = !!(opts && opts.wake);
     let rest = wake ? vcAfterWake(text) : (vcAfterWake(text) ?? vcWords(text));
     if (rest == null) return null;
-    /*! Copyright (c) 2026 Astral. Better Vest 9.5.1 is licensed to its users only to run it, never to copy it. bv-3c9003b5 */ const said = clean(rest);
+    const said = clean(rest);
     if (!said) return null;
     const id = TABLE.get(said);
     if (!id) return null;

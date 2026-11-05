@@ -18,7 +18,7 @@ async function dataUriOf(url) {
     if (url.startsWith('data:')) return url;
     if (cache.has(url)) return cache.get(url);
     const p = fetch(url).then((r) => {
-        if (!r.ok) throw new Error('asset ' + url + ': HTTP ' + r.status); /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-f001f65e */
+        if (!r.ok) throw new Error('asset ' + url + ': HTTP ' + r.status);
         return r.blob();
     }).then(blobToDataUri);
     cache.set(url, p);
@@ -29,7 +29,7 @@ async function dataUriOf(url) {
 async function cssWithInlinedUrls(cssUrl) {
     const res = await fetch(cssUrl);
     if (!res.ok) throw new Error('stylesheet: HTTP ' + res.status);
-    let css = await res.text();
+    /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-95586640 */ let css = await res.text();
     const base = new URL(cssUrl, document.baseURI);
     const urls = [...new Set([...css.matchAll(/url\(\s*(['"]?)([^'")]+)\1\s*\)/g)].map((m) => m[2]))];
     for (const u of urls) {
@@ -66,7 +66,7 @@ export async function cardToSvg(card, { cssUrl, width, height }) {
     wrap.append(style, clone);
     const inner = new XMLSerializer().serializeToString(wrap);
     return `<svg xmlns="${NS_SVG}" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><foreignObject x="0" y="0" width="${width}" height="${height}">${inner}</foreignObject></svg>`;
-} /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-29bfca2b */
+}
 
 export async function cardToCanvas(card, { cssUrl, width, height, scale = 3 }) {
     if (document.fonts && document.fonts.ready) await document.fonts.ready;
@@ -75,7 +75,7 @@ export async function cardToCanvas(card, { cssUrl, width, height, scale = 3 }) {
     const canvas = document.createElement('canvas');
     canvas.width = Math.round(width * scale);
     canvas.height = Math.round(height * scale);
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d'); /* Copyright Astral 2026. From Better Vest 9.5.2 (nostats), ref bv-5c2e9789. Not licensed for reuse. */
     ctx.imageSmoothingQuality = 'high';
     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
     return canvas;

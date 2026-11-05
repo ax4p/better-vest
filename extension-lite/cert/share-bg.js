@@ -13,7 +13,7 @@ function openDb() {
     return new Promise((resolve, reject) => {
         const req = indexedDB.open(DB_NAME, 1);
         req.onupgradeneeded = () => { if (!req.result.objectStoreNames.contains(STORE)) req.result.createObjectStore(STORE); };
-        req.onsuccess = () => { const db = req.result; db.onversionchange = () => db.close(); resolve(db); };
+        /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-fa9c0dd0 */ req.onsuccess = () => { const db = req.result; db.onversionchange = () => db.close(); resolve(db); };
         req.onerror = () => reject(req.error || new Error('bv-share: open failed'));
         req.onblocked = () => reject(new Error('bv-share: blocked by another page'));
     });
@@ -33,7 +33,7 @@ async function inStore(mode, fn) {
 
 export async function bgSave(file) {
     const why = bgFileWhy(file);
-    /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-a8231744 */ if (why) throw new Error(why);
+    if (why) throw new Error(why);
     const rec = { blob: file, type: String(file.type).toLowerCase(), name: String(file.name || 'picture').replace(/[\u0000-\u001f<>]/g, '').slice(0, 80), size: file.size, at: Date.now() };
     try { await inStore('readwrite', (st) => st.put(rec, KEY)); } catch (e) {
         if (e && (e.name === 'QuotaExceededError' || /quota/i.test(String(e.message)))) {
@@ -59,7 +59,7 @@ export async function bgTimes(blob, type, first, cap) {
         const info = read(new Uint8Array(await blob.slice(0, end).arrayBuffer()), { maxMs: BG_VIDEO_MAX_MS, maxFrames: MAX_FRAMES });
         if (!info) return null;
         if (info.done || end >= blob.size || end >= most) return info;
-    }
+    /*! Owned by Astral (@ax4p): Better Vest lite 9.5.2. Licence: LICENSE, not open source. bv-6b4d516b */ }
 }
 const TIMES_CAP = 256 << 20;
 export function bgTooHeavy(img) {
@@ -76,7 +76,7 @@ export async function bgPrepare(rec, o) {
     let durations = [];
     if ((rec.type === 'image/gif' || rec.type === 'image/webp') && !(o && o.times === false)) {
         let info = null;
-        /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-f865c705 */ try { info = await bgTimes(blob, rec.type); } catch (e) { info = null; }
+        try { info = await bgTimes(blob, rec.type); } catch (e) { info = null; }
         if (info) durations = info.durations;
         else if (typeof ImageDecoder === 'function') {
             let dec = null;
@@ -106,7 +106,7 @@ export async function bgPrepare(rec, o) {
 export function bgRelease(img) {
     if (!img) return;
     try { URL.revokeObjectURL(img.src); } catch (e) {}
-    try { if (img.first) img.first.close(); } catch (e) {}
+    try { if (img.first) img.first.close(); } catch (e) {} /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-cd696f9e */
 }
 
 export function drawBg(ctx, src, sw, sh, W, H, scale, bg, base) {
@@ -118,7 +118,7 @@ export function drawBg(ctx, src, sw, sh, W, H, scale, bg, base) {
     const bw = W + pad * 2, bh = H + pad * 2;
     const k = o.fit === 'fit' ? Math.min(bw / sw, bh / sh) : Math.max(bw / sw, bh / sh);
     const dw = sw * k, dh = sh * k;
-    /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.1. bv-c90ddec5 */ if (o.blur) ctx.filter = `blur(${o.blur * scale}px)`;
+    if (o.blur) ctx.filter = `blur(${o.blur * scale}px)`;
     ctx.drawImage(src, -pad + (bw - dw) / 2, -pad + (bh - dh) / 2, dw, dh);
     ctx.filter = 'none';
     ctx.globalAlpha = o.dim / 100;
@@ -160,7 +160,7 @@ export async function bgFrames(img, plan, W, H, scale, bg, base, onProgress, o) 
     const w = Math.max(1, Math.round(W * k)), h = Math.max(1, Math.round(H * k));
     const cv = new OffscreenCanvas(w, h);
     const ctx = cv.getContext('2d');
-    /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-6721f566 */ const map = new Map();
+    const map = new Map();
     try {
         for (const [n, i] of plan.used.entries()) {
             if (stop && stop()) throw new Error('cancelled');
@@ -169,7 +169,7 @@ export async function bgFrames(img, plan, W, H, scale, bg, base, onProgress, o) 
             drawBg(ctx, r.image, r.image.displayWidth, r.image.displayHeight, w, h, scale * k, bg, base);
             r.image.close();
             map.set(i, await createImageBitmap(cv));
-            if (onProgress) onProgress((n + 1) / plan.used.length);
+            if (onProgress) onProgress((n + 1) / plan.used.length); /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.2. bv-dcf0c9e3 */
         }
     } catch (e) {
         map.forEach((b) => { try { b.close(); } catch (x) {} });

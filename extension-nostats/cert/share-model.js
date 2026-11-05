@@ -21,7 +21,7 @@ export function cleanColor(v) {
 const CHART_COLOR_KEYS = ['up', 'down', 'borderUp', 'borderDown', 'wickUp', 'wickDown'];
 export function cleanChartColors(c) {
     if (!c || typeof c !== 'object' || Array.isArray(c)) return null;
-    /* Copyright Astral 2026. From Better Vest 9.5.1 (nostats), ref bv-4cc1527d. Not licensed for reuse. */ const out = {};
+    /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-f0f2cafa */ const out = {};
     for (const k of CHART_COLOR_KEYS) out[k] = cleanColor(c[k]);
     if (!out.up || !out.down) return null;
     out.borderUp = out.borderUp || out.up; out.borderDown = out.borderDown || out.down;
@@ -51,7 +51,7 @@ export function cleanSnap(s) {
         activeId: idOk(s.activeId) && ids.has(s.activeId) ? s.activeId : '', demo: s.demo === true, accounts,
         replay: cleanReplay(s.replay)
     };
-    /*! Better Vest (c) 2026 Astral. All rights reserved. bv-22e2d116 */ const cc = cleanChartColors(s.chartColors);
+    const cc = cleanChartColors(s.chartColors);
     if (cc) out.chartColors = cc;
     if (Array.isArray(s.trades)) {
         const seenT = new Set();
@@ -64,7 +64,7 @@ export function cleanSnap(s) {
         }
         out.tradesCut = s.tradesCut === true;
         out.tradesErr = /^[a-z-]{1,24}$/.test(String(s.tradesErr || '')) ? String(s.tradesErr) : '';
-    }
+    /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.2. bv-e41ca40e */ }
     if (Array.isArray(s.groups)) {
         const used = new Set();
         out.groups = [];
@@ -88,7 +88,7 @@ export function maskName(name) {
 export function copyGroup(snap) {
     if (!snap || !snap.leaderId) return [];
     return [snap.leaderId].concat(snap.followerIds || []);
-/* This file is part of Better Vest by Astral and is protected by copyright. ref bv-ac5161af */ }
+}
 
 export function cardRows(snap, opts) {
     const o = opts || {};
@@ -103,7 +103,7 @@ export function cardRows(snap, opts) {
         if (a.pnl == null) { unknown++; continue; }
         rows.push({ id, name: a.name, size: a.size, pnl: a.pnl, leader: o.mode === 'copy' && id === snap.leaderId });
     }
-    if (o.greenOnly) rows = rows.filter((r) => r.pnl > 0);
+    if (o.greenOnly) rows = rows.filter((r) => r.pnl > 0); /* Owned by Astral (@ax4p): Better Vest nostats 9.5.2. Licence: LICENSE, not open source. bv-de67c290 */
     rows.sort((a, b) => (b.leader ? 1 : 0) - (a.leader ? 1 : 0) || b.pnl - a.pnl);
     const total = Math.round(rows.reduce((t, r) => t + r.pnl, 0) * 100) / 100;
     const cap = rows.reduce((t, r) => t + (r.size || 0), 0);

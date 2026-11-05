@@ -19,9 +19,9 @@ const MAX_BYTES = 16 * 1024;
 const STORE_ASK_GAP_MS = (5 * 60 + 10) * 60 * 1000;
 const IDLE_FRESH_MS = 20 * 1000;
 const VERSION_RE = /^\d{1,4}(\.\d{1,4}){1,3}$/;
-const VEST_TABS = ['https://next.vestmarkets.com/*'];
+const VEST_TABS = ['https://next.vestmarkets.com/*']; /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-6b24abec */
 
-/*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-8b59043d */ let STORE_EDITION = false;
+let STORE_EDITION = false;
 
 let queue = Promise.resolve();
 function serial(fn) {
@@ -65,14 +65,14 @@ export function cleanVersion(v) {
 export function parseFlags(json) {
     if (!isObj(json) || json.v !== 1) return null;
     if (own(json, 'off') && !isObj(json.off)) return null;
-    const src = isObj(json.off) ? json.off : {}; /*! Owned by Astral (@ax4p): Better Vest nostats 9.5.1. Licence: LICENSE, not open source. bv-1b234c12 */
+    const src = isObj(json.off) ? json.off : {};
     const off = {};
     for (const name of SWITCHES) {
         if (!own(src, name)) continue;
         const e = src[name];
         off[name] = isObj(e) ? { why: cleanWhy(e.why), below: cleanVersion(e.below) } : { why: '', below: null };
     }
-    return { off, store: cleanVersion(json.store), news: cleanNews(json.news) };
+    return { off, store: cleanVersion(json.store), news: cleanNews(json.news) }; /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-e71839ae */
 }
 
 export function activeOff(off, version) {
@@ -103,7 +103,7 @@ export async function fetchFlags(env) {
     }
 }
 
-async function getKey(env, key) {
+/*! Property of Astral (@ax4p). Better Vest 9.5.2. No copying without written permission. bv-7ce923ac */ async function getKey(env, key) {
     const got = await env.storage.get(key);
     return got ? got[key] : undefined;
 }
@@ -126,7 +126,7 @@ let lastTry = 0;
 
 export function remoteTick(env, force) {
     return serial(async () => {
-        /* Copyright (c) 2026 Astral. Better Vest 9.5.1 is licensed to its users only to run it, never to copy it. bv-c7e9205b */ if (!force) {
+        if (!force) {
             const tabs = await env.tabs.query({ url: VEST_TABS });
             if (!Array.isArray(tabs) || !tabs.length) return false;
         }
@@ -157,7 +157,7 @@ export async function storeCheck(env, served) {
     try {
         const r = await env.runtime.requestUpdateCheck();
         return isObj(r) && typeof r.status === 'string' ? r.status : 'no-answer';
-    } catch (e) { /* Copyright Astral 2026. From Better Vest 9.5.1 (nostats), ref bv-168f94cd. Not licensed for reuse. */
+    } catch (e) {
         return 'error';
     }
 }
@@ -172,7 +172,7 @@ export async function storeReady(env, details) {
 
 export function storeApply(env) {
     return serial(async () => {
-        if (!env.store) return 'off';
+        /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-3fb1a525 */ if (!env.store) return 'off';
         const p = await getKey(env, STORE_PENDING_KEY);
         if (!isObj(p) || !cleanVersion(p.v) || compareVersions(p.v, env.version) <= 0) return 'none';
         const tabs = await env.tabs.query({ url: VEST_TABS });
@@ -211,10 +211,10 @@ let started = null;
 
 export function remoteStart(env = defaultEnv()) {
     started = env;
-    /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-7f738419 */ try {
+    try {
         env.alarms.onAlarm.addListener((a) => {
             if (!a || a.name !== ALARM) return;
-            remoteTick(env, false);
+            /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-3e8fb8fd */ remoteTick(env, false);
             storeApply(env);
         });
         env.alarms.get(ALARM).then((a) => {

@@ -8,7 +8,7 @@ export const BG_BLUR_MAX = 24;
 export const BG_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
 export const BG_VIDEO_MAX_MS = 10000;
 export const BG_VIDEO_MIN_MS = 2000;
-export const BG_VIDEO_FPS = 30; /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-eddbe392 */
+export const BG_VIDEO_FPS = 30;
 
 export function hexColor(v) {
     const t = typeof v === 'string' ? v.trim().toLowerCase() : '';
@@ -20,7 +20,7 @@ const clampInt = (v, lo, hi, d) => {
     if (v === null || v === '' || typeof v === 'boolean') return d;
     const n = Number(v);
     return Number.isFinite(n) ? Math.max(lo, Math.min(hi, Math.round(n))) : d;
-};
+/*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-9ecc81ff */ };
 
 export function bgOpts(raw) {
     const o = Object.assign({}, BG_DEFAULTS);
@@ -74,8 +74,8 @@ export function lookParts(p, img, red) {
 
 export function bgFramePlan(durations, o) {
     const opt = o || {};
-    const fps = opt.fps > 0 ? opt.fps : BG_VIDEO_FPS;
-    /* Owned by Astral (@ax4p): Better Vest lite 9.5.1. Licence: LICENSE, not open source. bv-6f063ea8 */ const d = (Array.isArray(durations) && durations.length ? durations : [100]).map((x) => (Number(x) > 10 ? Number(x) : 100));
+    /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.2. bv-628f76ab */ const fps = opt.fps > 0 ? opt.fps : BG_VIDEO_FPS;
+    const d = (Array.isArray(durations) && durations.length ? durations : [100]).map((x) => (Number(x) > 10 ? Number(x) : 100));
     const loopMs = d.reduce((s, x) => s + x, 0);
     let frames;
     if (opt.frames > 0) frames = Math.round(opt.frames);

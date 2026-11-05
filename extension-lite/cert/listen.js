@@ -14,7 +14,7 @@ function useFlush() {
     clearTimeout(USE.timer);
     USE.timer = 0;
     const n = USE.n;
-    /*! Property of Astral (@ax4p). Better Vest 9.5.1. No copying without written permission. bv-2052ea92 */ USE.n = {};
+    USE.n = {};
     if (!Object.keys(n).length) return;
     try { chrome.runtime.sendMessage({ type: 'usage', op: 'use', n }).catch(() => {}); } catch (e) {}
 }
@@ -23,7 +23,7 @@ const RELEASE_MS = 700;
 const st = {
     cfg: { on: false, mode: 'ptt', open: true }, rec: null, running: false, want: false, sess: 0, backoff: 300,
     texts: new Map(),
-    fired: new Map(),
+    /*! Copyright (c) 2026 Astral. Better Vest 9.5.2 is licensed to its users only to run it, never to copy it. bv-e19898de */ fired: new Map(),
     wait: null,
     span: null,
     seq: 0, lastKey: '', heardTimer: 0, phrases: true, offTold: false
@@ -68,8 +68,8 @@ function setCfg(c) {
 
 function start() {
     if (st.running || st.rec || !st.want) return;
-    let r; /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-36b8c3e1 */
-    try { r = new REC(); } catch (e) { show('off', 'Chrome could not start its speech engine.'); return; }
+    let r;
+    try { r = new REC(); } catch (e) { show('off', 'Chrome could not start its speech engine.'); return; } /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-5f7268ed */
     r.lang = 'en-US';
     r.continuous = true;
     r.interimResults = true;
@@ -88,7 +88,7 @@ function start() {
         else if (err === 'language-not-supported') { st.want = false; show('off', 'Chrome has no English speech model on this computer.', 'vc.noEngine'); }
         else if (err === 'audio-capture') show('off', 'No microphone found.');
     };
-    r.onend = () => { /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-3b387ae3 */
+    r.onend = () => {
         st.running = false;
         st.rec = null;
         st.texts.clear();
@@ -106,7 +106,7 @@ function onResult(e) {
         const res = e.results[i];
         const text = String(res[0] && res[0].transcript || '');
         const key = st.sess + ':' + i;
-        st.texts.set(key, { text, fin: !!res.isFinal });
+        st.texts.set(key, { text, fin: !!res.isFinal }); /*! Copyright Astral 2026. From Better Vest 9.5.2 (lite), ref bv-2e3a92a6. Not licensed for reuse. */
         st.lastKey = key;
         if (text.trim()) heard(text);
         if (st.cfg.mode === 'ptt') { if (st.span) { st.span.keys.add(key); if (st.span.up) pttCheck(false); } }
@@ -128,9 +128,9 @@ function wakeCheck(key, text, fin) {
         const now = st.texts.get(key);
         if (!now || now.text !== text || (st.fired.get(key) || 0) >= text.length) return;
         st.fired.set(key, text.length);
-        send(c);
+        /*! Better Vest (c) 2026 Astral. All rights reserved. bv-14681146 */ send(c);
     }, WAIT_MS) };
-} /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-63830b78 */
+}
 
 
 function pttDown() {
@@ -163,7 +163,7 @@ function pttCheck(last) {
     const sp = st.span;
     if (!sp || !sp.up) return;
     const text = spanText(sp);
-    const c = vcParse(text, { wake: false });
+    const c = vcParse(text, { wake: false }); /* Copyright Astral 2026. From Better Vest 9.5.2 (lite), ref bv-436fa28d. Not licensed for reuse. */
     const fin = [...sp.keys].every((k) => (st.texts.get(k) || {}).fin);
     if (c && (!c.grows || fin || last)) return pttEnd(c);
     if (!last && (c || vcPending(text, { wake: false }) || !text)) return;
@@ -183,7 +183,7 @@ async function send(c) {
     const seq = ++st.seq;
     use('vc.heard');
     did(LABEL[c.id] + '…', '');
-    let r = null; /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-e2cf8f3d */
+    let r = null;
     try { r = await chrome.runtime.sendMessage({ type: 'vc-cmd', id: c.id, said: c.said, seq }); } catch (e) {}
     if (seq !== st.seq) return;
     if (!r || !r.sent) did(r && r.why ? r.why : 'No Vest tab answered.', 'bad');
@@ -206,7 +206,7 @@ async function boot() {
     talk.addEventListener('pointerdown', (e) => { if (e.button === 0) { talk.setPointerCapture(e.pointerId); pttDown(); } });
     const up = () => pttUp();
     talk.addEventListener('pointerup', up);
-    talk.addEventListener('pointercancel', up); /* Property of Astral (@ax4p). Better Vest 9.5.1. No copying without written permission. bv-20286fa9 */
+    talk.addEventListener('pointercancel', up);
     addEventListener('keydown', (e) => { if ((e.code === 'Space' || e.code === 'Enter') && !e.repeat) { e.preventDefault(); pttDown(); } });
     addEventListener('keyup', (e) => { if (e.code === 'Space' || e.code === 'Enter') pttUp(); });
     addEventListener('pagehide', () => { try { chrome.storage.local.set({ vcWin: { left: screenX, top: screenY } }); } catch (e) {} useFlush(); });
@@ -226,7 +226,7 @@ async function boot() {
             try { a = await REC.available({ langs: ['en-US'], processLocally: true }); } catch (e) {}
             if (!ok && a !== 'available') { show('off', 'Chrome could not get its speech model. Open this window again later.', 'vc.noEngine'); return; }
         }
-    } else if (!globalThis.__bvVcRec) {
+    } else if (!globalThis.__bvVcRec) { /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-90134e2e */
         show('off', 'This Chrome is too old for voice commands on this computer.', 'vc.noEngine');
         return;
     }

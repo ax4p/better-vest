@@ -12,7 +12,7 @@ export const NAME_MAX = 28;
 const ASSET = new URL('./assets/', import.meta.url).href;
 export const CARD_CSS = new URL('./card.css', import.meta.url).href;
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
-/*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-4eb4ac1d */ const f2 = (n) => (Math.round(n * 100) / 100).toFixed(2);
+const f2 = (n) => (Math.round(n * 100) / 100).toFixed(2);
 
 export function fmtMoneyParts(v) {
     const cents = Math.round(Math.abs(v) * 100);
@@ -36,7 +36,7 @@ function bars(vals, w, h, gap, uid) {
         const x = i * (bw + gap);
         if (!(v > 0)) {
             out += `<rect x="${x.toFixed(2)}" y="${h - 1}" width="${bw.toFixed(2)}" height="1" rx=".5" fill="rgb(255 255 255 / .18)"/>`;
-            return;
+            return; /* @license Better Vest 9.5.2. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-2343817c */
         }
         const bh = Math.max(1.5, (f(v) / mx) * (h - 2));
         out += `<rect x="${x.toFixed(2)}" y="${(h - bh).toFixed(2)}" width="${bw.toFixed(2)}" height="${bh.toFixed(2)}" rx="${Math.min(1.5, bw / 2).toFixed(2)}" fill="url(#bvg-${uid})"/>`;
@@ -77,7 +77,7 @@ export function buildCard(S, opts = {}) {
     }
 
     const cell = (label, value) => `<div class="bvc-stat"><dt class="bvc-lbl">${label}</dt><dd class="bvc-val">${esc(value)}</dd></div>`;
-    /*! Copyright (c) 2026 Astral. Better Vest 9.5.1 is licensed to its users only to run it, never to copy it. bv-5a6b58ce */ const html = `${backdrop()}
+    const html = `${backdrop()}
  <div class="bvc-a bvc-vw" style="left:30px;top:30px">VEST</div>
  <div class="bvc-a" data-k="head" style="left:30px;top:${Y.hero}px;width:355.5px;text-align:center">
   <p class="bvc-kick">Total Payouts</p>
@@ -95,7 +95,7 @@ export function buildCard(S, opts = {}) {
  </div>
  <p class="bvc-a bvc-prov" style="left:20px;top:560px;width:375px">${esc(PROVENANCE)}</p>`;
 
-    const el = document.createElement('div');
+    /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.2. bv-ca3a5adf */ const el = document.createElement('div');
     el.className = 'bvc';
     el.setAttribute('data-bv-cert', '1');
     el.innerHTML = html;

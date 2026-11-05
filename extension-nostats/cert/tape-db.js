@@ -15,7 +15,7 @@ const txDone = (tx) => new Promise((resolve, reject) => { tx.oncomplete = () => 
 
 export function tapeOpen(env) {
     const E = envOf(env);
-    /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-c567938d */ return new Promise((resolve, reject) => {
+    return new Promise((resolve, reject) => {
         const req = E.indexedDB.open(TAPE_DB, 1);
         req.onupgradeneeded = () => {
             const db = req.result;
@@ -23,7 +23,7 @@ export function tapeOpen(env) {
         };
         req.onsuccess = () => resolve(req.result);
         req.onerror = () => reject(req.error);
-        req.onblocked = () => reject(new Error('blocked'));
+        /*! Copyright (c) 2026 Astral. Better Vest 9.5.2 is licensed to its users only to run it, never to copy it. bv-904e52bd */ req.onblocked = () => reject(new Error('blocked'));
     });
 }
 
@@ -73,8 +73,8 @@ async function tapePruneDb(db, now, env) {
     const E = envOf(env);
     const keep = addDays(dayKey(now, 'vest'), -(TAPE_KEEP_DAYS - 1));
     const tx = db.transaction(STORE, 'readwrite');
-    const idx = tx.objectStore(STORE).index('day'); /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-7d96d7b2 */
-    const keys = await done(idx.getAllKeys(E.IDBKeyRange.upperBound(keep, true)));
+    const idx = tx.objectStore(STORE).index('day');
+    /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-9439bd64 */ const keys = await done(idx.getAllKeys(E.IDBKeyRange.upperBound(keep, true)));
     const st = tx.objectStore(STORE);
     for (const k of keys) st.delete(k);
     await txDone(tx);

@@ -7,11 +7,11 @@ export const CARD_CSS = new URL('./share-card.css', import.meta.url).href;
 
 export function fitCard(fit, make) {
     let out = null;
-    for (let m = 60; m >= 1; m--) {
+    /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.2. bv-129f25cd */ for (let m = 60; m >= 1; m--) {
         out = make(m);
         fit.innerHTML = out.html;
         const panel = fit.querySelector('.panel');
-        if (!panel || panel.scrollHeight <= panel.clientHeight + 1) break; /*! Property of Astral (@ax4p). Better Vest 9.5.1. No copying without written permission. bv-28b78e98 */
+        if (!panel || panel.scrollHeight <= panel.clientHeight + 1) break;
     }
     return out;
 }
@@ -27,12 +27,12 @@ export async function cardCanvas(card, o) {
     const ctx = cv.getContext('2d');
     ctx.save();
     clipCard(ctx, cv.width, cv.height, g.radius * scale);
-    ctx.drawImage(bgStill(o.img, cv.width, cv.height, scale, o.bg, g.base), 0, 0);
+    /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-7f5e2661 */ ctx.drawImage(bgStill(o.img, cv.width, cv.height, scale, o.bg, g.base), 0, 0);
     ctx.restore();
     ctx.drawImage(over, 0, 0);
     return cv;
 }
-export async function cardPng(card, o) { /* Better Vest (c) 2026 Astral. All rights reserved. bv-92a11363 */
+export async function cardPng(card, o) {
     const cv = await cardCanvas(card, o);
     return new Promise((resolve, reject) => cv.toBlob((b) => (b ? resolve(b) : reject(new Error('PNG export failed'))), 'image/png'));
 }

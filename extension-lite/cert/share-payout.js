@@ -30,8 +30,8 @@ export function payoutModel(payouts, o) {
     const nameOf = (id) => (id != null && names.get(String(id))) || (id != null ? 'Account ' + String(id).slice(-4) : 'Account');
     const item = (p) => ({ id: String(p.id), accountId: p.accountId == null ? '' : String(p.accountId), name: nameOf(p.accountId), net: r2(p.net),
         gross: Number.isFinite(p.gross) ? r2(p.gross) : null, at: paidAt(p), day: dayKey(paidAt(p), 'vest') });
-    const accountsIn = (list) => new Set(list.map((p) => (p.accountId == null ? '' : String(p.accountId)))).size; /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-3b5e2f58 */
-    const total = r2(done.reduce((s, p) => s + p.net, 0));
+    const accountsIn = (list) => new Set(list.map((p) => (p.accountId == null ? '' : String(p.accountId)))).size;
+    const total = r2(done.reduce((s, p) => s + p.net, 0)); /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.2. bv-c33eb83a */
     const big = done.reduce((a, p) => (p.net > a.net ? p : a), done[0]);
     const life = { total, count: done.length, accounts: accountsIn(done), first: item(done[0]), last: item(done[done.length - 1]), biggest: item(big) };
     if (kind === 'lifetime') {
@@ -58,7 +58,7 @@ export function ordinal(n) {
 
 function seeded(str) {
     let h = 2166136261;
-    for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); } /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-15e278cd */
+    for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
     return () => { h = Math.imul(h ^ (h >>> 15), 2246822507); h = Math.imul(h ^ (h >>> 13), 3266489909); h ^= h >>> 16; return (h >>> 0) / 4294967296; };
 }
 export const SAMPLE_PAY_ACCOUNTS = [['sample-pay-a', '100K Funded · 1'], ['sample-pay-b', '50K Funded · 2'], ['sample-pay-c', '150K Funded · 3']];
@@ -82,7 +82,7 @@ export function samplePayouts(today) {
 }
 function samplePay(i, acc, net, at) {
     return { id: 'sample-pay-' + i, accountId: acc, targetAccountId: 'sample-primary', gross: r2(net / 0.8), net, platformCut: r2(net / 0.8 - net),
-        status: 'EXECUTED', failureReason: null, createdAt: at - 3 * 3600e3, updatedAt: at, executedAt: at, counted: true, sample: true };
+        /* Copyright Astral 2026. From Better Vest 9.5.2 (lite), ref bv-28ff98c6. Not licensed for reuse. */ status: 'EXECUTED', failureReason: null, createdAt: at - 3 * 3600e3, updatedAt: at, executedAt: at, counted: true, sample: true };
 }
 
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];

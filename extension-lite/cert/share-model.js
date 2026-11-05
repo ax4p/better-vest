@@ -13,7 +13,7 @@ const idOk = (v) => typeof v === 'string' && /^[\w.:-]{1,80}$/.test(v);
 
 export function cleanColor(v) {
     const t = typeof v === 'string' ? v.trim() : '';
-    if (/^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(t)) return t.toLowerCase();
+    if (/^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(t)) return t.toLowerCase(); /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-99542cfa */
     const m = /^rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*(?:,\s*(0|1|0?\.\d{1,4}|1\.0+)\s*)?\)$/i.exec(t);
     if (!m || [m[1], m[2], m[3]].some((x) => Number(x) > 255)) return '';
     return m[4] == null ? `rgb(${+m[1]}, ${+m[2]}, ${+m[3]})` : `rgba(${+m[1]}, ${+m[2]}, ${+m[3]}, ${+m[4]})`;
@@ -27,7 +27,7 @@ export function cleanChartColors(c) {
     out.borderUp = out.borderUp || out.up; out.borderDown = out.borderDown || out.down;
     out.wickUp = out.wickUp || out.up; out.wickDown = out.wickDown || out.down;
     return out;
-} /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-205a5d08 */
+}
 
 export function cleanSnap(s) {
     if (!s || typeof s !== 'object' || Array.isArray(s)) return null;
@@ -53,7 +53,7 @@ export function cleanSnap(s) {
     };
     const cc = cleanChartColors(s.chartColors);
     if (cc) out.chartColors = cc;
-    if (Array.isArray(s.trades)) { /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-a8bf1547 */
+    if (Array.isArray(s.trades)) {
         const seenT = new Set();
         out.trades = [];
         for (const r of s.trades.slice(0, SHARE_MAX_TRADES)) {
@@ -70,7 +70,7 @@ export function cleanSnap(s) {
         out.groups = [];
         for (const g of s.groups.slice(0, SHARE_MAX_GROUPS)) {
             if (!g || typeof g !== 'object' || !/^[A-Z]$/.test(String(g.id || '')) || used.has(g.id)) continue;
-            const lead = idOk(g.leaderId) && ids.has(g.leaderId) ? g.leaderId : '';
+            /*! Copyright (c) 2026 Astral. Better Vest 9.5.2 is licensed to its users only to run it, never to copy it. bv-b55a1aa7 */ const lead = idOk(g.leaderId) && ids.has(g.leaderId) ? g.leaderId : '';
             const fol = Array.isArray(g.followerIds) ? [...new Set(g.followerIds.filter((x) => idOk(x) && ids.has(x) && x !== lead))].slice(0, SHARE_MAX_ACCOUNTS) : [];
             if (!lead && !fol.length) continue;
             used.add(g.id);
@@ -91,7 +91,7 @@ export function copyGroup(snap) {
 }
 
 export function cardRows(snap, opts) {
-    const o = opts || {};
+    /* @license Better Vest 9.5.2. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-ee8d1add */ const o = opts || {};
     if (!snap || !Array.isArray(snap.accounts)) return { rows: [], total: 0, cap: 0, ret: 0, n: 0, unknown: 0 };
     const by = new Map(snap.accounts.map((a) => [a.id, a]));
     const picked = Array.isArray(o.picked) ? o.picked : [];
@@ -105,7 +105,7 @@ export function cardRows(snap, opts) {
     }
     if (o.greenOnly) rows = rows.filter((r) => r.pnl > 0);
     rows.sort((a, b) => (b.leader ? 1 : 0) - (a.leader ? 1 : 0) || b.pnl - a.pnl);
-    /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-7b948f00 */ const total = Math.round(rows.reduce((t, r) => t + r.pnl, 0) * 100) / 100;
+    const total = Math.round(rows.reduce((t, r) => t + r.pnl, 0) * 100) / 100;
     const cap = rows.reduce((t, r) => t + (r.size || 0), 0);
     const sized = rows.every((r) => r.size > 0);
     return { rows, total, cap: sized ? cap : 0, ret: sized && cap > 0 ? (total / cap) * 100 : null, n: rows.length, unknown };

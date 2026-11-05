@@ -10,7 +10,7 @@ export const THEMES = {
         text: '#e2e8f0', muted: '#94a3b8', dim: '#64748b', accent: '#38bdf8', accentText: '#7dd3fc', sel: '#2563eb',
         up: '#34d399', down: '#f87171', upBtn: '#047857', downBtn: '#b91c1c', warn: '#f59e0b', big: '#fde68a',
         glow: 'rgba(56, 189, 248, 0.35)', shadow: 'rgba(0, 0, 0, 0.65)',
-        chart: {
+        chart: { /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-bd92ff54 */
             bg: '#000000', grid: 'rgba(51, 65, 85, 0.28)', text: '#ffffff', line: '#ffffff', crosshair: '#ffffff', prevClose: true,
             up: '#b8b8b8', down: '#4a4a4a', borderUp: '#4a4a4a', borderDown: '#4a4a4a', wickUp: '#4a4a4a', wickDown: '#4a4a4a'
         }
@@ -24,7 +24,7 @@ export const THEMES = {
         text: '#e4e4e7', muted: '#a1a1aa', dim: '#71717a', accent: '#60a5fa', accentText: '#93c5fd', sel: '#3b82f6',
         up: '#22c55e', down: '#ef4444', upBtn: '#15803d', downBtn: '#b91c1c', warn: '#f59e0b', big: '#fcd34d',
         glow: 'rgba(96, 165, 250, 0.28)', shadow: 'rgba(0, 0, 0, 0.6)',
-        chart: { /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-042b6e07 */
+        chart: {
             bg: '#0f0f11', grid: 'rgba(63, 63, 70, 0.32)', text: '#a1a1aa', up: '#00d68f', down: '#ff3b5c',
             borderUp: '#00d68f', borderDown: '#ff3b5c', wickUp: '#00d68f', wickDown: '#ff3b5c'
         }
@@ -61,7 +61,7 @@ export const THEMES = {
         up: '#34d399', down: '#fb7185', upBtn: '#047857', downBtn: '#be123c', warn: '#f0abfc', big: '#fde68a',
         glow: 'rgba(192, 132, 252, 0.35)', shadow: 'rgba(0, 0, 0, 0.7)',
         chart: { bg: '#0b0616', grid: 'rgba(139, 92, 246, 0.12)', text: '#a78bfa', up: '#34d399', down: '#fb7185' }
-    },
+    }, /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-c3082137 */
     starfield: {
         label: 'Starfield', tv: 'dark', tokens: true, stars: true, base: 'transparent', card: '#060608',
         page: '#000000', pageInner: 'transparent',
@@ -69,7 +69,7 @@ export const THEMES = {
         field: 'rgba(10, 10, 12, 0.9)', fieldText: '#f4f4f5', fieldLine: '#27272a',
         raised: 'rgba(6, 6, 8, 0.9)', inset: '#050506', btn: '#16161a', line: '#2a2a30',
         text: '#f4f4f5', muted: '#a1a1aa', dim: '#6b6b74', accent: '#e4e4e7', accentText: '#ffffff', sel: '#3f3f46',
-        /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.1. bv-1383f447 */ up: '#86efac', down: '#fca5a5', upBtn: '#15803d', downBtn: '#b91c1c', warn: '#fde68a', big: '#fef3c7',
+        up: '#86efac', down: '#fca5a5', upBtn: '#15803d', downBtn: '#b91c1c', warn: '#fde68a', big: '#fef3c7',
         glow: 'rgba(255, 255, 255, 0.22)', shadow: 'rgba(0, 0, 0, 0.85)',
         chart: { bg: '#000000', grid: 'rgba(255, 255, 255, 0.035)', text: '#9ca3af', up: '#f4f4f5', down: '#000000', borderDown: '#d4d4d8', wickDown: '#d4d4d8' }
     },
@@ -88,7 +88,7 @@ export const THEMES = {
         label: 'Native', tv: 'dark', tokens: true, base: '#0f0f0f', card: '#121714',
         page: '#0f0f0f',
         chrome: 'rgba(15, 15, 15, 0.97)', chromeLine: '#292929', surface: '#121714',
-        field: '#1a1a1a', fieldText: '#f2f2f2', fieldLine: '#292929',
+        field: '#1a1a1a', fieldText: '#f2f2f2', fieldLine: '#292929', /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.2. bv-c448cb2d */
         raised: 'rgba(21, 24, 22, 0.97)', inset: '#0f0f0f', btn: '#262626', line: '#292929',
         text: '#f2f2f2', muted: '#a3a3a3', dim: '#717171', accent: '#57bc8a', accentText: '#88d8ae', sel: '#3b805e',
         up: '#00d98e', down: '#de1c4e', upBtn: '#008758', downBtn: '#de1c4e', warn: '#f2b200', big: '#fde68a',
@@ -102,7 +102,7 @@ export const THEMES = {
         field: '#21222c', fieldText: '#f8f8f2', fieldLine: '#44475a',
         raised: 'rgba(40, 42, 54, 0.97)', inset: '#21222c', btn: '#343746', line: '#44475a',
         text: '#f8f8f2', muted: '#bcc2d3', dim: '#6272a4', accent: '#bd93f9', accentText: '#d6bcfa', sel: '#8467ae',
-        /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-c9db8bc6 */ up: '#50fa7b', down: '#ff5555', upBtn: '#2b8742', downBtn: '#cc4444', warn: '#ffb86c', big: '#f1fa8c',
+        up: '#50fa7b', down: '#ff5555', upBtn: '#2b8742', downBtn: '#cc4444', warn: '#ffb86c', big: '#f1fa8c',
         glow: 'rgba(189, 147, 249, 0.3)', shadow: 'rgba(0, 0, 0, 0.6)',
         chart: { bg: '#282a36', grid: 'rgba(98, 114, 164, 0.16)', text: '#a6aec7', up: '#50fa7b', down: '#ff5555' }
     },
@@ -146,7 +146,7 @@ function thLum(hex) {
     return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
 }
 function thContrast(a, b) { const x = thLum(a), y = thLum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); }
-function thBtn(hex) { /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-97ef7356 */
+function thBtn(hex) {
     let c = hex;
     for (let t = 0; t <= 0.9 && thContrast(c, '#ffffff') < 4.5; t += 0.02) c = thMix(hex, '#000000', t);
     return c;
@@ -160,7 +160,7 @@ export function customTheme(c) {
     const inset = thMix(k.bg, k.panel, 0.35);
     let mt = 0.32;
     while (mt > 0 && thContrast(thMix(k.text, k.panel, mt), inset) < 4.5) mt = Math.max(0, mt - 0.04);
-    return {
+    return { /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-2e5d5e14 */
         label: 'Custom', tv: light ? 'light' : 'dark', tokens: true, light, base: k.bg, card: k.panel, page: k.bg,
         chrome: thRgba(k.bg, 0.96), chromeLine: thRgba(thMix(k.bg, k.text, 0.5), 0.18), surface: k.panel,
         field: thMix(k.bg, k.panel, 0.5), fieldText: k.text, fieldLine: thMix(k.panel, k.text, 0.18),

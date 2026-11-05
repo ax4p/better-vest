@@ -34,7 +34,7 @@ export function cleanSnap(s) {
     if (!Array.isArray(s.accounts)) return null;
     const accounts = [];
     const seen = new Set();
-    for (const a of s.accounts.slice(0, SHARE_MAX_ACCOUNTS)) { /*! Copyright Astral 2026. From Better Vest 9.5.1 (standard), ref bv-1dcdacda. Not licensed for reuse. */
+    for (const a of s.accounts.slice(0, SHARE_MAX_ACCOUNTS)) { /* Copyright Astral 2026. From Better Vest 9.5.2 (standard), ref bv-a2e5fcb1. Not licensed for reuse. */
         if (!a || typeof a !== 'object' || !idOk(a.id) || seen.has(a.id)) continue;
         seen.add(a.id);
         const size = num(a.size);
@@ -53,7 +53,7 @@ export function cleanSnap(s) {
     };
     const cc = cleanChartColors(s.chartColors);
     if (cc) out.chartColors = cc;
-    if (Array.isArray(s.trades)) {
+    /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.2. bv-9255d2c4 */ if (Array.isArray(s.trades)) {
         const seenT = new Set();
         out.trades = [];
         for (const r of s.trades.slice(0, SHARE_MAX_TRADES)) {
@@ -62,7 +62,7 @@ export function cleanSnap(s) {
             seenT.add(c.positionId);
             out.trades.push(c);
         }
-        /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-c4e42a78 */ out.tradesCut = s.tradesCut === true;
+        out.tradesCut = s.tradesCut === true;
         out.tradesErr = /^[a-z-]{1,24}$/.test(String(s.tradesErr || '')) ? String(s.tradesErr) : '';
     }
     if (Array.isArray(s.groups)) {
@@ -93,7 +93,7 @@ export function copyGroup(snap) {
 export function cardRows(snap, opts) {
     const o = opts || {};
     if (!snap || !Array.isArray(snap.accounts)) return { rows: [], total: 0, cap: 0, ret: 0, n: 0, unknown: 0 };
-    const by = new Map(snap.accounts.map((a) => [a.id, a])); /* @license Better Vest 9.5.1. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-92707f72 */
+    const by = new Map(snap.accounts.map((a) => [a.id, a]));
     const picked = Array.isArray(o.picked) ? o.picked : [];
     let unknown = 0;
     let rows = [];
@@ -112,7 +112,7 @@ export function cardRows(snap, opts) {
 }
 
 export function dayLong(day) {
-    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(day || ''));
+    /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-cc4573c0 */ const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(day || ''));
     if (!m) return '';
     const d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));
     return d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).replace(/^(\w+) /, '$1, ');

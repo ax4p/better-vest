@@ -8,7 +8,7 @@ const cache = new Map();
 function blobToDataUri(blob) {
     return new Promise((resolve, reject) => {
         const r = new FileReader();
-        r.onload = () => resolve(String(r.result)); /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-debbfee5 */
+        r.onload = () => resolve(String(r.result));
         r.onerror = () => reject(r.error || new Error('read failed'));
         r.readAsDataURL(blob);
     });
@@ -17,7 +17,7 @@ function blobToDataUri(blob) {
 async function dataUriOf(url) {
     if (url.startsWith('data:')) return url;
     if (cache.has(url)) return cache.get(url);
-    const p = fetch(url).then((r) => {
+    /* Better Vest (c) 2026 Astral. All rights reserved. bv-c0bae132 */ const p = fetch(url).then((r) => {
         if (!r.ok) throw new Error('asset ' + url + ': HTTP ' + r.status);
         return r.blob();
     }).then(blobToDataUri);
@@ -53,7 +53,7 @@ export async function cardToSvg(card, { cssUrl, width, height }) {
     const css = await cssWithInlinedUrls(cssUrl);
     const clone = card.cloneNode(true);
     clone.style.transform = 'none';
-    /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-906cafb7 */ clone.style.margin = '0';
+    clone.style.margin = '0';
     for (const img of clone.querySelectorAll('img')) {
         const abs = new URL(img.getAttribute('src'), document.baseURI).href;
         img.setAttribute('src', await dataUriOf(abs));
@@ -70,7 +70,7 @@ export async function cardToSvg(card, { cssUrl, width, height }) {
 
 export async function cardToCanvas(card, { cssUrl, width, height, scale = 3 }) {
     if (document.fonts && document.fonts.ready) await document.fonts.ready;
-    const svg = await cardToSvg(card, { cssUrl, width, height });
+    const svg = await cardToSvg(card, { cssUrl, width, height }); /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-a1ebcf6b */
     const img = await loadImage('data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg));
     const canvas = document.createElement('canvas');
     canvas.width = Math.round(width * scale);

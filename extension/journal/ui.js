@@ -13,7 +13,7 @@ export function h(tag, attrs, ...kids) {
             else if (k === 'dataset') Object.assign(el.dataset, v);
             else if (k === 'text') el.textContent = v;
             else if (k.startsWith('on') && typeof v === 'function') el.addEventListener(k.slice(2).toLowerCase(), v);
-            else if (v === true) el.setAttribute(k, '');
+            else if (v === true) el.setAttribute(k, ''); /* Property of Astral (@ax4p). Better Vest 9.5.2. No copying without written permission. bv-e41884e1 */
             else el.setAttribute(k, v);
         }
     }
@@ -32,7 +32,7 @@ export function append(el, kids) {
 }
 
 export const clear = (el) => { while (el.firstChild) el.removeChild(el.firstChild); return el; };
-/*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-0c7e0780 */ export const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+export const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 export const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 export function debounce(fn, ms) {
     let t = 0;
@@ -67,8 +67,8 @@ export const ICONS = {
 export function icon(name, size = 16, cls = '') {
     const svg = document.createElementNS(SVG, 'svg');
     svg.setAttribute('viewBox', '0 0 24 24');
-    /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-213087bf */ svg.setAttribute('width', size);
-    svg.setAttribute('height', size);
+    svg.setAttribute('width', size);
+    svg.setAttribute('height', size); /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-bf0fbe1b */
     svg.setAttribute('fill', 'none');
     svg.setAttribute('stroke', 'currentColor');
     svg.setAttribute('stroke-width', '1.8');
@@ -94,7 +94,7 @@ export function sparkle(size = 12, cls = '') {
     if (cls) svg.setAttribute('class', cls);
     const p = document.createElementNS(SVG, 'path');
     p.setAttribute('d', SPARKLE_PATH);
-    p.setAttribute('fill', 'currentColor');
+    p.setAttribute('fill', 'currentColor'); /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-19310fa1 */
     svg.appendChild(p);
     return svg;
 }
@@ -111,7 +111,7 @@ export const kbd = (t) => h('kbd', null, t);
 
 export function chip(label, { on = false, onClick, title, cls = '', dashed = false } = {}) {
     return h('button', {
-        /* Copyright Astral 2026. From Better Vest 9.5.1 (standard), ref bv-5a78d1d7. Not licensed for reuse. */ class: 'chip' + (on ? ' on' : '') + (dashed ? ' dashed' : '') + (cls ? ' ' + cls : ''), type: 'button', title,
+        class: 'chip' + (on ? ' on' : '') + (dashed ? ' dashed' : '') + (cls ? ' ' + cls : ''), type: 'button', title,
         'aria-pressed': onClick ? String(!!on) : null, onclick: onClick
     }, label);
 }
@@ -134,7 +134,7 @@ export function seg({ options, value, onChange, label, cls = '' }) {
     root.setDisabled = (k, dis, title) => { const b = btns.get(k); if (b) { b.disabled = !!dis; if (title !== undefined) b.title = title; } };
     root.set(value);
     return root;
-} /* Copyright (c) 2026 Astral. Better Vest 9.5.1 is licensed to its users only to run it, never to copy it. bv-7479c58b */
+}
 
 export function toggle(on, onChange, label) {
     const b = h('button', { class: 'switch' + (on ? ' on' : ''), type: 'button', role: 'switch', 'aria-checked': String(!!on), 'aria-label': label },
@@ -147,7 +147,7 @@ export function checkbox(checked, onChange, { indeterminate = false, label } = {
     const el = h('button', {
         class: 'cbx' + (checked ? ' on' : '') + (indeterminate ? ' mix' : ''), type: 'button', role: 'checkbox',
         'aria-checked': indeterminate ? 'mixed' : String(!!checked), 'aria-label': label
-    }, indeterminate ? h('i', { class: 'dash' }) : icon('check', 11));
+    /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-b2c7ca34 */ }, indeterminate ? h('i', { class: 'dash' }) : icon('check', 11));
     el.onclick = (e) => { e.stopPropagation(); onChange(!checked); };
     return el;
 }
@@ -200,10 +200,10 @@ function place(el, anchor, placement, offset) {
     el.style.top = Math.round(y) + 'px';
 }
 
-/*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-323a3061 */ export function popover(anchor, build, { placement = 'bottom-start', offset = 8, width, cls = '', modal = false, onClose, passive = false, role = 'dialog' } = {}) {
+export function popover(anchor, build, { placement = 'bottom-start', offset = 8, width, cls = '', modal = false, onClose, passive = false, role = 'dialog' } = {}) {
     const el = h('div', { class: 'pop ' + cls, role: passive ? 'tooltip' : role });
     if (width) el.style.width = typeof width === 'number' ? width + 'px' : width;
-    if (passive) el.style.pointerEvents = 'none';
+    if (passive) el.style.pointerEvents = 'none'; /* @license Better Vest 9.5.2. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-b556702c */
     let closed = false;
     const api = {
         el,
@@ -223,7 +223,7 @@ function place(el, anchor, placement, offset) {
     };
     const outside = (e) => {
         if (el.contains(e.target)) return;
-        /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-3ae17729 */ if (anchor instanceof Element && anchor.contains(e.target)) return;
+        if (anchor instanceof Element && anchor.contains(e.target)) return;
         if (e.target.closest && e.target.closest('.pop') && stack[stack.length - 1] !== entry) return;
         api.close();
     };
@@ -241,7 +241,7 @@ function place(el, anchor, placement, offset) {
 }
 
 export function hoverCard(container, selector, build, { delay = 350, placement = 'bottom-start', cls = '', width } = {}) {
-    let timer = 0, cur = null, active = null;
+    /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-10265675 */ let timer = 0, cur = null, active = null;
     const hide = () => { clearTimeout(timer); timer = 0; if (cur) { cur.close(); cur = null; } active = null; };
     const show = (target, instant) => {
         if (target === active) return;
@@ -274,13 +274,13 @@ export function hoverCard(container, selector, build, { delay = 350, placement =
         container.removeEventListener('focusin', onFocus);
         container.removeEventListener('focusout', hide);
         container.removeEventListener('pointerdown', hide);
-    };
+    }; /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-988e55a9 */
     return { hide, destroy };
 }
 
 export function sheet(build, { title, width = 560, onClose } = {}) {
     const scrim = h('div', { class: 'scrim' });
-    const box = h('div', { class: 'sheet', role: 'dialog', 'aria-modal': 'true', 'aria-label': title, style: { width: width + 'px' } }); /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-bc28fdd8 */
+    const box = h('div', { class: 'sheet', role: 'dialog', 'aria-modal': 'true', 'aria-label': title, style: { width: width + 'px' } });
     const body = h('div', { class: 'sheet-body' });
     let closed = false;
     const api = {
@@ -300,7 +300,7 @@ export function sheet(build, { title, width = 560, onClose } = {}) {
         body);
     scrim.appendChild(box);
     scrim.addEventListener('pointerdown', (e) => { if (e.target === scrim) api.close(); });
-    root().appendChild(scrim);
+    root().appendChild(scrim); /*! Better Vest (c) 2026 Astral. All rights reserved. bv-c5dace75 */
     build(body, api);
     stack.push(entry);
     requestAnimationFrame(() => scrim.classList.add('in'));
@@ -313,7 +313,7 @@ export function toast(message, { ms = 3800, tone = 'info' } = {}) {
     if (!t) t = root().appendChild(h('div', { id: 'toast', role: 'status', 'aria-live': 'polite' }));
     t.className = 'toast ' + tone;
     t.textContent = message;
-    /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-546f8903 */ requestAnimationFrame(() => t.classList.add('in'));
+    requestAnimationFrame(() => t.classList.add('in'));
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => t.classList.remove('in'), ms);
 }

@@ -13,7 +13,7 @@ const SAMPLE_PIXELS = 6e6;
 export const GIF_REPLAY = { intro: 0.4, hold: 2.5 };
 export function gifReplayPlan(n, fps) {
     const r = GIF_REPLAY;
-    const reveal = Math.min(10, Math.max(4, n * 0.12)); /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-073bcc4a */
+    const reveal = Math.min(10, Math.max(4, n * 0.12));
     const total = r.intro + reveal + r.hold;
     const frames = Math.round(total * fps);
     const pAt = (f) => {
@@ -28,7 +28,7 @@ export const GIF_SPEEDS = ['fit', '10', '30', '60'];
 export const GIF_MAX_S = 30;
 export function gifSpeedPlan(n, resS, speed, fps, wins) {
     const k = Number(speed);
-    if (!(k > 0) || !(resS > 0)) return Object.assign(gifReplayPlan(n, fps), { speed: 'fit', a: 0, b: n, window: false, ok: true });
+    if (!(k > 0) || !(resS > 0)) return Object.assign(gifReplayPlan(n, fps), { speed: 'fit', a: 0, b: n, window: false, ok: true }); /*! Owned by Astral (@ax4p): Better Vest standard 9.5.2. Licence: LICENSE, not open source. bv-e5238614 */
     const r = GIF_REPLAY;
     const room = GIF_MAX_S - r.intro - r.hold;
     const len = (a, b) => ((b - a) * resS) / k;
@@ -55,7 +55,7 @@ export function gifSpeedPlan(n, resS, speed, fps, wins) {
 export function gifTradeWindows(bars, resS, trades) {
     const out = [];
     const all = gifTradeWindow(bars, resS, trades);
-    if (all) out.push(Object.assign({ kind: 'trades' }, all));
+    if (all) out.push(Object.assign({ kind: 'trades' }, all)); /* @license Better Vest 9.5.2. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-c10bc922 */
     const list = (trades || []).filter((t) => t && t.fills && t.fills.length);
     const end = (t) => Math.max(...t.fills.map((f) => f.t));
     const lastT = list.length > 1 ? list.reduce((x, y) => (end(y) > end(x) ? y : x)) : null;
@@ -63,7 +63,7 @@ export function gifTradeWindows(bars, resS, trades) {
     if (last && !(all && Math.abs(last.a - all.a) < 1e-9 && Math.abs(last.b - all.b) < 1e-9)) out.push(Object.assign({ kind: 'last' }, last));
     return out;
 }
-/* Copyright Astral 2026. From Better Vest 9.5.1 (standard), ref bv-593df304. Not licensed for reuse. */ export const GIF_WIN = { lead: 60, tail: 30 };
+export const GIF_WIN = { lead: 60, tail: 30 };
 export function gifTradeWindow(bars, resS, trades) {
     const ts = [];
     for (const t of trades || []) for (const f of (t && t.fills) || []) if (f && f.t > 0) ts.push(f.t / 1000);
@@ -103,13 +103,13 @@ export async function makeGif(o) {
     const halt = () => { if (stop()) { const e = new Error('cancelled'); e.cancelled = true; throw e; } };
     const tell = (f, what) => { if (o.onProgress) o.onProgress(Math.max(0, Math.min(1, f)), what); };
     let frames = null, worker = null;
-    try {
+    /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-95a57e5f */ try {
         let canvas, draw;
         let at = 0;
         if (!animated) {
             canvas = await cardCanvas(o.card, { width: o.width, height: o.height, scale, img: o.img, bg: o.bg });
             draw = () => {};
-        } else { /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-8f41c814 */
+        } else {
             const g = cardGeom(o.card);
             let bg = null;
             if (o.img && o.img.animated) {
@@ -155,13 +155,13 @@ export async function makeGif(o) {
             halt();
             const px = pixels(k);
             await call({ type: 'sample', buf: px.buffer, step, offset: i }, [px.buffer]);
-            /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-510aaff2 */ tell(at + ((i + 1) / pick.length) * span1, 'colours');
+            tell(at + ((i + 1) / pick.length) * span1, 'colours');
         }
         halt();
         const pal = await call({ type: 'palette', animated, dither: o.dither !== false });
         const from = at + span1;
 
-        const inflight = [];
+        const inflight = []; /* Copyright (c) 2026 Astral. Better Vest 9.5.2 is licensed to its users only to run it, never to copy it. bv-b10ad96a */
         for (let k = 0; k < plan.length; k++) {
             halt();
             const px = pixels(k);

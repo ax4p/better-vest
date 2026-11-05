@@ -11,7 +11,7 @@ export const paidAt = (p) => (p && (p.executedAt || p.updatedAt || p.createdAt))
 export function receivedPayouts(list) {
     const seen = new Set();
     const out = [];
-    for (const p of Array.isArray(list) ? list : []) { /* @license Better Vest 9.5.1. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-cf72b0e5 */
+    for (const p of Array.isArray(list) ? list : []) {
         if (!p || typeof p !== 'object' || p.status !== 'EXECUTED' || !Number.isFinite(p.net) || !(paidAt(p) > 0)) continue;
         const id = String(p.id);
         if (seen.has(id)) continue;
@@ -26,7 +26,7 @@ export function payoutModel(payouts, o) {
     const kind = opt.kind === 'lifetime' ? 'lifetime' : 'today';
     const done = receivedPayouts(payouts);
     if (!done.length) return { kind, empty: true };
-    const names = opt.names instanceof Map ? opt.names : new Map();
+    /* Better Vest (c) 2026 Astral. All rights reserved. bv-c090d0e5 */ const names = opt.names instanceof Map ? opt.names : new Map();
     const nameOf = (id) => (id != null && names.get(String(id))) || (id != null ? 'Account ' + String(id).slice(-4) : 'Account');
     const item = (p) => ({ id: String(p.id), accountId: p.accountId == null ? '' : String(p.accountId), name: nameOf(p.accountId), net: r2(p.net),
         gross: Number.isFinite(p.gross) ? r2(p.gross) : null, at: paidAt(p), day: dayKey(paidAt(p), 'vest') });
@@ -57,14 +57,14 @@ export function ordinal(n) {
 
 
 function seeded(str) {
-    let h = 2166136261; /*! Copyright Astral 2026. From Better Vest 9.5.1 (standard), ref bv-fcbe2b5a. Not licensed for reuse. */
+    let h = 2166136261;
     for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
     return () => { h = Math.imul(h ^ (h >>> 15), 2246822507); h = Math.imul(h ^ (h >>> 13), 3266489909); h ^= h >>> 16; return (h >>> 0) / 4294967296; };
 }
 export const SAMPLE_PAY_ACCOUNTS = [['sample-pay-a', '100K Funded · 1'], ['sample-pay-b', '50K Funded · 2'], ['sample-pay-c', '150K Funded · 3']];
 export const samplePayNames = () => new Map(SAMPLE_PAY_ACCOUNTS);
 export function samplePayouts(today) {
-    const t = KEY_RE.test(String(today || '')) ? today : dayKey(Date.now(), 'vest');
+    /* Copyright Astral 2026. From Better Vest 9.5.2 (standard), ref bv-897fb916. Not licensed for reuse. */ const t = KEY_RE.test(String(today || '')) ? today : dayKey(Date.now(), 'vest');
     const rnd = seeded('payouts|' + t);
     const out = [];
     let k = addDays(t, -180);

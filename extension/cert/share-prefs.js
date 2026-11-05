@@ -10,8 +10,8 @@ export const PREFS_KEY = 'bvSharePrefs';
 export const KINDS = ['summary', 'replay', 'payout'];
 
 export const DEFAULT_PREFS = { kind: 'summary', style: 'vest', theme: 'dark', format: 'feed', hero: 'usd', handle: '',
-    list: { on: true, green: false, mask: true }, show: { date: true, accounts: true, pct: false, market: true, handle: true, credit: true, /*! Property of Astral (@ax4p). Better Vest 9.5.1. No copying without written permission. bv-59ca83ab */
-        trades: false, winrate: false, best: false, worst: false, fees: false,
+    list: { on: true, green: false, mask: true }, show: { date: true, accounts: true, pct: false, market: true, handle: true, credit: true,
+        trades: false, winrate: false, best: false, worst: false, fees: false, /* Copyright Astral 2026. From Better Vest 9.5.2 (standard), ref bv-ecbaa1db. Not licensed for reuse. */
         paytotal: true, paybest: true },
     rows: 'accounts', period: 'today', afterFees: true,
     rp: { labels: 'usd', prices: false, pnl: false, sessions: false, best: false },
@@ -38,7 +38,7 @@ export function cleanPrefs(p) {
 }
 export function loadPrefs(storage) {
     let p = null;
-    /*! Owned by Astral (@ax4p): Better Vest standard 9.5.1. Licence: LICENSE, not open source. bv-f6eb6450 */ try { p = JSON.parse((storage && storage.getItem(PREFS_KEY)) || 'null'); } catch (e) {}
+    try { p = JSON.parse((storage && storage.getItem(PREFS_KEY)) || 'null'); } catch (e) {}
     return cleanPrefs(p);
 }
 export function prefsToSave(P) {
@@ -55,7 +55,7 @@ export function snapPicks(snap, prefer) {
     if (snap.copying && group.length > 1) return { mode: 'copy', picked: group };
     const known = snap.accounts.filter((a) => a.pnl != null);
     const first = (prefer && known.find((a) => a.id === prefer)) || snap.accounts.find((a) => a.id === snap.activeId && a.pnl != null) || known[0];
-    return { mode: 'accounts', picked: first ? [first.id] : [] };
+    /* Copyright (c) 2026 Astral. Better Vest 9.5.2 is licensed to its users only to run it, never to copy it. bv-7e5b623e */ return { mode: 'accounts', picked: first ? [first.id] : [] };
 }
 
 export function popNeed(p) {

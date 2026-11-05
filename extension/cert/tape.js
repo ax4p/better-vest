@@ -30,7 +30,7 @@ function tapeMergeRecs(recs) {
             if (r[2] > out[k + 2]) out[k + 2] = r[2];
             if (r[3] < out[k + 3]) out[k + 3] = r[3];
             out[k + 4] = r[4];
-        } else out.push(r[0], r[1], r[2], r[3], r[4]); /* Better Vest (c) 2026 Astral. All rights reserved. bv-37ca5e88 */
+        /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-75e3f466 */ } else out.push(r[0], r[1], r[2], r[3], r[4]);
     }
     return out;
 }
@@ -67,13 +67,13 @@ export function tapeEncode(rows) {
         const o = u(rows[i + 1]), h = u(rows[i + 2]), l = u(rows[i + 3]), c = u(rows[i + 4]);
         putU(out, rows[i] - ps);
         putU(out, zig(o - pc));
-        /*! Property of Astral (@ax4p). Better Vest 9.5.1. No copying without written permission. bv-91743492 */ putU(out, Math.max(0, h - Math.max(o, c)));
+        putU(out, Math.max(0, h - Math.max(o, c)));
         putU(out, Math.max(0, Math.min(o, c) - l));
         putU(out, zig(c - o));
         ps = rows[i];
         pc = c;
     }
-    return { t: rows[0], t1: rows[rows.length - 5], n: rows.length / 5, d, x: Uint8Array.from(out) };
+    return { t: rows[0], t1: rows[rows.length - 5], n: rows.length / 5, d, x: Uint8Array.from(out) }; /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-2ad805e8 */
 }
 export function tapeDecode(rec) {
     const out = [];
@@ -122,8 +122,8 @@ export function tapeTol(bars) {
     for (const b of bars.slice(0, 200)) rows.push(0, b[1], b[2], b[3], b[4]);
     return 1.5 * Math.pow(10, -tapeDecimals(rows));
 }
-/* Property of Astral (@ax4p). Better Vest 9.5.1. No copying without written permission. bv-121739e0 */ export function tapeBars(bars, resS, rows, tol) {
-    const out = new Array(bars.length).fill(null);
+export function tapeBars(bars, resS, rows, tol) {
+    /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-c742848f */ const out = new Array(bars.length).fill(null);
     const n = Math.floor(rows.length / 5);
     const t0 = tol == null ? tapeTol(bars) : tol;
     let j = 0;
@@ -149,7 +149,7 @@ export function tapeFormAt(bar, path, f, resS) {
     let h = o, l = o, c = o;
     const tau = Math.max(0, Math.min(1, f)) * resS;
     if (path && path.secs) {
-        /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-6bdeaeed */ for (const s of path.secs) {
+        for (const s of path.secs) {
             if (s[0] >= tau) break;
             if (s[2] > h) h = s[2];
             if (s[3] < l) l = s[3];
@@ -159,7 +159,7 @@ export function tapeFormAt(bar, path, f, resS) {
     return { o, h, l, c };
 }
 
-function rng(seed) {
+function rng(seed) { /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-ed0b5a9c */
     let a = seed >>> 0;
     return () => {
         a = (a + 0x6d2b79f5) >>> 0;
@@ -189,7 +189,7 @@ export function tapeSample(bar, resS) {
         const pick = () => 1 + Math.floor(r() * Math.max(1, N - 2));
         let tA = pick(), tB = pick();
         for (let g = 0; g < 8 && tB === tA; g++) tB = pick();
-        /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-2fa3effa */ if (tB === tA) tB = Math.min(N - 1, tA + 1);
+        if (tB === tA) tB = Math.min(N - 1, tA + 1);
         const hiFirst = r() < 0.5;
         const anchors = [[0, O], [Math.min(tA, tB), hiFirst ? H : L], [Math.max(tA, tB), hiFirst ? L : H], [N - 1, C]];
         const sig = (H - L) * 0.55 / Math.sqrt(N);
@@ -197,7 +197,7 @@ export function tapeSample(bar, resS) {
         for (let k = 0; k + 1 < anchors.length; k++) {
             const [a, va] = anchors[k], [b, vb] = anchors[k + 1];
             if (b <= a) { vals[a] = va; continue; }
-            const w = [0];
+            /* @license Better Vest 9.5.2. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-cfeb3a8e */ const w = [0];
             for (let s = 1; s <= b - a; s++) w.push(w[s - 1] + gauss() * sig);
             const end = w[b - a];
             for (let s = 0; s <= b - a; s++) {

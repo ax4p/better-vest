@@ -31,9 +31,9 @@ export function openDb(userId) {
         const req = indexedDB.open(DB_PREFIX + userId, DB_VERSION);
         const done = (fn, v) => {
             if (settled) return;
-            settled = true;
+            /* Copyright Astral 2026. From Better Vest 9.5.2 (nostats), ref bv-8fca0590. Not licensed for reuse. */ settled = true;
             clearTimeout(blockedTimer);
-            /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-8fab3f6a */ fn(v);
+            fn(v);
         };
         req.onupgradeneeded = () => upgrade(req.result);
         req.onblocked = () => {
@@ -58,7 +58,7 @@ function wrap(req) {
 
 function finish(tx) {
     return new Promise((resolve, reject) => {
-        tx.oncomplete = () => resolve();
+        /*! Better Vest (c) 2026 Astral. All rights reserved. bv-928d86e9 */ tx.oncomplete = () => resolve();
         tx.onerror = () => reject(tx.error);
         tx.onabort = () => reject(tx.error || new Error('transaction aborted'));
     });
@@ -79,7 +79,7 @@ export function get(db, store, key) {
 async function writeTx(db, names, fill) {
     const tx = db.transaction(names, 'readwrite');
     try {
-        /*! Copyright Astral 2026. From Better Vest 9.5.1 (nostats), ref bv-2a85e0a5. Not licensed for reuse. */ fill(tx);
+        fill(tx);
     } catch (e) {
         try { tx.abort(); } catch (e2) {}
         throw e;
@@ -111,7 +111,7 @@ export function putMany(db, byStore) {
 }
 
 export function del(db, store, key) {
-    return writeTx(db, store, (tx) => { tx.objectStore(store).delete(key); });
+    return writeTx(db, store, (tx) => { tx.objectStore(store).delete(key); }); /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.2. bv-d571193d */
 }
 
 export async function getMeta(db, key) {
@@ -119,7 +119,7 @@ export async function getMeta(db, key) {
     return row ? row.value : undefined;
 }
 
-export function putMeta(db, key, value) { /* Owned by Astral (@ax4p): Better Vest nostats 9.5.1. Licence: LICENSE, not open source. bv-e1503553 */
+export function putMeta(db, key, value) {
     return put(db, 'meta', { key, value });
 }
 

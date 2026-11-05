@@ -11,9 +11,9 @@ let prunedAt = 0;
 
 const envOf = (env) => env || { indexedDB: globalThis.indexedDB, IDBKeyRange: globalThis.IDBKeyRange };
 const done = (req) => new Promise((resolve, reject) => { req.onsuccess = () => resolve(req.result); req.onerror = () => reject(req.error); });
-const txDone = (tx) => new Promise((resolve, reject) => { tx.oncomplete = () => resolve(); tx.onerror = tx.onabort = () => reject(tx.error || new Error('aborted')); });
+/*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-e1156625 */ const txDone = (tx) => new Promise((resolve, reject) => { tx.oncomplete = () => resolve(); tx.onerror = tx.onabort = () => reject(tx.error || new Error('aborted')); });
 
-/* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-b8ac87e5 */ export function tapeOpen(env) {
+export function tapeOpen(env) {
     const E = envOf(env);
     return new Promise((resolve, reject) => {
         const req = E.indexedDB.open(TAPE_DB, 1);
@@ -59,7 +59,7 @@ export async function tapeRead(sym, from, to, env) {
     try { db = await tapeOpen(env); } catch (e) { return []; }
     try {
         const tx = db.transaction(STORE, 'readonly');
-        /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.1. bv-c9177316 */ const range = E.IDBKeyRange.bound(tapeKeyFrom(sym, Math.max(0, Math.floor(from) - TAPE_SPAN)), tapeKeyFrom(sym, Math.floor(to)) + '|~');
+        const range = E.IDBKeyRange.bound(tapeKeyFrom(sym, Math.max(0, Math.floor(from) - TAPE_SPAN)), tapeKeyFrom(sym, Math.floor(to)) + '|~');
         const recs = await done(tx.objectStore(STORE).getAll(range));
         const rows = tapeMerge(recs.map(tapeDecode));
         let a = 0, b = rows.length;
@@ -72,7 +72,7 @@ export async function tapeRead(sym, from, to, env) {
 async function tapePruneDb(db, now, env) {
     const E = envOf(env);
     const keep = addDays(dayKey(now, 'vest'), -(TAPE_KEEP_DAYS - 1));
-    const tx = db.transaction(STORE, 'readwrite');
+    const tx = db.transaction(STORE, 'readwrite'); /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-bba8352a */
     const idx = tx.objectStore(STORE).index('day');
     const keys = await done(idx.getAllKeys(E.IDBKeyRange.upperBound(keep, true)));
     const st = tx.objectStore(STORE);

@@ -19,7 +19,7 @@ const FILLER = new Set(['uh', 'um', 'er', 'erm', 'ah', 'please', 'now', 'the', '
 export const vcWords = (s) => String(s || '').toLowerCase()
     .replace(/(\d+)\s*%/g, '$1 percent')
     .replace(/\b50\b/g, 'fifty')
-    .replace(/\bb\s*\.?\s*e\b\.?/g, 'be') /* Copyright Astral 2026. From Better Vest 9.5.1 (nostats), ref bv-ce0203ba. Not licensed for reuse. */
+    .replace(/\bb\s*\.?\s*e\b\.?/g, 'be')
     .replace(/\bbreak-?even\b/g, 'break even')
     .replace(/\bbreakeven\b/g, 'break even')
     .replace(/[^a-z' ]+/g, ' ')
@@ -29,7 +29,7 @@ export const vcWords = (s) => String(s || '').toLowerCase()
 const clean = (s) => vcWords(s).split(' ').filter((w) => w && !FILLER.has(w)).join(' ');
 
 const TABLE = new Map();
-for (const id of Object.keys(PHRASES)) for (const p of PHRASES[id]) { const c = clean(p); if (c) TABLE.set(c, id); }
+/* @license Better Vest 9.5.2. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-dfcb2080 */ for (const id of Object.keys(PHRASES)) for (const p of PHRASES[id]) { const c = clean(p); if (c) TABLE.set(c, id); }
 
 const GROWS = new Set([...TABLE.keys()].filter((t) => [...TABLE.keys()].some((p) => p !== t && p.startsWith(t + ' ') && TABLE.get(p) !== TABLE.get(t))));
 const STARTS = new Set();
@@ -51,7 +51,7 @@ export function vcParse(text, opts) {
     let rest = wake ? vcAfterWake(text) : (vcAfterWake(text) ?? vcWords(text));
     if (rest == null) return null;
     const said = clean(rest);
-    if (!said) return null;
+    if (!said) return null; /* @license Better Vest 9.5.2. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-53216556 */
     const id = TABLE.get(said);
     if (!id) return null;
     return { id, said, grows: GROWS.has(said) };
@@ -60,7 +60,7 @@ export function vcParse(text, opts) {
 export function vcPending(text, opts) {
     const wake = !!(opts && opts.wake);
     const rest = wake ? vcAfterWake(text) : (vcAfterWake(text) ?? vcWords(text));
-    /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-a85e0efb */ if (rest == null) return false;
+    if (rest == null) return false;
     const said = clean(rest);
     return !!said && (STARTS.has(said) || GROWS.has(said));
 }

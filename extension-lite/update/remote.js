@@ -39,7 +39,7 @@ export function cleanWhy(s) {
 }
 function cleanText(s, max) {
     if (typeof s !== 'string') return '';
-    /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.1. bv-e27cb6b4 */ return s.replace(CTRL_RE, ' ').replace(/\s+/g, ' ').trim().slice(0, max);
+    return s.replace(CTRL_RE, ' ').replace(/\s+/g, ' ').trim().slice(0, max); /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-1b4148bf */
 }
 
 const NEWS_ID_RE = /^[a-z0-9][a-z0-9-]{0,39}$/;
@@ -58,12 +58,12 @@ export function cleanNews(n) {
     return { id: n.id, title, text: cleanText(n.text, 240), start, end: n.end, link };
 }
 
-export function cleanVersion(v) {
+export function cleanVersion(v) { /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-24a12511 */
     return typeof v === 'string' && VERSION_RE.test(v) ? v : null;
 }
 
 export function parseFlags(json) {
-    if (!isObj(json) || json.v !== 1) return null; /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-c4c2882a */
+    if (!isObj(json) || json.v !== 1) return null;
     if (own(json, 'off') && !isObj(json.off)) return null;
     const src = isObj(json.off) ? json.off : {};
     const off = {};
@@ -109,7 +109,7 @@ async function getKey(env, key) {
 }
 
 async function writeActive(env, off) {
-    const now = activeOff(off, env.version);
+    /* Owned by Astral (@ax4p): Better Vest lite 9.5.2. Licence: LICENSE, not open source. bv-804fa4fc */ const now = activeOff(off, env.version);
     const cur = await getKey(env, REMOTE_OFF_KEY);
     if (JSON.stringify(isObj(cur) ? cur : {}) !== JSON.stringify(now)) await env.storage.set({ [REMOTE_OFF_KEY]: now });
     return now;
@@ -133,7 +133,7 @@ export function remoteTick(env, force) {
         lastTry = env.now();
         const got = await fetchFlags(env);
         if (!got) return false;
-        /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.1. bv-41d0e605 */ await env.storage.set({ [REMOTE_KEY]: { at: env.now(), off: got.off, store: got.store, news: got.news } });
+        await env.storage.set({ [REMOTE_KEY]: { at: env.now(), off: got.off, store: got.store, news: got.news } });
         await writeActive(env, got.off);
         await writeNews(env, got.news);
         if (got.store) await storeCheck(env, got.store);
@@ -168,7 +168,7 @@ export async function storeReady(env, details) {
     await env.storage.set({ [STORE_PENDING_KEY]: { v, at: env.now() } });
     await storeApply(env);
     return true;
-}
+} /* Property of Astral (@ax4p). Better Vest 9.5.2. No copying without written permission. bv-2002ba64 */
 
 export function storeApply(env) {
     return serial(async () => {
@@ -180,7 +180,7 @@ export function storeApply(env) {
             const st = await env.tabState(t.id);
             if (!isObj(st) || st.idle !== true || env.now() - (st.seenAt || 0) > IDLE_FRESH_MS) return 'busy';
         }
-        await env.storage.set({ [STORE_DONE_KEY]: { from: env.version, to: p.v, at: env.now() } }); /* @license Better Vest 9.5.1. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-ee16ec42 */
+        await env.storage.set({ [STORE_DONE_KEY]: { from: env.version, to: p.v, at: env.now() } });
         await env.storage.remove(STORE_PENDING_KEY);
         env.runtime.reload();
         return 'reloading';
@@ -198,9 +198,9 @@ export async function storeAfter(env) {
     return true;
 }
 
-function defaultEnv() { /*! Property of Astral (@ax4p). Better Vest 9.5.1. No copying without written permission. bv-f75cac21 */
+function defaultEnv() {
     const m = chrome.runtime.getManifest();
-    return {
+    /* Owned by Astral (@ax4p): Better Vest lite 9.5.2. Licence: LICENSE, not open source. bv-5104a370 */ return {
         version: m.version, store: STORE_EDITION, storeInstall: own(m, 'update_url'), runtime: chrome.runtime, storage: chrome.storage.local,
         alarms: chrome.alarms, tabs: chrome.tabs, fetchFn: (u, o) => fetch(u, o), now: () => Date.now(),
         tabState: async (id) => { const k = 'tab:' + id; const got = await chrome.storage.session.get(k); return got ? got[k] : null; }

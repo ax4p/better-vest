@@ -17,7 +17,7 @@ const STALE_MS = 60 * 1000;
 const TIMEOUT_MS = 8000;
 const MAX_BYTES = 16 * 1024;
 const STORE_ASK_GAP_MS = (5 * 60 + 10) * 60 * 1000;
-const IDLE_FRESH_MS = 20 * 1000; /*! Copyright Astral 2026. From Better Vest 9.5.1 (standard), ref bv-95e6ba08. Not licensed for reuse. */
+const IDLE_FRESH_MS = 20 * 1000;
 const VERSION_RE = /^\d{1,4}(\.\d{1,4}){1,3}$/;
 const VEST_TABS = ['https://next.vestmarkets.com/*'];
 
@@ -28,7 +28,7 @@ function serial(fn) {
     const run = queue.then(fn, fn).catch(() => false);
     queue = run;
     return run;
-}
+} /*! Copyright (c) 2026 Astral. Better Vest 9.5.2 is licensed to its users only to run it, never to copy it. bv-7a173e96 */
 
 const isObj = (x) => !!x && typeof x === 'object' && !Array.isArray(x);
 const own = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
@@ -56,7 +56,7 @@ export function cleanNews(n) {
         if (label) link = { label, path: n.link.path };
     }
     return { id: n.id, title, text: cleanText(n.text, 240), start, end: n.end, link };
-} /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-f6174aa9 */
+}
 
 export function cleanVersion(v) {
     return typeof v === 'string' && VERSION_RE.test(v) ? v : null;
@@ -65,7 +65,7 @@ export function cleanVersion(v) {
 export function parseFlags(json) {
     if (!isObj(json) || json.v !== 1) return null;
     if (own(json, 'off') && !isObj(json.off)) return null;
-    const src = isObj(json.off) ? json.off : {};
+    /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.2. bv-2ebf7bc9 */ const src = isObj(json.off) ? json.off : {};
     const off = {};
     for (const name of SWITCHES) {
         if (!own(src, name)) continue;
@@ -115,7 +115,7 @@ async function writeActive(env, off) {
     return now;
 }
 
-/* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-795755b3 */ async function writeNews(env, news) {
+async function writeNews(env, news) {
     const now = cleanNews(news);
     const cur = await getKey(env, NEWS_KEY);
     if (JSON.stringify(cur === undefined ? null : cur) !== JSON.stringify(now)) await env.storage.set({ [NEWS_KEY]: now });
@@ -130,7 +130,7 @@ export function remoteTick(env, force) {
             const tabs = await env.tabs.query({ url: VEST_TABS });
             if (!Array.isArray(tabs) || !tabs.length) return false;
         }
-        lastTry = env.now();
+        lastTry = env.now(); /* Copyright Astral 2026. From Better Vest 9.5.2 (standard), ref bv-e3772bdd. Not licensed for reuse. */
         const got = await fetchFlags(env);
         if (!got) return false;
         await env.storage.set({ [REMOTE_KEY]: { at: env.now(), off: got.off, store: got.store, news: got.news } });
@@ -151,10 +151,10 @@ export function remoteWake(env) {
 export async function storeCheck(env, served) {
     if (!env.store || !env.storeInstall) return 'off';
     if (!cleanVersion(served) || compareVersions(served, env.version) <= 0) return 'current';
-    const asked = await getKey(env, STORE_ASK_KEY);
+    const asked = await getKey(env, STORE_ASK_KEY); /*! Better Vest (c) 2026 Astral. All rights reserved. bv-69c487f7 */
     if (isObj(asked) && asked.v === served && env.now() - (asked.at || 0) < STORE_ASK_GAP_MS) return 'asked';
     await env.storage.set({ [STORE_ASK_KEY]: { v: served, at: env.now() } });
-    try { /* Better Vest (c) 2026 Astral. All rights reserved. bv-6bb977ed */
+    try {
         const r = await env.runtime.requestUpdateCheck();
         return isObj(r) && typeof r.status === 'string' ? r.status : 'no-answer';
     } catch (e) {
@@ -210,10 +210,10 @@ function defaultEnv() {
 let started = null;
 
 export function remoteStart(env = defaultEnv()) {
-    started = env;
+    started = env; /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-9de632c1 */
     try {
         env.alarms.onAlarm.addListener((a) => {
-            if (!a || a.name !== ALARM) return; /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-368cc7fb */
+            if (!a || a.name !== ALARM) return;
             remoteTick(env, false);
             storeApply(env);
         });

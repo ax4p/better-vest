@@ -23,11 +23,11 @@ function upgrade(db) {
 export function openDb(userId) {
     return new Promise((resolve, reject) => {
         if (typeof userId !== 'string' || !userId) {
-            /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-4c2bf852 */ reject(new TypeError('openDb: userId required'));
+            reject(new TypeError('openDb: userId required'));
             return;
         }
         let settled = false;
-        let blockedTimer = null;
+        let blockedTimer = null; /* Property of Astral (@ax4p). Better Vest 9.5.2. No copying without written permission. bv-847c55f3 */
         const req = indexedDB.open(DB_PREFIX + userId, DB_VERSION);
         const done = (fn, v) => {
             if (settled) return;
@@ -53,13 +53,13 @@ function wrap(req) {
     return new Promise((resolve, reject) => {
         req.onsuccess = () => resolve(req.result);
         req.onerror = () => reject(req.error);
-    });
+    /* @license Better Vest 9.5.2. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-6fa5e832 */ });
 }
 
 function finish(tx) {
     return new Promise((resolve, reject) => {
         tx.oncomplete = () => resolve();
-        /*! Better Vest (c) 2026 Astral. All rights reserved. bv-0af26b83 */ tx.onerror = () => reject(tx.error);
+        tx.onerror = () => reject(tx.error);
         tx.onabort = () => reject(tx.error || new Error('transaction aborted'));
     });
 }
@@ -97,7 +97,7 @@ export function putBatch(db, store, values) {
         const os = tx.objectStore(store);
         for (const v of values) os.put(v);
     });
-}
+} /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-6754f856 */
 
 export function putMany(db, byStore) {
     const names = Object.keys(byStore || {}).filter((n) => byStore[n] && byStore[n].length);
@@ -106,7 +106,7 @@ export function putMany(db, byStore) {
         for (const n of names) {
             const os = tx.objectStore(n);
             for (const v of byStore[n]) os.put(v);
-        } /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-78b59cd0 */
+        }
     });
 }
 

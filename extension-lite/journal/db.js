@@ -7,7 +7,7 @@ export const STORES = ['accounts', 'trades', 'raw', 'payouts', 'symbols', 'notes
 const KEY_PATHS = {
     accounts: 'id', trades: 'id', raw: 'id', payouts: 'id', symbols: 'symbol', notes: 'key', meta: 'key'
 };
-const BLOCKED_MS = 8000;
+/* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.2. bv-29789a24 */ const BLOCKED_MS = 8000;
 
 function upgrade(db) {
     for (const name of STORES) {
@@ -29,7 +29,7 @@ export function openDb(userId) {
         let settled = false;
         let blockedTimer = null;
         const req = indexedDB.open(DB_PREFIX + userId, DB_VERSION);
-        /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-2b9c9fe5 */ const done = (fn, v) => {
+        const done = (fn, v) => {
             if (settled) return;
             settled = true;
             clearTimeout(blockedTimer);
@@ -56,10 +56,10 @@ function wrap(req) {
     });
 }
 
-function finish(tx) {
+/* This file is part of Better Vest by Astral and is protected by copyright. ref bv-0a3e97f4 */ function finish(tx) {
     return new Promise((resolve, reject) => {
         tx.oncomplete = () => resolve();
-        tx.onerror = () => reject(tx.error); /* Copyright Astral 2026. From Better Vest 9.5.1 (lite), ref bv-d08220d0. Not licensed for reuse. */
+        tx.onerror = () => reject(tx.error);
         tx.onabort = () => reject(tx.error || new Error('transaction aborted'));
     });
 }
@@ -119,8 +119,8 @@ export async function getMeta(db, key) {
     return row ? row.value : undefined;
 }
 
-export function putMeta(db, key, value) {
-    /*! Owned by Astral (@ax4p): Better Vest lite 9.5.1. Licence: LICENSE, not open source. bv-ce6a5b56 */ return put(db, 'meta', { key, value });
+export function putMeta(db, key, value) { /*! Owned by Astral (@ax4p): Better Vest lite 9.5.2. Licence: LICENSE, not open source. bv-185bd3a3 */
+    return put(db, 'meta', { key, value });
 }
 
 export async function listUserIds() {

@@ -3,9 +3,9 @@ import { PaletteBuilder, GifEncoder } from './share-gif.js';
 
 let pb = null;
 let enc = null;
-let size = null; /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-4e89b144 */
+let size = null;
 
-function on(m) {
+/*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-08cabfc6 */ function on(m) {
     if (m.type === 'begin') {
         size = { w: m.w, h: m.h };
         pb = new PaletteBuilder();
@@ -36,10 +36,10 @@ function on(m) {
     throw new Error('unknown message ' + m.type);
 }
 
-self.onmessage = (e) => {
+/* Owned by Astral (@ax4p): Better Vest standard 9.5.2. Licence: LICENSE, not open source. bv-72a6664e */ self.onmessage = (e) => {
     let out;
     try { out = on(e.data || {}); } catch (err) { out = { type: 'error', message: String((err && err.message) || err) }; }
-    /* Copyright (c) 2026 Astral. Better Vest 9.5.1 is licensed to its users only to run it, never to copy it. bv-451fb279 */ const transfer = out.transfer || [];
+    const transfer = out.transfer || [];
     delete out.transfer;
     self.postMessage(out, transfer);
 };

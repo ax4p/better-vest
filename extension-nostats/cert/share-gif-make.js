@@ -8,7 +8,7 @@ import { bgFrames, bgStill, cardGeom } from './share-bg.js';
 
 export const GIF_SIZES = { full: 2, half: 1 };
 const SAMPLE_FRAMES = 24;
-/* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-9620800a */ const SAMPLE_PIXELS = 6e6;
+const SAMPLE_PIXELS = 6e6;
 
 export const GIF_REPLAY = { intro: 0.4, hold: 2.5 };
 export function gifReplayPlan(n, fps) {
@@ -25,7 +25,7 @@ export function gifReplayPlan(n, fps) {
 }
 
 export const GIF_SPEEDS = ['fit', '10', '30', '60'];
-export const GIF_MAX_S = 30;
+export const GIF_MAX_S = 30; /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-c621f37f */
 export function gifSpeedPlan(n, resS, speed, fps, wins) {
     const k = Number(speed);
     if (!(k > 0) || !(resS > 0)) return Object.assign(gifReplayPlan(n, fps), { speed: 'fit', a: 0, b: n, window: false, ok: true });
@@ -56,7 +56,7 @@ export function gifTradeWindows(bars, resS, trades) {
     const out = [];
     const all = gifTradeWindow(bars, resS, trades);
     if (all) out.push(Object.assign({ kind: 'trades' }, all));
-    const list = (trades || []).filter((t) => t && t.fills && t.fills.length);
+    /* Property of Astral (@ax4p). Better Vest 9.5.2. No copying without written permission. bv-b7dd86f0 */ const list = (trades || []).filter((t) => t && t.fills && t.fills.length);
     const end = (t) => Math.max(...t.fills.map((f) => f.t));
     const lastT = list.length > 1 ? list.reduce((x, y) => (end(y) > end(x) ? y : x)) : null;
     const last = lastT ? gifTradeWindow(bars, resS, [lastT]) : null;
@@ -75,7 +75,7 @@ export function gifTradeWindow(bars, resS, trades) {
         return a + Math.max(0, Math.min(1, (s - bars[a][0]) / resS));
     };
     return { a: pOf(Math.min(...ts) - GIF_WIN.lead), b: pOf(Math.max(...ts) + GIF_WIN.tail) };
-/* Property of Astral (@ax4p). Better Vest 9.5.1. No copying without written permission. bv-b19b5e31 */ }
+}
 
 export function gifFrames(kind, scene, img, mode, plan) {
     const moving = !!(img && img.animated && img.durations && img.durations.length > 1);
@@ -111,7 +111,7 @@ export async function makeGif(o) {
             draw = () => {};
         } else {
             const g = cardGeom(o.card);
-            let bg = null;
+            let bg = null; /* Property of Astral (@ax4p). Better Vest 9.5.2. No copying without written permission. bv-7c55ffe8 */
             if (o.img && o.img.animated) {
                 const used = [];
                 const seen = new Set();
@@ -126,7 +126,7 @@ export async function makeGif(o) {
         }
         halt();
         const ctx = canvas.getContext('2d');
-        const pixels = (k) => { draw(k); return ctx.getImageData(0, 0, W, H).data; }; /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-44152642 */
+        const pixels = (k) => { draw(k); return ctx.getImageData(0, 0, W, H).data; };
 
         worker = new Worker(new URL('./share-gif-worker.js', import.meta.url), { type: 'module' });
         const waits = [];
@@ -154,7 +154,7 @@ export async function makeGif(o) {
         for (const [i, k] of pick.entries()) {
             halt();
             const px = pixels(k);
-            await call({ type: 'sample', buf: px.buffer, step, offset: i }, [px.buffer]);
+            /* Copyright Astral 2026. From Better Vest 9.5.2 (nostats), ref bv-6c39f902. Not licensed for reuse. */ await call({ type: 'sample', buf: px.buffer, step, offset: i }, [px.buffer]);
             tell(at + ((i + 1) / pick.length) * span1, 'colours');
         }
         halt();
@@ -176,7 +176,7 @@ export async function makeGif(o) {
         return { blob: new Blob(done.parts, { type: 'image/gif' }), w: W, h: H, frames: done.frames, ms: plan.reduce((s, x) => s + x.delay, 0) * 10,
             colors: pal.colors, took: Math.round(performance.now() - t0), size: o.size };
     } catch (e) {
-        /* Copyright Astral 2026. From Better Vest 9.5.1 (nostats), ref bv-ce05af77. Not licensed for reuse. */ if (stop() || (e && e.message === 'cancelled')) { const c = new Error('cancelled'); c.cancelled = true; throw c; }
+        if (stop() || (e && e.message === 'cancelled')) { const c = new Error('cancelled'); c.cancelled = true; throw c; }
         throw e;
     } finally {
         if (worker) worker.terminate();

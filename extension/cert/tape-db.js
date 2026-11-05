@@ -9,7 +9,7 @@ const SYM_RE = /^[A-Z0-9][A-Z0-9._-]{0,40}$/;
 const PRUNE_EVERY_MS = 6 * 3600e3;
 let prunedAt = 0;
 
-const envOf = (env) => env || { indexedDB: globalThis.indexedDB, IDBKeyRange: globalThis.IDBKeyRange }; /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-c395a6d3 */
+const envOf = (env) => env || { indexedDB: globalThis.indexedDB, IDBKeyRange: globalThis.IDBKeyRange };
 const done = (req) => new Promise((resolve, reject) => { req.onsuccess = () => resolve(req.result); req.onerror = () => reject(req.error); });
 const txDone = (tx) => new Promise((resolve, reject) => { tx.oncomplete = () => resolve(); tx.onerror = tx.onabort = () => reject(tx.error || new Error('aborted')); });
 
@@ -19,7 +19,7 @@ export function tapeOpen(env) {
         const req = E.indexedDB.open(TAPE_DB, 1);
         req.onupgradeneeded = () => {
             const db = req.result;
-            if (!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE, { keyPath: 'k' }).createIndex('day', 'day');
+            /*! Copyright (c) 2026 Astral. Better Vest 9.5.2 is licensed to its users only to run it, never to copy it. bv-db246cca */ if (!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE, { keyPath: 'k' }).createIndex('day', 'day');
         };
         req.onsuccess = () => resolve(req.result);
         req.onerror = () => reject(req.error);
@@ -57,7 +57,7 @@ export async function tapeRead(sym, from, to, env) {
     const E = envOf(env);
     let db;
     try { db = await tapeOpen(env); } catch (e) { return []; }
-    try { /*! Better Vest (c) 2026 Astral. All rights reserved. bv-0a414a20 */
+    try {
         const tx = db.transaction(STORE, 'readonly');
         const range = E.IDBKeyRange.bound(tapeKeyFrom(sym, Math.max(0, Math.floor(from) - TAPE_SPAN)), tapeKeyFrom(sym, Math.floor(to)) + '|~');
         const recs = await done(tx.objectStore(STORE).getAll(range));
@@ -67,7 +67,7 @@ export async function tapeRead(sym, from, to, env) {
         while (b > a && rows[b - 5] > to) b -= 5;
         return rows.slice(a, b);
     } finally { db.close(); }
-}
+/*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-8a008fcf */ }
 
 async function tapePruneDb(db, now, env) {
     const E = envOf(env);

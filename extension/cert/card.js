@@ -22,7 +22,7 @@ export function fmtMoneyParts(v) {
         cents: String(cents % 100).padStart(2, '0')
     };
 }
-/*! Copyright (c) 2026 Astral. Better Vest 9.5.1 is licensed to its users only to run it, never to copy it. bv-61433403 */ export const fmtMoney = (v) => { const p = fmtMoneyParts(v); return p.int + '.' + p.cents; };
+export const fmtMoney = (v) => { const p = fmtMoneyParts(v); return p.int + '.' + p.cents; };
 export const fmtMilestone = (amount) => '$' + (amount >= 1000 ? amount / 1000 + 'K' : amount);
 const dm = (key) => fmtDate(key, 'dm');
 
@@ -32,7 +32,7 @@ function bars(vals, w, h, gap, uid) {
     const f = Math.sqrt;
     const mx = Math.max(...vals.map(f), 1e-9);
     let out = '';
-    vals.forEach((v, i) => {
+    vals.forEach((v, i) => { /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-1e6ee4b0 */
         const x = i * (bw + gap);
         if (!(v > 0)) {
             out += `<rect x="${x.toFixed(2)}" y="${h - 1}" width="${bw.toFixed(2)}" height="1" rx=".5" fill="rgb(255 255 255 / .18)"/>`;
@@ -63,7 +63,7 @@ export function buildCard(S, opts = {}) {
     const Y = chart
         ? { hero: 84, strip: 292, stats: 382, div: 442, recip: 458 }
         : { hero: 112, stats: 346, div: 418, recip: 438 };
-    const ms = S.reached;
+    /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-d3cc48c7 */ const ms = S.reached;
     const pill = ms ? `<span class="bvc-pill"><b></b>${esc(fmtMilestone(ms.amount))} milestone &middot; ${esc(dm(ms.reachedKey))}</span>` : '';
 
     let strip = '';
@@ -97,7 +97,7 @@ export function buildCard(S, opts = {}) {
 
     const el = document.createElement('div');
     el.className = 'bvc';
-    el.setAttribute('data-bv-cert', '1'); /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.1. bv-bb02c5ee */
+    el.setAttribute('data-bv-cert', '1');
     el.innerHTML = html;
     return el;
 }

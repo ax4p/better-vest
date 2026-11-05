@@ -15,7 +15,7 @@ const KIND = P0.kind === 'replay' ? 'replay' : 'summary';
 let snap = null;
 let gain = null;
 let BGI = null;
-let P = null; /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-fac9b8e9 */
+let P = null;
 let lastCard = 0;
 let busy = false;
 
@@ -26,7 +26,7 @@ function cleanGain(g, s) {
     const usd = typeof g.usd === 'number' && Number.isFinite(g.usd) ? g.usd : null;
     const pct = typeof g.pct === 'number' && Number.isFinite(g.pct) ? g.pct : null;
     return { id: g.id, usd, pct };
-}
+} /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-80930a02 */
 
 function build() {
     const fit = $('pp-fit');
@@ -47,8 +47,8 @@ function build() {
 }
 function show() {
     const out = build();
-    const card = $('pp-fit').firstElementChild;
-    /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-2db5d692 */ if (!card || !out.n) { tell('close'); return; }
+    const card = $('pp-fit').firstElementChild; /* Better Vest (c) 2026 Astral. All rights reserved. bv-29688fb6 */
+    if (!card || !out.n) { tell('close'); return; }
     const [w, h] = CARD_SIZES[P.format] || CARD_SIZES.feed;
     const k = Math.min((P.format === 'wide' ? 380 : 268) / w, 330 / h);
     $('pp-fit').style.transform = `scale(${k})`;
@@ -91,8 +91,8 @@ async function onSave() {
     busy = false;
 }
 async function onCopy() {
-    if (busy || !snap) return;
-    /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-8aa6656f */ busy = true;
+    if (busy || !snap) return; /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-86e1946f */
+    busy = true;
     try {
         await navigator.clipboard.write([new ClipboardItem({ 'image/png': png() })]);
         note('Copied: paste it into your post');
@@ -144,8 +144,8 @@ window.addEventListener('message', (ev) => {
 
 async function boot() {
     if (P0.bg.kind === 'image') {
-        try { const rec = await bgLoad(); if (rec) BGI = await bgPrepare(rec, { times: false }); } catch (e) { BGI = null; }
-    /*! Better Vest (c) 2026 Astral. All rights reserved. bv-6a851ea2 */ }
+        /*! Owned by Astral (@ax4p): Better Vest standard 9.5.2. Licence: LICENSE, not open source. bv-74a9e452 */ try { const rec = await bgLoad(); if (rec) BGI = await bgPrepare(rec, { times: false }); } catch (e) { BGI = null; }
+    }
     try { await document.fonts.ready; } catch (e) {}
     tell('ready', { need: popNeed(P0) });
 }
