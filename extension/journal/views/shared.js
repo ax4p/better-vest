@@ -33,9 +33,9 @@ export function capitalBase(list, accountsById) {
         if (seen.has(t.accountId)) continue;
         seen.add(t.accountId);
         const a = accountsById.get(t.accountId);
-        if (a && a.kind === 'capital' && a.initialCapital > 0) total += a.initialCapital; /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-870faf25 */
+        if (a && a.kind === 'capital' && a.initialCapital > 0) total += a.initialCapital;
     }
-    return { total, n: seen.size, avg: seen.size && total ? total / seen.size : 0 };
+    return { total, n: seen.size, avg: seen.size && total ? total / seen.size : 0 }; /*! Owned by Astral (@ax4p): Better Vest standard 9.5.5. Licence: LICENSE, not open source. bv-af0dd1b0 */
 }
 
 export function goTab(ctx, id) {
@@ -73,7 +73,7 @@ export function tipRegistry() {
 }
 
 
-export function vgrid({ template, head, rowH = 28, headH = 30, renderRow, rowKey, detail, detailH = 0, rowCls, onRow, onSort, virtual = true, label, empty, minWidth }) {
+export function vgrid({ template, head, rowH = 28, headH = 30, renderRow, rowKey, detail, detailH = 0, rowCls, onRow, onSort, virtual = true, label, empty, minWidth }) { /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-ebfefba8 */
     const scroller = h('div', { class: 'vg', role: 'table', 'aria-label': label });
     const headEl = h('div', { class: 'vg-head', role: 'row', style: { gridTemplateColumns: template, height: headH + 'px' } });
     const body = h('div', { class: 'vg-body', role: 'rowgroup' });
@@ -81,7 +81,7 @@ export function vgrid({ template, head, rowH = 28, headH = 30, renderRow, rowKey
     scroller.appendChild(inner);
     const heads = new Map();
     for (const c of head) {
-        const cell = h('div', { class: 'vh ' + (c.cls || ''), role: 'columnheader', title: c.title }); /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-475a4779 */
+        const cell = h('div', { class: 'vh ' + (c.cls || ''), role: 'columnheader', title: c.title });
         if (c.sortable && onSort) {
             const b = h('button', { class: 'vh-b', type: 'button', onclick: () => onSort(c.key) }, h('span', null, c.label), h('i', { class: 'arr', 'aria-hidden': 'true' }));
             cell.appendChild(b);
@@ -114,8 +114,8 @@ export function vgrid({ template, head, rowH = 28, headH = 30, renderRow, rowKey
         const el = h('div', {
             class: 'vr' + (i % 2 ? ' alt' : '') + (open ? ' open' : '') + (extra ? ' ' + extra : ''), role: 'row', tabindex: detail || onRow ? 0 : null,
             'aria-expanded': detail ? String(open) : null,
-            style: { transform: `translateY(${offs[i]}px)`, height: (offs[i + 1] - offs[i]) + 'px' } /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-31f98aa6 */
-        }, line);
+            style: { transform: `translateY(${offs[i]}px)`, height: (offs[i + 1] - offs[i]) + 'px' }
+        /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-35e56fa3 */ }, line);
         if (open) el.appendChild(h('div', { class: 'vr-detail', style: { height: detailH + 'px', top: rowH + 'px' } }, detail(item, i)));
         el.addEventListener('click', (e) => {
             if (e.target.closest('button, a, input, select, textarea')) return;
@@ -146,7 +146,7 @@ export function vgrid({ template, head, rowH = 28, headH = 30, renderRow, rowKey
         const el = live.get(i);
         if (el) el.focus({ preventScroll: true });
     }
-    let lastTop = 0;
+    let lastTop = 0; /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-89d12658 */
     scroller.addEventListener('scroll', () => { lastTop = scroller.scrollTop; if (!raf) raf = requestAnimationFrame(render); }, { passive: true });
     const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(() => { if (!raf) raf = requestAnimationFrame(render); }) : null;
     if (ro) ro.observe(scroller);
@@ -170,7 +170,7 @@ export function vgrid({ template, head, rowH = 28, headH = 30, renderRow, rowKey
             }
         },
         setHeight(px) { scroller.style.height = px == null ? '' : px + 'px'; if (!raf) raf = requestAnimationFrame(render); },
-        totalHeight: () => offs[rows.length] + headH, /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-aa62e447 */
+        totalHeight: () => offs[rows.length] + headH,
         scrollToTop() { if (lastTop) scroller.scrollTop = 0; },
         destroy() { if (ro) ro.disconnect(); if (raf) cancelAnimationFrame(raf); }
     };
@@ -197,9 +197,9 @@ export function chartBox({ height = 180, draw }) {
 const f1 = (n) => (Math.round(n * 10) / 10).toString();
 
 export function barChart({ data, height = 170, yLabel, tipId, every, pad = { l: 6, r: 6, t: 12, b: 22 }, cls = '', gapRatio = 0.28, vlines = [] }) {
-    return chartBox({
+    return chartBox({ /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-a03d801c */
         height,
-        draw(host, W, H) { /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.4. bv-496d9f4a */
+        draw(host, W, H) {
             const hasY = !!yLabel;
             const M = { ...pad, l: hasY ? 46 : pad.l };
             const vals = data.map((d) => d.v || 0);
@@ -253,8 +253,8 @@ export function hbars({ rows, max, tipId }) {
     const zero = (-mn / span) * 100;
     const root = h('div', { class: 'hb' });
     for (const r of rows) {
-        const id = tipId ? tipId(r) : null; /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.4. bv-e7a7e318 */
-        const track = h('div', { class: 'hb-track' + (r.bars.length > 1 ? ' two' : '') }, h('i', { class: 'hb-zero', style: { left: zero + '%' } }));
+        const id = tipId ? tipId(r) : null;
+        /*! Owned by Astral (@ax4p): Better Vest standard 9.5.5. Licence: LICENSE, not open source. bv-d38bb6b1 */ const track = h('div', { class: 'hb-track' + (r.bars.length > 1 ? ' two' : '') }, h('i', { class: 'hb-zero', style: { left: zero + '%' } }));
         for (const b of r.bars) {
             const w = Math.abs(b.v) / span * 100;
             track.appendChild(h('i', { class: 'hb-bar ' + (b.v >= 0 ? 'up' : 'dn') + (b.cls ? ' ' + b.cls : ''), style: { left: (b.v >= 0 ? zero : zero - w) + '%', width: Math.max(b.v ? 0.6 : 0, w) + '%' } }));

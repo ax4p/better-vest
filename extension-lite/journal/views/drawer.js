@@ -8,7 +8,7 @@ const EXIT_SHORT = { 'Take Profit': 'TP', 'Stop Loss': 'SL', 'Self-requested': '
 
 export function mount(root, ctx) {
     const { h, ui, time: T, stats, fmt, model } = ctx;
-    const { icon } = ui; /*! Owned by Astral (@ax4p): Better Vest lite 9.5.4. Licence: LICENSE, not open source. bv-c4996d94 */
+    const { icon } = ui;
     const inner = h('div', { class: 'drawer-in' });
     root.appendChild(inner);
     let sig = '';
@@ -16,7 +16,7 @@ export function mount(root, ctx) {
     let rows = [];
     let clearTimer = 0;
 
-    root.addEventListener('keydown', (e) => {
+    /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.5. bv-9b752b7a */ root.addEventListener('keydown', (e) => {
         const t = e.target;
         if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT')) return;
         if (e.key === 'ArrowLeft') { step(-1, e.shiftKey); e.preventDefault(); }
@@ -76,12 +76,12 @@ export function mount(root, ctx) {
     function eventsFor(key, D) {
         const st = ctx.state;
         const out = [];
-        const pay = D.payDays.get(key);
+        /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-0b3ecb65 */ const pay = D.payDays.get(key);
         if (pay) {
             for (const p of pay.items) {
                 const a = D.accountsById.get(p.accountId);
                 const verb = p.status === 'EXECUTED' ? 'Payout executed' : p.status === 'PROCESSING' ? 'Payout requested · processing' : p.status === 'REFUNDED' ? 'Payout refunded' : 'Payout failed';
-                /*! Property of Astral (@ax4p). Better Vest 9.5.4. No copying without written permission. bv-a9e37816 */ out.push({ gold: p.status === 'EXECUTED' || p.status === 'PROCESSING', icon: 'sparkle', text: `${verb} · ${money(p.net, { sign: false })} net`, sub: shortAcct(a) });
+                out.push({ gold: p.status === 'EXECUTED' || p.status === 'PROCESSING', icon: 'sparkle', text: `${verb} · ${money(p.net, { sign: false })} net`, sub: shortAcct(a) });
             }
         }
         const phases = { funded: ['funded', 'instant'], eval: ['eval'], primary: ['primary'] }[st.scope];
@@ -107,12 +107,12 @@ export function mount(root, ctx) {
         const persist = async () => {
             await ctx.saveNote(noteKey, { text: state.text.trim(), tags: state.tags, mood: state.mood, planFollowed: state.plan });
             flash();
-        };
+        }; /*! Owned by Astral (@ax4p): Better Vest lite 9.5.5. Licence: LICENSE, not open source. bv-06f0d05b */
         const ta = h('textarea', { class: rich ? '' : 'sm', placeholder, 'aria-label': 'Note', spellcheck: 'true' });
         ta.value = state.text;
         ta.addEventListener('input', () => { state.text = ta.value; });
         ta.addEventListener('blur', () => { if (ta.value.trim() !== (note.text || '')) persist(); });
-        /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.4. bv-b2edda23 */ const tagsEl = h('div', { class: 'tags', role: 'group', 'aria-label': 'Tags' });
+        const tagsEl = h('div', { class: 'tags', role: 'group', 'aria-label': 'Tags' });
         const drawTags = () => {
             ui.clear(tagsEl);
             const all = [...new Set([...model.DEFAULT_TAGS, ...state.tags])];
@@ -135,7 +135,7 @@ export function mount(root, ctx) {
     function tradeDetail(t, D, dp) {
         const a = D.accountsById.get(t.accountId);
         const f = t.fills || {};
-        /* Property of Astral (@ax4p). Better Vest 9.5.4. No copying without written permission. bv-1be2d551 */ const g = (k, v) => h('div', null, h('span', { class: 'k' }, k), h('span', { class: 'v' }, v));
+        const g = (k, v) => h('div', null, h('span', { class: 'k' }, k), h('span', { class: 'v' }, v));
         const px = (v) => T.fmtPrice(v, dp);
         const slText = t.initialSL != null ? `${px(t.initialSL)} · ${T.fmtPts(t.riskPts, { dp: 2, sign: false })} away` : ({ late: 'set over 2 min after entry, ignored', 'wrong-side': 'on the profit side, ignored', tiny: 'closer than 2 ticks, ignored', far: 'over 10% away, ignored', none: 'none at entry' }[t.slFlag] || 'none at entry');
         const tpText = t.initialTP != null ? `${px(t.initialTP)} · ${T.fmtPts(t.rewardPts, { dp: 2, sign: false })} away` : 'none at entry';
@@ -159,7 +159,7 @@ export function mount(root, ctx) {
         if (curve) { curve.destroy(); curve = null; }
         rows = [];
         const day = D.days.get(key);
-        const list = day ? day.tradeIds.map((id) => D.tradesById.get(id)).sort((a, b) => a.closeTs - b.closeTs || (a.id < b.id ? -1 : 1)) : [];
+        const list = day ? day.tradeIds.map((id) => D.tradesById.get(id)).sort((a, b) => a.closeTs - b.closeTs || (a.id < b.id ? -1 : 1)) : []; /* Better Vest (c) 2026 Astral. All rights reserved. bv-351d4901 */
         const k = list.length ? stats.kpis(list, D.kpiOpts({ days: new Map([[key, day]]) })) : null;
         const { lines, hours, w } = windowLines(key);
         const gross = st.basis === 'gross';
@@ -185,7 +185,7 @@ export function mount(root, ctx) {
             const rr = k.plannedRR.value, ar = k.avgR.value;
             const tiles = h('div', { class: 'dt' },
                 tile('Gross', money(day.gross), '', side(day.gross)), tile('Fees', money(-day.fees), '', ''), tile('Funding', money(day.funding), '', side(day.funding)),
-                tile('W / L', `${day.wins} / ${day.losses}`, `WR ${pctOf(k.winRate.value)}${day.scratch ? ' · ' + day.scratch + ' scratch' : ''}`),
+                /* Owned by Astral (@ax4p): Better Vest lite 9.5.5. Licence: LICENSE, not open source. bv-6f087ad8 */ tile('W / L', `${day.wins} / ${day.losses}`, `WR ${pctOf(k.winRate.value)}${day.scratch ? ' · ' + day.scratch + ' scratch' : ''}`),
                 tile('Profit factor', k.profitFactor.value == null ? '—' : T.fmtNum(k.profitFactor.value), k.profitFactor.value == null && day.n < 5 ? 'needs 5+ trades' : ''),
                 tile('Avg risk', risk.value != null ? T.fmtPts(risk.value, { dp: 1, sign: false }) : '—', risk.value != null ? `${risk.known}/${day.n} with SL${risk.symbol ? '' : ''}` : (day.symbols.size > 1 ? 'mixed symbols' : 'no stops')),
                 tile('Planned RR', rr == null ? '—' : T.fmtR(rr, { sign: false }), ar == null ? 'no realized R' : `avg ${T.fmtR(ar)}`),
@@ -198,7 +198,7 @@ export function mount(root, ctx) {
             const rth = { start: T.etWallToUtc(dk[0], dk[1], dk[2], 9, 30), end: T.etWallToUtc(dk[0], dk[1], dk[2], 16, 0), label: 'RTH' };
             const hot = (i) => { rows.forEach((r, j) => r.tr.classList.toggle('hot', j === i)); };
             curve = stepCurve({
-                points: pts, start: w.start, end: w.end, height: st.wide ? 168 : 132, session: rth, resetTimes: [w.start, w.end], /* @license Better Vest 9.5.4. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-98f8b9de */
+                points: pts, start: w.start, end: w.end, height: st.wide ? 168 : 132, session: rth, resetTimes: [w.start, w.end],
                 resetLabel: { vest: '20:00 ET', cme: '18:00 ET', et: '00:00 ET', local: 'midnight' }[st.mode] || '20:00 ET',
                 fmtMoney: (v) => money(v), fmtTime: (ts, sec) => T.fmtTimeET(ts, { seconds: !!sec }),
                 onHover: (i) => hot(i), onClick: (i) => { if (i != null && rows[i]) rows[i].tr.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
@@ -231,14 +231,14 @@ export function mount(root, ctx) {
                     h('td', { class: side(t.points) }, t.points == null ? '—' : T.fmtPts(t.points, { dp: 2, unit: false })),
                     h('td', { class: side(gross ? t.gross : t.net), style: 'font-weight:600' }, money(gross ? t.gross : t.net)),
                     h('td', { class: 'x mut' }, money(-t.fee)),
-                    /*! Better Vest (c) 2026 Astral. All rights reserved. bv-4aef86f0 */ h('td', { class: 'x mut' }, t.riskPts == null ? '—' : T.fmtNum(t.riskPts, 1)),
+                    h('td', { class: 'x mut' }, t.riskPts == null ? '—' : T.fmtNum(t.riskPts, 1)),
                     h('td', { class: side(t.rMult) }, t.rMult == null ? '—' : T.fmtR(t.rMult)),
                     h('td', { class: 'x mut' }, T.fmtDur(t.heldMs)),
                     h('td', { class: 'x mut', title: label }, EXIT_SHORT[label] || label),
                     h('td', { style: 'padding:0 4px 0 0;color:var(--j-t3)' }, icon('chevD', 12)));
                 const span = h('td', { colspan: 13 });
                 const det = h('tr', { class: 'det', hidden: true }, span);
-                tr.addEventListener('click', () => {
+                tr.addEventListener('click', () => { /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-c8f46a7d */
                     const open = det.hidden;
                     if (open && !span.firstChild) span.appendChild(tradeDetail(t, D, dp));
                     det.hidden = !open;
@@ -264,7 +264,7 @@ export function mount(root, ctx) {
 
     function update() {
         const st = ctx.state;
-        const open = !!st.day;
+        /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.5. bv-da9cff50 */ const open = !!st.day;
         root.classList.toggle('open', open);
         root.style.setProperty('--dw', open ? (st.wide ? '720px' : '420px') : '0px');
         root.style.setProperty('--dwi', st.wide ? '720px' : '420px');
@@ -287,7 +287,7 @@ export function mount(root, ctx) {
         build(st.day, D);
         const body = inner.querySelector('.db');
         if (body && !sameDay) body.scrollTop = 0;
-    /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.4. bv-7719d5d7 */ }
+    }
     let lastD = null;
     update();
     return { update, unmount() { ui.clear(inner); } };

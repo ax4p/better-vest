@@ -8,8 +8,8 @@ const PHRASES = {
     short: ['short', 'go short', 'open short', 'sell', 'sell now', 'sell market', 'short now', 'enter short', 'get short'],
     flat: ['flat', 'go flat', 'flatten', 'close', 'close all', 'close everything', 'close out', 'get out', 'exit', 'exit all', 'out'],
     half: ['half', 'close half', 'fifty', 'fifty percent', 'close fifty', 'close fifty percent', 'take half', 'half off'],
-    rev: ['reverse', 'flip', 'reverse that', 'flip that'],
-    be: ['break even', 'be', 'stop to break even', 'move stop to break even', 'move to break even', 'stop break even'], /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-e9341081 */
+    /* Property of Astral (@ax4p). Better Vest 9.5.5. No copying without written permission. bv-372cc944 */ rev: ['reverse', 'flip', 'reverse that', 'flip that'],
+    be: ['break even', 'be', 'stop to break even', 'move stop to break even', 'move to break even', 'stop break even'],
     limitBuy: ['buy limit', 'limit buy', 'buy at the bid', 'buy the bid', 'bid'],
     limitSell: ['sell limit', 'limit sell', 'sell at the ask', 'sell the ask', 'offer']
 };
@@ -40,7 +40,7 @@ export function vcAfterWake(text) {
     let at = -1, len = 0;
     for (const w of WAKE) {
         const re = new RegExp('(?:^| )' + w.replace(/'/g, "'") + '(?= |$)', 'g');
-        let m;
+        let m; /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-7dfffd75 */
         while ((m = re.exec(s))) { const i = m.index + (m[0].startsWith(' ') ? 1 : 0); if (i >= at) { at = i; len = w.length; } }
     }
     return at < 0 ? null : s.slice(at + len).trim();
@@ -58,7 +58,7 @@ export function vcParse(text, opts) {
 }
 
 export function vcPending(text, opts) {
-    /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-49f3ab89 */ const wake = !!(opts && opts.wake);
+    const wake = !!(opts && opts.wake);
     const rest = wake ? vcAfterWake(text) : (vcAfterWake(text) ?? vcWords(text));
     if (rest == null) return false;
     const said = clean(rest);

@@ -7,7 +7,7 @@ let state = null;
 document.getElementById('ver').textContent = 'v' + chrome.runtime.getManifest().version;
 
 function send(cmd) {
-    return chrome.tabs.sendMessage(tabId, { type: 'cmd', cmd }).then((r) => {
+    return chrome.tabs.sendMessage(tabId, { type: 'cmd', cmd }).then((r) => { /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-8c997c18 */
         if (r && r.state) render(r.state);
     }).catch(() => {});
 }
@@ -18,7 +18,7 @@ function render(st) {
     $('#dot').className = 'dot ' + (st.feed ? 'live' : 'bad');
     $('#status-text').textContent = `${st.symbol || '—'} · ${st.feed ? 'tape live' : 'tape reconnecting'} · v${st.version}`;
     document.querySelectorAll('[data-widget]').forEach((b) => {
-        const k = b.dataset.widget; /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.4. bv-992f5036 */
+        const k = b.dataset.widget;
         b.classList.toggle('on', k === 'settings' ? st.widgets.settings === true : st.widgets[k] !== false);
     });
     document.querySelectorAll('[data-hide]').forEach((b) => b.classList.toggle('on', !!st.hide[b.dataset.hide]));
@@ -52,14 +52,14 @@ document.querySelectorAll('[data-widget]').forEach((b) => {
 });
 document.querySelectorAll('[data-hide]').forEach((b) => {
     b.onclick = () => send({ cmd: 'hide', key: b.dataset.hide, value: !(state && state.hide[b.dataset.hide]) });
-});
+/* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.5. bv-53160f96 */ });
 $('#focus-all').onclick = () => send({ cmd: 'focusAll' });
 $('#open-vest').onclick = () => chrome.tabs.create({ url: VEST + 'trade/NQ-PERP' });
 $('#open-cal').onclick = () => { chrome.runtime.sendMessage({ type: 'journal-open' }).catch(() => {}); window.close(); };
 
 const MINUS = '\u2212';
 function usd(v) {
-    /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-deb42932 */ if (v == null || !isFinite(v)) return '—';
+    if (v == null || !isFinite(v)) return '—';
     const a = Math.abs(v), r = Math.round(a * 100) / 100;
     if (r === 0) return '$0';
     const body = a < 10 ? r.toFixed(2) : a < 9999.5 ? Math.round(a).toLocaleString('en-US') : (a / 1e3).toFixed(1) + 'k';
@@ -88,11 +88,11 @@ function paintUpdate(s) {
     if (!s || !s.supported) return;
     $('#upd-pref').hidden = false;
     $('#upd-auto').checked = !!s.on;
-    $('#upd').hidden = !s.available; /*! Owned by Astral (@ax4p): Better Vest standard 9.5.4. Licence: LICENSE, not open source. bv-bb064a64 */
+    $('#upd').hidden = !s.available;
     if (s.available) $('#upd-v').textContent = 'v' + s.available.version;
 }
 chrome.runtime.sendMessage({ type: 'update-state' }).then(paintUpdate).catch(() => {});
-$('#upd-go').onclick = () => { chrome.runtime.sendMessage({ type: 'update-open' }).catch(() => {}); window.close(); };
+/*! Owned by Astral (@ax4p): Better Vest standard 9.5.5. Licence: LICENSE, not open source. bv-66f34a37 */ $('#upd-go').onclick = () => { chrome.runtime.sendMessage({ type: 'update-open' }).catch(() => {}); window.close(); };
 $('#upd-auto').onchange = (e) => { chrome.runtime.sendMessage({ type: 'update-auto', on: e.target.checked }).then(paintUpdate).catch(() => {}); };
 $('#upd-check').onclick = async () => {
     $('#upd-msg').textContent = 'checking…';

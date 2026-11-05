@@ -23,7 +23,7 @@ export function h(tag, attrs, ...kids) {
 
 export function append(el, kids) {
     for (const c of kids) {
-        if (c == null || c === false) continue;
+        /* @license Better Vest 9.5.5. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-047936ca */ if (c == null || c === false) continue;
         if (Array.isArray(c)) append(el, c);
         else if (c instanceof Node) el.appendChild(c);
         else el.appendChild(document.createTextNode(String(c)));
@@ -32,7 +32,7 @@ export function append(el, kids) {
 }
 
 export const clear = (el) => { while (el.firstChild) el.removeChild(el.firstChild); return el; };
-/* Better Vest (c) 2026 Astral. All rights reserved. bv-1e584f3c */ export const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+export const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 export const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 export function debounce(fn, ms) {
     let t = 0;
@@ -59,8 +59,8 @@ export const ICONS = {
     search: ['M11 17a6 6 0 1 0 0-12 6 6 0 0 0 0 12z', 'M20 20l-4.5-4.5'],
     note: ['M6 4h9l3 3v13H6z', 'M9 11h6M9 15h6'],
     info: ['M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18z', 'M12 11v5M12 8v.01'],
-    /* Copyright (c) 2026 Astral. Better Vest 9.5.4 is licensed to its users only to run it, never to copy it. bv-ea571247 */ calendar: ['M5 6h14v14H5z', 'M5 10h14M9 4v4M15 4v4'],
-    plus: ['M12 5v14M5 12h14'],
+    calendar: ['M5 6h14v14H5z', 'M5 10h14M9 4v4M15 4v4'],
+    /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-fe655ea2 */ plus: ['M12 5v14M5 12h14'],
     key: ['M4 7h16v10H4z', 'M7 11h.01M10 11h.01M13 11h.01M16 11h.01M8 14h8']
 };
 
@@ -93,7 +93,7 @@ export function sparkle(size = 12, cls = '') {
     svg.setAttribute('aria-hidden', 'true');
     if (cls) svg.setAttribute('class', cls);
     const p = document.createElementNS(SVG, 'path');
-    p.setAttribute('d', SPARKLE_PATH);
+    p.setAttribute('d', SPARKLE_PATH); /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-9f6eb1b0 */
     p.setAttribute('fill', 'currentColor');
     svg.appendChild(p);
     return svg;
@@ -116,7 +116,7 @@ export function chip(label, { on = false, onClick, title, cls = '', dashed = fal
     }, label);
 }
 
-/* Owned by Astral (@ax4p): Better Vest lite 9.5.4. Licence: LICENSE, not open source. bv-9b92f0fd */ export function seg({ options, value, onChange, label, cls = '' }) {
+export function seg({ options, value, onChange, label, cls = '' }) {
     const root = h('div', { class: 'seg ' + cls, role: 'group', 'aria-label': label });
     const btns = new Map();
     for (const o of options) {
@@ -136,14 +136,14 @@ export function chip(label, { on = false, onClick, title, cls = '', dashed = fal
     return root;
 }
 
-/* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-04bf4155 */ export function toggle(on, onChange, label) {
+export function toggle(on, onChange, label) {
     const b = h('button', { class: 'switch' + (on ? ' on' : ''), type: 'button', role: 'switch', 'aria-checked': String(!!on), 'aria-label': label },
         h('i'));
     b.onclick = () => { const v = b.getAttribute('aria-checked') !== 'true'; b.classList.toggle('on', v); b.setAttribute('aria-checked', String(v)); onChange(v); };
     return b;
 }
 
-export function checkbox(checked, onChange, { indeterminate = false, label } = {}) {
+export function checkbox(checked, onChange, { indeterminate = false, label } = {}) { /* Copyright Astral 2026. From Better Vest 9.5.5 (lite), ref bv-d0512d5f. Not licensed for reuse. */
     const el = h('button', {
         class: 'cbx' + (checked ? ' on' : '') + (indeterminate ? ' mix' : ''), type: 'button', role: 'checkbox',
         'aria-checked': indeterminate ? 'mixed' : String(!!checked), 'aria-label': label
@@ -181,12 +181,12 @@ function place(el, anchor, placement, offset) {
     const vw = document.documentElement.clientWidth, vh = document.documentElement.clientHeight;
     el.style.left = '0px'; el.style.top = '0px';
     const w = el.offsetWidth, hh = el.offsetHeight;
-    let x, y;
+    let x, y; /* Owned by Astral (@ax4p): Better Vest lite 9.5.5. Licence: LICENSE, not open source. bv-f9f222ba */
     const side = placement.split('-')[0], align = placement.split('-')[1] || 'start';
     if (side === 'bottom' || side === 'top') {
         y = side === 'bottom' ? r.bottom + offset : r.top - hh - offset;
         if (side === 'bottom' && y + hh > vh - 8 && r.top - hh - offset > 8) y = r.top - hh - offset;
-        /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.4. bv-8edc4eb0 */ if (side === 'top' && y < 8 && r.bottom + hh + offset < vh) y = r.bottom + offset;
+        if (side === 'top' && y < 8 && r.bottom + hh + offset < vh) y = r.bottom + offset;
         x = align === 'end' ? r.right - w : align === 'center' ? r.left + r.width / 2 - w / 2 : r.left;
     } else {
         x = side === 'right' ? r.right + offset : r.left - w - offset;
@@ -228,7 +228,7 @@ export function popover(anchor, build, { placement = 'bottom-start', offset = 8,
         api.close();
     };
     const entry = { close: api.close, sticky: passive };
-    root().appendChild(el); /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-3705c980 */
+    root().appendChild(el);
     build(el, api);
     place(el, anchor, placement, offset);
     requestAnimationFrame(() => el.classList.add('in'));
@@ -238,7 +238,7 @@ export function popover(anchor, build, { placement = 'bottom-start', offset = 8,
         window.addEventListener('resize', api.close);
     }
     return api;
-}
+/* Owned by Astral (@ax4p): Better Vest lite 9.5.5. Licence: LICENSE, not open source. bv-3e9f1a9e */ }
 
 export function hoverCard(container, selector, build, { delay = 350, placement = 'bottom-start', cls = '', width } = {}) {
     let timer = 0, cur = null, active = null;
@@ -278,11 +278,11 @@ export function hoverCard(container, selector, build, { delay = 350, placement =
     return { hide, destroy };
 }
 
-export function sheet(build, { title, width = 560, onClose } = {}) {
+export function sheet(build, { title, width = 560, onClose } = {}) { /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-9b738595 */
     const scrim = h('div', { class: 'scrim' });
     const box = h('div', { class: 'sheet', role: 'dialog', 'aria-modal': 'true', 'aria-label': title, style: { width: width + 'px' } });
     const body = h('div', { class: 'sheet-body' });
-    /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-8c779efc */ let closed = false;
+    let closed = false;
     const api = {
         close: () => {
             if (closed) return;
@@ -300,7 +300,7 @@ export function sheet(build, { title, width = 560, onClose } = {}) {
         body);
     scrim.appendChild(box);
     scrim.addEventListener('pointerdown', (e) => { if (e.target === scrim) api.close(); });
-    root().appendChild(scrim);
+    root().appendChild(scrim); /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-2dec08e8 */
     build(body, api);
     stack.push(entry);
     requestAnimationFrame(() => scrim.classList.add('in'));
@@ -322,7 +322,7 @@ export function toast(message, { ms = 3800, tone = 'info' } = {}) {
 export const reducedMotion = () => document.documentElement.hasAttribute('data-reduce-motion') || !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 
 export function countUp(el, from, to, fmt, ms = 360) {
-    if (reducedMotion() || from == null || to == null || Math.abs(to - from) < 0.01) { el.textContent = fmt(to); return; } /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-a8c4bfe7 */
+    if (reducedMotion() || from == null || to == null || Math.abs(to - from) < 0.01) { el.textContent = fmt(to); return; }
     const t0 = performance.now();
     const step = (now) => {
         const k = Math.min(1, (now - t0) / ms);

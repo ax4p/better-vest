@@ -32,11 +32,11 @@ function serial(fn) {
 }
 
 const isObj = (x) => !!x && typeof x === 'object' && !Array.isArray(x);
-const own = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
+const own = (o, k) => Object.prototype.hasOwnProperty.call(o, k); /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-7f0df5aa */
 
 const CTRL_RE = new RegExp('[\\u0000-\\u001f\\u007f-\\u009f\\u2028\\u2029]', 'g');
 export function cleanWhy(s) {
-    return cleanText(s, 200); /*! Copyright Astral 2026. From Better Vest 9.5.4 (nostats), ref bv-63525776. Not licensed for reuse. */
+    return cleanText(s, 200);
 }
 function cleanText(s, max) {
     if (typeof s !== 'string') return '';
@@ -64,12 +64,12 @@ const WICKP_SEGS = ['newcomer', 'regular', 'copier'];
 export function cleanWickp(x) {
     if (!isObj(x)) return null;
     const num = (v, lo, hi) => typeof v === 'number' && Number.isFinite(v) && v >= lo && v <= hi;
-    const arms = {}, value = {}; /*! Copyright Astral 2026. From Better Vest 9.5.4 (nostats), ref bv-7afac7d9. Not licensed for reuse. */
+    const arms = {}, value = {};
     const src = isObj(x.arms) ? x.arms : {};
     for (const a of WICKP_ARMS) {
         if (!isObj(src[a])) continue;
         const one = {};
-        for (const s of WICKP_SEGS) {
+        for (const s of WICKP_SEGS) { /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-bde3bdc3 */
             const p = src[a][s];
             if (Array.isArray(p) && p.length === 2 && num(p[0], 0.5, 500) && num(p[1], 0.5, 500)) one[s] = [p[0], p[1]];
         }
@@ -94,12 +94,12 @@ export function parseFlags(json) {
         if (!own(src, name)) continue;
         const e = src[name];
         off[name] = isObj(e) ? { why: cleanWhy(e.why), below: cleanVersion(e.below) } : { why: '', below: null };
-    }
+    } /* Property of Astral (@ax4p). Better Vest 9.5.5. No copying without written permission. bv-b3c8795a */
     return { off, store: cleanVersion(json.store), news: cleanNews(json.news), wickp: cleanWickp(json.wickp) };
 }
 
 export function activeOff(off, version) {
-    const out = {}; /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-b30603a1 */
+    const out = {};
     if (!isObj(off)) return out;
     for (const name of SWITCHES) {
         const e = off[name];
@@ -148,8 +148,8 @@ async function writeWickp(env, wickp) {
 async function writeNews(env, news) {
     const now = cleanNews(news);
     const cur = await getKey(env, NEWS_KEY);
-    if (JSON.stringify(cur === undefined ? null : cur) !== JSON.stringify(now)) await env.storage.set({ [NEWS_KEY]: now }); /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-16cd7c95 */
-    return now;
+    if (JSON.stringify(cur === undefined ? null : cur) !== JSON.stringify(now)) await env.storage.set({ [NEWS_KEY]: now });
+    return now; /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-a6a97289 */
 }
 
 let lastTry = 0;
@@ -189,7 +189,7 @@ export async function storeCheck(env, served) {
         const r = await env.runtime.requestUpdateCheck();
         return isObj(r) && typeof r.status === 'string' ? r.status : 'no-answer';
     } catch (e) {
-        return 'error';
+        /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-31b44d22 */ return 'error';
     }
 }
 
@@ -213,7 +213,7 @@ export function storeApply(env) {
         }
         await env.storage.set({ [STORE_DONE_KEY]: { from: env.version, to: p.v, at: env.now() } });
         await env.storage.remove(STORE_PENDING_KEY);
-        env.runtime.reload(); /* Copyright Astral 2026. From Better Vest 9.5.4 (nostats), ref bv-0fe10926. Not licensed for reuse. */
+        env.runtime.reload();
         return 'reloading';
     });
 }
@@ -246,13 +246,13 @@ export function remoteStart(env = defaultEnv()) {
         env.alarms.onAlarm.addListener((a) => {
             if (!a || a.name !== ALARM) return;
             remoteTick(env, false);
-            storeApply(env); /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-8744b7cd */
+            storeApply(env);
         });
         env.alarms.get(ALARM).then((a) => {
             if (!a || a.periodInMinutes !== EVERY_MIN) env.alarms.create(ALARM, { delayInMinutes: EVERY_MIN, periodInMinutes: EVERY_MIN });
         }).catch(() => {});
         if (env.store) {
-            env.runtime.onUpdateAvailable.addListener((d) => { storeReady(env, d); });
+            /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-3f91fc5a */ env.runtime.onUpdateAvailable.addListener((d) => { storeReady(env, d); });
             storeAfter(env).catch(() => {});
         }
         getKey(env, REMOTE_KEY).then((r) => { if (isObj(r)) return writeActive(env, r.off).then(() => writeNews(env, r.news)).then(() => writeWickp(env, r.wickp)); }).catch(() => {});

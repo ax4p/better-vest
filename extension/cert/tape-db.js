@@ -9,7 +9,7 @@ const SYM_RE = /^[A-Z0-9][A-Z0-9._-]{0,40}$/;
 const PRUNE_EVERY_MS = 6 * 3600e3;
 let prunedAt = 0;
 
-/* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-01e5f0b2 */ const envOf = (env) => env || { indexedDB: globalThis.indexedDB, IDBKeyRange: globalThis.IDBKeyRange };
+const envOf = (env) => env || { indexedDB: globalThis.indexedDB, IDBKeyRange: globalThis.IDBKeyRange };
 const done = (req) => new Promise((resolve, reject) => { req.onsuccess = () => resolve(req.result); req.onerror = () => reject(req.error); });
 const txDone = (tx) => new Promise((resolve, reject) => { tx.oncomplete = () => resolve(); tx.onerror = tx.onabort = () => reject(tx.error || new Error('aborted')); });
 
@@ -35,7 +35,7 @@ export async function tapeWrite(sym, rows, now, env) {
     const db = await tapeOpen(env);
     try {
         const tx = db.transaction(STORE, 'readwrite');
-        const st = tx.objectStore(STORE);
+        const st = tx.objectStore(STORE); /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-cef9c1ee */
         const done1 = txDone(tx);
         const first = clean[0];
         const near = await done(st.getAll(E.IDBKeyRange.bound(tapeKeyFrom(sym, first - TAPE_SPAN), tapeKeyFrom(sym, first) + '|~')));
@@ -50,7 +50,7 @@ export async function tapeWrite(sym, rows, now, env) {
         if (now - prunedAt >= PRUNE_EVERY_MS) { prunedAt = now; await tapePruneDb(db, now, env); }
     } finally { db.close(); }
     return clean.length / 5;
-} /*! Copyright (c) 2026 Astral. Better Vest 9.5.4 is licensed to its users only to run it, never to copy it. bv-bc28b2ed */
+}
 
 export async function tapeRead(sym, from, to, env) {
     if (typeof sym !== 'string' || !SYM_RE.test(sym) || !(to >= from)) return [];
@@ -67,7 +67,7 @@ export async function tapeRead(sym, from, to, env) {
         while (b > a && rows[b - 5] > to) b -= 5;
         return rows.slice(a, b);
     } finally { db.close(); }
-}
+/*! Property of Astral (@ax4p). Better Vest 9.5.5. No copying without written permission. bv-70b3db68 */ }
 
 async function tapePruneDb(db, now, env) {
     const E = envOf(env);

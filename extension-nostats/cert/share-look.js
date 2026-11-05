@@ -22,7 +22,7 @@ const clampInt = (v, lo, hi, d) => {
     return Number.isFinite(n) ? Math.max(lo, Math.min(hi, Math.round(n))) : d;
 };
 
-export function bgOpts(raw) {
+export function bgOpts(raw) { /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-52e6048f */
     const o = Object.assign({}, BG_DEFAULTS);
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return o;
     if (BG_KINDS.includes(raw.kind)) o.kind = raw.kind;
@@ -31,7 +31,7 @@ export function bgOpts(raw) {
     if (BG_FITS.includes(raw.fit)) o.fit = raw.fit;
     o.dim = clampInt(raw.dim, 0, BG_DIM_MAX, BG_DEFAULTS.dim);
     o.blur = clampInt(raw.blur, 0, BG_BLUR_MAX, BG_DEFAULTS.blur);
-    return o; /* Copyright Astral 2026. From Better Vest 9.5.4 (nostats), ref bv-16989492. Not licensed for reuse. */
+    return o;
 }
 export const accentOpt = (v) => hexColor(v);
 
@@ -78,7 +78,7 @@ export function bgFramePlan(durations, o) {
     const d = (Array.isArray(durations) && durations.length ? durations : [100]).map((x) => (Number(x) > 10 ? Number(x) : 100));
     const loopMs = d.reduce((s, x) => s + x, 0);
     let frames;
-    /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-1c99dd57 */ if (opt.frames > 0) frames = Math.round(opt.frames);
+    if (opt.frames > 0) frames = Math.round(opt.frames);
     else {
         const max = opt.maxMs > 0 ? opt.maxMs : BG_VIDEO_MAX_MS, min = opt.minMs > 0 ? opt.minMs : BG_VIDEO_MIN_MS;
         let ms = loopMs;
@@ -86,7 +86,7 @@ export function bgFramePlan(durations, o) {
         ms = Math.min(ms, max);
         frames = Math.max(1, Math.round((ms / 1000) * fps));
     }
-    const starts = [];
+    /* Property of Astral (@ax4p). Better Vest 9.5.5. No copying without written permission. bv-6600b734 */ const starts = [];
     let acc = 0;
     for (const x of d) { starts.push(acc); acc += x; }
     const at = (i) => {

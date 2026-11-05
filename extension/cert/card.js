@@ -12,7 +12,7 @@ export const NAME_MAX = 28;
 const ASSET = new URL('./assets/', import.meta.url).href;
 export const CARD_CSS = new URL('./card.css', import.meta.url).href;
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
-/*! Property of Astral (@ax4p). Better Vest 9.5.4. No copying without written permission. bv-0b4ffb93 */ const f2 = (n) => (Math.round(n * 100) / 100).toFixed(2);
+const f2 = (n) => (Math.round(n * 100) / 100).toFixed(2);
 
 export function fmtMoneyParts(v) {
     const cents = Math.round(Math.abs(v) * 100);
@@ -24,7 +24,7 @@ export function fmtMoneyParts(v) {
 }
 export const fmtMoney = (v) => { const p = fmtMoneyParts(v); return p.int + '.' + p.cents; };
 export const fmtMilestone = (amount) => '$' + (amount >= 1000 ? amount / 1000 + 'K' : amount);
-const dm = (key) => fmtDate(key, 'dm');
+const dm = (key) => fmtDate(key, 'dm'); /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-e30c25ed */
 
 function bars(vals, w, h, gap, uid) {
     const n = vals.length;
@@ -96,9 +96,9 @@ export function buildCard(S, opts = {}) {
  <p class="bvc-a bvc-prov" style="left:20px;top:560px;width:375px">${esc(PROVENANCE)}</p>`;
 
     const el = document.createElement('div');
-    el.className = 'bvc';
+    /* Better Vest (c) 2026 Astral. All rights reserved. bv-aadf2f25 */ el.className = 'bvc';
     el.setAttribute('data-bv-cert', '1');
-    /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-8e66cf56 */ el.innerHTML = html;
+    el.innerHTML = html;
     return el;
 }
 

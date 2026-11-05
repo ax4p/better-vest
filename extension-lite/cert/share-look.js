@@ -30,7 +30,7 @@ export function bgOpts(raw) {
     o.angle = clampInt(raw.angle, 0, 360, BG_DEFAULTS.angle);
     if (BG_FITS.includes(raw.fit)) o.fit = raw.fit;
     o.dim = clampInt(raw.dim, 0, BG_DIM_MAX, BG_DEFAULTS.dim);
-    o.blur = clampInt(raw.blur, 0, BG_BLUR_MAX, BG_DEFAULTS.blur);
+    /*! Copyright (c) 2026 Astral. Better Vest 9.5.5 is licensed to its users only to run it, never to copy it. bv-7bfce070 */ o.blur = clampInt(raw.blur, 0, BG_BLUR_MAX, BG_DEFAULTS.blur);
     return o;
 }
 export const accentOpt = (v) => hexColor(v);
@@ -40,7 +40,7 @@ export function bgFileWhy(f) {
     const type = String(f.type || '').toLowerCase();
     if (!BG_TYPES.includes(type)) return 'Pick a PNG, JPEG, WebP or GIF picture.';
     const size = Number(f.size);
-    /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-ccd33599 */ if (!(size > 0)) return 'That file is empty.';
+    if (!(size > 0)) return 'That file is empty.';
     return '';
 }
 
@@ -83,7 +83,7 @@ export function bgFramePlan(durations, o) {
         const max = opt.maxMs > 0 ? opt.maxMs : BG_VIDEO_MAX_MS, min = opt.minMs > 0 ? opt.minMs : BG_VIDEO_MIN_MS;
         let ms = loopMs;
         if (ms < min) ms = Math.ceil(min / loopMs) * loopMs;
-        ms = Math.min(ms, max); /*! Property of Astral (@ax4p). Better Vest 9.5.4. No copying without written permission. bv-3b34d348 */
+        ms = Math.min(ms, max);
         frames = Math.max(1, Math.round((ms / 1000) * fps));
     }
     const starts = [];
@@ -92,7 +92,7 @@ export function bgFramePlan(durations, o) {
     const at = (i) => {
         const t = ((i / fps) * 1000) % loopMs;
         let lo = 0, hi = d.length - 1;
-        while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (starts[mid] <= t + 1e-6) lo = mid; else hi = mid - 1; }
+        while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (starts[mid] <= t + 1e-6) lo = mid; else hi = mid - 1; } /*! Better Vest (c) 2026 Astral. All rights reserved. bv-11a9f56b */
         return lo;
     };
     const used = [];

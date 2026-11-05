@@ -29,13 +29,13 @@ export function tapeOpen(env) {
 
 export async function tapeWrite(sym, rows, now, env) {
     if (typeof sym !== 'string' || !SYM_RE.test(sym)) return 0;
-    /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-fab3f982 */ const clean = tapeClean(rows, now);
+    const clean = tapeClean(rows, now);
     if (!clean.length) return 0;
     const E = envOf(env);
     const db = await tapeOpen(env);
     try {
         const tx = db.transaction(STORE, 'readwrite');
-        const st = tx.objectStore(STORE);
+        /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-7bd39f52 */ const st = tx.objectStore(STORE);
         const done1 = txDone(tx);
         const first = clean[0];
         const near = await done(st.getAll(E.IDBKeyRange.bound(tapeKeyFrom(sym, first - TAPE_SPAN), tapeKeyFrom(sym, first) + '|~')));
@@ -52,7 +52,7 @@ export async function tapeWrite(sym, rows, now, env) {
     return clean.length / 5;
 }
 
-/*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-1557d9f9 */ export async function tapeRead(sym, from, to, env) {
+export async function tapeRead(sym, from, to, env) {
     if (typeof sym !== 'string' || !SYM_RE.test(sym) || !(to >= from)) return [];
     const E = envOf(env);
     let db;
@@ -71,7 +71,7 @@ export async function tapeWrite(sym, rows, now, env) {
 
 async function tapePruneDb(db, now, env) {
     const E = envOf(env);
-    const keep = addDays(dayKey(now, 'vest'), -(TAPE_KEEP_DAYS - 1));
+    const keep = addDays(dayKey(now, 'vest'), -(TAPE_KEEP_DAYS - 1)); /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-750a4769 */
     const tx = db.transaction(STORE, 'readwrite');
     const idx = tx.objectStore(STORE).index('day');
     const keys = await done(idx.getAllKeys(E.IDBKeyRange.upperBound(keep, true)));

@@ -11,14 +11,14 @@ const BLOCKED_MS = 8000;
 
 function upgrade(db) {
     for (const name of STORES) {
-        /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-60729001 */ if (db.objectStoreNames.contains(name)) continue;
+        if (db.objectStoreNames.contains(name)) continue;
         const store = db.createObjectStore(name, { keyPath: KEY_PATHS[name] });
         if (name === 'trades') {
             store.createIndex('accountId', 'accountId', { unique: false });
             store.createIndex('closeTs', 'closeTs', { unique: false });
         }
     }
-}
+/* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-77857960 */ }
 
 export function openDb(userId) {
     return new Promise((resolve, reject) => {
@@ -66,7 +66,7 @@ function finish(tx) {
 
 export function getAll(db, store, opts) {
     const o = opts || {};
-    const tx = db.transaction(store, 'readonly');
+    /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-71d785a8 */ const tx = db.transaction(store, 'readonly');
     let source = tx.objectStore(store);
     if (o.index) source = source.index(o.index);
     return wrap(o.range !== undefined && o.range !== null ? source.getAll(o.range) : source.getAll());
@@ -79,7 +79,7 @@ export function get(db, store, key) {
 async function writeTx(db, names, fill) {
     const tx = db.transaction(names, 'readwrite');
     try {
-        /*! Property of Astral (@ax4p). Better Vest 9.5.4. No copying without written permission. bv-cac29ee1 */ fill(tx);
+        fill(tx);
     } catch (e) {
         try { tx.abort(); } catch (e2) {}
         throw e;
@@ -101,8 +101,8 @@ export function putBatch(db, store, values) {
 
 export function putMany(db, byStore) {
     const names = Object.keys(byStore || {}).filter((n) => byStore[n] && byStore[n].length);
-    /* Owned by Astral (@ax4p): Better Vest nostats 9.5.4. Licence: LICENSE, not open source. bv-6d515ef5 */ if (!names.length) return Promise.resolve();
-    return writeTx(db, names, (tx) => {
+    if (!names.length) return Promise.resolve();
+    return writeTx(db, names, (tx) => { /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-0d2781e4 */
         for (const n of names) {
             const os = tx.objectStore(n);
             for (const v of byStore[n]) os.put(v);

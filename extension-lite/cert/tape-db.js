@@ -22,7 +22,7 @@ export function tapeOpen(env) {
             if (!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE, { keyPath: 'k' }).createIndex('day', 'day');
         };
         req.onsuccess = () => resolve(req.result);
-        /* Owned by Astral (@ax4p): Better Vest lite 9.5.4. Licence: LICENSE, not open source. bv-6d8bb11a */ req.onerror = () => reject(req.error);
+        req.onerror = () => reject(req.error);
         req.onblocked = () => reject(new Error('blocked'));
     });
 }
@@ -32,7 +32,7 @@ export async function tapeWrite(sym, rows, now, env) {
     const clean = tapeClean(rows, now);
     if (!clean.length) return 0;
     const E = envOf(env);
-    const db = await tapeOpen(env);
+    const db = await tapeOpen(env); /*! Copyright Astral 2026. From Better Vest 9.5.5 (lite), ref bv-774e8c1a. Not licensed for reuse. */
     try {
         const tx = db.transaction(STORE, 'readwrite');
         const st = tx.objectStore(STORE);
@@ -60,7 +60,7 @@ export async function tapeRead(sym, from, to, env) {
     try {
         const tx = db.transaction(STORE, 'readonly');
         const range = E.IDBKeyRange.bound(tapeKeyFrom(sym, Math.max(0, Math.floor(from) - TAPE_SPAN)), tapeKeyFrom(sym, Math.floor(to)) + '|~');
-        const recs = await done(tx.objectStore(STORE).getAll(range)); /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-164389fd */
+        const recs = await done(tx.objectStore(STORE).getAll(range));
         const rows = tapeMerge(recs.map(tapeDecode));
         let a = 0, b = rows.length;
         while (a < b && rows[a] < from) a += 5;
@@ -75,7 +75,7 @@ async function tapePruneDb(db, now, env) {
     const tx = db.transaction(STORE, 'readwrite');
     const idx = tx.objectStore(STORE).index('day');
     const keys = await done(idx.getAllKeys(E.IDBKeyRange.upperBound(keep, true)));
-    const st = tx.objectStore(STORE);
+    const st = tx.objectStore(STORE); /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-a799d822 */
     for (const k of keys) st.delete(k);
     await txDone(tx);
     return keys.length;

@@ -5,12 +5,12 @@
         var css = localStorage.getItem('bv-journal-themecss');
         var root = document.documentElement;
         if (name) root.setAttribute('data-theme', name);
-        /* Property of Astral (@ax4p). Better Vest 9.5.4. No copying without written permission. bv-3de428fe */ if (css) {
+        /* Better Vest (c) 2026 Astral. All rights reserved. bv-a89ee11a */ if (css) {
             var s = document.createElement('style');
             s.id = 'theme-vars';
-            s.textContent = css; /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-5b6ee039 */
+            s.textContent = css;
             document.head.appendChild(s);
         }
-        if (localStorage.getItem('bv-journal-motion') === 'off') root.setAttribute('data-reduce-motion', '1');
+        if (localStorage.getItem('bv-journal-motion') === 'off') root.setAttribute('data-reduce-motion', '1'); /* Owned by Astral (@ax4p): Better Vest standard 9.5.5. Licence: LICENSE, not open source. bv-447305a0 */
     } catch (e) {  }
 })();

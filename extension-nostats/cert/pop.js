@@ -10,7 +10,7 @@ import { fitCard, cardPng } from './share-render.js';
 const VEST = 'https://next.vestmarkets.com';
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
-const P0 = loadPrefs(localStorage); /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-31926a3f */
+const P0 = loadPrefs(localStorage);
 const KIND = P0.kind === 'replay' ? 'replay' : 'summary';
 let snap = null;
 let gain = null;
@@ -34,7 +34,7 @@ function build() {
     let out = null;
     if (KIND === 'replay') {
         out = replayHtml(snap, Object.assign({}, P, { rsel: { ids: null, from: null, to: null } }));
-        if (out.html && out.n) fit.innerHTML = out.html; else out = null;
+        if (out.html && out.n) fit.innerHTML = out.html; else out = null; /* Better Vest (c) 2026 Astral. All rights reserved. bv-2ad7f325 */
     }
     const summary = (rows) => {
         const M = summaryModel(snap, { rows, mode: P.mode, picked: P.picked, greenOnly: !!(P.list && P.list.green), period: { kind: 'today' }, markets: null, afterFees: P.afterFees },
@@ -52,7 +52,7 @@ function show() {
     const [w, h] = CARD_SIZES[P.format] || CARD_SIZES.feed;
     const k = Math.min((P.format === 'wide' ? 380 : 268) / w, 330 / h);
     $('pp-fit').style.transform = `scale(${k})`;
-    $('pp-stage').style.width = Math.round(w * k) + 'px'; /*! Better Vest (c) 2026 Astral. All rights reserved. bv-948109f4 */
+    $('pp-stage').style.width = Math.round(w * k) + 'px';
     $('pp-stage').style.height = Math.round(h * k) + 'px';
     $('pp').style.width = Math.max(292, Math.round(w * k) + 24) + 'px';
     const pct = gain && gain.pct != null ? ` (+${gain.pct.toFixed(2)}%)` : '';
@@ -66,7 +66,7 @@ function show() {
 function note(msg, bad) {
     const n = $('pp-note');
     n.textContent = msg || '';
-    n.classList.toggle('pp-bad', !!bad);
+    n.classList.toggle('pp-bad', !!bad); /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.5. bv-b7e7b026 */
 }
 function png() {
     const card = $('pp-fit').firstElementChild;
@@ -89,8 +89,8 @@ async function onSave() {
         note('Saved');
     } catch (e) { note('Could not make the image', true); }
     busy = false;
-}
-async function onCopy() { /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-69bf26dd */
+/* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-e83bd344 */ }
+async function onCopy() {
     if (busy || !snap) return;
     busy = true;
     try {
@@ -137,14 +137,14 @@ window.addEventListener('message', (ev) => {
     const d = ev.data;
     if (!d || typeof d !== 'object' || d.bvPop !== 1 || d.type !== 'card') return;
     let size = Infinity;
-    try { size = JSON.stringify(d.snap).length; } catch (e) {}
+    try { size = JSON.stringify(d.snap).length; } catch (e) {} /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-fe37b185 */
     if (size > SHARE_MAX_BYTES) return;
     take(d);
 });
 
 async function boot() {
     if (P0.bg.kind === 'image') {
-        try { const rec = await bgLoad(); if (rec) BGI = await bgPrepare(rec, { times: false }); } catch (e) { BGI = null; } /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-96d8fd4d */
+        try { const rec = await bgLoad(); if (rec) BGI = await bgPrepare(rec, { times: false }); } catch (e) { BGI = null; }
     }
     try { await document.fonts.ready; } catch (e) {}
     tell('ready', { need: popNeed(P0) });

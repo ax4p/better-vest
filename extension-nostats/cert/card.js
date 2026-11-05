@@ -11,8 +11,8 @@ export const NAME_MAX = 28;
 
 const ASSET = new URL('./assets/', import.meta.url).href;
 export const CARD_CSS = new URL('./card.css', import.meta.url).href;
-const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
-const f2 = (n) => (Math.round(n * 100) / 100).toFixed(2); /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-5bb14dc2 */
+/*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-91b7f474 */ const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+const f2 = (n) => (Math.round(n * 100) / 100).toFixed(2);
 
 export function fmtMoneyParts(v) {
     const cents = Math.round(Math.abs(v) * 100);
@@ -103,13 +103,13 @@ export function buildCard(S, opts = {}) {
 }
 
 export function fitCard(card) {
-    const q = (k) => card.querySelector(`[data-k="${k}"]`);
+    const q = (k) => card.querySelector(`[data-k="${k}"]`); /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-a60a2ed4 */
     const hero = q('hero'), hv = q('hv');
     let size = 82;
     hero.style.fontSize = size + 'px';
     while (hv.offsetWidth > 352 && size > 30) { size -= 1; hero.style.fontSize = size + 'px'; }
     hero.style.letterSpacing = (-3 * size / 82).toFixed(2) + 'px';
-    const recip = q('recip'), name = q('name'), nm = q('nm'); /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-2a461ef4 */
+    const recip = q('recip'), name = q('name'), nm = q('nm');
     let fs = 24;
     name.style.fontSize = fs + 'px';
     const room = 330 - 2 * 28;

@@ -14,7 +14,7 @@ export function hexColor(v) {
     const t = typeof v === 'string' ? v.trim().toLowerCase() : '';
     if (/^#[0-9a-f]{6}$/.test(t)) return t;
     if (/^#[0-9a-f]{3}$/.test(t)) return '#' + t[1] + t[1] + t[2] + t[2] + t[3] + t[3];
-    return ''; /*! Copyright Astral 2026. From Better Vest 9.5.4 (standard), ref bv-d1eb171b. Not licensed for reuse. */
+    return '';
 }
 const clampInt = (v, lo, hi, d) => {
     if (v === null || v === '' || typeof v === 'boolean') return d;
@@ -24,7 +24,7 @@ const clampInt = (v, lo, hi, d) => {
 
 export function bgOpts(raw) {
     const o = Object.assign({}, BG_DEFAULTS);
-    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return o;
+    /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-43949a77 */ if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return o;
     if (BG_KINDS.includes(raw.kind)) o.kind = raw.kind;
     for (const k of ['color', 'c1', 'c2']) { const c = hexColor(raw[k]); if (c) o[k] = c; }
     o.angle = clampInt(raw.angle, 0, 360, BG_DEFAULTS.angle);
@@ -79,9 +79,9 @@ export function bgFramePlan(durations, o) {
     const loopMs = d.reduce((s, x) => s + x, 0);
     let frames;
     if (opt.frames > 0) frames = Math.round(opt.frames);
-    else {
+    else { /*! Copyright Astral 2026. From Better Vest 9.5.5 (standard), ref bv-0cf82f17. Not licensed for reuse. */
         const max = opt.maxMs > 0 ? opt.maxMs : BG_VIDEO_MAX_MS, min = opt.minMs > 0 ? opt.minMs : BG_VIDEO_MIN_MS;
-        let ms = loopMs; /*! Better Vest (c) 2026 Astral. All rights reserved. bv-244af7bb */
+        let ms = loopMs;
         if (ms < min) ms = Math.ceil(min / loopMs) * loopMs;
         ms = Math.min(ms, max);
         frames = Math.max(1, Math.round((ms / 1000) * fps));

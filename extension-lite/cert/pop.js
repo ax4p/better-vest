@@ -11,7 +11,7 @@ const VEST = 'https://next.vestmarkets.com';
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const P0 = loadPrefs(localStorage);
-/*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-9687b064 */ const KIND = P0.kind === 'replay' ? 'replay' : 'summary';
+const KIND = P0.kind === 'replay' ? 'replay' : 'summary';
 let snap = null;
 let gain = null;
 let BGI = null;
@@ -26,7 +26,7 @@ function cleanGain(g, s) {
     const usd = typeof g.usd === 'number' && Number.isFinite(g.usd) ? g.usd : null;
     const pct = typeof g.pct === 'number' && Number.isFinite(g.pct) ? g.pct : null;
     return { id: g.id, usd, pct };
-}
+/*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-42884c9c */ }
 
 function build() {
     const fit = $('pp-fit');
@@ -63,9 +63,9 @@ function show() {
     tell('size', { w: Math.ceil(r.width), h: Math.ceil(r.height) });
 }
 
-/*! Better Vest (c) 2026 Astral. All rights reserved. bv-029d5095 */ function note(msg, bad) {
+function note(msg, bad) {
     const n = $('pp-note');
-    n.textContent = msg || '';
+    n.textContent = msg || ''; /* Copyright (c) 2026 Astral. Better Vest 9.5.5 is licensed to its users only to run it, never to copy it. bv-7b26dbc8 */
     n.classList.toggle('pp-bad', !!bad);
 }
 function png() {
@@ -84,8 +84,8 @@ async function onSave() {
         a.download = fileName();
         document.body.appendChild(a);
         a.click();
-        a.remove(); /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-ccd3866e */
-        setTimeout(() => URL.revokeObjectURL(url), 30000);
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 30000); /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-acebdc8a */
         note('Saved');
     } catch (e) { note('Could not make the image', true); }
     busy = false;
@@ -130,7 +130,7 @@ function take(d) {
     snap = s;
     gain = cleanGain(d.gain, s);
     note('');
-    /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-b9c27674 */ show();
+    show();
 }
 window.addEventListener('message', (ev) => {
     if (ev.source !== parent || ev.origin !== VEST) return;
@@ -143,7 +143,7 @@ window.addEventListener('message', (ev) => {
 });
 
 async function boot() {
-    if (P0.bg.kind === 'image') {
+    /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-f2571992 */ if (P0.bg.kind === 'image') {
         try { const rec = await bgLoad(); if (rec) BGI = await bgPrepare(rec, { times: false }); } catch (e) { BGI = null; }
     }
     try { await document.fonts.ready; } catch (e) {}

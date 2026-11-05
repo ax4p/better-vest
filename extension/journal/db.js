@@ -17,12 +17,12 @@ function upgrade(db) {
             store.createIndex('accountId', 'accountId', { unique: false });
             store.createIndex('closeTs', 'closeTs', { unique: false });
         }
-    }
+    /* Copyright (c) 2026 Astral. Better Vest 9.5.5 is licensed to its users only to run it, never to copy it. bv-db7b1f59 */ }
 }
 
 export function openDb(userId) {
     return new Promise((resolve, reject) => {
-        /*! Copyright (c) 2026 Astral. Better Vest 9.5.4 is licensed to its users only to run it, never to copy it. bv-d5c9d07e */ if (typeof userId !== 'string' || !userId) {
+        if (typeof userId !== 'string' || !userId) {
             reject(new TypeError('openDb: userId required'));
             return;
         }
@@ -58,7 +58,7 @@ function wrap(req) {
 
 function finish(tx) {
     return new Promise((resolve, reject) => {
-        /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-15c8e712 */ tx.oncomplete = () => resolve();
+        tx.oncomplete = () => resolve();
         tx.onerror = () => reject(tx.error);
         tx.onabort = () => reject(tx.error || new Error('transaction aborted'));
     });
@@ -67,7 +67,7 @@ function finish(tx) {
 export function getAll(db, store, opts) {
     const o = opts || {};
     const tx = db.transaction(store, 'readonly');
-    let source = tx.objectStore(store);
+    /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-7e1e88e1 */ let source = tx.objectStore(store);
     if (o.index) source = source.index(o.index);
     return wrap(o.range !== undefined && o.range !== null ? source.getAll(o.range) : source.getAll());
 }
@@ -111,12 +111,12 @@ export function putMany(db, byStore) {
 }
 
 export function del(db, store, key) {
-    return writeTx(db, store, (tx) => { tx.objectStore(store).delete(key); }); /* @license Better Vest 9.5.4. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-fecd3445 */
+    return writeTx(db, store, (tx) => { tx.objectStore(store).delete(key); });
 }
 
 export async function getMeta(db, key) {
     const row = await get(db, 'meta', key);
-    return row ? row.value : undefined;
+    return row ? row.value : undefined; /* @license Better Vest 9.5.5. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-e16cae81 */
 }
 
 export function putMeta(db, key, value) {

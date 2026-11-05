@@ -16,7 +16,7 @@ body {
   margin: 0; width: 300px; padding: 12px;
   background: radial-gradient(circle at 50% 0%, #0e172a 0%, var(--bg) 70%);
   color: var(--text); font: 12px/1.35 system-ui, -apple-system, "Segoe UI", sans-serif;
-} /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-9108b901 */
+} /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.5. bv-c7cda63a */
 header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
 .name { font-weight: 800; font-size: 14px; letter-spacing: .02em; }
 .by { color: var(--muted); font-size: 11px; }
@@ -42,7 +42,7 @@ button.primary { width: 100%; background: #2563eb; border-color: var(--accent); 
 
 .label { display: flex; justify-content: space-between; align-items: center; }
 button.mini { padding: 3px 8px; font-size: 10px; text-transform: none; letter-spacing: 0; border-radius: 999px; }
-button { transition: background-color .15s, border-color .15s, transform .1s; } /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-69c9595d */
+button { transition: background-color .15s, border-color .15s, transform .1s; } /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-88f220b3 */
 button:active { transform: scale(.97); }
 
 .flow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }

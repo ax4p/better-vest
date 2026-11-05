@@ -20,7 +20,7 @@ export function gifReplayPlan(n, fps) {
         const t = f / fps;
         if (t <= r.intro) return 0;
         return Math.min(n, Math.round(((t - r.intro) / reveal) * n * 1000) / 1000);
-    /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.4. bv-79432d90 */ };
+    }; /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-bd581962 */
     return { fps, frames, intro: r.intro, reveal, hold: r.hold, total, pAt };
 }
 
@@ -66,7 +66,7 @@ export function gifTradeWindows(bars, resS, trades) {
 export const GIF_WIN = { lead: 60, tail: 30 };
 export function gifTradeWindow(bars, resS, trades) {
     const ts = [];
-    /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-e2900b44 */ for (const t of trades || []) for (const f of (t && t.fills) || []) if (f && f.t > 0) ts.push(f.t / 1000);
+    for (const t of trades || []) for (const f of (t && t.fills) || []) if (f && f.t > 0) ts.push(f.t / 1000);
     if (!ts.length || !bars || !bars.length) return null;
     const pOf = (s) => {
         if (s < bars[0][0]) return 0;
@@ -77,7 +77,7 @@ export function gifTradeWindow(bars, resS, trades) {
     return { a: pOf(Math.min(...ts) - GIF_WIN.lead), b: pOf(Math.max(...ts) + GIF_WIN.tail) };
 }
 
-export function gifFrames(kind, scene, img, mode, plan) {
+/*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-35cda5c0 */ export function gifFrames(kind, scene, img, mode, plan) {
     const moving = !!(img && img.animated && img.durations && img.durations.length > 1);
     if (kind === 'replay' && scene && mode !== 'still') {
         const rp = plan && plan.ok !== false && plan.pAt ? plan : gifReplayPlan(scene.n, GIF_FPS);
@@ -116,14 +116,14 @@ export async function makeGif(o) {
                 const used = [];
                 const seen = new Set();
                 for (const p of plan) if (!seen.has(p.bg)) { seen.add(p.bg); used.push(p.bg); }
-                at = 0.15;
+                at = 0.15; /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-37026026 */
                 frames = await bgFrames(o.img, { used, at: (k) => plan[k].bg }, W, H, scale, o.bg, g.base, (f) => tell(f * at, 'picture'), { cancelled: stop });
                 bg = { at: frames.at };
             } else if (o.img) bg = { still: bgStill(o.img, W, H, scale, o.bg, g.base) };
             const so = { cssUrl: CARD_CSS, width: o.width, height: o.height, scale, bg };
             if (replay) { const st = await replayStage(o.card, o.scene, Object.assign({ tape: o.tape || null }, so)); canvas = st.canvas; draw = (k) => st.drawAt(plan[k].step, k); }
             else { const st = await cardStage(o.card, so); canvas = st.canvas; draw = (k) => st.draw(k); }
-        } /* Property of Astral (@ax4p). Better Vest 9.5.4. No copying without written permission. bv-5857e1fa */
+        }
         halt();
         const ctx = canvas.getContext('2d');
         const pixels = (k) => { draw(k); return ctx.getImageData(0, 0, W, H).data; };
@@ -146,7 +146,7 @@ export async function makeGif(o) {
             waits.push({ resolve, reject });
             worker.postMessage(msg, transfer || []);
         });
-        await call({ type: 'begin', w: W, h: H }); /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-a5432d4d */
+        await call({ type: 'begin', w: W, h: H });
 
         const pick = sampleFrames(plan.length, SAMPLE_FRAMES);
         const step = Math.max(1, Math.ceil((pick.length * W * H) / SAMPLE_PIXELS));
@@ -175,7 +175,7 @@ export async function makeGif(o) {
         tell(1, 'done');
         return { blob: new Blob(done.parts, { type: 'image/gif' }), w: W, h: H, frames: done.frames, ms: plan.reduce((s, x) => s + x.delay, 0) * 10,
             colors: pal.colors, took: Math.round(performance.now() - t0), size: o.size };
-    } catch (e) {
+    /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-1b47c41f */ } catch (e) {
         if (stop() || (e && e.message === 'cancelled')) { const c = new Error('cancelled'); c.cancelled = true; throw c; }
         throw e;
     } finally {

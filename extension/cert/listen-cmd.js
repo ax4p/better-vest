@@ -20,9 +20,9 @@ export const vcWords = (s) => String(s || '').toLowerCase()
     .replace(/(\d+)\s*%/g, '$1 percent')
     .replace(/\b50\b/g, 'fifty')
     .replace(/\bb\s*\.?\s*e\b\.?/g, 'be')
-    /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-deefc4de */ .replace(/\bbreak-?even\b/g, 'break even')
+    .replace(/\bbreak-?even\b/g, 'break even')
     .replace(/\bbreakeven\b/g, 'break even')
-    .replace(/[^a-z' ]+/g, ' ')
+    /*! Better Vest (c) 2026 Astral. All rights reserved. bv-e2496814 */ .replace(/[^a-z' ]+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 
@@ -44,12 +44,12 @@ export function vcAfterWake(text) {
         while ((m = re.exec(s))) { const i = m.index + (m[0].startsWith(' ') ? 1 : 0); if (i >= at) { at = i; len = w.length; } }
     }
     return at < 0 ? null : s.slice(at + len).trim();
-}
+} /*! Better Vest (c) 2026 Astral. All rights reserved. bv-b7b2553a */
 
 export function vcParse(text, opts) {
     const wake = !!(opts && opts.wake);
     let rest = wake ? vcAfterWake(text) : (vcAfterWake(text) ?? vcWords(text));
-    if (rest == null) return null; /* @license Better Vest 9.5.4. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-588a2e67 */
+    if (rest == null) return null;
     const said = clean(rest);
     if (!said) return null;
     const id = TABLE.get(said);

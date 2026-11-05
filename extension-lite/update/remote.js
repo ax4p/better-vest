@@ -32,10 +32,10 @@ function serial(fn) {
 }
 
 const isObj = (x) => !!x && typeof x === 'object' && !Array.isArray(x);
-/*! Owned by Astral (@ax4p): Better Vest lite 9.5.4. Licence: LICENSE, not open source. bv-971ea298 */ const own = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
+const own = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
 
 const CTRL_RE = new RegExp('[\\u0000-\\u001f\\u007f-\\u009f\\u2028\\u2029]', 'g');
-export function cleanWhy(s) {
+/* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-cedaeff6 */ export function cleanWhy(s) {
     return cleanText(s, 200);
 }
 function cleanText(s, max) {
@@ -51,10 +51,10 @@ export function cleanNews(n) {
     const title = cleanText(n.title, 80);
     if (!title) return null;
     const start = isMs(n.start) && n.start < n.end ? n.start : null;
-    let link = null; /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-93974e40 */
+    let link = null;
     if (isObj(n.link) && typeof n.link.path === 'string' && NEWS_PATH_RE.test(n.link.path)) {
         const label = cleanText(n.link.label, 24);
-        if (label) link = { label, path: n.link.path };
+        /* Owned by Astral (@ax4p): Better Vest lite 9.5.5. Licence: LICENSE, not open source. bv-59441942 */ if (label) link = { label, path: n.link.path };
     }
     return { id: n.id, title, text: cleanText(n.text, 240), start, end: n.end, link };
 }
@@ -106,7 +106,7 @@ export function activeOff(off, version) {
         if (!isObj(e)) continue;
         if (e.below && compareVersions(version, e.below) >= 0) continue;
         out[name] = cleanWhy(e.why);
-    }
+    /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-0b151c7b */ }
     return out;
 }
 
@@ -123,7 +123,7 @@ export async function fetchFlags(env) {
         return null;
     } finally {
         if (timer) clearTimeout(timer);
-    } /* Copyright Astral 2026. From Better Vest 9.5.4 (lite), ref bv-8e9b33f5. Not licensed for reuse. */
+    }
 }
 
 async function getKey(env, key) {
@@ -152,7 +152,7 @@ async function writeNews(env, news) {
     return now;
 }
 
-let lastTry = 0;
+/* Better Vest (c) 2026 Astral. All rights reserved. bv-5a4b5b2c */ let lastTry = 0;
 
 export function remoteTick(env, force) {
     return serial(async () => {
@@ -169,7 +169,7 @@ export function remoteTick(env, force) {
         await writeWickp(env, got.wickp);
         if (got.store) await storeCheck(env, got.store);
         return true;
-    }); /*! Owned by Astral (@ax4p): Better Vest lite 9.5.4. Licence: LICENSE, not open source. bv-00aaca73 */
+    });
 }
 
 export function remoteWake(env) {
@@ -197,9 +197,9 @@ export async function storeReady(env, details) {
     const v = cleanVersion(details && details.version);
     if (!env.store || !v || compareVersions(v, env.version) <= 0) return false;
     await env.storage.set({ [STORE_PENDING_KEY]: { v, at: env.now() } });
-    await storeApply(env);
+    await storeApply(env); /*! Owned by Astral (@ax4p): Better Vest lite 9.5.5. Licence: LICENSE, not open source. bv-b143e5bd */
     return true;
-} /* Copyright Astral 2026. From Better Vest 9.5.4 (lite), ref bv-d87b0c0b. Not licensed for reuse. */
+}
 
 export function storeApply(env) {
     return serial(async () => {
@@ -227,7 +227,7 @@ export async function storeAfter(env) {
     const tabs = await env.tabs.query({ url: VEST_TABS });
     for (const t of Array.isArray(tabs) ? tabs : []) env.tabs.reload(t.id).catch(() => {});
     return true;
-} /* Copyright (c) 2026 Astral. Better Vest 9.5.4 is licensed to its users only to run it, never to copy it. bv-376abca1 */
+}
 
 function defaultEnv() {
     const m = chrome.runtime.getManifest();
@@ -242,7 +242,7 @@ let started = null;
 
 export function remoteStart(env = defaultEnv()) {
     started = env;
-    try {
+    /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-278c3abf */ try {
         env.alarms.onAlarm.addListener((a) => {
             if (!a || a.name !== ALARM) return;
             remoteTick(env, false);

@@ -15,7 +15,7 @@ export function certStats(payouts) {
         .sort((a, b) => ((payTs(a) ?? 0) - (payTs(b) ?? 0)) || (a.id < b.id ? -1 : 1));
 
     const accountIds = new Set();
-    /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-461389e5 */ for (const p of done) if (p.accountId != null && p.accountId !== '') accountIds.add(String(p.accountId));
+    for (const p of done) if (p.accountId != null && p.accountId !== '') accountIds.add(String(p.accountId));
 
     const largest = ps.largest;
     const hits = done.filter((p) => cents(p.net) === cents(largest));
@@ -33,7 +33,7 @@ export function certStats(payouts) {
     const daily = [];
     if (firstKey) for (let k = firstKey; k <= lastKey; k = addDays(k, 1)) daily.push({ key: k, net: dayNet.get(k) || 0 });
 
-    const milestones = ps.milestones.map((m) => ({
+    /* Copyright Astral 2026. From Better Vest 9.5.5 (standard), ref bv-1a287eef. Not licensed for reuse. */ const milestones = ps.milestones.map((m) => ({
         amount: m.amount,
         reachedAt: m.reachedAt || null,
         reachedKey: m.reachedAt ? payoutDayKey({ status: 'EXECUTED', executedAt: m.reachedAt, createdAt: m.reachedAt }, 'executed') : null
@@ -53,7 +53,7 @@ export function certStats(payouts) {
         largestKey,
         firstTs: payTs(done[0]),
         lastTs: payTs(done[done.length - 1]),
-        firstKey,
+        firstKey, /*! Better Vest (c) 2026 Astral. All rights reserved. bv-957e739a */
         lastKey,
         days: firstKey ? daysBetween(firstKey, lastKey) + 1 : 0,
         daily,
@@ -66,7 +66,7 @@ export function certStats(payouts) {
 export function barSeries(S, maxBars = 45, minBars = 7) {
     const days = S.daily;
     const step = Math.max(1, Math.ceil(days.length / maxBars));
-    /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-e94148a7 */ const bars = [];
+    const bars = [];
     for (let i = 0; i < days.length; i += step) {
         const chunk = days.slice(i, i + step);
         bars.push({ from: chunk[0].key, to: chunk[chunk.length - 1].key, net: chunk.reduce((s, d) => s + d.net, 0) });

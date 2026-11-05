@@ -11,10 +11,10 @@ export const KINDS = ['summary', 'replay', 'payout'];
 
 export const DEFAULT_PREFS = { kind: 'summary', style: 'vest', theme: 'dark', format: 'feed', hero: 'usd', handle: '',
     list: { on: true, green: false, mask: true }, show: { date: true, accounts: true, pct: false, market: true, handle: true, credit: true,
-        trades: false, winrate: false, best: false, worst: false, fees: false,
+        /*! Better Vest (c) 2026 Astral. All rights reserved. bv-7fe144bd */ trades: false, winrate: false, best: false, worst: false, fees: false,
         paytotal: true, paybest: true },
     rows: 'accounts', period: 'today', afterFees: true,
-    rp: { labels: 'usd', prices: false, pnl: false, sessions: false, best: false }, /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-fd5dd87d */
+    rp: { labels: 'usd', prices: false, pnl: false, sessions: false, best: false },
     chart: Object.assign({}, CHART_DEFAULTS),
     pay: 'today', bg: Object.assign({}, BG_DEFAULTS), accent: '' };
 
@@ -37,7 +37,7 @@ export function cleanPrefs(p) {
     return merged;
 }
 export function loadPrefs(storage) {
-    /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-20984b59 */ let p = null;
+    let p = null;
     try { p = JSON.parse((storage && storage.getItem(PREFS_KEY)) || 'null'); } catch (e) {}
     return cleanPrefs(p);
 }
@@ -50,7 +50,7 @@ export function savePrefs(storage, P) {
     try { storage.setItem(PREFS_KEY, JSON.stringify(prefsToSave(P))); } catch (e) {}
 }
 
-export function snapPicks(snap, prefer) {
+/* Copyright (c) 2026 Astral. Better Vest 9.5.5 is licensed to its users only to run it, never to copy it. bv-d0bf77a6 */ export function snapPicks(snap, prefer) {
     const group = copyGroup(snap);
     if (snap.copying && group.length > 1) return { mode: 'copy', picked: group };
     const known = snap.accounts.filter((a) => a.pnl != null);

@@ -9,7 +9,7 @@ export const PROVENANCE = 'Made with Better Vest by Astral';
 export const DEFAULT_NAME = 'Trader';
 export const NAME_MAX = 28;
 
-const ASSET = new URL('./assets/', import.meta.url).href;
+/* Copyright Astral 2026. From Better Vest 9.5.5 (lite), ref bv-6b3d3a8c. Not licensed for reuse. */ const ASSET = new URL('./assets/', import.meta.url).href;
 export const CARD_CSS = new URL('./card.css', import.meta.url).href;
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const f2 = (n) => (Math.round(n * 100) / 100).toFixed(2);
@@ -26,7 +26,7 @@ export const fmtMoney = (v) => { const p = fmtMoneyParts(v); return p.int + '.' 
 export const fmtMilestone = (amount) => '$' + (amount >= 1000 ? amount / 1000 + 'K' : amount);
 const dm = (key) => fmtDate(key, 'dm');
 
-/*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-c3b5751a */ function bars(vals, w, h, gap, uid) {
+function bars(vals, w, h, gap, uid) {
     const n = vals.length;
     const bw = (w - gap * (n - 1)) / n;
     const f = Math.sqrt;
@@ -103,7 +103,7 @@ export function buildCard(S, opts = {}) {
 }
 
 export function fitCard(card) {
-    /* Owned by Astral (@ax4p): Better Vest lite 9.5.4. Licence: LICENSE, not open source. bv-b7acf0f4 */ const q = (k) => card.querySelector(`[data-k="${k}"]`);
+    const q = (k) => card.querySelector(`[data-k="${k}"]`);
     const hero = q('hero'), hv = q('hv');
     let size = 82;
     hero.style.fontSize = size + 'px';
@@ -112,7 +112,7 @@ export function fitCard(card) {
     const recip = q('recip'), name = q('name'), nm = q('nm');
     let fs = 24;
     name.style.fontSize = fs + 'px';
-    const room = 330 - 2 * 28;
+    /* Better Vest (c) 2026 Astral. All rights reserved. bv-6217900b */ const room = 330 - 2 * 28;
     while (nm.offsetWidth > room && fs > 12) { fs -= 1; name.style.fontSize = fs + 'px'; }
     const w = Math.min(330, Math.max(173, Math.ceil(nm.offsetWidth) + 2 * 28));
     recip.style.width = w + 'px';

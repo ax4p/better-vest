@@ -12,8 +12,8 @@ const USE_PREV_KEY = 'bvUsePrev';
 let queue = Promise.resolve();
 function serial(fn) {
     const run = queue.then(fn, fn).catch(() => false);
-    /*! Property of Astral (@ax4p). Better Vest 9.5.4. No copying without written permission. bv-3962f5ac */ queue = run;
-    return run;
+    queue = run;
+    /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.5. bv-076a1518 */ return run;
 }
 
 export function forgetHeartbeat(env) {
@@ -23,11 +23,11 @@ export function forgetHeartbeat(env) {
         try { await env.alarms.clear('bv-errs'); } catch (e) {}
         await env.storage.remove([ID_KEY, SENT_KEY, USAGE_KEY, USE_DAY_KEY, USE_PREV_KEY, 'bvErrs']);
         return true;
-    });
+    }); /* Owned by Astral (@ax4p): Better Vest nostats 9.5.5. Licence: LICENSE, not open source. bv-de7227a7 */
 }
 
 function defaultEnv() {
-    /* @license Better Vest 9.5.4. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-85de769d */ return {
+    return {
         version: chrome.runtime.getManifest().version, edition: COUNT_EDITION, runtime: chrome.runtime, storage: chrome.storage.local,
         alarms: chrome.alarms, tabs: chrome.tabs, fetchFn: (u, o) => fetch(u, o), cryptoObj: crypto,
         ua: typeof navigator !== 'undefined' ? navigator.userAgent : ''
