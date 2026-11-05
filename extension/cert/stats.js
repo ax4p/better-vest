@@ -15,11 +15,11 @@ export function certStats(payouts) {
         .sort((a, b) => ((payTs(a) ?? 0) - (payTs(b) ?? 0)) || (a.id < b.id ? -1 : 1));
 
     const accountIds = new Set();
-    for (const p of done) if (p.accountId != null && p.accountId !== '') accountIds.add(String(p.accountId));
+    /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-461389e5 */ for (const p of done) if (p.accountId != null && p.accountId !== '') accountIds.add(String(p.accountId));
 
     const largest = ps.largest;
     const hits = done.filter((p) => cents(p.net) === cents(largest));
-    const largestKey = payoutDayKey(hits[0], 'executed'); /* Owned by Astral (@ax4p): Better Vest standard 9.5.3. Licence: LICENSE, not open source. bv-cbd4617b */
+    const largestKey = payoutDayKey(hits[0], 'executed');
 
     const dayNet = new Map();
     for (const p of done) {
@@ -66,10 +66,10 @@ export function certStats(payouts) {
 export function barSeries(S, maxBars = 45, minBars = 7) {
     const days = S.daily;
     const step = Math.max(1, Math.ceil(days.length / maxBars));
-    const bars = [];
+    /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-e94148a7 */ const bars = [];
     for (let i = 0; i < days.length; i += step) {
         const chunk = days.slice(i, i + step);
-        /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-e3f021bc */ bars.push({ from: chunk[0].key, to: chunk[chunk.length - 1].key, net: chunk.reduce((s, d) => s + d.net, 0) });
+        bars.push({ from: chunk[0].key, to: chunk[chunk.length - 1].key, net: chunk.reduce((s, d) => s + d.net, 0) });
     }
     const pad = Math.max(0, minBars - bars.length);
     const lead = Math.floor(pad / 2);

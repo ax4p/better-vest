@@ -27,12 +27,12 @@ function render(st) {
         st.themes.forEach((t) => {
             const b = document.createElement('button');
             b.className = 'theme';
-            b.dataset.theme = t.k;
+            b.dataset.theme = t.k; /*! Copyright Astral 2026. From Better Vest 9.5.4 (nostats), ref bv-501a6cf6. Not licensed for reuse. */
             b.style.background = t.page;
             b.style.borderColor = t.line;
             const dots = document.createElement('span');
             [t.accent, t.up, t.down].forEach((c) => {
-                /*! Property of Astral (@ax4p). Better Vest 9.5.3. No copying without written permission. bv-fc1ad907 */ const i = document.createElement('i');
+                const i = document.createElement('i');
                 i.style.background = c;
                 dots.appendChild(i);
             });
@@ -43,12 +43,12 @@ function render(st) {
             b.onclick = () => send({ cmd: 'theme', value: t.k });
             box.appendChild(b);
         });
-    }
+    } /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-534e61be */
     box.querySelectorAll('.theme').forEach((b) => b.classList.toggle('on', b.dataset.theme === st.theme));
 }
 
 document.querySelectorAll('[data-widget]').forEach((b) => {
-    /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-8e0a9c07 */ b.onclick = () => send({ cmd: 'widget', key: b.dataset.widget });
+    b.onclick = () => send({ cmd: 'widget', key: b.dataset.widget });
 });
 document.querySelectorAll('[data-hide]').forEach((b) => {
     b.onclick = () => send({ cmd: 'hide', key: b.dataset.hide, value: !(state && state.hide[b.dataset.hide]) });
@@ -102,10 +102,10 @@ $('#upd-check').onclick = async () => {
 };
 
 chrome.tabs.query({ active: true, currentWindow: true }).then(async ([tab]) => {
-    if (!tab || !tab.url || !tab.url.startsWith(VEST)) {
+    /* Copyright (c) 2026 Astral. Better Vest 9.5.4 is licensed to its users only to run it, never to copy it. bv-c4979628 */ if (!tab || !tab.url || !tab.url.startsWith(VEST)) {
         $('#off').hidden = false;
         return;
-    /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-fe445f50 */ }
+    }
     tabId = tab.id;
     $('#on').hidden = false;
     const r = await chrome.tabs.sendMessage(tabId, { type: 'getState' }).catch(() => null);

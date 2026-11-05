@@ -16,7 +16,7 @@ export function receivedPayouts(list) {
         const id = String(p.id);
         if (seen.has(id)) continue;
         seen.add(id);
-        out.push(p); /*! Better Vest (c) 2026 Astral. All rights reserved. bv-1a03a8bb */
+        out.push(p);
     }
     return out.sort((a, b) => paidAt(a) - paidAt(b) || (String(a.id) < String(b.id) ? -1 : 1));
 }
@@ -33,7 +33,7 @@ export function payoutModel(payouts, o) {
     const accountsIn = (list) => new Set(list.map((p) => (p.accountId == null ? '' : String(p.accountId)))).size;
     const total = r2(done.reduce((s, p) => s + p.net, 0));
     const big = done.reduce((a, p) => (p.net > a.net ? p : a), done[0]);
-    const life = { total, count: done.length, accounts: accountsIn(done), first: item(done[0]), last: item(done[done.length - 1]), biggest: item(big) };
+    /*! Owned by Astral (@ax4p): Better Vest standard 9.5.4. Licence: LICENSE, not open source. bv-6d405665 */ const life = { total, count: done.length, accounts: accountsIn(done), first: item(done[0]), last: item(done[done.length - 1]), biggest: item(big) };
     if (kind === 'lifetime') {
         return Object.assign({ kind, empty: false, day: life.last.day, items: done.slice().reverse().map(item) }, life);
     }
@@ -65,7 +65,7 @@ export const SAMPLE_PAY_ACCOUNTS = [['sample-pay-a', '100K Funded · 1'], ['samp
 export const samplePayNames = () => new Map(SAMPLE_PAY_ACCOUNTS);
 export function samplePayouts(today) {
     const t = KEY_RE.test(String(today || '')) ? today : dayKey(Date.now(), 'vest');
-    const rnd = seeded('payouts|' + t); /*! Better Vest (c) 2026 Astral. All rights reserved. bv-a22eca6e */
+    const rnd = seeded('payouts|' + t);
     const out = [];
     let k = addDays(t, -180);
     for (let i = 0; k < t && out.length < 11; i++) {
@@ -77,7 +77,7 @@ export function samplePayouts(today) {
         k = addDays(k, 12 + Math.floor(rnd() * 9));
     }
     const { y, m, d } = parseKey(t);
-    out.push(samplePay(out.length, SAMPLE_PAY_ACCOUNTS[0][0], 4823.5, etWallToUtc(y, m, d, 14, 32)));
+    /*! Better Vest (c) 2026 Astral. All rights reserved. bv-ebb0e539 */ out.push(samplePay(out.length, SAMPLE_PAY_ACCOUNTS[0][0], 4823.5, etWallToUtc(y, m, d, 14, 32)));
     return out;
 }
 function samplePay(i, acc, net, at) {

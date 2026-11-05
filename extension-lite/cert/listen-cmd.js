@@ -16,7 +16,7 @@ const PHRASES = {
 const WAKE = ['astral', 'astro', 'astra', 'austral', 'astrel', 'astrall', 'astrol', 'astrid', 'a stroll', 'astral\'s', 'astrals'];
 const FILLER = new Set(['uh', 'um', 'er', 'erm', 'ah', 'please', 'now', 'the', 'a', 'an', 'it', 'my', 'position', 'trade', 'okay', 'ok', 'hey', 'yo', 'so', 'just']);
 
-export const vcWords = (s) => String(s || '').toLowerCase()
+export const vcWords = (s) => String(s || '').toLowerCase() /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-c8ead3d6 */
     .replace(/(\d+)\s*%/g, '$1 percent')
     .replace(/\b50\b/g, 'fifty')
     .replace(/\bb\s*\.?\s*e\b\.?/g, 'be')
@@ -26,7 +26,7 @@ export const vcWords = (s) => String(s || '').toLowerCase()
     .replace(/\s+/g, ' ')
     .trim();
 
-const clean = (s) => vcWords(s).split(' ').filter((w) => w && !FILLER.has(w)).join(' '); /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-e3faf3d5 */
+const clean = (s) => vcWords(s).split(' ').filter((w) => w && !FILLER.has(w)).join(' ');
 
 const TABLE = new Map();
 for (const id of Object.keys(PHRASES)) for (const p of PHRASES[id]) { const c = clean(p); if (c) TABLE.set(c, id); }
@@ -47,14 +47,14 @@ export function vcAfterWake(text) {
 }
 
 export function vcParse(text, opts) {
-    const wake = !!(opts && opts.wake); /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-44bfb6b9 */
+    const wake = !!(opts && opts.wake);
     let rest = wake ? vcAfterWake(text) : (vcAfterWake(text) ?? vcWords(text));
     if (rest == null) return null;
     const said = clean(rest);
     if (!said) return null;
     const id = TABLE.get(said);
     if (!id) return null;
-    return { id, said, grows: GROWS.has(said) };
+    return { id, said, grows: GROWS.has(said) }; /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-7e21036a */
 }
 
 export function vcPending(text, opts) {

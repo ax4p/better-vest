@@ -22,7 +22,7 @@ function upgrade(db) {
 
 export function openDb(userId) {
     return new Promise((resolve, reject) => {
-        if (typeof userId !== 'string' || !userId) {
+        /*! Copyright (c) 2026 Astral. Better Vest 9.5.4 is licensed to its users only to run it, never to copy it. bv-d5c9d07e */ if (typeof userId !== 'string' || !userId) {
             reject(new TypeError('openDb: userId required'));
             return;
         }
@@ -31,7 +31,7 @@ export function openDb(userId) {
         const req = indexedDB.open(DB_PREFIX + userId, DB_VERSION);
         const done = (fn, v) => {
             if (settled) return;
-            settled = true; /* Copyright Astral 2026. From Better Vest 9.5.3 (standard), ref bv-5c52cf40. Not licensed for reuse. */
+            settled = true;
             clearTimeout(blockedTimer);
             fn(v);
         };
@@ -58,7 +58,7 @@ function wrap(req) {
 
 function finish(tx) {
     return new Promise((resolve, reject) => {
-        tx.oncomplete = () => resolve();
+        /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-15c8e712 */ tx.oncomplete = () => resolve();
         tx.onerror = () => reject(tx.error);
         tx.onabort = () => reject(tx.error || new Error('transaction aborted'));
     });
@@ -78,7 +78,7 @@ export function get(db, store, key) {
 
 async function writeTx(db, names, fill) {
     const tx = db.transaction(names, 'readwrite');
-    /* Owned by Astral (@ax4p): Better Vest standard 9.5.3. Licence: LICENSE, not open source. bv-0a266ec0 */ try {
+    try {
         fill(tx);
     } catch (e) {
         try { tx.abort(); } catch (e2) {}
@@ -111,8 +111,8 @@ export function putMany(db, byStore) {
 }
 
 export function del(db, store, key) {
-    return writeTx(db, store, (tx) => { tx.objectStore(store).delete(key); });
-} /* Owned by Astral (@ax4p): Better Vest standard 9.5.3. Licence: LICENSE, not open source. bv-0cbbc663 */
+    return writeTx(db, store, (tx) => { tx.objectStore(store).delete(key); }); /* @license Better Vest 9.5.4. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-fecd3445 */
+}
 
 export async function getMeta(db, key) {
     const row = await get(db, 'meta', key);

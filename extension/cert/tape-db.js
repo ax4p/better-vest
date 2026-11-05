@@ -9,7 +9,7 @@ const SYM_RE = /^[A-Z0-9][A-Z0-9._-]{0,40}$/;
 const PRUNE_EVERY_MS = 6 * 3600e3;
 let prunedAt = 0;
 
-const envOf = (env) => env || { indexedDB: globalThis.indexedDB, IDBKeyRange: globalThis.IDBKeyRange };
+/* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-01e5f0b2 */ const envOf = (env) => env || { indexedDB: globalThis.indexedDB, IDBKeyRange: globalThis.IDBKeyRange };
 const done = (req) => new Promise((resolve, reject) => { req.onsuccess = () => resolve(req.result); req.onerror = () => reject(req.error); });
 const txDone = (tx) => new Promise((resolve, reject) => { tx.oncomplete = () => resolve(); tx.onerror = tx.onabort = () => reject(tx.error || new Error('aborted')); });
 
@@ -34,7 +34,7 @@ export async function tapeWrite(sym, rows, now, env) {
     const E = envOf(env);
     const db = await tapeOpen(env);
     try {
-        const tx = db.transaction(STORE, 'readwrite'); /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.3. bv-830b637e */
+        const tx = db.transaction(STORE, 'readwrite');
         const st = tx.objectStore(STORE);
         const done1 = txDone(tx);
         const first = clean[0];
@@ -50,7 +50,7 @@ export async function tapeWrite(sym, rows, now, env) {
         if (now - prunedAt >= PRUNE_EVERY_MS) { prunedAt = now; await tapePruneDb(db, now, env); }
     } finally { db.close(); }
     return clean.length / 5;
-}
+} /*! Copyright (c) 2026 Astral. Better Vest 9.5.4 is licensed to its users only to run it, never to copy it. bv-bc28b2ed */
 
 export async function tapeRead(sym, from, to, env) {
     if (typeof sym !== 'string' || !SYM_RE.test(sym) || !(to >= from)) return [];
@@ -70,7 +70,7 @@ export async function tapeRead(sym, from, to, env) {
 }
 
 async function tapePruneDb(db, now, env) {
-    /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-6b4482ae */ const E = envOf(env);
+    const E = envOf(env);
     const keep = addDays(dayKey(now, 'vest'), -(TAPE_KEEP_DAYS - 1));
     const tx = db.transaction(STORE, 'readwrite');
     const idx = tx.objectStore(STORE).index('day');

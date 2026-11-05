@@ -29,7 +29,7 @@ export function cleanChartColors(c) {
     return out;
 }
 
-/*! Owned by Astral (@ax4p): Better Vest lite 9.5.3. Licence: LICENSE, not open source. bv-242e0fd5 */ export function cleanSnap(s) {
+export function cleanSnap(s) { /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-538cb2f4 */
     if (!s || typeof s !== 'object' || Array.isArray(s)) return null;
     if (!Array.isArray(s.accounts)) return null;
     const accounts = [];
@@ -65,14 +65,14 @@ export function cleanChartColors(c) {
         out.tradesCut = s.tradesCut === true;
         out.tradesErr = /^[a-z-]{1,24}$/.test(String(s.tradesErr || '')) ? String(s.tradesErr) : '';
     }
-    /*! Better Vest (c) 2026 Astral. All rights reserved. bv-16cb51a5 */ if (Array.isArray(s.groups)) {
+    if (Array.isArray(s.groups)) {
         const used = new Set();
         out.groups = [];
         for (const g of s.groups.slice(0, SHARE_MAX_GROUPS)) {
             if (!g || typeof g !== 'object' || !/^[A-Z]$/.test(String(g.id || '')) || used.has(g.id)) continue;
             const lead = idOk(g.leaderId) && ids.has(g.leaderId) ? g.leaderId : '';
             const fol = Array.isArray(g.followerIds) ? [...new Set(g.followerIds.filter((x) => idOk(x) && ids.has(x) && x !== lead))].slice(0, SHARE_MAX_ACCOUNTS) : [];
-            if (!lead && !fol.length) continue;
+            if (!lead && !fol.length) continue; /* Property of Astral (@ax4p). Better Vest 9.5.4. No copying without written permission. bv-c068cf68 */
             used.add(g.id);
             out.groups.push({ id: g.id, leaderId: lead, followerIds: fol });
         }
@@ -94,8 +94,8 @@ export function cardRows(snap, opts) {
     const o = opts || {};
     if (!snap || !Array.isArray(snap.accounts)) return { rows: [], total: 0, cap: 0, ret: 0, n: 0, unknown: 0 };
     const by = new Map(snap.accounts.map((a) => [a.id, a]));
-    /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-80e89912 */ const picked = Array.isArray(o.picked) ? o.picked : [];
-    let unknown = 0;
+    const picked = Array.isArray(o.picked) ? o.picked : [];
+    let unknown = 0; /* Property of Astral (@ax4p). Better Vest 9.5.4. No copying without written permission. bv-21e9f699 */
     let rows = [];
     for (const id of picked) {
         const a = by.get(id);

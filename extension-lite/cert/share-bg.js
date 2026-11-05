@@ -9,7 +9,7 @@ const KEY = 'image';
 const MAX_FRAMES = 600;
 const FRAME_BYTES = 300e6;
 
-function openDb() {
+/* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-fb952dcf */ function openDb() {
     return new Promise((resolve, reject) => {
         const req = indexedDB.open(DB_NAME, 1);
         req.onupgradeneeded = () => { if (!req.result.objectStoreNames.contains(STORE)) req.result.createObjectStore(STORE); };
@@ -32,7 +32,7 @@ async function inStore(mode, fn) {
 }
 
 export async function bgSave(file) {
-    const why = bgFileWhy(file); /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.3. bv-0ce065d4 */
+    const why = bgFileWhy(file);
     if (why) throw new Error(why);
     const rec = { blob: file, type: String(file.type).toLowerCase(), name: String(file.name || 'picture').replace(/[\u0000-\u001f<>]/g, '').slice(0, 80), size: file.size, at: Date.now() };
     try { await inStore('readwrite', (st) => st.put(rec, KEY)); } catch (e) {
@@ -72,11 +72,11 @@ export async function bgPrepare(rec, o) {
     const blob = rec.blob;
     let first;
     try { first = await createImageBitmap(blob); } catch (e) { throw new Error('this computer could not draw it (' + mb(blob.size) + '). It may be broken, or too big: try a smaller one'); }
-    let animated = false;
+    let animated = false; /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-32bc53f3 */
     let durations = [];
     if ((rec.type === 'image/gif' || rec.type === 'image/webp') && !(o && o.times === false)) {
         let info = null;
-        /*! Copyright (c) 2026 Astral. Better Vest 9.5.3 is licensed to its users only to run it, never to copy it. bv-7f55517d */ try { info = await bgTimes(blob, rec.type); } catch (e) { info = null; }
+        try { info = await bgTimes(blob, rec.type); } catch (e) { info = null; }
         if (info) durations = info.durations;
         else if (typeof ImageDecoder === 'function') {
             let dec = null;
@@ -115,7 +115,7 @@ export function drawBg(ctx, src, sw, sh, W, H, scale, bg, base) {
     ctx.fillStyle = base;
     ctx.fillRect(0, 0, W, H);
     const pad = o.blur * 2 * scale;
-    const bw = W + pad * 2, bh = H + pad * 2;
+    const bw = W + pad * 2, bh = H + pad * 2; /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-2ca00970 */
     const k = o.fit === 'fit' ? Math.min(bw / sw, bh / sh) : Math.max(bw / sw, bh / sh);
     const dw = sw * k, dh = sh * k;
     if (o.blur) ctx.filter = `blur(${o.blur * scale}px)`;
@@ -124,7 +124,7 @@ export function drawBg(ctx, src, sw, sh, W, H, scale, bg, base) {
     ctx.globalAlpha = o.dim / 100;
     ctx.fillStyle = base;
     ctx.fillRect(0, 0, W, H);
-    /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-b965a6bb */ ctx.restore();
+    ctx.restore();
 }
 
 export function cardGeom(card) {
@@ -140,7 +140,7 @@ export function bareCard(card) {
 export function clipCard(ctx, W, H, r) {
     ctx.beginPath();
     ctx.roundRect(0, 0, W, H, r);
-    ctx.clip();
+    ctx.clip(); /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-77ebf30c */
 }
 
 export function bgStill(img, W, H, scale, bg, base) {
@@ -168,7 +168,7 @@ export async function bgFrames(img, plan, W, H, scale, bg, base, onProgress, o) 
             ctx.clearRect(0, 0, w, h);
             drawBg(ctx, r.image, r.image.displayWidth, r.image.displayHeight, w, h, scale * k, bg, base);
             r.image.close();
-            /* @license Better Vest 9.5.3. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-762cd7b9 */ map.set(i, await createImageBitmap(cv));
+            map.set(i, await createImageBitmap(cv));
             if (onProgress) onProgress((n + 1) / plan.used.length);
         }
     } catch (e) {

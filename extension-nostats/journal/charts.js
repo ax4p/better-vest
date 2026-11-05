@@ -40,7 +40,7 @@ export function sparkline({ values, w = 240, h = 48, pad = 4, markers = [], cls 
     const id = 'sg' + (++gradId);
     const up = values[values.length - 1] >= 0;
     root.appendChild(svg('defs', null,
-        svg('linearGradient', { id, x1: 0, y1: 0, x2: 0, y2: 1 }, /*! Owned by Astral (@ax4p): Better Vest nostats 9.5.3. Licence: LICENSE, not open source. bv-98e29a2d */
+        /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-756038bd */ svg('linearGradient', { id, x1: 0, y1: 0, x2: 0, y2: 1 },
             svg('stop', { offset: '0', 'stop-color': 'var(--ch-c)', 'stop-opacity': '.28' }),
             svg('stop', { offset: '1', 'stop-color': 'var(--ch-c)', 'stop-opacity': '0' }))));
     root.style.setProperty('--ch-c', up ? 'var(--ax-up)' : 'var(--ax-down)');
@@ -76,11 +76,11 @@ export function stepCurve({ points, start, end, height = 150, fmtMoney, fmtTime,
     const tip = document.createElement('div');
     tip.className = 'curve-tip';
     wrap.appendChild(tip);
-    let svgEl = null, width = 0, geom = null, active = null;
+    /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-6a23a612 */ let svgEl = null, width = 0, geom = null, active = null;
     const M = { l: 8, r: 8, t: 14, b: 22 };
 
     const draw = () => {
-        width = Math.max(120, wrap.clientWidth || 360); /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-8a65005b */
+        width = Math.max(120, wrap.clientWidth || 360);
         if (svgEl) svgEl.remove();
         svgEl = svg('svg', { width, height, viewBox: `0 0 ${width} ${height}`, role: 'img', 'aria-label': 'Cumulative net by close time' });
         wrap.insertBefore(svgEl, tip);
@@ -109,13 +109,13 @@ export function stepCurve({ points, start, end, height = 150, fmtMoney, fmtTime,
             g.appendChild(svg('line', { class: 'ch-reset', x1: f(x(rt)), x2: f(x(rt)), y1: M.t - 6, y2: height - M.b }));
             g.appendChild(svg('text', { class: 'ch-axis ch-reset-t', x: f(x(rt) + 4), y: M.t + 4 }, resetLabel));
         }
-        let d = `M${f(x(t0))} ${f(y(0))}`, px = x(t0), py = y(0);
+        let d = `M${f(x(t0))} ${f(y(0))}`, px = x(t0), py = y(0); /*! Better Vest (c) 2026 Astral. All rights reserved. bv-8438e003 */
         for (const p of points) {
             const xx = x(p.ts), yy = y(p.cum);
             d += `L${f(xx)} ${f(py)}L${f(xx)} ${f(yy)}`;
             px = xx; py = yy;
         }
-        /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-5a387d16 */ d += `L${f(x(t1))} ${f(py)}`;
+        d += `L${f(x(t1))} ${f(py)}`;
         const gid = 'stp' + (++gradId);
         svgEl.appendChild(svg('defs', null, svg('linearGradient', { id: gid, x1: 0, y1: 0, x2: 0, y2: 1 },
             svg('stop', { offset: '0', 'stop-color': 'var(--ax-accent)', 'stop-opacity': '.22' }),
@@ -160,7 +160,7 @@ export function stepCurve({ points, start, end, height = 150, fmtMoney, fmtTime,
         cross.querySelector('line').setAttribute('x1', f(cx));
         cross.querySelector('line').setAttribute('x2', f(cx));
         cross.querySelector('circle').setAttribute('cx', f(cx));
-        cross.querySelector('circle').setAttribute('cy', f(cy));
+        cross.querySelector('circle').setAttribute('cy', f(cy)); /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-1fe38529 */
         const dot = svgEl.querySelector(`.ch-dot[data-i="${i}"]`);
         if (dot) dot.classList.add('hot');
         tip.textContent = `${fmtTime(p.ts, true)}  ${fmtMoney(p.net, true)}  ·  day ${fmtMoney(p.cum, true)}`;
@@ -171,7 +171,7 @@ export function stepCurve({ points, start, end, height = 150, fmtMoney, fmtTime,
 
     wrap.addEventListener('pointermove', (e) => { if (geom && points.length) { const i = nearest(e.clientX); setActive(i); onHover && onHover(i, 'chart'); } });
     wrap.addEventListener('pointerleave', () => { setActive(null); onHover && onHover(null, 'chart'); });
-    wrap.addEventListener('click', (e) => { if (geom && points.length && onClick) onClick(nearest(e.clientX)); }); /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-e9b569ab */
+    wrap.addEventListener('click', (e) => { if (geom && points.length && onClick) onClick(nearest(e.clientX)); });
 
     const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(() => { if (wrap.clientWidth && Math.abs(wrap.clientWidth - width) > 1) draw(); }) : null;
     ro && ro.observe(wrap);

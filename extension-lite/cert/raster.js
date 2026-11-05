@@ -19,7 +19,7 @@ async function dataUriOf(url) {
     if (cache.has(url)) return cache.get(url);
     const p = fetch(url).then((r) => {
         if (!r.ok) throw new Error('asset ' + url + ': HTTP ' + r.status);
-        return r.blob(); /* Better Vest (c) 2026 Astral. All rights reserved. bv-ac69c8d3 */
+        return r.blob();
     }).then(blobToDataUri);
     cache.set(url, p);
     p.catch(() => cache.delete(url));
@@ -29,7 +29,7 @@ async function dataUriOf(url) {
 async function cssWithInlinedUrls(cssUrl) {
     const res = await fetch(cssUrl);
     if (!res.ok) throw new Error('stylesheet: HTTP ' + res.status);
-    let css = await res.text();
+    let css = await res.text(); /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-7a21a17a */
     const base = new URL(cssUrl, document.baseURI);
     const urls = [...new Set([...css.matchAll(/url\(\s*(['"]?)([^'")]+)\1\s*\)/g)].map((m) => m[2]))];
     for (const u of urls) {
@@ -60,11 +60,11 @@ export async function cardToSvg(card, { cssUrl, width, height }) {
     }
     const wrap = document.createElementNS(NS_XHTML, 'div');
     wrap.setAttribute('xmlns', NS_XHTML);
-    wrap.setAttribute('style', `width:${width}px;height:${height}px;margin:0;padding:0;background:transparent`);
+    wrap.setAttribute('style', `width:${width}px;height:${height}px;margin:0;padding:0;background:transparent`); /*! Owned by Astral (@ax4p): Better Vest lite 9.5.4. Licence: LICENSE, not open source. bv-427ff21b */
     const style = document.createElementNS(NS_XHTML, 'style');
     style.textContent = css;
     wrap.append(style, clone);
-    const inner = new XMLSerializer().serializeToString(wrap); /* Copyright Astral 2026. From Better Vest 9.5.3 (lite), ref bv-4c49f5ed. Not licensed for reuse. */
+    const inner = new XMLSerializer().serializeToString(wrap);
     return `<svg xmlns="${NS_SVG}" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><foreignObject x="0" y="0" width="${width}" height="${height}">${inner}</foreignObject></svg>`;
 }
 

@@ -16,10 +16,10 @@ export function mount(root, ctx) {
     let prevSig = new Map();
     let prevMonth = null, prevHero = null;
     let drag = null;
-    /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-659e2ff2 */ let ro = null;
+    let ro = null;
 
     const titleEl = h('h1', { 'aria-live': 'polite' });
-    const lensSeg = ui.seg({ options: [{ k: 'pnl', label: 'P&L' }, { k: 'pay', label: 'Payouts' }], value: 'pnl', cls: 'lens', label: 'Lens', onChange: (k) => ctx.set({ lens: k }) });
+    const lensSeg = ui.seg({ options: [{ k: 'pnl', label: 'P&L' }, { k: 'pay', label: 'Payouts' }], value: 'pnl', cls: 'lens', label: 'Lens', onChange: (k) => ctx.set({ lens: k }) }); /* Owned by Astral (@ax4p): Better Vest standard 9.5.4. Licence: LICENSE, not open source. bv-78f03ea0 */
     const navEl = h('div', { class: 'mh-nav' },
         h('button', { class: 'icon-btn', type: 'button', title: 'Previous month ([)', 'aria-label': 'Previous month', onclick: () => ctx.shiftMonth(-1) }, icon('chevL', 16)),
         titleEl,
@@ -60,14 +60,14 @@ export function mount(root, ctx) {
             const x = stats.cellValue(d, unit, basis);
             if (x != null) { v += x; n++; }
         }
-        if (unit === 'pts' && syms.size > 1) return { v: null, n: 0 };
+        /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-0e9f922b */ if (unit === 'pts' && syms.size > 1) return { v: null, n: 0 };
         return { v: n ? v : null, n };
     }
 
     function effUnit() { return S().unit === 'usd' && S().hide ? 'pct' : S().unit; }
 
     function cellValueFor(day) {
-        const st = S(); /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-bc95230d */
+        const st = S();
         const u = effUnit();
         return stats.cellValue(day, u, st.basis);
     }
@@ -115,7 +115,7 @@ export function mount(root, ctx) {
             el.appendChild(h('div', { class: 'formula' }, 'Paid out = Σ net amount of EXECUTED payouts dated this month (ET calendar date). Processing payouts are pending; refunded and failed ones are excluded.'));
             dl(el, [['Net to you', money(M.payNet)], ['Gross requested', money(M.payGross)], ['Vest share', money(M.payGross - M.payNet)], ['Pending (processing)', M.payPending ? money(M.payPending) : null]]);
             foot(el, 'Payouts follow the account scope, not the symbol filters.');
-            /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-f4260920 */ return true;
+            return true;
         }
         const label = S().basis === 'gross' ? 'Gross' : 'Net';
         popBase(el, label + ' P&L · ' + T.fmtMonth(S().month), `${k.net.n} trades · ${M.mDays.size} trading day${M.mDays.size === 1 ? '' : 's'}`, { low: k.net.n < 30 && k.net.n > 0 });
@@ -126,7 +126,7 @@ export function mount(root, ctx) {
         return true;
     }
 
-    function kpiTip(key, el) {
+    function kpiTip(key, el) { /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-6039b886 */
         const k = M.k;
         const low = (n) => n > 0 && n < 30;
         const R = {
@@ -147,7 +147,7 @@ export function mount(root, ctx) {
                 const rows = [['Depth', money(dd.value), 'dn']];
                 if (dd.peakTs) rows.push(['Peak', T.fmtDate(T.dayKey(dd.peakTs, S().mode), 'dm') + ' ' + T.fmtTimeET(dd.peakTs, { seconds: false })]);
                 else if (dd.value < 0) rows.push(['Peak', 'start of the period']);
-                if (dd.troughTs) rows.push(['Trough', T.fmtDate(T.dayKey(dd.troughTs, S().mode), 'dm') + ' ' + T.fmtTimeET(dd.troughTs, { seconds: false })]); /*! Owned by Astral (@ax4p): Better Vest standard 9.5.3. Licence: LICENSE, not open source. bv-0369c28d */
+                if (dd.troughTs) rows.push(['Trough', T.fmtDate(T.dayKey(dd.troughTs, S().mode), 'dm') + ' ' + T.fmtTimeET(dd.troughTs, { seconds: false })]);
                 if (dd.pct != null) rows.push(['% of starting balance', T.fmtPct(dd.pct)]);
                 return ['Max drawdown', dd.n, dd.formula, rows, dd.pct == null ? 'Percent shows when one capital account is selected.' : null];
             },
@@ -161,7 +161,7 @@ export function mount(root, ctx) {
         };
         const spec = R[key] && R[key]();
         if (!spec) return false;
-        const [title, n, formula, rows, note] = spec;
+        const [title, n, formula, rows, note] = spec; /* @license Better Vest 9.5.4. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-5691cb81 */
         popBase(el, title, `n = ${n} · ${T.fmtMonth(S().month)}`, { low: low(n) });
         el.appendChild(h('div', { class: 'formula' }, formula));
         dl(el, rows);
@@ -193,7 +193,7 @@ export function mount(root, ctx) {
                 const mx = Math.max(...bars.map(Math.abs)) || 1;
                 el.appendChild(h('div', { class: 'mini-bars' }, bars.map((b) => h('i', { class: b >= 0 ? 'up' : 'dn', style: `height:${Math.max(4, Math.round(Math.abs(b) / mx * 34))}px` }))));
             }
-        /*! Property of Astral (@ax4p). Better Vest 9.5.3. No copying without written permission. bv-2876f612 */ } else {
+        /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-17e6656b */ } else {
             el.appendChild(h('div', { class: 'sub', style: 'margin-top:6px' }, 'Nothing closed in this Vest day.'));
         }
         if (pay && pay.items.length) {
@@ -226,7 +226,7 @@ export function mount(root, ctx) {
     function monthModel() {
         const st = S();
         const D = ctx.derived();
-        /*! Copyright Astral 2026. From Better Vest 9.5.3 (standard), ref bv-b37c431f. Not licensed for reuse. */ const [y, m] = st.month.split('-').map(Number);
+        const [y, m] = st.month.split('-').map(Number);
         const rawWeeks = T.monthGrid(y, m);
         const today = ctx.todayKey();
         const mDays = new Map();
@@ -245,7 +245,7 @@ export function mount(root, ctx) {
         let payNet = 0, payGross = 0, payN = 0, payPending = 0;
         for (const key of keysInMonth) { const p = D.payDays.get(key); if (p) { payNet += p.net; payGross += p.gross; payN += p.n; payPending += p.pending; } }
         const unit = effUnit();
-        const monthEnd = keysInMonth[keysInMonth.length - 1];
+        const monthEnd = keysInMonth[keysInMonth.length - 1]; /* Copyright (c) 2026 Astral. Better Vest 9.5.4 is licensed to its users only to run it, never to copy it. bv-fe37937e */
         const entries = [];
         for (const [key, day] of D.days) if (key <= monthEnd) entries.push({ key, value: stats.cellValue(day, unit, st.basis) });
         let scale = stats.scaleFromDays(entries, { asOf: monthEnd });
@@ -264,10 +264,10 @@ export function mount(root, ctx) {
             for (const d of vis) { const p = D.payDays.get(d.key); if (p) { payW += p.net; payWn += p.n; } }
             return { ...w, days: vis, first: vis[0], last: vis[vis.length - 1], sum, unit: unitSum(inDays, unit, st.basis), payW, payWn, cur: vis.some((d) => d.key === today) };
         });
-        /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-57cf18d6 */ return { D, st, y, m, weeks, cols, mDays, k, list, payNet, payGross, payN, payPending, unit, scale, usdScale, payScale, today, bestKey, keysInMonth, symbolsMap: D.symbolsMap, monthEnd };
+        return { D, st, y, m, weeks, cols, mDays, k, list, payNet, payGross, payN, payPending, unit, scale, usdScale, payScale, today, bestKey, keysInMonth, symbolsMap: D.symbolsMap, monthEnd };
     }
 
-    function split(M2) {
+    /*! Property of Astral (@ax4p). Better Vest 9.5.4. No copying without written permission. bv-72d1fc9a */ function split(M2) {
         let f = 0, e = 0, fn = 0, en = 0;
         const b = S().basis === 'gross' ? 'gross' : 'net';
         for (const d of M2.mDays.values()) { f += d.byPhase.funded[b] + d.byPhase.instant[b]; fn += d.byPhase.funded.n + d.byPhase.instant.n; e += d.byPhase.eval[b]; en += d.byPhase.eval.n; }
@@ -304,7 +304,7 @@ export function mount(root, ctx) {
                             iEl.textContent = p.int; cEl.textContent = p.cents;
                             if (kk < 1 && iEl.isConnected) requestAnimationFrame(step);
                         };
-                        /*! Copyright Astral 2026. From Better Vest 9.5.3 (standard), ref bv-ad661183. Not licensed for reuse. */ requestAnimationFrame(step);
+                        requestAnimationFrame(step);
                     }
                 }
                 prevHero = v;
@@ -315,7 +315,7 @@ export function mount(root, ctx) {
             }
         }
         const sp = split(M);
-        const sub = h('div', { class: 'hero-sub' });
+        /* @license Better Vest 9.5.4. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-b870785d */ const sub = h('div', { class: 'hero-sub' });
         if (pay) {
             sub.append(h('span', null, `${M.payN} payout${M.payN === 1 ? '' : 's'} executed`));
             if (M.payPending > 0) sub.append(h('span', { class: 'dotsep' }, 'Pending ', h('b', null, money(M.payPending))));
@@ -349,12 +349,12 @@ export function mount(root, ctx) {
         const st = S();
         if (st.lens === 'pay') { curveEl.style.visibility = 'hidden'; return; }
         curveEl.style.visibility = '';
-        const keys = M.keysInMonth.filter((k) => M.mDays.has(k));
+        /* @license Better Vest 9.5.4. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-abb3850e */ const keys = M.keysInMonth.filter((k) => M.mDays.has(k));
         if (keys.length < 2) return;
         let cum = 0;
         const vals = keys.map((k) => { const d = M.mDays.get(k); cum += st.basis === 'gross' ? d.gross : d.net; return cum; });
         const markers = [];
-        keys.forEach((k, i) => { const p = M.D.payDays.get(k); if (p && p.n) markers.push({ i, cls: 'gold', r: 3.4 }); }); /* @license Better Vest 9.5.3. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-527bd3dc */
+        keys.forEach((k, i) => { const p = M.D.payDays.get(k); if (p && p.n) markers.push({ i, cls: 'gold', r: 3.4 }); });
         const w = curveEl.clientWidth || 380;
         const svg = sparkline({ values: vals, w, h: 64, pad: 6, markers });
         const cap = h('div', { class: 'sub', style: 'position:absolute;left:0;top:-14px;font-size:10.5px;opacity:0;transition:opacity .1s;white-space:nowrap;font-variant-numeric:tabular-nums' });
@@ -387,7 +387,7 @@ export function mount(root, ctx) {
         const n = k.net.n;
         const netSum = unitSum([...M.mDays.values()], effUnit(), st.basis);
         const netTxt = effUnit() === 'usd' ? dual(st.basis === 'gross' ? k.gross.value : k.net.value) : fmt.unitValue(netSum.v, effUnit(), { sign: true });
-        const netVal = st.basis === 'gross' ? k.gross.value : k.net.value; /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-880505bb */
+        const netVal = st.basis === 'gross' ? k.gross.value : k.net.value;
         const wl = k.winRate.parts;
         const risk = k.avgRisk;
         let riskNode, riskSub;
@@ -403,7 +403,7 @@ export function mount(root, ctx) {
             } else { riskNode = '—'; riskSub = n ? 'no stops recorded' : ''; }
         }
         const pRR = k.plannedRR.value, aR = k.avgR.value;
-        const dd = k.maxDrawdown;
+        /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-7c7e0eb2 */ const dd = k.maxDrawdown;
         ribbonEl.append(
             tile('net', st.basis === 'gross' ? 'Gross' : 'Net', netTxt, `${n} trade${n === 1 ? '' : 's'} · ${M.mDays.size}d`, { cls: effUnit() === 'usd' ? side(netVal) : side(netSum.v) }),
             tile('winRate', 'Win rate', k.winRate.value == null ? '—' : pctOf(k.winRate.value), n ? `${wl.wins}W · ${wl.losses}L · ${wl.scratch}S` : '', { low: n > 0 && n < 30 }),
@@ -434,7 +434,7 @@ export function mount(root, ctx) {
         if (!r.length) return null;
         const mid = (r.length - 1) / 2;
         return (r[Math.floor(mid)] + r[Math.ceil(mid)]) / 2;
-    }
+    /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-d5c5054f */ }
 
     function cellMeta(day, d) {
         const line = S().line;
@@ -442,7 +442,7 @@ export function mount(root, ctx) {
         if (line === 'r') return day.rN ? T.fmtR(day.rSum) : '—';
         if (line === 'risk') { const r = dayRisk(day); return r == null ? '—' : T.fmtPts(r, { dp: 1, sign: false }); }
         if (line === 'fees') return fmt.usd(-day.fees, { ctx: 'cell', base: day.capitalBase });
-        const dec = day.wins + day.losses; /*! Property of Astral (@ax4p). Better Vest 9.5.3. No copying without written permission. bv-37b47c58 */
+        const dec = day.wins + day.losses;
         return `${day.n} · ${dec ? Math.round(day.wins / dec * 100) + '%' : '—'}`;
     }
 
@@ -470,7 +470,7 @@ export function mount(root, ctx) {
         if (future) { cls.push('future'); attrs['aria-disabled'] = 'true'; } 
         if (key === M.today) cls.push('today');
         if (st.day === key) cls.push('sel');
-        if (st.sel && key >= st.sel[0] && key <= st.sel[1]) cls.push('rng');
+        /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.4. bv-80f90f87 */ if (st.sel && key >= st.sel[0] && key <= st.sel[1]) cls.push('rng');
         const marks = h('div', { class: 'c-marks' });
         if (day) {
             const u = effUnit();
@@ -484,7 +484,7 @@ export function mount(root, ctx) {
             sgn = usdV > 0 ? 'p' : usdV < 0 ? 'n' : null;
             if (v != null && v !== 0) sgn = v > 0 ? 'p' : 'n';
             if (flat && v === 0) { cls.push('flat'); lvl = 0; }
-            if (lvl) { attrs['data-l'] = Math.abs(lvl); attrs['data-s'] = lvl > 0 ? 'p' : 'n'; } /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-f6492e69 */
+            if (lvl) { attrs['data-l'] = Math.abs(lvl); attrs['data-s'] = lvl > 0 ? 'p' : 'n'; }
             else if (!flat) cls.push('flat');
             netTxt = v == null ? '—' : fmt.unitValue(v, u, { ctx: 'cell', base: day.capitalBase });
             metaTxt = cellMeta(day, d);
@@ -520,9 +520,9 @@ export function mount(root, ctx) {
     }
 
     function weekEl(w, i) {
-        const st = S();
+        const st = S(); /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-13564906 */
         const pl = st.lens === 'pay';
-        const sumV = st.basis === 'gross' ? w.sum.gross : w.sum.net; /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-1044fe24 */
+        const sumV = st.basis === 'gross' ? w.sum.gross : w.sum.net;
         const u = effUnit();
         let txt, meta;
         const cls = ['wk'];
@@ -573,9 +573,9 @@ export function mount(root, ctx) {
         if (fe) fe.tabIndex = 0;
         M.navKeys = navKeys;
         if (active) { const a = calEl.querySelector(`.cell[data-k="${active}"]`); if (a) a.focus({ preventScroll: true }); }
-        /* @license Better Vest 9.5.3. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-89c3f236 */ if (animate && !ui.reducedMotion()) { calEl.classList.add('enter'); setTimeout(() => calEl.classList.remove('enter'), 520); }
+        if (animate && !ui.reducedMotion()) { calEl.classList.add('enter'); setTimeout(() => calEl.classList.remove('enter'), 520); }
         if (ctx.syncPulse && prevSig.size) {
-            for (const el of calEl.querySelectorAll('.cell[data-k]')) {
+            for (const el of calEl.querySelectorAll('.cell[data-k]')) { /* @license Better Vest 9.5.4. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-c2345197 */
                 const d = M.D.days.get(el.dataset.k);
                 const sig = d ? d.n + '|' + d.net.toFixed(2) : '';
                 if ((prevSig.get(el.dataset.k) || '') !== sig) el.classList.add('settle');
@@ -596,7 +596,7 @@ export function mount(root, ctx) {
     function renderLegend() {
         const st = S();
         ui.clear(legendEl);
-        const scale = h('div', { class: 'scale' }, h('span', null, 'Loss')); /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.3. bv-0a8c3190 */
+        const scale = h('div', { class: 'scale' }, h('span', null, 'Loss'));
         for (let l = 5; l >= 1; l--) scale.appendChild(h('i', { 'data-s': 'n', 'data-l': l }));
         scale.appendChild(h('span', { style: 'margin:0 6px' }, '·'));
         for (let l = 1; l <= 5; l++) scale.appendChild(h('i', { 'data-s': 'p', 'data-l': l }));
@@ -614,7 +614,7 @@ export function mount(root, ctx) {
     }
 
     function renderSel() {
-        const st = S();
+        /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-69941977 */ const st = S();
         ui.clear(selEl);
         if (!st.sel) return;
         const [a, b] = st.sel;
@@ -649,7 +649,7 @@ export function mount(root, ctx) {
             noteEl.appendChild(h('div', { class: 'notice' }, `No trades closed in ${T.fmtMonth(st.month)}.`,
                 target ? h('button', { class: 'link', type: 'button', onclick: () => ctx.set({ month: target.slice(0, 7) }) }, `Go to ${T.fmtMonth(target.slice(0, 7))}`) : null));
         } else if (!D.days.size && !ctx.data.trades.length) {
-            /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-cf53ea67 */ noteEl.appendChild(h('div', { class: 'empty-note' }, h('b', null, 'No trades yet.'), ' Closed positions appear here once they sync.'));
+            noteEl.appendChild(h('div', { class: 'empty-note' }, h('b', null, 'No trades yet.'), ' Closed positions appear here once they sync.'));
         }
     }
 
@@ -659,7 +659,7 @@ export function mount(root, ctx) {
         const c = e.target.closest('.cell');
         if (!c || c.classList.contains('future')) return;
         const key = c.dataset.k;
-        if (e.shiftKey) {
+        /* @license Better Vest 9.5.4. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-e06c97d6 */ if (e.shiftKey) {
             const anchor = S().sel ? S().sel[0] : (S().day || key);
             const [a, b] = anchor <= key ? [anchor, key] : [key, anchor];
             ctx.set({ sel: [a, b], day: null });
@@ -677,7 +677,7 @@ export function mount(root, ctx) {
         if (!drag) return;
         const c = e.target.closest('.cell');
         if (!c || c.classList.contains('future')) return;
-        const k = c.dataset.k;
+        const k = c.dataset.k; /*! Copyright Astral 2026. From Better Vest 9.5.4 (standard), ref bv-15d8d7c5. Not licensed for reuse. */
         if (k === drag.start && !drag.moved) return;
         drag.moved = true;
         const [a, b] = drag.start <= k ? [drag.start, k] : [k, drag.start];
@@ -686,7 +686,7 @@ export function mount(root, ctx) {
     });
     window.addEventListener('pointerup', onUp);
     function onUp() {
-        if (!drag) return; /*! Better Vest (c) 2026 Astral. All rights reserved. bv-1e1b50be */
+        if (!drag) return;
         if (drag.moved && drag.range) { const r = drag.range; ctx.set({ sel: r, day: null }); setTimeout(() => { drag = null; }, 0); }
         else drag = null;
     }
@@ -731,10 +731,10 @@ export function mount(root, ctx) {
         lensSeg.classList.toggle('pay', st.lens === 'pay');
         titleEl.textContent = T.fmtMonth(st.month);
         const animate = prevMonth !== st.month;
-        prevMonth = st.month;
+        /*! Copyright Astral 2026. From Better Vest 9.5.4 (standard), ref bv-ac49c28b. Not licensed for reuse. */ prevMonth = st.month;
         renderHero();
         renderCurve();
-        renderNotice(); /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-3cfea614 */
+        renderNotice();
         renderRibbon();
         renderGrid(animate);
         renderLegend();

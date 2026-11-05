@@ -23,12 +23,12 @@ function upgrade(db) {
 export function openDb(userId) {
     return new Promise((resolve, reject) => {
         if (typeof userId !== 'string' || !userId) {
-            reject(new TypeError('openDb: userId required')); /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.3. bv-52df95a8 */
+            reject(new TypeError('openDb: userId required'));
             return;
         }
         let settled = false;
         let blockedTimer = null;
-        const req = indexedDB.open(DB_PREFIX + userId, DB_VERSION);
+        /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-26deed0a */ const req = indexedDB.open(DB_PREFIX + userId, DB_VERSION);
         const done = (fn, v) => {
             if (settled) return;
             settled = true;
@@ -59,12 +59,12 @@ function wrap(req) {
 function finish(tx) {
     return new Promise((resolve, reject) => {
         tx.oncomplete = () => resolve();
-        tx.onerror = () => reject(tx.error);
+        tx.onerror = () => reject(tx.error); /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-d08dd22e */
         tx.onabort = () => reject(tx.error || new Error('transaction aborted'));
     });
 }
 
-/* Copyright Astral 2026. From Better Vest 9.5.3 (lite), ref bv-722d4a91. Not licensed for reuse. */ export function getAll(db, store, opts) {
+export function getAll(db, store, opts) {
     const o = opts || {};
     const tx = db.transaction(store, 'readonly');
     let source = tx.objectStore(store);
@@ -100,13 +100,13 @@ export function putBatch(db, store, values) {
 }
 
 export function putMany(db, byStore) {
-    const names = Object.keys(byStore || {}).filter((n) => byStore[n] && byStore[n].length);
+    /* @license Better Vest 9.5.4. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-bfc6fceb */ const names = Object.keys(byStore || {}).filter((n) => byStore[n] && byStore[n].length);
     if (!names.length) return Promise.resolve();
     return writeTx(db, names, (tx) => {
         for (const n of names) {
             const os = tx.objectStore(n);
             for (const v of byStore[n]) os.put(v);
-        /*! Property of Astral (@ax4p). Better Vest 9.5.3. No copying without written permission. bv-52c620cb */ }
+        }
     });
 }
 

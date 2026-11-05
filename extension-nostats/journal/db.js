@@ -11,7 +11,7 @@ const BLOCKED_MS = 8000;
 
 function upgrade(db) {
     for (const name of STORES) {
-        if (db.objectStoreNames.contains(name)) continue;
+        /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-60729001 */ if (db.objectStoreNames.contains(name)) continue;
         const store = db.createObjectStore(name, { keyPath: KEY_PATHS[name] });
         if (name === 'trades') {
             store.createIndex('accountId', 'accountId', { unique: false });
@@ -30,7 +30,7 @@ export function openDb(userId) {
         let blockedTimer = null;
         const req = indexedDB.open(DB_PREFIX + userId, DB_VERSION);
         const done = (fn, v) => {
-            /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-baaea46b */ if (settled) return;
+            if (settled) return;
             settled = true;
             clearTimeout(blockedTimer);
             fn(v);
@@ -64,7 +64,7 @@ function finish(tx) {
     });
 }
 
-/* Owned by Astral (@ax4p): Better Vest nostats 9.5.3. Licence: LICENSE, not open source. bv-82205bbf */ export function getAll(db, store, opts) {
+export function getAll(db, store, opts) {
     const o = opts || {};
     const tx = db.transaction(store, 'readonly');
     let source = tx.objectStore(store);
@@ -79,7 +79,7 @@ export function get(db, store, key) {
 async function writeTx(db, names, fill) {
     const tx = db.transaction(names, 'readwrite');
     try {
-        fill(tx);
+        /*! Property of Astral (@ax4p). Better Vest 9.5.4. No copying without written permission. bv-cac29ee1 */ fill(tx);
     } catch (e) {
         try { tx.abort(); } catch (e2) {}
         throw e;
@@ -101,7 +101,7 @@ export function putBatch(db, store, values) {
 
 export function putMany(db, byStore) {
     const names = Object.keys(byStore || {}).filter((n) => byStore[n] && byStore[n].length);
-    if (!names.length) return Promise.resolve();
+    /* Owned by Astral (@ax4p): Better Vest nostats 9.5.4. Licence: LICENSE, not open source. bv-6d515ef5 */ if (!names.length) return Promise.resolve();
     return writeTx(db, names, (tx) => {
         for (const n of names) {
             const os = tx.objectStore(n);
@@ -116,7 +116,7 @@ export function del(db, store, key) {
 
 export async function getMeta(db, key) {
     const row = await get(db, 'meta', key);
-    return row ? row.value : undefined; /* Owned by Astral (@ax4p): Better Vest nostats 9.5.3. Licence: LICENSE, not open source. bv-95f336a5 */
+    return row ? row.value : undefined;
 }
 
 export function putMeta(db, key, value) {

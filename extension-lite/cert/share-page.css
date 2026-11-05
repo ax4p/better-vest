@@ -16,7 +16,7 @@ button { font: inherit; color: inherit; }
 .seg button { height: 30px; padding: 0 14px; border: 0; border-radius: 7px; background: none; color: var(--mut); font-weight: 600; cursor: pointer; white-space: nowrap; transition: background .12s, color .12s; }
 .seg button:hover:not(:disabled):not(.on) { color: var(--text); }
 .seg button.on { background: #2b2b2b; color: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, .4); }
-.seg button:disabled { opacity: .35; cursor: not-allowed; } /* Owned by Astral (@ax4p): Better Vest lite 9.5.3. Licence: LICENSE, not open source. bv-0712b2da */
+.seg button:disabled { opacity: .35; cursor: not-allowed; }
 .seg.sm button { height: 26px; padding: 0 10px; font-size: 12px; }
 .ctl { display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 12px; border-radius: 10px; border: 0; background: var(--ctl); box-shadow: inset 0 0 0 1px var(--line); color: var(--text); font-weight: 600; cursor: pointer; white-space: nowrap; }
 .ctl:hover, .ctl[aria-expanded="true"] { background: var(--ctl-h); box-shadow: inset 0 0 0 1px var(--line2); }
@@ -56,7 +56,7 @@ button { font: inherit; color: inherit; }
 .dd .row { display: flex; align-items: center; gap: 10px; min-height: 36px; padding: 0 8px; border-radius: 8px; cursor: pointer; }
 .dd .row:hover { background: rgba(255, 255, 255, .04); }
 .dd .row input[type="checkbox"] { width: 16px; height: 16px; margin: 0; accent-color: #22C55E; flex: none; }
-.dd .row .nm { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #e5e5e5; }
+.dd .row .nm { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #e5e5e5; } /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-4bbeb94e */
 .dd .row .tag { font-size: 9.5px; font-weight: 800; letter-spacing: .08em; padding: 1px 5px; border-radius: 4px; color: var(--up); background: rgba(34, 197, 94, .12); }
 .dd .row .pv { margin-left: auto; font-size: 12.5px; font-variant-numeric: tabular-nums; color: var(--mut); }
 .dd .row .pv.up { color: var(--up); } .dd .row .pv.dn { color: var(--down); }
@@ -137,7 +137,7 @@ button { font: inherit; color: inherit; }
 .cx-row .txt { flex: 1; height: 30px; padding: 0 10px; border: 0; border-radius: 8px; background: var(--ctl); box-shadow: inset 0 0 0 1px var(--line); color: var(--text); font: inherit; }
 .cx-go { height: 30px; padding: 0 14px; border: 0; border-radius: 8px; background: var(--ctl-h); box-shadow: inset 0 0 0 1px var(--line2); color: var(--text); font-weight: 600; cursor: pointer; }
 .cx-chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.cx-chips .chip { height: 28px; } /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-9ec90f4c */
+.cx-chips .chip { height: 28px; }
 
 .vm { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; padding: 24px; background: rgba(0, 0, 0, .72); backdrop-filter: blur(6px); }
 .vm[hidden] { display: none; }
@@ -172,7 +172,7 @@ button { font: inherit; color: inherit; }
 #gm-mode[hidden], #gm-mode-k[hidden] { display: none; }
 .gm-spd { border-top: 0; padding-top: 0; }
 .gm-spd[hidden] { display: none; }
-.gm-spd .gm-hint { min-width: 0; max-width: 44ch; line-height: 1.35; }
+.gm-spd .gm-hint { min-width: 0; max-width: 44ch; line-height: 1.35; } /*! Property of Astral (@ax4p). Better Vest 9.5.4. No copying without written permission. bv-f4defad7 */
 .gm-box:has(#gm-spd-bar:not([hidden])) .gm-stage img { max-height: calc(100vh - 300px); }
 .gm-opts .seg button span { margin-left: 6px; color: var(--dim); font-weight: 500; font-variant-numeric: tabular-nums; }
 .gm-opts .seg button.on span { color: #c7c7c7; }

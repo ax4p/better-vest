@@ -18,7 +18,7 @@ export function tapeOpen(env) {
     return new Promise((resolve, reject) => {
         const req = E.indexedDB.open(TAPE_DB, 1);
         req.onupgradeneeded = () => {
-            /*! Better Vest (c) 2026 Astral. All rights reserved. bv-e7835fba */ const db = req.result;
+            const db = req.result;
             if (!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE, { keyPath: 'k' }).createIndex('day', 'day');
         };
         req.onsuccess = () => resolve(req.result);
@@ -29,7 +29,7 @@ export function tapeOpen(env) {
 
 export async function tapeWrite(sym, rows, now, env) {
     if (typeof sym !== 'string' || !SYM_RE.test(sym)) return 0;
-    const clean = tapeClean(rows, now);
+    /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-fab3f982 */ const clean = tapeClean(rows, now);
     if (!clean.length) return 0;
     const E = envOf(env);
     const db = await tapeOpen(env);
@@ -52,8 +52,8 @@ export async function tapeWrite(sym, rows, now, env) {
     return clean.length / 5;
 }
 
-export async function tapeRead(sym, from, to, env) {
-    /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.3. bv-963d298d */ if (typeof sym !== 'string' || !SYM_RE.test(sym) || !(to >= from)) return [];
+/*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-1557d9f9 */ export async function tapeRead(sym, from, to, env) {
+    if (typeof sym !== 'string' || !SYM_RE.test(sym) || !(to >= from)) return [];
     const E = envOf(env);
     let db;
     try { db = await tapeOpen(env); } catch (e) { return []; }

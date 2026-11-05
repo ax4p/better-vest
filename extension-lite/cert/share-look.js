@@ -33,14 +33,14 @@ export function bgOpts(raw) {
     o.blur = clampInt(raw.blur, 0, BG_BLUR_MAX, BG_DEFAULTS.blur);
     return o;
 }
-/* This file is part of Better Vest by Astral and is protected by copyright. ref bv-894969da */ export const accentOpt = (v) => hexColor(v);
+export const accentOpt = (v) => hexColor(v);
 
 export function bgFileWhy(f) {
     if (!f || typeof f !== 'object') return 'No file was picked.';
     const type = String(f.type || '').toLowerCase();
     if (!BG_TYPES.includes(type)) return 'Pick a PNG, JPEG, WebP or GIF picture.';
     const size = Number(f.size);
-    if (!(size > 0)) return 'That file is empty.';
+    /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-ccd33599 */ if (!(size > 0)) return 'That file is empty.';
     return '';
 }
 
@@ -64,7 +64,7 @@ export function lookParts(p, img, red) {
         const src = img ? bgSrcOk(img.src) : '';
         if (src) {
             const pad = bg.blur * 2;
-            const st = bg.blur ? ` style="left:-${pad}px;top:-${pad}px;width:calc(100% + ${pad * 2}px);height:calc(100% + ${pad * 2}px);filter:blur(${bg.blur}px)"` : ''; /* Property of Astral (@ax4p). Better Vest 9.5.3. No copying without written permission. bv-36a4a9b0 */
+            const st = bg.blur ? ` style="left:-${pad}px;top:-${pad}px;width:calc(100% + ${pad * 2}px);height:calc(100% + ${pad * 2}px);filter:blur(${bg.blur}px)"` : '';
             own = `<div class="bgx bgo bgim"><img class="bgi${bg.fit === 'fit' ? ' bgf' : ''}" src="${src}" alt=""${st}><i class="bgd" style="opacity:${(bg.dim / 100).toFixed(2)}"></i></div>`;
         }
     }
@@ -83,7 +83,7 @@ export function bgFramePlan(durations, o) {
         const max = opt.maxMs > 0 ? opt.maxMs : BG_VIDEO_MAX_MS, min = opt.minMs > 0 ? opt.minMs : BG_VIDEO_MIN_MS;
         let ms = loopMs;
         if (ms < min) ms = Math.ceil(min / loopMs) * loopMs;
-        ms = Math.min(ms, max);
+        ms = Math.min(ms, max); /*! Property of Astral (@ax4p). Better Vest 9.5.4. No copying without written permission. bv-3b34d348 */
         frames = Math.max(1, Math.round((ms / 1000) * fps));
     }
     const starts = [];

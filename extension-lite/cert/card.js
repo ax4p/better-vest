@@ -24,9 +24,9 @@ export function fmtMoneyParts(v) {
 }
 export const fmtMoney = (v) => { const p = fmtMoneyParts(v); return p.int + '.' + p.cents; };
 export const fmtMilestone = (amount) => '$' + (amount >= 1000 ? amount / 1000 + 'K' : amount);
-/* @license Better Vest 9.5.3. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-4c41212d */ const dm = (key) => fmtDate(key, 'dm');
+const dm = (key) => fmtDate(key, 'dm');
 
-function bars(vals, w, h, gap, uid) {
+/*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-c3b5751a */ function bars(vals, w, h, gap, uid) {
     const n = vals.length;
     const bw = (w - gap * (n - 1)) / n;
     const f = Math.sqrt;
@@ -103,13 +103,13 @@ export function buildCard(S, opts = {}) {
 }
 
 export function fitCard(card) {
-    const q = (k) => card.querySelector(`[data-k="${k}"]`);
+    /* Owned by Astral (@ax4p): Better Vest lite 9.5.4. Licence: LICENSE, not open source. bv-b7acf0f4 */ const q = (k) => card.querySelector(`[data-k="${k}"]`);
     const hero = q('hero'), hv = q('hv');
     let size = 82;
     hero.style.fontSize = size + 'px';
     while (hv.offsetWidth > 352 && size > 30) { size -= 1; hero.style.fontSize = size + 'px'; }
     hero.style.letterSpacing = (-3 * size / 82).toFixed(2) + 'px';
-    const recip = q('recip'), name = q('name'), nm = q('nm'); /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-ea9657de */
+    const recip = q('recip'), name = q('name'), nm = q('nm');
     let fs = 24;
     name.style.fontSize = fs + 'px';
     const room = 330 - 2 * 28;

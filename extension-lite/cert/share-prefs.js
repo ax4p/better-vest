@@ -14,8 +14,8 @@ export const DEFAULT_PREFS = { kind: 'summary', style: 'vest', theme: 'dark', fo
         trades: false, winrate: false, best: false, worst: false, fees: false,
         paytotal: true, paybest: true },
     rows: 'accounts', period: 'today', afterFees: true,
-    rp: { labels: 'usd', prices: false, pnl: false, sessions: false, best: false },
-    /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-984428bf */ chart: Object.assign({}, CHART_DEFAULTS),
+    rp: { labels: 'usd', prices: false, pnl: false, sessions: false, best: false }, /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-fd5dd87d */
+    chart: Object.assign({}, CHART_DEFAULTS),
     pay: 'today', bg: Object.assign({}, BG_DEFAULTS), accent: '' };
 
 export function cleanPrefs(p) {
@@ -37,7 +37,7 @@ export function cleanPrefs(p) {
     return merged;
 }
 export function loadPrefs(storage) {
-    let p = null;
+    /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-20984b59 */ let p = null;
     try { p = JSON.parse((storage && storage.getItem(PREFS_KEY)) || 'null'); } catch (e) {}
     return cleanPrefs(p);
 }
@@ -55,7 +55,7 @@ export function snapPicks(snap, prefer) {
     if (snap.copying && group.length > 1) return { mode: 'copy', picked: group };
     const known = snap.accounts.filter((a) => a.pnl != null);
     const first = (prefer && known.find((a) => a.id === prefer)) || snap.accounts.find((a) => a.id === snap.activeId && a.pnl != null) || known[0];
-    return { mode: 'accounts', picked: first ? [first.id] : [] }; /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-286bf96f */
+    return { mode: 'accounts', picked: first ? [first.id] : [] };
 }
 
 export function popNeed(p) {

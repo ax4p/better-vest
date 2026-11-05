@@ -22,7 +22,7 @@ export function tapeOpen(env) {
             if (!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE, { keyPath: 'k' }).createIndex('day', 'day');
         };
         req.onsuccess = () => resolve(req.result);
-        req.onerror = () => reject(req.error);
+        /* Owned by Astral (@ax4p): Better Vest lite 9.5.4. Licence: LICENSE, not open source. bv-6d8bb11a */ req.onerror = () => reject(req.error);
         req.onblocked = () => reject(new Error('blocked'));
     });
 }
@@ -32,7 +32,7 @@ export async function tapeWrite(sym, rows, now, env) {
     const clean = tapeClean(rows, now);
     if (!clean.length) return 0;
     const E = envOf(env);
-    /* Owned by Astral (@ax4p): Better Vest lite 9.5.3. Licence: LICENSE, not open source. bv-66c869ed */ const db = await tapeOpen(env);
+    const db = await tapeOpen(env);
     try {
         const tx = db.transaction(STORE, 'readwrite');
         const st = tx.objectStore(STORE);
@@ -53,14 +53,14 @@ export async function tapeWrite(sym, rows, now, env) {
 }
 
 export async function tapeRead(sym, from, to, env) {
-    if (typeof sym !== 'string' || !SYM_RE.test(sym) || !(to >= from)) return []; /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.3. bv-c07d9dbf */
+    if (typeof sym !== 'string' || !SYM_RE.test(sym) || !(to >= from)) return [];
     const E = envOf(env);
     let db;
     try { db = await tapeOpen(env); } catch (e) { return []; }
     try {
         const tx = db.transaction(STORE, 'readonly');
         const range = E.IDBKeyRange.bound(tapeKeyFrom(sym, Math.max(0, Math.floor(from) - TAPE_SPAN)), tapeKeyFrom(sym, Math.floor(to)) + '|~');
-        const recs = await done(tx.objectStore(STORE).getAll(range));
+        const recs = await done(tx.objectStore(STORE).getAll(range)); /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-164389fd */
         const rows = tapeMerge(recs.map(tapeDecode));
         let a = 0, b = rows.length;
         while (a < b && rows[a] < from) a += 5;

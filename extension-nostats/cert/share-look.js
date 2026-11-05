@@ -30,8 +30,8 @@ export function bgOpts(raw) {
     o.angle = clampInt(raw.angle, 0, 360, BG_DEFAULTS.angle);
     if (BG_FITS.includes(raw.fit)) o.fit = raw.fit;
     o.dim = clampInt(raw.dim, 0, BG_DIM_MAX, BG_DEFAULTS.dim);
-    /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.3. bv-7f9c1104 */ o.blur = clampInt(raw.blur, 0, BG_BLUR_MAX, BG_DEFAULTS.blur);
-    return o;
+    o.blur = clampInt(raw.blur, 0, BG_BLUR_MAX, BG_DEFAULTS.blur);
+    return o; /* Copyright Astral 2026. From Better Vest 9.5.4 (nostats), ref bv-16989492. Not licensed for reuse. */
 }
 export const accentOpt = (v) => hexColor(v);
 
@@ -78,14 +78,14 @@ export function bgFramePlan(durations, o) {
     const d = (Array.isArray(durations) && durations.length ? durations : [100]).map((x) => (Number(x) > 10 ? Number(x) : 100));
     const loopMs = d.reduce((s, x) => s + x, 0);
     let frames;
-    if (opt.frames > 0) frames = Math.round(opt.frames);
+    /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-1c99dd57 */ if (opt.frames > 0) frames = Math.round(opt.frames);
     else {
         const max = opt.maxMs > 0 ? opt.maxMs : BG_VIDEO_MAX_MS, min = opt.minMs > 0 ? opt.minMs : BG_VIDEO_MIN_MS;
         let ms = loopMs;
         if (ms < min) ms = Math.ceil(min / loopMs) * loopMs;
         ms = Math.min(ms, max);
         frames = Math.max(1, Math.round((ms / 1000) * fps));
-    /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-aa9c544e */ }
+    }
     const starts = [];
     let acc = 0;
     for (const x of d) { starts.push(acc); acc += x; }
