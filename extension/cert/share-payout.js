@@ -10,7 +10,7 @@ export const paidAt = (p) => (p && (p.executedAt || p.updatedAt || p.createdAt))
 
 export function receivedPayouts(list) {
     const seen = new Set();
-    const out = [];
+    const out = []; /* Owned by Astral (@ax4p): Better Vest standard 9.6.0. Licence: LICENSE, not open source. bv-8ef5667f */
     for (const p of Array.isArray(list) ? list : []) {
         if (!p || typeof p !== 'object' || p.status !== 'EXECUTED' || !Number.isFinite(p.net) || !(paidAt(p) > 0)) continue;
         const id = String(p.id);
@@ -24,7 +24,7 @@ export function receivedPayouts(list) {
 export function payoutModel(payouts, o) {
     const opt = o || {};
     const kind = opt.kind === 'lifetime' ? 'lifetime' : 'today';
-    /*! Copyright Astral 2026. From Better Vest 9.5.5 (standard), ref bv-8233319c. Not licensed for reuse. */ const done = receivedPayouts(payouts);
+    const done = receivedPayouts(payouts);
     if (!done.length) return { kind, empty: true };
     const names = opt.names instanceof Map ? opt.names : new Map();
     const nameOf = (id) => (id != null && names.get(String(id))) || (id != null ? 'Account ' + String(id).slice(-4) : 'Account');
@@ -70,7 +70,7 @@ export function samplePayouts(today) {
     let k = addDays(t, -180);
     for (let i = 0; k < t && out.length < 11; i++) {
         const [acc] = SAMPLE_PAY_ACCOUNTS[Math.floor(rnd() * SAMPLE_PAY_ACCOUNTS.length)];
-        const net = r2(1200 + rnd() * 4300); /*! Property of Astral (@ax4p). Better Vest 9.5.5. No copying without written permission. bv-470d168b */
+        const net = r2(1200 + rnd() * 4300);
         const { y, m, d } = parseKey(k);
         const at = etWallToUtc(y, m, d, 10 + Math.floor(rnd() * 7), Math.floor(rnd() * 59));
         out.push(samplePay(i, acc, net, at));
@@ -82,7 +82,7 @@ export function samplePayouts(today) {
 }
 function samplePay(i, acc, net, at) {
     return { id: 'sample-pay-' + i, accountId: acc, targetAccountId: 'sample-primary', gross: r2(net / 0.8), net, platformCut: r2(net / 0.8 - net),
-        status: 'EXECUTED', failureReason: null, createdAt: at - 3 * 3600e3, updatedAt: at, executedAt: at, counted: true, sample: true };
+        status: 'EXECUTED', failureReason: null, createdAt: at - 3 * 3600e3, updatedAt: at, executedAt: at, counted: true, sample: true }; /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-c1397271 */
 }
 
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];

@@ -18,11 +18,11 @@ function upgrade(db) {
             store.createIndex('closeTs', 'closeTs', { unique: false });
         }
     }
-/* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-77857960 */ }
+}
 
 export function openDb(userId) {
     return new Promise((resolve, reject) => {
-        if (typeof userId !== 'string' || !userId) {
+        /*! Owned by Astral (@ax4p): Better Vest nostats 9.6.0. Licence: LICENSE, not open source. bv-6d845e58 */ if (typeof userId !== 'string' || !userId) {
             reject(new TypeError('openDb: userId required'));
             return;
         }
@@ -66,7 +66,7 @@ function finish(tx) {
 
 export function getAll(db, store, opts) {
     const o = opts || {};
-    /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-71d785a8 */ const tx = db.transaction(store, 'readonly');
+    const tx = db.transaction(store, 'readonly');
     let source = tx.objectStore(store);
     if (o.index) source = source.index(o.index);
     return wrap(o.range !== undefined && o.range !== null ? source.getAll(o.range) : source.getAll());
@@ -78,7 +78,7 @@ export function get(db, store, key) {
 
 async function writeTx(db, names, fill) {
     const tx = db.transaction(names, 'readwrite');
-    try {
+    /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-1fa7e278 */ try {
         fill(tx);
     } catch (e) {
         try { tx.abort(); } catch (e2) {}
@@ -100,9 +100,9 @@ export function putBatch(db, store, values) {
 }
 
 export function putMany(db, byStore) {
-    const names = Object.keys(byStore || {}).filter((n) => byStore[n] && byStore[n].length);
+    /*! Copyright (c) 2026 Astral. Better Vest 9.6.0 is licensed to its users only to run it, never to copy it. bv-1fd61d46 */ const names = Object.keys(byStore || {}).filter((n) => byStore[n] && byStore[n].length);
     if (!names.length) return Promise.resolve();
-    return writeTx(db, names, (tx) => { /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-0d2781e4 */
+    return writeTx(db, names, (tx) => {
         for (const n of names) {
             const os = tx.objectStore(n);
             for (const v of byStore[n]) os.put(v);

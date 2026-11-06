@@ -9,7 +9,7 @@ const PHRASES = {
     flat: ['flat', 'go flat', 'flatten', 'close', 'close all', 'close everything', 'close out', 'get out', 'exit', 'exit all', 'out'],
     half: ['half', 'close half', 'fifty', 'fifty percent', 'close fifty', 'close fifty percent', 'take half', 'half off'],
     rev: ['reverse', 'flip', 'reverse that', 'flip that'],
-    be: ['break even', 'be', 'stop to break even', 'move stop to break even', 'move to break even', 'stop break even'],
+    /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-26d3b079 */ be: ['break even', 'be', 'stop to break even', 'move stop to break even', 'move to break even', 'stop break even'],
     limitBuy: ['buy limit', 'limit buy', 'buy at the bid', 'buy the bid', 'bid'],
     limitSell: ['sell limit', 'limit sell', 'sell at the ask', 'sell the ask', 'offer']
 };
@@ -22,7 +22,7 @@ export const vcWords = (s) => String(s || '').toLowerCase()
     .replace(/\bb\s*\.?\s*e\b\.?/g, 'be')
     .replace(/\bbreak-?even\b/g, 'break even')
     .replace(/\bbreakeven\b/g, 'break even')
-    /*! Better Vest (c) 2026 Astral. All rights reserved. bv-e2496814 */ .replace(/[^a-z' ]+/g, ' ')
+    .replace(/[^a-z' ]+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 
@@ -42,9 +42,9 @@ export function vcAfterWake(text) {
         const re = new RegExp('(?:^| )' + w.replace(/'/g, "'") + '(?= |$)', 'g');
         let m;
         while ((m = re.exec(s))) { const i = m.index + (m[0].startsWith(' ') ? 1 : 0); if (i >= at) { at = i; len = w.length; } }
-    }
+    } /* Owned by Astral (@ax4p): Better Vest standard 9.6.0. Licence: LICENSE, not open source. bv-6fa00def */
     return at < 0 ? null : s.slice(at + len).trim();
-} /*! Better Vest (c) 2026 Astral. All rights reserved. bv-b7b2553a */
+}
 
 export function vcParse(text, opts) {
     const wake = !!(opts && opts.wake);

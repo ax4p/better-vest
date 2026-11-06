@@ -17,7 +17,7 @@ function blobToDataUri(blob) {
 async function dataUriOf(url) {
     if (url.startsWith('data:')) return url;
     if (cache.has(url)) return cache.get(url);
-    const p = fetch(url).then((r) => { /* Property of Astral (@ax4p). Better Vest 9.5.5. No copying without written permission. bv-409f951c */
+    const p = fetch(url).then((r) => {
         if (!r.ok) throw new Error('asset ' + url + ': HTTP ' + r.status);
         return r.blob();
     }).then(blobToDataUri);
@@ -29,7 +29,7 @@ async function dataUriOf(url) {
 async function cssWithInlinedUrls(cssUrl) {
     const res = await fetch(cssUrl);
     if (!res.ok) throw new Error('stylesheet: HTTP ' + res.status);
-    let css = await res.text();
+    /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-20170959 */ let css = await res.text();
     const base = new URL(cssUrl, document.baseURI);
     const urls = [...new Set([...css.matchAll(/url\(\s*(['"]?)([^'")]+)\1\s*\)/g)].map((m) => m[2]))];
     for (const u of urls) {
@@ -54,7 +54,7 @@ export async function cardToSvg(card, { cssUrl, width, height }) {
     const clone = card.cloneNode(true);
     clone.style.transform = 'none';
     clone.style.margin = '0';
-    for (const img of clone.querySelectorAll('img')) {
+    for (const img of clone.querySelectorAll('img')) { /* Copyright (c) 2026 Astral. Better Vest 9.6.0 is licensed to its users only to run it, never to copy it. bv-fe3de33a */
         const abs = new URL(img.getAttribute('src'), document.baseURI).href;
         img.setAttribute('src', await dataUriOf(abs));
     }
@@ -78,7 +78,7 @@ export async function cardToCanvas(card, { cssUrl, width, height, scale = 3 }) {
     const ctx = canvas.getContext('2d');
     ctx.imageSmoothingQuality = 'high';
     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    return canvas; /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-aba8c6ed */
+    return canvas;
 }
 
 export async function cardToPngBlob(card, opts) {

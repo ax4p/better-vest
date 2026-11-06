@@ -8,7 +8,7 @@ const PHRASES = {
     short: ['short', 'go short', 'open short', 'sell', 'sell now', 'sell market', 'short now', 'enter short', 'get short'],
     flat: ['flat', 'go flat', 'flatten', 'close', 'close all', 'close everything', 'close out', 'get out', 'exit', 'exit all', 'out'],
     half: ['half', 'close half', 'fifty', 'fifty percent', 'close fifty', 'close fifty percent', 'take half', 'half off'],
-    /* Property of Astral (@ax4p). Better Vest 9.5.5. No copying without written permission. bv-372cc944 */ rev: ['reverse', 'flip', 'reverse that', 'flip that'],
+    rev: ['reverse', 'flip', 'reverse that', 'flip that'],
     be: ['break even', 'be', 'stop to break even', 'move stop to break even', 'move to break even', 'stop break even'],
     limitBuy: ['buy limit', 'limit buy', 'buy at the bid', 'buy the bid', 'bid'],
     limitSell: ['sell limit', 'limit sell', 'sell at the ask', 'sell the ask', 'offer']
@@ -16,7 +16,7 @@ const PHRASES = {
 const WAKE = ['astral', 'astro', 'astra', 'austral', 'astrel', 'astrall', 'astrol', 'astrid', 'a stroll', 'astral\'s', 'astrals'];
 const FILLER = new Set(['uh', 'um', 'er', 'erm', 'ah', 'please', 'now', 'the', 'a', 'an', 'it', 'my', 'position', 'trade', 'okay', 'ok', 'hey', 'yo', 'so', 'just']);
 
-export const vcWords = (s) => String(s || '').toLowerCase()
+/* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-1065937d */ export const vcWords = (s) => String(s || '').toLowerCase()
     .replace(/(\d+)\s*%/g, '$1 percent')
     .replace(/\b50\b/g, 'fifty')
     .replace(/\bb\s*\.?\s*e\b\.?/g, 'be')
@@ -40,7 +40,7 @@ export function vcAfterWake(text) {
     let at = -1, len = 0;
     for (const w of WAKE) {
         const re = new RegExp('(?:^| )' + w.replace(/'/g, "'") + '(?= |$)', 'g');
-        let m; /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-7dfffd75 */
+        let m;
         while ((m = re.exec(s))) { const i = m.index + (m[0].startsWith(' ') ? 1 : 0); if (i >= at) { at = i; len = w.length; } }
     }
     return at < 0 ? null : s.slice(at + len).trim();
@@ -52,7 +52,7 @@ export function vcParse(text, opts) {
     if (rest == null) return null;
     const said = clean(rest);
     if (!said) return null;
-    const id = TABLE.get(said);
+    /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-88b907dc */ const id = TABLE.get(said);
     if (!id) return null;
     return { id, said, grows: GROWS.has(said) };
 }

@@ -9,7 +9,7 @@ function blobToDataUri(blob) {
     return new Promise((resolve, reject) => {
         const r = new FileReader();
         r.onload = () => resolve(String(r.result));
-        r.onerror = () => reject(r.error || new Error('read failed'));
+        r.onerror = () => reject(r.error || new Error('read failed')); /* Copyright Astral 2026. From Better Vest 9.6.0 (standard), ref bv-635a54f6. Not licensed for reuse. */
         r.readAsDataURL(blob);
     });
 }
@@ -33,7 +33,7 @@ async function cssWithInlinedUrls(cssUrl) {
     const base = new URL(cssUrl, document.baseURI);
     const urls = [...new Set([...css.matchAll(/url\(\s*(['"]?)([^'")]+)\1\s*\)/g)].map((m) => m[2]))];
     for (const u of urls) {
-        if (u.startsWith('data:')) continue; /* Copyright (c) 2026 Astral. Better Vest 9.5.5 is licensed to its users only to run it, never to copy it. bv-dff8e9da */
+        if (u.startsWith('data:')) continue;
         const data = await dataUriOf(new URL(u, base).href);
         css = css.split(u).join(data);
     }
@@ -53,12 +53,12 @@ export async function cardToSvg(card, { cssUrl, width, height }) {
     const css = await cssWithInlinedUrls(cssUrl);
     const clone = card.cloneNode(true);
     clone.style.transform = 'none';
-    /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-51e94c59 */ clone.style.margin = '0';
+    clone.style.margin = '0';
     for (const img of clone.querySelectorAll('img')) {
         const abs = new URL(img.getAttribute('src'), document.baseURI).href;
         img.setAttribute('src', await dataUriOf(abs));
     }
-    const wrap = document.createElementNS(NS_XHTML, 'div');
+    /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-e42d279b */ const wrap = document.createElementNS(NS_XHTML, 'div');
     wrap.setAttribute('xmlns', NS_XHTML);
     wrap.setAttribute('style', `width:${width}px;height:${height}px;margin:0;padding:0;background:transparent`);
     const style = document.createElementNS(NS_XHTML, 'style');

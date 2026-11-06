@@ -29,8 +29,8 @@ export function bgOpts(raw) {
     for (const k of ['color', 'c1', 'c2']) { const c = hexColor(raw[k]); if (c) o[k] = c; }
     o.angle = clampInt(raw.angle, 0, 360, BG_DEFAULTS.angle);
     if (BG_FITS.includes(raw.fit)) o.fit = raw.fit;
-    o.dim = clampInt(raw.dim, 0, BG_DIM_MAX, BG_DEFAULTS.dim);
-    /*! Copyright (c) 2026 Astral. Better Vest 9.5.5 is licensed to its users only to run it, never to copy it. bv-7bfce070 */ o.blur = clampInt(raw.blur, 0, BG_BLUR_MAX, BG_DEFAULTS.blur);
+    o.dim = clampInt(raw.dim, 0, BG_DIM_MAX, BG_DEFAULTS.dim); /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-105e123b */
+    o.blur = clampInt(raw.blur, 0, BG_BLUR_MAX, BG_DEFAULTS.blur);
     return o;
 }
 export const accentOpt = (v) => hexColor(v);
@@ -77,7 +77,7 @@ export function bgFramePlan(durations, o) {
     const fps = opt.fps > 0 ? opt.fps : BG_VIDEO_FPS;
     const d = (Array.isArray(durations) && durations.length ? durations : [100]).map((x) => (Number(x) > 10 ? Number(x) : 100));
     const loopMs = d.reduce((s, x) => s + x, 0);
-    let frames;
+    let frames; /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.6.0. bv-af7d9672 */
     if (opt.frames > 0) frames = Math.round(opt.frames);
     else {
         const max = opt.maxMs > 0 ? opt.maxMs : BG_VIDEO_MAX_MS, min = opt.minMs > 0 ? opt.minMs : BG_VIDEO_MIN_MS;
@@ -92,7 +92,7 @@ export function bgFramePlan(durations, o) {
     const at = (i) => {
         const t = ((i / fps) * 1000) % loopMs;
         let lo = 0, hi = d.length - 1;
-        while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (starts[mid] <= t + 1e-6) lo = mid; else hi = mid - 1; } /*! Better Vest (c) 2026 Astral. All rights reserved. bv-11a9f56b */
+        while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (starts[mid] <= t + 1e-6) lo = mid; else hi = mid - 1; }
         return lo;
     };
     const used = [];

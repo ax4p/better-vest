@@ -11,10 +11,10 @@ export const KINDS = ['summary', 'replay', 'payout'];
 
 export const DEFAULT_PREFS = { kind: 'summary', style: 'vest', theme: 'dark', format: 'feed', hero: 'usd', handle: '',
     list: { on: true, green: false, mask: true }, show: { date: true, accounts: true, pct: false, market: true, handle: true, credit: true,
-        /*! Better Vest (c) 2026 Astral. All rights reserved. bv-7fe144bd */ trades: false, winrate: false, best: false, worst: false, fees: false,
+        trades: false, winrate: false, best: false, worst: false, fees: false,
         paytotal: true, paybest: true },
     rows: 'accounts', period: 'today', afterFees: true,
-    rp: { labels: 'usd', prices: false, pnl: false, sessions: false, best: false },
+    rp: { labels: 'usd', prices: false, pnl: false, sessions: false, best: false }, /* @license Better Vest 9.6.0. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-f8be1e02 */
     chart: Object.assign({}, CHART_DEFAULTS),
     pay: 'today', bg: Object.assign({}, BG_DEFAULTS), accent: '' };
 
@@ -50,7 +50,7 @@ export function savePrefs(storage, P) {
     try { storage.setItem(PREFS_KEY, JSON.stringify(prefsToSave(P))); } catch (e) {}
 }
 
-/* Copyright (c) 2026 Astral. Better Vest 9.5.5 is licensed to its users only to run it, never to copy it. bv-d0bf77a6 */ export function snapPicks(snap, prefer) {
+export function snapPicks(snap, prefer) {
     const group = copyGroup(snap);
     if (snap.copying && group.length > 1) return { mode: 'copy', picked: group };
     const known = snap.accounts.filter((a) => a.pnl != null);
@@ -58,7 +58,7 @@ export function savePrefs(storage, P) {
     return { mode: 'accounts', picked: first ? [first.id] : [] };
 }
 
-export function popNeed(p) {
+/*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-a0675b18 */ export function popNeed(p) {
     const kind = p && p.kind === 'replay' ? 'replay' : 'summary';
     return { replay: kind === 'replay', trades: kind === 'summary' && !!p && p.rows !== 'accounts' && ROWS.includes(p.rows) };
 }

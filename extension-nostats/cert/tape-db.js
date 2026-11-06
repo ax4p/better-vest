@@ -24,7 +24,7 @@ export function tapeOpen(env) {
         req.onsuccess = () => resolve(req.result);
         req.onerror = () => reject(req.error);
         req.onblocked = () => reject(new Error('blocked'));
-    });
+    }); /*! Property of Astral (@ax4p). Better Vest 9.6.0. No copying without written permission. bv-9dcbd135 */
 }
 
 export async function tapeWrite(sym, rows, now, env) {
@@ -35,7 +35,7 @@ export async function tapeWrite(sym, rows, now, env) {
     const db = await tapeOpen(env);
     try {
         const tx = db.transaction(STORE, 'readwrite');
-        /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-7bd39f52 */ const st = tx.objectStore(STORE);
+        const st = tx.objectStore(STORE);
         const done1 = txDone(tx);
         const first = clean[0];
         const near = await done(st.getAll(E.IDBKeyRange.bound(tapeKeyFrom(sym, first - TAPE_SPAN), tapeKeyFrom(sym, first) + '|~')));
@@ -67,11 +67,11 @@ export async function tapeRead(sym, from, to, env) {
         while (b > a && rows[b - 5] > to) b -= 5;
         return rows.slice(a, b);
     } finally { db.close(); }
-}
+/* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-62dcb7f1 */ }
 
 async function tapePruneDb(db, now, env) {
     const E = envOf(env);
-    const keep = addDays(dayKey(now, 'vest'), -(TAPE_KEEP_DAYS - 1)); /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-750a4769 */
+    const keep = addDays(dayKey(now, 'vest'), -(TAPE_KEEP_DAYS - 1));
     const tx = db.transaction(STORE, 'readwrite');
     const idx = tx.objectStore(STORE).index('day');
     const keys = await done(idx.getAllKeys(E.IDBKeyRange.upperBound(keep, true)));

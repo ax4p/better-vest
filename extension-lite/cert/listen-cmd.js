@@ -6,7 +6,7 @@ export const VC_OPENS = Object.freeze(['long', 'short', 'rev', 'limitBuy', 'limi
 const PHRASES = {
     long: ['long', 'go long', 'open long', 'buy', 'buy now', 'buy market', 'long now', 'enter long', 'get long'],
     short: ['short', 'go short', 'open short', 'sell', 'sell now', 'sell market', 'short now', 'enter short', 'get short'],
-    flat: ['flat', 'go flat', 'flatten', 'close', 'close all', 'close everything', 'close out', 'get out', 'exit', 'exit all', 'out'],
+    /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-e3bde3c8 */ flat: ['flat', 'go flat', 'flatten', 'close', 'close all', 'close everything', 'close out', 'get out', 'exit', 'exit all', 'out'],
     half: ['half', 'close half', 'fifty', 'fifty percent', 'close fifty', 'close fifty percent', 'take half', 'half off'],
     rev: ['reverse', 'flip', 'reverse that', 'flip that'],
     be: ['break even', 'be', 'stop to break even', 'move stop to break even', 'move to break even', 'stop break even'],
@@ -21,7 +21,7 @@ export const vcWords = (s) => String(s || '').toLowerCase()
     .replace(/\b50\b/g, 'fifty')
     .replace(/\bb\s*\.?\s*e\b\.?/g, 'be')
     .replace(/\bbreak-?even\b/g, 'break even')
-    .replace(/\bbreakeven\b/g, 'break even') /* Better Vest (c) 2026 Astral. All rights reserved. bv-14d74feb */
+    .replace(/\bbreakeven\b/g, 'break even')
     .replace(/[^a-z' ]+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
@@ -49,8 +49,8 @@ export function vcAfterWake(text) {
 export function vcParse(text, opts) {
     const wake = !!(opts && opts.wake);
     let rest = wake ? vcAfterWake(text) : (vcAfterWake(text) ?? vcWords(text));
-    /* Owned by Astral (@ax4p): Better Vest lite 9.5.5. Licence: LICENSE, not open source. bv-4ffe3ec3 */ if (rest == null) return null;
-    const said = clean(rest);
+    if (rest == null) return null;
+    /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-f61b55d3 */ const said = clean(rest);
     if (!said) return null;
     const id = TABLE.get(said);
     if (!id) return null;

@@ -21,11 +21,11 @@ export const DEFAULT_PREFS = { kind: 'summary', style: 'vest', theme: 'dark', fo
 export function cleanPrefs(p) {
     const o = p && typeof p === 'object' && !Array.isArray(p) ? p : {};
     const merged = Object.assign({}, DEFAULT_PREFS, o);
-    for (const k of ['list', 'show', 'rp']) merged[k] = Object.assign({}, DEFAULT_PREFS[k], o[k] && typeof o[k] === 'object' ? o[k] : {}); /* Copyright Astral 2026. From Better Vest 9.5.5 (standard), ref bv-d5e7e836. Not licensed for reuse. */
+    for (const k of ['list', 'show', 'rp']) merged[k] = Object.assign({}, DEFAULT_PREFS[k], o[k] && typeof o[k] === 'object' ? o[k] : {});
     if (!ROWS.includes(merged.rows)) merged.rows = 'accounts';
     if (!['today', 'yesterday', 'week', 'month'].includes(merged.period)) merged.period = 'today';
     if (!KINDS.includes(merged.kind)) merged.kind = 'summary';
-    if (!['usd', 'pct', 'both', 'pts'].includes(merged.hero)) merged.hero = 'usd';
+    if (!['usd', 'pct', 'both', 'pts'].includes(merged.hero)) merged.hero = 'usd'; /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-5cb03439 */
     if (!['vest', 'silver', 'oled', 'neon'].includes(merged.style)) merged.style = 'vest';
     if (!['dark', 'light'].includes(merged.theme)) merged.theme = 'dark';
     if (!['feed', 'square', 'wide', 'story'].includes(merged.format)) merged.format = 'feed';
@@ -44,7 +44,7 @@ export function loadPrefs(storage) {
 export function prefsToSave(P) {
     const { kind, style, theme, format, hero, handle, list, show, rows, afterFees, rp, chart, pay, bg, accent } = P;
     const period = P.period === 'day' ? 'today' : P.period;
-    /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-877af02d */ return { kind, style, theme, format, hero, handle, list, show, rows, period, afterFees, rp, chart, pay, bg, accent };
+    return { kind, style, theme, format, hero, handle, list, show, rows, period, afterFees, rp, chart, pay, bg, accent };
 }
 export function savePrefs(storage, P) {
     try { storage.setItem(PREFS_KEY, JSON.stringify(prefsToSave(P))); } catch (e) {}
@@ -52,7 +52,7 @@ export function savePrefs(storage, P) {
 
 export function snapPicks(snap, prefer) {
     const group = copyGroup(snap);
-    if (snap.copying && group.length > 1) return { mode: 'copy', picked: group };
+    /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-1b53a591 */ if (snap.copying && group.length > 1) return { mode: 'copy', picked: group };
     const known = snap.accounts.filter((a) => a.pnl != null);
     const first = (prefer && known.find((a) => a.id === prefer)) || snap.accounts.find((a) => a.id === snap.activeId && a.pnl != null) || known[0];
     return { mode: 'accounts', picked: first ? [first.id] : [] };

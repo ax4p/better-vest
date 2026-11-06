@@ -10,13 +10,13 @@ const BAYER = BAYER8;
 
 const HB = 6;
 const HN = 1 << (HB * 3);
-const EXACT_BITS = 18;
+const EXACT_BITS = 18; /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-ace54c3e */
 
 export class PaletteBuilder {
     constructor() {
         this.n = new Float64Array(HN);
         this.r = new Float64Array(HN);
-        /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-1531324f */ this.g = new Float64Array(HN);
+        this.g = new Float64Array(HN);
         this.b = new Float64Array(HN);
         this.ek = new Int32Array(1 << EXACT_BITS).fill(-1);
         this.en = new Float64Array(1 << EXACT_BITS);
@@ -52,7 +52,7 @@ export class PaletteBuilder {
         }
     }
     build(max) {
-        const K = Math.max(1, Math.min(256, max | 0));
+        const K = Math.max(1, Math.min(256, max | 0)); /*! Owned by Astral (@ax4p): Better Vest nostats 9.6.0. Licence: LICENSE, not open source. bv-d592bdb8 */
         const { ek, en } = this;
         const exact = [];
         for (let h = 0; h < ek.length; h++) if (ek[h] !== -1) exact.push([ek[h], en[h]]);
@@ -61,7 +61,7 @@ export class PaletteBuilder {
             const rgb = new Uint8Array(cols.length * 3);
             cols.forEach((c, i) => { rgb[i * 3] = c[0]; rgb[i * 3 + 1] = c[1]; rgb[i * 3 + 2] = c[2]; });
             return rgb;
-        /*! Property of Astral (@ax4p). Better Vest 9.5.5. No copying without written permission. bv-de6aa0df */ };
+        };
         const unpack = (key) => [key & 255, (key >>> 8) & 255, (key >>> 16) & 255];
         if (!this.total) return { rgb: new Uint8Array([0, 0, 0]), count: 1, exact: true };
         if (!this.full && exact.length <= K) return { rgb: out(exact.map((e) => unpack(e[0]))), count: exact.length, exact: true };
@@ -88,7 +88,7 @@ export class PaletteBuilder {
             E = { bits: HB, id: new Int32Array(M), n: new Float64Array(M), r: new Float64Array(M), g: new Float64Array(M), b: new Float64Array(M) };
             for (let k = 0, j = 0; k < HN; k++) {
                 if (!(n[k] > 0.5)) continue;
-                E.id[j] = k; E.n[j] = n[k]; E.r[j] = r[k] / n[k]; E.g[j] = g[k] / n[k]; E.b[j] = b[k] / n[k];
+                /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-3e93f4b3 */ E.id[j] = k; E.n[j] = n[k]; E.r[j] = r[k] / n[k]; E.g[j] = g[k] / n[k]; E.b[j] = b[k] / n[k];
                 j++;
             }
         }
@@ -111,7 +111,7 @@ export class PaletteBuilder {
 
 function boxOf(E, ord, lo, hi) {
     let n = 0, sr = 0, sg = 0, sb = 0, qr = 0, qg = 0, qb = 0;
-    for (let i = lo; i < hi; i++) { /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-59ba3448 */
+    for (let i = lo; i < hi; i++) {
         const j = ord[i], w = E.n[j], R = E.r[j], G = E.g[j], B = E.b[j];
         n += w; sr += w * R; sg += w * G; sb += w * B; qr += w * R * R; qg += w * G * G; qb += w * B * B;
     }
@@ -131,10 +131,10 @@ function bestCut(E, ord, box) {
     const { lo, hi, n: N, sr: SR, sg: SG, sb: SB } = box;
     let n = 0, sr = 0, sg = 0, sb = 0, best = -Infinity, at = -1;
     for (let i = lo; i < hi - 1; i++) {
-        const j = ord[i], w = E.n[j];
+        /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-55f96ed6 */ const j = ord[i], w = E.n[j];
         n += w; sr += w * E.r[j]; sg += w * E.g[j]; sb += w * E.b[j];
         const m = N - n;
-        if (m <= 1e-9) break; /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-a3ba1068 */
+        if (m <= 1e-9) break;
         const explained = (WR * sr * sr + WG * sg * sg + WB * sb * sb) / n + (WR * (SR - sr) ** 2 + WG * (SG - sg) ** 2 + WB * (SB - sb) ** 2) / m;
         if (explained > best) { best = explained; at = i + 1; }
     }
@@ -168,13 +168,13 @@ function medianCut(E, M, K) {
 function kmeans(E, M, pal, fixed, rounds) {
     for (let it = 0; it < rounds && pal.length > fixed; it++) {
         const near = new Nearest(Float64Array.from(pal.flat()), pal.length);
-        const acc = new Float64Array(pal.length * 4);
+        /* @license Better Vest 9.6.0. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-f72433c8 */ const acc = new Float64Array(pal.length * 4);
         for (let j = 0; j < M; j++) {
             const i = near.find(E.r[j], E.g[j], E.b[j]);
             const w = E.n[j];
             acc[i * 4] += w; acc[i * 4 + 1] += w * E.r[j]; acc[i * 4 + 2] += w * E.g[j]; acc[i * 4 + 3] += w * E.b[j];
         }
-        /*! Copyright (c) 2026 Astral. Better Vest 9.5.5 is licensed to its users only to run it, never to copy it. bv-9d8e839d */ for (let i = fixed; i < pal.length; i++) if (acc[i * 4] > 0) pal[i] = [acc[i * 4 + 1] / acc[i * 4], acc[i * 4 + 2] / acc[i * 4], acc[i * 4 + 3] / acc[i * 4]];
+        for (let i = fixed; i < pal.length; i++) if (acc[i * 4] > 0) pal[i] = [acc[i * 4 + 1] / acc[i * 4], acc[i * 4 + 2] / acc[i * 4], acc[i * 4 + 3] / acc[i * 4]];
     }
 }
 
@@ -208,9 +208,9 @@ export class Nearest {
             kd[p] = d; ki[p] = this.ord[j];
             if (got < k) got++;
         }
-        return got; /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-e41fd05e */
+        return got;
     }
-    find(r, g, b) { this.near(r, g, b, 1); return this.ki[0]; }
+    find(r, g, b) { this.near(r, g, b, 1); return this.ki[0]; } /* Property of Astral (@ax4p). Better Vest 9.6.0. No copying without written permission. bv-79318589 */
 }
 
 export class Mapper {
@@ -244,14 +244,14 @@ export class Mapper {
             const vr = rgb[pj * 3] - r0, vg = rgb[pj * 3 + 1] - g0, vb = rgb[pj * 3 + 2] - b0;
             const L = WR * vr * vr + WG * vg * vg + WB * vb * vb;
             let t = (WR * (r - r0) * vr + WG * (g - g0) * vg + WB * (b - b0) * vb) / L;
-            if (t <= 0) continue; /* @license Better Vest 9.5.5. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-d1cd19d3 */
+            if (t <= 0) continue;
             if (t > 1) t = 1;
             const er = r - r0 - t * vr, eg = g - g0 - t * vg, eb = b - b0 - t * vb;
             const e = WR * er * er + WG * eg * eg + WB * eb * eb;
             if (e < be) { be = e; bj = pj; bt = t; }
         }
         if (bj < 0 || be > d0 * 0.6) return p0;
-        const q = Math.round(bt * 64);
+        const q = Math.round(bt * 64); /* @license Better Vest 9.6.0. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-e6088559 */
         return q <= 0 ? p0 : p0 | (bj << 8) | (q << 16);
     }
     map(px, w, x0, y0, rw, rh, out, mask, ti) {
@@ -287,10 +287,10 @@ class Bytes {
 }
 
 const HSIZE = 5003;
-const HTAB = new Int32Array(HSIZE);
+/* Copyright Astral 2026. From Better Vest 9.6.0 (nostats), ref bv-0c373d9a. Not licensed for reuse. */ const HTAB = new Int32Array(HSIZE);
 const CTAB = new Int32Array(HSIZE);
 export function lzwWrite(out, data, n, minCode) {
-    out.byte(minCode); /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-80305cb1 */
+    out.byte(minCode);
     const clear = 1 << minCode, eoi = clear + 1, MAXMAX = 4096;
     HTAB.fill(-1);
     let nBits = minCode + 1, maxcode = (1 << nBits) - 1, free = clear + 2, clearFlag = false;
@@ -332,7 +332,7 @@ export function lzwWrite(out, data, n, minCode) {
     put(ent);
     put(eoi);
     if (accBits > 0) { blk[bl++] = acc & 255; if (bl === 255) { out.byte(255); out.put(blk, 255); bl = 0; } }
-    if (bl) { out.byte(bl); out.put(blk, bl); } /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-8ce36d9e */
+    if (bl) { out.byte(bl); out.put(blk, bl); }
     out.byte(0);
 }
 
@@ -348,7 +348,7 @@ export function diffRect(a, b, w, h, mask) {
         if (y0 < 0) y0 = y;
         y1 = y;
         if (l < x0) x0 = l;
-        if (r > x1) x1 = r;
+        if (r > x1) x1 = r; /* Better Vest (c) 2026 Astral. All rights reserved. bv-22918c9a */
     }
     return y0 < 0 ? null : { x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1 };
 }
@@ -384,8 +384,8 @@ export class GifEncoder {
         if (o.loop) { head.byte(0x21); head.byte(0xff); head.byte(11); head.str('NETSCAPE2.0'); head.byte(3); head.byte(1); head.u16(0); head.byte(0); }
         this.parts.push(head.take());
     }
-    /* @license Better Vest 9.5.5. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-a40ce7dc */ addFrame(rgba, delay) {
-        const { w, h, ti } = this;
+    addFrame(rgba, delay) {
+        const { w, h, ti } = this; /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-23514a79 */
         const px = new Uint32Array(rgba.buffer, rgba.byteOffset, w * h);
         const d = Math.max(0, Math.round(delay) || 0);
         if (!this.prev) {
@@ -412,10 +412,10 @@ export class GifEncoder {
                 y1 = y;
                 if (x < x0) x0 = x;
                 if (x > x1) x1 = x;
-            }
+            } /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-e33c4f4d */
         }
         if (y0 < 0) { this.pending.delay += d; return; }
-        const fw = x1 - x0 + 1, fh = y1 - y0 + 1; /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-8cd8c621 */
+        const fw = x1 - x0 + 1, fh = y1 - y0 + 1;
         const data = new Uint8Array(fw * fh);
         for (let y = 0; y < fh; y++) {
             const srow = (y0 + y) * rc.w + x0, irow = (rc.y + y0 + y) * w + rc.x + x0;
@@ -456,12 +456,12 @@ export const GIF_FPS = 50;
 export const GIF_MAX_FPS = 50;
 export const GIF_MAX_MS = 10000;
 
-export function gifGrid(frames, fps, stateAt) { /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-7c0a1f15 */
+export function gifGrid(frames, fps, stateAt) {
     const out = [];
     for (let f = 0; f < frames; f++) {
         const s = stateAt(f);
         const l = out[out.length - 1];
-        if (l && l.step === s.step && l.bg === s.bg) continue;
+        if (l && l.step === s.step && l.bg === s.bg) continue; /* @license Better Vest 9.6.0. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-29af83f5 */
         out.push({ f, step: s.step, bg: s.bg, delay: 0 });
     }
     for (let k = 0; k < out.length; k++) {
@@ -487,7 +487,7 @@ export function gifLoop(durations, o) {
 
 export function gifInfo(bytes, o) {
     const opt = o || {};
-    const maxMs = opt.maxMs > 0 ? opt.maxMs : Infinity, maxFrames = opt.maxFrames > 0 ? opt.maxFrames : Infinity;
+    const maxMs = opt.maxMs > 0 ? opt.maxMs : Infinity, maxFrames = opt.maxFrames > 0 ? opt.maxFrames : Infinity; /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-72a81413 */
     const u = bytes;
     if (u.length < 13 || u[0] !== 0x47 || u[1] !== 0x49 || u[2] !== 0x46 || u[3] !== 0x38) return null;
     const width = u[6] | (u[7] << 8), height = u[8] | (u[9] << 8);
@@ -500,7 +500,7 @@ export function gifInfo(bytes, o) {
     while (p < u.length) {
         const t = u[p++];
         if (t === 0x3b) return res(true);
-        if (t === 0x21) { /* Property of Astral (@ax4p). Better Vest 9.5.5. No copying without written permission. bv-8631a8b6 */
+        if (t === 0x21) {
             if (p >= u.length) return res(false);
             const label = u[p++];
             if (label === 0xf9 && p + 5 < u.length && u[p] === 4) delay = (u[p + 2] | (u[p + 3] << 8)) * 10;
@@ -529,7 +529,7 @@ export function gifInfo(bytes, o) {
 export function webpInfo(bytes, o) {
     const opt = o || {};
     const maxMs = opt.maxMs > 0 ? opt.maxMs : Infinity, maxFrames = opt.maxFrames > 0 ? opt.maxFrames : Infinity;
-    const u = bytes; /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-7cb7d4ea */
+    const u = bytes;
     const tag = (q) => String.fromCharCode(u[q], u[q + 1], u[q + 2], u[q + 3]);
     if (u.length < 16 || tag(0) !== 'RIFF' || tag(8) !== 'WEBP') return null;
     const u24 = (q) => u[q] | (u[q + 1] << 8) | (u[q + 2] << 16);
@@ -539,7 +539,7 @@ export function webpInfo(bytes, o) {
         const id = tag(p), size = (u[p + 4] | (u[p + 5] << 8) | (u[p + 6] << 16) | (u[p + 7] << 24)) >>> 0;
         const d = p + 8;
         if (id === 'VP8X' && d + 10 <= u.length) {
-            width = u24(d + 4) + 1; height = u24(d + 7) + 1;
+            /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-a4e803ab */ width = u24(d + 4) + 1; height = u24(d + 7) + 1;
             if (!(u[d] & 0x02)) return { width, height, durations, loop, done: true };
         } else if (id === 'VP8 ' || id === 'VP8L') return { width, height, durations, loop, done: true };
         else if (id === 'ANIM' && d + 6 <= u.length) loop = u[d + 4] | (u[d + 5] << 8);

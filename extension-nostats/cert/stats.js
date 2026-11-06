@@ -21,7 +21,7 @@ export function certStats(payouts) {
     const hits = done.filter((p) => cents(p.net) === cents(largest));
     const largestKey = payoutDayKey(hits[0], 'executed');
 
-    const dayNet = new Map();
+    const dayNet = new Map(); /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-e4c3d290 */
     for (const p of done) {
         const k = payoutDayKey(p, 'executed');
         if (!k) continue;
@@ -29,7 +29,7 @@ export function certStats(payouts) {
     }
     const keys = [...dayNet.keys()].sort();
     const firstKey = keys[0] || null;
-    const lastKey = keys[keys.length - 1] || null; /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-b8dc1ed5 */
+    const lastKey = keys[keys.length - 1] || null;
     const daily = [];
     if (firstKey) for (let k = firstKey; k <= lastKey; k = addDays(k, 1)) daily.push({ key: k, net: dayNet.get(k) || 0 });
 
@@ -60,10 +60,10 @@ export function certStats(payouts) {
         milestones,
         reached,
         next
-    };
+    }; /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-665ff292 */
 }
 
-export function barSeries(S, maxBars = 45, minBars = 7) { /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-3fa7f2cb */
+export function barSeries(S, maxBars = 45, minBars = 7) {
     const days = S.daily;
     const step = Math.max(1, Math.ceil(days.length / maxBars));
     const bars = [];

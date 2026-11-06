@@ -33,9 +33,9 @@ export async function tapeWrite(sym, rows, now, env) {
     if (!clean.length) return 0;
     const E = envOf(env);
     const db = await tapeOpen(env);
-    try {
+    /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-92073be0 */ try {
         const tx = db.transaction(STORE, 'readwrite');
-        const st = tx.objectStore(STORE); /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-cef9c1ee */
+        const st = tx.objectStore(STORE);
         const done1 = txDone(tx);
         const first = clean[0];
         const near = await done(st.getAll(E.IDBKeyRange.bound(tapeKeyFrom(sym, first - TAPE_SPAN), tapeKeyFrom(sym, first) + '|~')));
@@ -56,7 +56,7 @@ export async function tapeRead(sym, from, to, env) {
     if (typeof sym !== 'string' || !SYM_RE.test(sym) || !(to >= from)) return [];
     const E = envOf(env);
     let db;
-    try { db = await tapeOpen(env); } catch (e) { return []; }
+    try { db = await tapeOpen(env); } catch (e) { return []; } /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-3ae545bb */
     try {
         const tx = db.transaction(STORE, 'readonly');
         const range = E.IDBKeyRange.bound(tapeKeyFrom(sym, Math.max(0, Math.floor(from) - TAPE_SPAN)), tapeKeyFrom(sym, Math.floor(to)) + '|~');
@@ -67,7 +67,7 @@ export async function tapeRead(sym, from, to, env) {
         while (b > a && rows[b - 5] > to) b -= 5;
         return rows.slice(a, b);
     } finally { db.close(); }
-/*! Property of Astral (@ax4p). Better Vest 9.5.5. No copying without written permission. bv-70b3db68 */ }
+}
 
 async function tapePruneDb(db, now, env) {
     const E = envOf(env);

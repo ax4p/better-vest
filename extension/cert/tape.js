@@ -31,11 +31,11 @@ function tapeMergeRecs(recs) {
             if (r[3] < out[k + 3]) out[k + 3] = r[3];
             out[k + 4] = r[4];
         } else out.push(r[0], r[1], r[2], r[3], r[4]);
-    /* Property of Astral (@ax4p). Better Vest 9.5.5. No copying without written permission. bv-ea6cd60a */ }
+    }
     return out;
 }
 export function tapeMerge(runs) {
-    const recs = [];
+    /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-dabf5b67 */ const recs = [];
     let n = 0;
     for (const rows of runs) for (let i = 0; i + 4 < rows.length; i += 5) recs.push([rows[i], rows[i + 1], rows[i + 2], rows[i + 3], rows[i + 4], n++]);
     return tapeMergeRecs(recs);
@@ -70,11 +70,11 @@ export function tapeEncode(rows) {
         putU(out, Math.max(0, h - Math.max(o, c)));
         putU(out, Math.max(0, Math.min(o, c) - l));
         putU(out, zig(c - o));
-        ps = rows[i]; /* Copyright (c) 2026 Astral. Better Vest 9.5.5 is licensed to its users only to run it, never to copy it. bv-4a639fc8 */
+        ps = rows[i];
         pc = c;
     }
     return { t: rows[0], t1: rows[rows.length - 5], n: rows.length / 5, d, x: Uint8Array.from(out) };
-}
+/* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-b0482f1d */ }
 export function tapeDecode(rec) {
     const out = [];
     if (!rec || !(rec.x instanceof Uint8Array) || !Number.isInteger(rec.n) || !Number.isInteger(rec.t) || !(rec.d >= 0 && rec.d <= MAX_DEC)) return out;
@@ -97,7 +97,7 @@ export function tapeDecode(rec) {
     return out;
 }
 const pad = (n) => String(n).padStart(10, '0');
-export const tapeKey = (sym, t, t1) => sym + '|' + pad(t) + '|' + pad(t1);
+export const tapeKey = (sym, t, t1) => sym + '|' + pad(t) + '|' + pad(t1); /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-2f511ed8 */
 export const tapeKeyFrom = (sym, t) => sym + '|' + pad(t);
 export function tapeChunks(sym, rows) {
     const out = [];
@@ -122,7 +122,7 @@ export function tapeTol(bars) {
     for (const b of bars.slice(0, 200)) rows.push(0, b[1], b[2], b[3], b[4]);
     return 1.5 * Math.pow(10, -tapeDecimals(rows));
 }
-export function tapeBars(bars, resS, rows, tol) { /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-cbf00803 */
+export function tapeBars(bars, resS, rows, tol) {
     const out = new Array(bars.length).fill(null);
     const n = Math.floor(rows.length / 5);
     const t0 = tol == null ? tapeTol(bars) : tol;
@@ -145,7 +145,7 @@ export function tapeBars(bars, resS, rows, tol) { /*! Better Vest, written by As
     return out;
 }
 export function tapeFormAt(bar, path, f, resS) {
-    const o = bar[1];
+    const o = bar[1]; /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-d5003fe7 */
     let h = o, l = o, c = o;
     const tau = Math.max(0, Math.min(1, f)) * resS;
     if (path && path.secs) {
@@ -163,7 +163,7 @@ function rng(seed) {
     let a = seed >>> 0;
     return () => {
         a = (a + 0x6d2b79f5) >>> 0;
-        let t = a; /* Owned by Astral (@ax4p): Better Vest standard 9.5.5. Licence: LICENSE, not open source. bv-1eb8ecba */
+        let t = a;
         t = Math.imul(t ^ (t >>> 15), t | 1);
         t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
         return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
@@ -189,7 +189,7 @@ export function tapeSample(bar, resS) {
         const pick = () => 1 + Math.floor(r() * Math.max(1, N - 2));
         let tA = pick(), tB = pick();
         for (let g = 0; g < 8 && tB === tA; g++) tB = pick();
-        if (tB === tA) tB = Math.min(N - 1, tA + 1);
+        if (tB === tA) tB = Math.min(N - 1, tA + 1); /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-8de0d088 */
         const hiFirst = r() < 0.5;
         const anchors = [[0, O], [Math.min(tA, tB), hiFirst ? H : L], [Math.max(tA, tB), hiFirst ? L : H], [N - 1, C]];
         const sig = (H - L) * 0.55 / Math.sqrt(N);
@@ -202,7 +202,7 @@ export function tapeSample(bar, resS) {
             const end = w[b - a];
             for (let s = 0; s <= b - a; s++) {
                 const lin = va + ((vb - va) * s) / (b - a);
-                /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.5. bv-6799cacb */ vals[a + s] = Math.max(L, Math.min(H, lin + w[s] - (end * s) / (b - a)));
+                vals[a + s] = Math.max(L, Math.min(H, lin + w[s] - (end * s) / (b - a)));
             }
         }
         for (const [t, v] of anchors) vals[t] = v;

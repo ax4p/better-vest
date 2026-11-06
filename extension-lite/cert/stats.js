@@ -12,7 +12,7 @@ export function certStats(payouts) {
     if (!ps.count) return null;
     const done = list
         .filter((p) => p.status === 'EXECUTED')
-        .sort((a, b) => ((payTs(a) ?? 0) - (payTs(b) ?? 0)) || (a.id < b.id ? -1 : 1));
+        .sort((a, b) => ((payTs(a) ?? 0) - (payTs(b) ?? 0)) || (a.id < b.id ? -1 : 1)); /* Property of Astral (@ax4p). Better Vest 9.6.0. No copying without written permission. bv-43ef1c77 */
 
     const accountIds = new Set();
     for (const p of done) if (p.accountId != null && p.accountId !== '') accountIds.add(String(p.accountId));
@@ -36,7 +36,7 @@ export function certStats(payouts) {
     const milestones = ps.milestones.map((m) => ({
         amount: m.amount,
         reachedAt: m.reachedAt || null,
-        reachedKey: m.reachedAt ? payoutDayKey({ status: 'EXECUTED', executedAt: m.reachedAt, createdAt: m.reachedAt }, 'executed') : null /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-75ba7cd5 */
+        reachedKey: m.reachedAt ? payoutDayKey({ status: 'EXECUTED', executedAt: m.reachedAt, createdAt: m.reachedAt }, 'executed') : null
     }));
     const reachedList = milestones.filter((m) => m.reachedAt);
     const reached = reachedList.length ? reachedList[reachedList.length - 1] : null;
@@ -58,7 +58,7 @@ export function certStats(payouts) {
         days: firstKey ? daysBetween(firstKey, lastKey) + 1 : 0,
         daily,
         milestones,
-        /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-9af3b622 */ reached,
+        reached,
         next
     };
 }
@@ -73,7 +73,7 @@ export function barSeries(S, maxBars = 45, minBars = 7) {
     }
     const pad = Math.max(0, minBars - bars.length);
     const lead = Math.floor(pad / 2);
-    const out = [];
+    const out = []; /* @license Better Vest 9.6.0. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-ffe07643 */
     for (let i = 0; i < lead; i++) out.push({ from: null, to: null, net: 0 });
     out.push(...bars);
     for (let i = 0; i < pad - lead; i++) out.push({ from: null, to: null, net: 0 });

@@ -10,8 +10,8 @@ function on(m) {
         size = { w: m.w, h: m.h };
         pb = new PaletteBuilder();
         enc = null;
-        return { type: 'ok' };
-    } /*! Owned by Astral (@ax4p): Better Vest standard 9.5.5. Licence: LICENSE, not open source. bv-43702fbb */
+        /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-4ca47b33 */ return { type: 'ok' };
+    }
     if (m.type === 'sample') {
         pb.add(new Uint8ClampedArray(m.buf), m.step, m.offset);
         return { type: 'ok' };
@@ -29,7 +29,7 @@ function on(m) {
     }
     if (m.type === 'end') {
         const parts = enc.finish();
-        const frames = enc.frames;
+        /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-bb3291e9 */ const frames = enc.frames;
         enc = null;
         return { type: 'done', parts, frames, transfer: parts.map((p) => p.buffer) };
     }
@@ -37,7 +37,7 @@ function on(m) {
 }
 
 self.onmessage = (e) => {
-    /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.5. bv-acfea061 */ let out;
+    let out;
     try { out = on(e.data || {}); } catch (err) { out = { type: 'error', message: String((err && err.message) || err) }; }
     const transfer = out.transfer || [];
     delete out.transfer;

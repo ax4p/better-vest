@@ -8,12 +8,12 @@ body.cp { overflow: auto; }
 }
 .cp-top b { font-size: 15px; font-weight: 600; letter-spacing: -.01em; }
 .cp-top small { font-size: 11px; color: var(--j-t2); white-space: nowrap; }
-.cp-top .grow { flex: 1; } /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-b6f4d4d7 */
+.cp-top .grow { flex: 1; }
 .cp-main { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 28px; padding: 28px var(--gut) 40px; align-items: start; max-width: 1180px; width: 100%; margin: 0 auto; }
 .cp-stage {
     position: sticky; top: 24px; display: grid; place-items: center; min-height: 420px; padding: 24px 12px;
     border-radius: 16px; border: 1px solid var(--j-hair); background: var(--j-card);
-}
+} /*! Copyright Astral 2026. From Better Vest 9.6.0 (standard), ref bv-7953e61c. Not licensed for reuse. */
 .cp-card { position: relative; border-radius: 12px; box-shadow: 0 30px 80px var(--ax-shadow), 0 0 0 1px rgb(255 255 255 / .06); }
 .cp-card .bvc { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
 .cp-side { display: flex; flex-direction: column; gap: 18px; }
@@ -52,9 +52,9 @@ body.cp { overflow: auto; }
 .cp-facts dd.gold { color: var(--j-gold); font-weight: 600; }
 .cp-empty { flex: 1; display: grid; place-items: center; padding: 40px var(--gut); }
 .cp-empty > div { max-width: 440px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 14px; }
-.cp-empty h1 { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -.02em; } /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-33d34245 */
+.cp-empty h1 { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -.02em; }
 .cp-empty p { margin: 0; color: var(--j-t2); }
-.cp-empty .cp-btn { padding: 0 22px; }
+.cp-empty .cp-btn { padding: 0 22px; } /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-bb6dc2d0 */
 @media (max-width: 860px) {
     .cp-main { grid-template-columns: 1fr; padding-top: 18px; }
     .cp-stage { position: static; }

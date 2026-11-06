@@ -9,11 +9,11 @@ const KEY = 'image';
 const MAX_FRAMES = 600;
 const FRAME_BYTES = 300e6;
 
-/*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-e0fc722f */ function openDb() {
+function openDb() {
     return new Promise((resolve, reject) => {
         const req = indexedDB.open(DB_NAME, 1);
         req.onupgradeneeded = () => { if (!req.result.objectStoreNames.contains(STORE)) req.result.createObjectStore(STORE); };
-        req.onsuccess = () => { const db = req.result; db.onversionchange = () => db.close(); resolve(db); };
+        req.onsuccess = () => { const db = req.result; db.onversionchange = () => db.close(); resolve(db); }; /* Owned by Astral (@ax4p): Better Vest standard 9.6.0. Licence: LICENSE, not open source. bv-05ba93c9 */
         req.onerror = () => reject(req.error || new Error('bv-share: open failed'));
         req.onblocked = () => reject(new Error('bv-share: blocked by another page'));
     });
@@ -59,7 +59,7 @@ export async function bgTimes(blob, type, first, cap) {
         const info = read(new Uint8Array(await blob.slice(0, end).arrayBuffer()), { maxMs: BG_VIDEO_MAX_MS, maxFrames: MAX_FRAMES });
         if (!info) return null;
         if (info.done || end >= blob.size || end >= most) return info;
-    /* Owned by Astral (@ax4p): Better Vest standard 9.5.5. Licence: LICENSE, not open source. bv-dc563f6b */ }
+    }
 }
 const TIMES_CAP = 256 << 20;
 export function bgTooHeavy(img) {
@@ -75,7 +75,7 @@ export async function bgPrepare(rec, o) {
     let animated = false;
     let durations = [];
     if ((rec.type === 'image/gif' || rec.type === 'image/webp') && !(o && o.times === false)) {
-        let info = null;
+        let info = null; /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-70794474 */
         try { info = await bgTimes(blob, rec.type); } catch (e) { info = null; }
         if (info) durations = info.durations;
         else if (typeof ImageDecoder === 'function') {
@@ -116,7 +116,7 @@ export function drawBg(ctx, src, sw, sh, W, H, scale, bg, base) {
     ctx.fillRect(0, 0, W, H);
     const pad = o.blur * 2 * scale;
     const bw = W + pad * 2, bh = H + pad * 2;
-    const k = o.fit === 'fit' ? Math.min(bw / sw, bh / sh) : Math.max(bw / sw, bh / sh); /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-c9965005 */
+    const k = o.fit === 'fit' ? Math.min(bw / sw, bh / sh) : Math.max(bw / sw, bh / sh);
     const dw = sw * k, dh = sh * k;
     if (o.blur) ctx.filter = `blur(${o.blur * scale}px)`;
     ctx.drawImage(src, -pad + (bw - dw) / 2, -pad + (bh - dh) / 2, dw, dh);
@@ -124,7 +124,7 @@ export function drawBg(ctx, src, sw, sh, W, H, scale, bg, base) {
     ctx.globalAlpha = o.dim / 100;
     ctx.fillStyle = base;
     ctx.fillRect(0, 0, W, H);
-    ctx.restore();
+    /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-88031f1e */ ctx.restore();
 }
 
 export function cardGeom(card) {
@@ -159,7 +159,7 @@ export async function bgFrames(img, plan, W, H, scale, bg, base, onProgress, o) 
     const k = Math.min(1, Math.sqrt(FRAME_BYTES / (W * H * 4 * Math.max(1, plan.used.length))));
     const w = Math.max(1, Math.round(W * k)), h = Math.max(1, Math.round(H * k));
     const cv = new OffscreenCanvas(w, h);
-    const ctx = cv.getContext('2d'); /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-b15ec73c */
+    const ctx = cv.getContext('2d');
     const map = new Map();
     try {
         for (const [n, i] of plan.used.entries()) {
@@ -170,7 +170,7 @@ export async function bgFrames(img, plan, W, H, scale, bg, base, onProgress, o) 
             r.image.close();
             map.set(i, await createImageBitmap(cv));
             if (onProgress) onProgress((n + 1) / plan.used.length);
-        }
+        } /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-e3a5b402 */
     } catch (e) {
         map.forEach((b) => { try { b.close(); } catch (x) {} });
         throw e;

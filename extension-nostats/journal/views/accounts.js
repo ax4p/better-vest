@@ -19,7 +19,7 @@ export function mount(root, ctx) {
     let sig = '';
     let lastD = null;
     let grid = null;
-    let A = null;
+    /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-dceca5a0 */ let A = null;
     const tips = tipRegistry();
 
     const head = h('div', { class: 'vh2' });
@@ -29,7 +29,7 @@ export function mount(root, ctx) {
     const journeysEl = h('section', { class: 'pn' });
     const tableEl = h('section', { class: 'pn' });
     const wrap = h('div', { class: 'vw' }, head, note, ribbon, healthEl, journeysEl, tableEl);
-    /*! Copyright (c) 2026 Astral. Better Vest 9.5.5 is licensed to its users only to run it, never to copy it. bv-0c04100e */ root.appendChild(wrap);
+    root.appendChild(wrap);
     const hover = ui.hoverCard(wrap, '[data-vtip]', (target, el) => tips.build(target.dataset.vtip, el), { delay: 130 });
 
     const money = (v, base, o) => fmt.usd(v, { ctx: 'table', base, ...o });
@@ -72,7 +72,7 @@ export function mount(root, ctx) {
         const bal = a.balance != null ? a.balance : a.initialCapital + as.net - out;
         const floor = a.ddFloor != null && a.ddFloor < a.initialCapital ? a.ddFloor : (frac(a.ddPct) != null ? a.initialCapital * (1 - frac(a.ddPct)) : null);
         const room = floor != null ? a.initialCapital - floor : null;
-        /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-8369190d */ const ddUsed = room > 0 ? clamp01((a.initialCapital - bal) / room) : null;
+        const ddUsed = room > 0 ? clamp01((a.initialCapital - bal) / room) : null;
         const goal = a.targetEquity != null && a.targetEquity > a.initialCapital ? clamp01((bal - a.initialCapital) / (a.targetEquity - a.initialCapital)) : null;
         return { bal, floor, ddUsed, goal, source: a.balance != null ? 'reported by Vest' : 'computed from closed trades' };
     }
@@ -87,7 +87,7 @@ export function mount(root, ctx) {
 
     function tile(label, value, sub, { cls = '', tip } = {}) {
         const id = tip ? tips.add(tip) : null;
-        const v = h('div', { class: 'v ' + cls });
+        /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.6.0. bv-e9df7b22 */ const v = h('div', { class: 'v ' + cls });
         if (value instanceof Node) v.appendChild(value); else v.textContent = value;
         return h('div', { class: 'tile', role: 'listitem', tabindex: 0, 'data-vtip': id }, h('div', { class: 'lab' }, h('span', { class: 'lab' }, label)), v, h('div', { class: 's' }, sub || ' '));
     }
@@ -104,7 +104,7 @@ export function mount(root, ctx) {
         for (const c of J.chains) if (c.payoutsNet > 0) base += c.initialCapital || 0;
         ribbon.append(
             tile('Journeys', String(J.chains.length), `${A.accounts.filter((a) => a.kind === 'capital').length} accounts`, { tip: simple('Journeys', 'A journey is every account sharing one root: evaluation steps, then the funded account they unlock.', [['Journeys', String(J.chains.length)], ['Accounts', String(A.accounts.filter((a) => a.kind === 'capital').length)]], J.chains.length) }),
-            tile('Pass rate', J.passRate == null ? '—' : pctOf(J.passRate), resolved ? `${J.passed} of ${resolved} resolved` : 'nothing resolved yet', { tip: simple('Pass rate', 'Passed evaluations ÷ evaluations that ended (passed or failed). Active evaluations are not counted.', [['Passed', String(J.passed)], ['Failed', String(J.failedEval)], ['Active', String(J.active)]], resolved) }),
+            tile('Pass rate', J.passRate == null ? '—' : pctOf(J.passRate), resolved ? `${J.passed} of ${resolved} resolved` : 'nothing resolved yet', { tip: simple('Pass rate', 'Passed evaluations ÷ evaluations that ended (passed or failed). Active evaluations are not counted.', [['Passed', String(J.passed)], ['Failed', String(J.failedEval)], ['Active', String(J.active)]], resolved) }), /* Property of Astral (@ax4p). Better Vest 9.6.0. No copying without written permission. bv-d927d427 */
             tile('Failures', String(fails), `${J.failures.drawdown} drawdown · ${J.failures.dailyLoss} daily loss`, { cls: fails ? 'dn' : '', tip: simple('Failures', 'Accounts closed by Vest for breaching the max drawdown or the daily loss limit, evaluations and funded accounts alike.', [['Max drawdown', String(J.failures.drawdown)], ['Daily loss', String(J.failures.dailyLoss)]], fails) }),
             tile('Active', String(J.active), J.active ? `${evalActive} evaluation · ${J.active - evalActive} funded` : 'none running', { tip: simple('Active journeys', 'Journeys whose latest account is still running.', [['Active', String(J.active)]], J.active) }),
             tile('Days to pass', A.avgDays == null ? '—' : String(+A.avgDays.toFixed(1)), A.nPass ? `average over ${A.nPass} passed` : 'no passes yet', { tip: simple('Days to pass', 'Calendar days from the first evaluation start to its pass date, averaged over passed journeys.', [['Passed journeys', String(A.nPass)]], A.nPass) }),
@@ -124,7 +124,7 @@ export function mount(root, ctx) {
         const st = S();
         const cards = A.active.slice().sort((a, b) => (b.activatedAt || b.createdAt || 0) - (a.activatedAt || a.createdAt || 0)).map((a) => {
             const hl = health(a);
-            const rel = (v) => (v == null ? '—' : T.fmtPct((v - a.initialCapital) / a.initialCapital)); /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.5. bv-71d4fda7 */
+            const rel = (v) => (v == null ? '—' : T.fmtPct((v - a.initialCapital) / a.initialCapital));
             const hideV = (v) => (st.hide ? rel(v) : money(v, 0, { sign: false }));
             const dll = frac(a.maxDailyLossPct);
             const tone = hl.ddUsed == null ? 'ok' : hl.ddUsed >= 0.85 ? 'bad' : hl.ddUsed >= 0.6 ? 'warn' : 'ok';
@@ -152,10 +152,10 @@ export function mount(root, ctx) {
         });
         healthEl.appendChild(h('section', { class: 'pn' }, h('div', { class: 'pn-h' }, h('b', null, 'Active accounts'), h('span', { class: 'sub' }, `${A.active.length} running · realized balance, closed trades only`)), h('div', { class: 'hc-grid' + (cards.length < 3 ? ' few' : '') }, cards)));
         healthEl.style.marginBottom = '10px';
-    }
+    /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-c548f106 */ }
 
 
-    function chainKind(c) { /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.5. bv-2751592e */
+    function chainKind(c) {
         if (c.outcome === 'active') return 'active';
         if (c.outcome === 'failed-drawdown' || c.outcome === 'failed-dailyloss' || c.outcome === 'blocked') return 'failed';
         return 'done';
@@ -197,7 +197,7 @@ export function mount(root, ctx) {
         const nodes = h('div', { class: 'cnodes' });
         c.accounts.forEach((a, i) => {
             if (i) nodes.appendChild(h('span', { class: 'cedge' + (c.accounts[i - 1].status === 3 || c.accounts[i - 1].status === 6 || c.accounts[i - 1].phase !== 'eval' ? ' on' : '') }));
-            nodes.appendChild(nodeEl(a, c, i, c.accounts.length)); /* @license Better Vest 9.5.5. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-b759fd80 */
+            nodes.appendChild(nodeEl(a, c, i, c.accounts.length));
         });
         const size = base ? (base >= 1e3 ? +(base / 1e3).toFixed(1) + 'K' : String(base)) : '';
         const tier = ((last.planName || '').includes('|') ? last.planName.split('|').pop() : (last.planName || '').replace(/^\$?\d+(\.\d+)?\s*[kKmM]\b\s*/, '')).trim();
@@ -211,7 +211,7 @@ export function mount(root, ctx) {
                 c.daysToPass != null ? h('div', { class: 'jr-s mut' }, `passed in ${c.daysToPass} day${c.daysToPass === 1 ? '' : 's'}`) : null),
             h('div', { class: 'jr-n' }, nodes),
             h('dl', { class: 'jr-f' },
-                h('div', null, h('dt', null, 'Net'), h('dd', { class: sideCls(c.net) }, c.n ? money(c.net, base) : '—')),
+                h('div', null, h('dt', null, 'Net'), h('dd', { class: sideCls(c.net) }, c.n ? money(c.net, base) : '—')), /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-5c5c1ecf */
                 h('div', null, h('dt', null, 'Trades'), h('dd', null, String(c.n))),
                 h('div', null, h('dt', null, 'Win rate'), h('dd', null, pctOf(c.winRate))),
                 h('div', null, h('dt', null, 'Paid'), h('dd', { class: c.payoutsNet > 0 ? 'gold' : '' }, c.payoutsNet > 0 ? money(c.payoutsNet, base, { sign: false }) : '—'))));
@@ -238,7 +238,7 @@ export function mount(root, ctx) {
         net: (a) => (A.aStats.get(a.id) || {}).net, wr: (a) => (A.aStats.get(a.id) || {}).winRate, paid: (a) => (A.paidBy.get(a.id) || {}).net, start: (a) => a.activatedAt || a.createdAt
     };
 
-    function renderTable() {
+    function renderTable() { /*! Owned by Astral (@ax4p): Better Vest nostats 9.6.0. Licence: LICENSE, not open source. bv-20cc575a */
         ui.clear(tableEl);
         if (grid) { grid.destroy(); grid = null; }
         const list = A.accounts.slice();
@@ -250,7 +250,7 @@ export function mount(root, ctx) {
             return (x < y ? -1 : x > y ? 1 : 0) * sort.dir || (a.id < b.id ? -1 : 1);
         });
         tableEl.appendChild(h('div', { class: 'pn-h' }, h('b', null, 'All accounts'), h('span', { class: 'sub' }, `${list.length} · click a row to open it in the Calendar`)));
-        grid = vgrid({ /* Copyright (c) 2026 Astral. Better Vest 9.5.5 is licensed to its users only to run it, never to copy it. bv-6015d909 */
+        grid = vgrid({
             template: 'minmax(260px, 2.2fr) 104px 168px 64px 104px 56px 100px 150px', minWidth: 1020, rowH: 36, headH: 32, virtual: list.length > 200, label: 'Accounts', rowKey: (a) => a.id,
             head: [
                 { key: 'name', label: 'Account', cls: 'l', sortable: true }, { key: 'phase', label: 'Phase', cls: 'l', sortable: true }, { key: 'status', label: 'Status', cls: 'l', sortable: true },
@@ -301,9 +301,9 @@ export function mount(root, ctx) {
         const st = S();
         const D = ctx.derived();
         const key = [st.hide, st.scope, st.mode, filter, st.accounts ? st.accounts.join(',') : '*'].join('|');
-        if (D === lastD && key === sig) return; /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-b750a360 */
+        if (D === lastD && key === sig) return;
         lastD = D; sig = key;
-        tips.reset();
+        /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-1bbb904e */ tips.reset();
         hover.hide();
         A = compute();
         renderHead();

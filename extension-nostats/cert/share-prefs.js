@@ -13,7 +13,7 @@ export const DEFAULT_PREFS = { kind: 'summary', style: 'vest', theme: 'dark', fo
     list: { on: true, green: false, mask: true }, show: { date: true, accounts: true, pct: false, market: true, handle: true, credit: true,
         trades: false, winrate: false, best: false, worst: false, fees: false,
         paytotal: true, paybest: true },
-    rows: 'accounts', period: 'today', afterFees: true, /*! Better Vest (c) 2026 Astral. All rights reserved. bv-4bf7de7c */
+    rows: 'accounts', period: 'today', afterFees: true,
     rp: { labels: 'usd', prices: false, pnl: false, sessions: false, best: false },
     chart: Object.assign({}, CHART_DEFAULTS),
     pay: 'today', bg: Object.assign({}, BG_DEFAULTS), accent: '' };
@@ -27,7 +27,7 @@ export function cleanPrefs(p) {
     if (!KINDS.includes(merged.kind)) merged.kind = 'summary';
     if (!['usd', 'pct', 'both', 'pts'].includes(merged.hero)) merged.hero = 'usd';
     if (!['vest', 'silver', 'oled', 'neon'].includes(merged.style)) merged.style = 'vest';
-    if (!['dark', 'light'].includes(merged.theme)) merged.theme = 'dark';
+    /*! Better Vest (c) 2026 Astral. All rights reserved. bv-cb5f2c22 */ if (!['dark', 'light'].includes(merged.theme)) merged.theme = 'dark';
     if (!['feed', 'square', 'wide', 'story'].includes(merged.format)) merged.format = 'feed';
     merged.handle = typeof merged.handle === 'string' ? merged.handle.slice(0, 32) : '';
     merged.chart = chartOpts(o.chart);
@@ -37,7 +37,7 @@ export function cleanPrefs(p) {
     return merged;
 }
 export function loadPrefs(storage) {
-    /*! Owned by Astral (@ax4p): Better Vest nostats 9.5.5. Licence: LICENSE, not open source. bv-506e3e61 */ let p = null;
+    let p = null;
     try { p = JSON.parse((storage && storage.getItem(PREFS_KEY)) || 'null'); } catch (e) {}
     return cleanPrefs(p);
 }
@@ -56,7 +56,7 @@ export function snapPicks(snap, prefer) {
     const known = snap.accounts.filter((a) => a.pnl != null);
     const first = (prefer && known.find((a) => a.id === prefer)) || snap.accounts.find((a) => a.id === snap.activeId && a.pnl != null) || known[0];
     return { mode: 'accounts', picked: first ? [first.id] : [] };
-}
+} /* Copyright (c) 2026 Astral. Better Vest 9.6.0 is licensed to its users only to run it, never to copy it. bv-36f6ecdc */
 
 export function popNeed(p) {
     const kind = p && p.kind === 'replay' ? 'replay' : 'summary';

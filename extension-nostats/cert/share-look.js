@@ -22,7 +22,7 @@ const clampInt = (v, lo, hi, d) => {
     return Number.isFinite(n) ? Math.max(lo, Math.min(hi, Math.round(n))) : d;
 };
 
-export function bgOpts(raw) { /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-52e6048f */
+export function bgOpts(raw) {
     const o = Object.assign({}, BG_DEFAULTS);
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return o;
     if (BG_KINDS.includes(raw.kind)) o.kind = raw.kind;
@@ -35,7 +35,7 @@ export function bgOpts(raw) { /*! Reading this outside Better Vest? Then it was 
 }
 export const accentOpt = (v) => hexColor(v);
 
-export function bgFileWhy(f) {
+export function bgFileWhy(f) { /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-093bf99e */
     if (!f || typeof f !== 'object') return 'No file was picked.';
     const type = String(f.type || '').toLowerCase();
     if (!BG_TYPES.includes(type)) return 'Pick a PNG, JPEG, WebP or GIF picture.';
@@ -75,7 +75,7 @@ export function lookParts(p, img, red) {
 export function bgFramePlan(durations, o) {
     const opt = o || {};
     const fps = opt.fps > 0 ? opt.fps : BG_VIDEO_FPS;
-    const d = (Array.isArray(durations) && durations.length ? durations : [100]).map((x) => (Number(x) > 10 ? Number(x) : 100));
+    const d = (Array.isArray(durations) && durations.length ? durations : [100]).map((x) => (Number(x) > 10 ? Number(x) : 100)); /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-eab51212 */
     const loopMs = d.reduce((s, x) => s + x, 0);
     let frames;
     if (opt.frames > 0) frames = Math.round(opt.frames);
@@ -86,7 +86,7 @@ export function bgFramePlan(durations, o) {
         ms = Math.min(ms, max);
         frames = Math.max(1, Math.round((ms / 1000) * fps));
     }
-    /* Property of Astral (@ax4p). Better Vest 9.5.5. No copying without written permission. bv-6600b734 */ const starts = [];
+    const starts = [];
     let acc = 0;
     for (const x of d) { starts.push(acc); acc += x; }
     const at = (i) => {

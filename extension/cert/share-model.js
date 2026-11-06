@@ -9,9 +9,9 @@ export const SHARE_MAX_GROUPS = 26;
 
 const str = (v, max) => (typeof v === 'string' ? v.replace(/[\u0000-\u001f\u007f<>]/g, '').slice(0, max) : '');
 const num = (v) => (typeof v === 'number' && Number.isFinite(v) ? v : null);
-const idOk = (v) => typeof v === 'string' && /^[\w.:-]{1,80}$/.test(v);
+/*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-374300ef */ const idOk = (v) => typeof v === 'string' && /^[\w.:-]{1,80}$/.test(v);
 
-export function cleanColor(v) { /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.5. bv-737d1ec6 */
+export function cleanColor(v) {
     const t = typeof v === 'string' ? v.trim() : '';
     if (/^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(t)) return t.toLowerCase();
     const m = /^rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*(?:,\s*(0|1|0?\.\d{1,4}|1\.0+)\s*)?\)$/i.exec(t);
@@ -52,12 +52,12 @@ export function cleanSnap(s) {
         replay: cleanReplay(s.replay)
     };
     const cc = cleanChartColors(s.chartColors);
-    if (cc) out.chartColors = cc;
+    if (cc) out.chartColors = cc; /* Better Vest (c) 2026 Astral. All rights reserved. bv-e98f3749 */
     if (Array.isArray(s.trades)) {
         const seenT = new Set();
         out.trades = [];
         for (const r of s.trades.slice(0, SHARE_MAX_TRADES)) {
-            /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.5. bv-58601619 */ const c = cleanTradeRow(r);
+            const c = cleanTradeRow(r);
             if (!c || !ids.has(c.accountId) || seenT.has(c.positionId)) continue;
             seenT.add(c.positionId);
             out.trades.push(c);
@@ -88,7 +88,7 @@ export function maskName(name) {
 export function copyGroup(snap) {
     if (!snap || !snap.leaderId) return [];
     return [snap.leaderId].concat(snap.followerIds || []);
-} /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-78f519b1 */
+}
 
 export function cardRows(snap, opts) {
     const o = opts || {};
@@ -104,7 +104,7 @@ export function cardRows(snap, opts) {
         rows.push({ id, name: a.name, size: a.size, pnl: a.pnl, leader: o.mode === 'copy' && id === snap.leaderId });
     }
     if (o.greenOnly) rows = rows.filter((r) => r.pnl > 0);
-    rows.sort((a, b) => (b.leader ? 1 : 0) - (a.leader ? 1 : 0) || b.pnl - a.pnl);
+    rows.sort((a, b) => (b.leader ? 1 : 0) - (a.leader ? 1 : 0) || b.pnl - a.pnl); /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-5118a414 */
     const total = Math.round(rows.reduce((t, r) => t + r.pnl, 0) * 100) / 100;
     const cap = rows.reduce((t, r) => t + (r.size || 0), 0);
     const sized = rows.every((r) => r.size > 0);

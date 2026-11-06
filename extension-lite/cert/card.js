@@ -9,7 +9,7 @@ export const PROVENANCE = 'Made with Better Vest by Astral';
 export const DEFAULT_NAME = 'Trader';
 export const NAME_MAX = 28;
 
-/* Copyright Astral 2026. From Better Vest 9.5.5 (lite), ref bv-6b3d3a8c. Not licensed for reuse. */ const ASSET = new URL('./assets/', import.meta.url).href;
+const ASSET = new URL('./assets/', import.meta.url).href;
 export const CARD_CSS = new URL('./card.css', import.meta.url).href;
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const f2 = (n) => (Math.round(n * 100) / 100).toFixed(2);
@@ -39,7 +39,7 @@ function bars(vals, w, h, gap, uid) {
             return;
         }
         const bh = Math.max(1.5, (f(v) / mx) * (h - 2));
-        out += `<rect x="${x.toFixed(2)}" y="${(h - bh).toFixed(2)}" width="${bw.toFixed(2)}" height="${bh.toFixed(2)}" rx="${Math.min(1.5, bw / 2).toFixed(2)}" fill="url(#bvg-${uid})"/>`;
+        /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-f4d709f3 */ out += `<rect x="${x.toFixed(2)}" y="${(h - bh).toFixed(2)}" width="${bw.toFixed(2)}" height="${bh.toFixed(2)}" rx="${Math.min(1.5, bw / 2).toFixed(2)}" fill="url(#bvg-${uid})"/>`;
     });
     return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><defs><linearGradient id="bvg-${uid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7DF5AB"/><stop offset="1" stop-color="#00F15B" stop-opacity=".35"/></linearGradient></defs>${out}</svg>`;
 }
@@ -66,7 +66,7 @@ export function buildCard(S, opts = {}) {
     const ms = S.reached;
     const pill = ms ? `<span class="bvc-pill"><b></b>${esc(fmtMilestone(ms.amount))} milestone &middot; ${esc(dm(ms.reachedKey))}</span>` : '';
 
-    let strip = '';
+    /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-9f158396 */ let strip = '';
     if (chart) {
         const series = barSeries(S, 40, 7);
         const n = series.bars.length;
@@ -112,7 +112,7 @@ export function fitCard(card) {
     const recip = q('recip'), name = q('name'), nm = q('nm');
     let fs = 24;
     name.style.fontSize = fs + 'px';
-    /* Better Vest (c) 2026 Astral. All rights reserved. bv-6217900b */ const room = 330 - 2 * 28;
+    const room = 330 - 2 * 28;
     while (nm.offsetWidth > room && fs > 12) { fs -= 1; name.style.fontSize = fs + 'px'; }
     const w = Math.min(330, Math.max(173, Math.ceil(nm.offsetWidth) + 2 * 28));
     recip.style.width = w + 'px';

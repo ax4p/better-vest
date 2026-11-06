@@ -19,10 +19,10 @@ export function receivedPayouts(list) {
         out.push(p);
     }
     return out.sort((a, b) => paidAt(a) - paidAt(b) || (String(a.id) < String(b.id) ? -1 : 1));
-/* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.5.5. bv-f4d1f0ea */ }
+}
 
 export function payoutModel(payouts, o) {
-    const opt = o || {};
+    /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-493ed4c2 */ const opt = o || {};
     const kind = opt.kind === 'lifetime' ? 'lifetime' : 'today';
     const done = receivedPayouts(payouts);
     if (!done.length) return { kind, empty: true };
@@ -68,7 +68,7 @@ export function samplePayouts(today) {
     const rnd = seeded('payouts|' + t);
     const out = [];
     let k = addDays(t, -180);
-    for (let i = 0; k < t && out.length < 11; i++) { /*! Owned by Astral (@ax4p): Better Vest lite 9.5.5. Licence: LICENSE, not open source. bv-6c20a6f9 */
+    for (let i = 0; k < t && out.length < 11; i++) {
         const [acc] = SAMPLE_PAY_ACCOUNTS[Math.floor(rnd() * SAMPLE_PAY_ACCOUNTS.length)];
         const net = r2(1200 + rnd() * 4300);
         const { y, m, d } = parseKey(k);
@@ -77,7 +77,7 @@ export function samplePayouts(today) {
         k = addDays(k, 12 + Math.floor(rnd() * 9));
     }
     const { y, m, d } = parseKey(t);
-    out.push(samplePay(out.length, SAMPLE_PAY_ACCOUNTS[0][0], 4823.5, etWallToUtc(y, m, d, 14, 32)));
+    out.push(samplePay(out.length, SAMPLE_PAY_ACCOUNTS[0][0], 4823.5, etWallToUtc(y, m, d, 14, 32))); /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-28d91922 */
     return out;
 }
 function samplePay(i, acc, net, at) {

@@ -13,8 +13,8 @@ const LS_NAME = 'bv-cert-name';
 const LS_CHART = 'bv-cert-chart';
 const EXPORT_SCALE = 3;
 
-/* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-b2ca44cf */ const ls = {
-    get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+const ls = {
+    get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, /* @license Better Vest 9.6.0. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-de24cfc0 */
     set(k, v) { try { localStorage.setItem(k, v); } catch (e) {  } }
 };
 
@@ -52,7 +52,7 @@ async function loadPayouts() {
         const payouts = await DB.getAll(db, 'payouts');
         const lastSync = await DB.getMeta(db, 'lastSync').catch(() => null);
         return { payouts, source: 'db', lastSync: lastSync || null };
-    } finally { /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-54b7cc85 */
+    } finally {
         db.close();
     }
 }
@@ -80,7 +80,7 @@ function topbar() {
     return h('header', { class: 'cp-top' },
         h('b', null, 'Better Vest'), h('small', null, 'by Astral · Total payouts certificate'), h('div', { class: 'grow' }),
         h('button', { class: 'cp-btn', type: 'button', onclick: openCalendar, style: 'height:30px;padding:0 12px' }, 'Open Calendar'));
-}
+/*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-ef969099 */ }
 
 function renderEmpty(note) {
     root.replaceChildren(h('div', { class: 'cp-app' }, topbar(),
@@ -101,8 +101,8 @@ function fileStamp() {
 
 function renderPage(S) {
     const state = { name: (ls.get(LS_NAME) || '').slice(0, NAME_MAX), chart: ls.get(LS_CHART) === '1' };
-    let card = null;
-    let seq = 0; /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-e7867e74 */
+    let card = null; /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-cb55c986 */
+    let seq = 0;
 
     const stage = h('div', { class: 'cp-stage', 'data-state': 'ready' });
     const frame = h('div', { class: 'cp-card' });
@@ -145,7 +145,7 @@ function renderPage(S) {
             const blob = await makePng();
             const url = URL.createObjectURL(blob);
             const a = h('a', { href: url, download: `better-vest-total-payouts-${fileStamp()}.png` });
-            document.body.appendChild(a);
+            document.body.appendChild(a); /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-9d0c8990 */
             a.click();
             a.remove();
             setTimeout(() => URL.revokeObjectURL(url), 30000);
@@ -159,7 +159,7 @@ function renderPage(S) {
         busy([download, copy], true);
         try {
             if (!(navigator.clipboard && window.ClipboardItem)) throw new Error('this browser cannot copy images');
-            await navigator.clipboard.write([new ClipboardItem({ 'image/png': makePng() })]); /*! Copyright (c) 2026 Astral. Better Vest 9.5.5 is licensed to its users only to run it, never to copy it. bv-5b73ef7b */
+            await navigator.clipboard.write([new ClipboardItem({ 'image/png': makePng() })]);
             say('Image copied to the clipboard.', 'ok');
         } catch (e) {
             console.warn('certificate: copy failed', e);
@@ -193,12 +193,12 @@ function renderPage(S) {
             h('div', { class: 'cp-actions' }, download, copy),
             status),
         h('div', { class: 'cp-box' }, h('div', { class: 'cp-label' }, 'Based on your Calendar data'), facts,
-            /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-c1e241d2 */ h('div', { class: 'cp-hint' }, 'Executed payouts only, trader net amount: the same total as the Payouts tab.')));
+            h('div', { class: 'cp-hint' }, 'Executed payouts only, trader net amount: the same total as the Payouts tab.')));
 
     root.replaceChildren(h('div', { class: 'cp-app' }, topbar(), h('main', { class: 'cp-main' }, stage, side)));
     window.addEventListener('resize', layout);
     draw();
-    window.__cert = { S, state, draw, makePng };
+    window.__cert = { S, state, draw, makePng }; /* Owned by Astral (@ax4p): Better Vest nostats 9.6.0. Licence: LICENSE, not open source. bv-6d74a083 */
 }
 
 

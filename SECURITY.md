@@ -80,14 +80,17 @@ Since 9.3.6, when something in Better Vest fails, Standard and Lite tell me what
 
 ## Safety switches
 
-If Vest changes something a feature depends on, or I find a bug, I can pause that one feature for everyone until it's fixed: the copy trader, Turbo, LONG / SHORT, FLAT / 50% / REV, stop orders, limit orders, TP / SL on the chart, the trailing stop, auto breakeven, account switching and payouts, the loss limit's "Close my positions", voice commands, code WICK going into an empty code box, or the error reports.
+If Vest changes something a feature depends on, or I find a bug, I can pause that one feature until it's fixed: the copy trader or one of its modes, LONG / SHORT, FLAT / 50% / REV, stop orders, limit orders, % sizing, risk sizing, TP / SL on the chart, the trailing stop, auto breakeven, account switching and payouts, the loss limit's "Close my positions", voice commands, code WICK going into an empty code box, the error reports and a few smaller parts.
 
-- **How it works:** every 3 minutes while a Vest tab is open, the extension asks `bv.astrals.dev/api/flags` which features are paused. Nothing about you is in that request: no number, no account, no cookies.
-- **What comes back:** a short list of feature names, my note on why, and the version the Chrome Web Store has. It's data, never code: Better Vest only reads names it knows and shows my note as plain text.
+- **For whom (since 9.6.0):** everyone, or only some versions (below one, from one, exactly these), only some editions (Standard, Lite, No stats, the Chrome Web Store one, the phone) or channels (GitHub, the Chrome Web Store, the phone). Versions before 9.6.0 only understand "every version below X".
+- **Closing always works:** unless I pause an exit itself, a pause stops only what opens or adds a trade. FLAT, 50%, the close half of REV, KILL, the copied closes and reduces of your followers, the loss limit's close and the time exit keep working.
+- **Warned first:** I can set a pause for a time and say why. Before it starts you see a small bar with a countdown ("switches off at 14:00, in 12 min: go flat when you can"), and it starts by itself at that time. I can also send a short note on its own, like a warning before Vest's maintenance.
+- **How it works:** every 3 minutes while a Vest tab is open, the extension asks `bv.astrals.dev/api/flags` which features are paused. Nothing about you is in that request: no number, no account, no cookies. Your copy works out on your computer whether a pause is meant for its own version and edition.
+- **What comes back:** a short list of feature names, who each is for, my note on why, the times, and the version the Chrome Web Store has. It's data, never code: Better Vest only reads names it knows and shows my notes as plain text.
 - **News from me** (since 9.2.6): the same answer can carry one short note, a title, a line of text and the times it shows. Better Vest shows it as plain text in a small card at the bottom right of Vest's page, only while you're flat and never over a Vest window. Its button can only open a page on Vest's own site. x closes it for good.
-- **What you see:** a message with my note. A paused feature does nothing when you press it, and if it was running, it stops: copying stops (your followers keep their positions), armed stop orders pause and don't fire, and the trailing stop and auto breakeven stop moving your stop. You can always trade on Vest itself.
+- **What you see:** a message with my note, and "Update to use it" when a newer version has the fix. A paused feature does nothing when you press it, and if it was running, it stops: copying new trades stops (your followers keep their positions), armed stop orders pause and don't fire, and the trailing stop and auto breakeven stop moving your stop. You can always trade on Vest itself.
 - **If my site is down:** nothing changes. Better Vest keeps the last answer it got.
-- **What it never touches:** the order code itself, and the loss limit's lock.
+- **What it never touches:** the order code itself, the loss limit's lock and the spending limit's hold. No pause can let a locked account trade or a held checkout buy.
 
 ## How it places orders
 
@@ -201,6 +204,7 @@ With WICK you pay the same or less, and the purchase supports me.
 - Locks and the tilt guard's cooldown, with the loss limit's numbers (`ax4p_dll`). The profit limit and the tilt guard read your closed trades from Vest each time and keep no history of them.
 - Multi-chart's layout and each chart's drawings, with your other settings.
 - Price alerts you set (market, price, which way), with your other settings, until they ring or you remove them.
+- If you turn on the spending counter: your limits and any change waiting to take effect (`ax4p_spend` in the Vest page's storage), and each Vest account it has counted with its plan's price (`ax4p_spend_seen`), so a closed account stays counted. It reads your accounts from Vest's own page, and Vest's plan prices from the page or with one read of Vest's public plan list.
 - If Vest's page is in another language: your answer to the note about it (`ax4p-lang-note` in the Vest page's storage). Only if you pressed **Switch to English** and Vest's own switch couldn't be found: Vest's own language pick (`i18nextLng`) set to English, and Vest's language cookie cleared so it can't override that pick.
 - Voice commands' settings with your other settings, and where you last put the mic window, in Chrome's storage for the extension.
 - For the WICK pop-up: how many one-click entries you made this month and on which days (`ax4p-wick-tally` in the Vest page's storage, for one of its looks), and the discount Vest last gave for WICK (`ax4p-wick-pct`).
@@ -230,15 +234,15 @@ When a new version is out and you're flat, a small panel at the bottom right of 
 ## Check it yourself
 
 1. **Read the code.** The [`extension`](extension) folder in this repo is the Standard zip, file for file ([`extension-lite`](extension-lite) and [`extension-nostats`](extension-nostats) are the other two). It isn't minified or obfuscated, so you can read it in your browser.
-2. **Check the zip is that code.** The SHA-256 of `better-vest-9.5.5.zip` is:
+2. **Check the zip is that code.** The SHA-256 of `better-vest-9.6.0.zip` is:
 
-   `b679e8dc00206908727d95e5acb3c0ff9e0127eeb9e955479ff0754a4310cf01`
+   `f474c9db250702488aa52251b02b13a88462c995c429f9fdb64422e10f71c97f`
 
-   Lite: `a43a280d532307fec8578f7347864f4cac77ef6336a6e9d70b9cd2bc7a96a491`. No stats: `97cdbc43b23bcb9b90bc4aabe51e56fd4492ad6bbd37db5449f303d38e8cf255`.
+   Lite: `c650abee5102fcb7e5f27dd88593588f20744ad7631af1eb6f29f4424d8a039c`. No stats: `efd2a6a7058e613040696cee2a38625b6f99a64424a2f0224ba34b75824bd9fb`.
 
-   - On Mac: `shasum -a 256 better-vest-9.5.5.zip`
-   - On Windows: `certutil -hashfile better-vest-9.5.5.zip SHA256`
-3. **Scan it.** VirusTotal checks a file with more than 60 antivirus engines. Upload the zip at [virustotal.com](https://www.virustotal.com) and you get the result for that exact file. The version here, 9.5.5, came back with no engine flagging it: Standard ([report](https://www.virustotal.com/gui/file/b679e8dc00206908727d95e5acb3c0ff9e0127eeb9e955479ff0754a4310cf01)), Lite ([report](https://www.virustotal.com/gui/file/a43a280d532307fec8578f7347864f4cac77ef6336a6e9d70b9cd2bc7a96a491)), No stats ([report](https://www.virustotal.com/gui/file/97cdbc43b23bcb9b90bc4aabe51e56fd4492ad6bbd37db5449f303d38e8cf255)). The one released before, 9.5.1, did too: Standard ([report](https://www.virustotal.com/gui/file/c6d2dfcc09a8660ee9f9358d298aab4e37a268ea58d16f915125b4bbbaf03d2a)), Lite ([report](https://www.virustotal.com/gui/file/562fe10f4a85689aa487ec8990f14af63c5a772a072fd0080fba3a23b4b72be5)), No stats ([report](https://www.virustotal.com/gui/file/bf1464031ea5fffd805f4555a1b0d3e8554abafbc319370259749846563034a5)).
+   - On Mac: `shasum -a 256 better-vest-9.6.0.zip`
+   - On Windows: `certutil -hashfile better-vest-9.6.0.zip SHA256`
+3. **Scan it.** VirusTotal checks a file with more than 60 antivirus engines. Upload the zip at [virustotal.com](https://www.virustotal.com) and you get the result for that exact file. The version here, 9.6.0, came back with no engine flagging it: Standard ([report](https://www.virustotal.com/gui/file/f474c9db250702488aa52251b02b13a88462c995c429f9fdb64422e10f71c97f)), Lite ([report](https://www.virustotal.com/gui/file/c650abee5102fcb7e5f27dd88593588f20744ad7631af1eb6f29f4424d8a039c)), No stats ([report](https://www.virustotal.com/gui/file/efd2a6a7058e613040696cee2a38625b6f99a64424a2f0224ba34b75824bd9fb)). The one released before, 9.5.1, did too: Standard ([report](https://www.virustotal.com/gui/file/c6d2dfcc09a8660ee9f9358d298aab4e37a268ea58d16f915125b4bbbaf03d2a)), Lite ([report](https://www.virustotal.com/gui/file/562fe10f4a85689aa487ec8990f14af63c5a772a072fd0080fba3a23b4b72be5)), No stats ([report](https://www.virustotal.com/gui/file/bf1464031ea5fffd805f4555a1b0d3e8554abafbc319370259749846563034a5)).
 
    Reports for earlier versions also had an AI summary, "Code insights", which marked two things as suspicious. Both are on this page: the WICK code switch ([The WICK code](#the-wick-code)) and the updater writing its own files ([Updates are signed](#updates-are-signed)).
 4. **Watch it work.** Open Chrome's DevTools on the Vest tab (F12), go to Network, and use Better Vest. You'll only see the addresses listed above.
