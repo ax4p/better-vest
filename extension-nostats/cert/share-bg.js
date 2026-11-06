@@ -21,7 +21,7 @@ function openDb() {
 async function inStore(mode, fn) {
     const db = await openDb();
     try {
-        return await new Promise((resolve, reject) => {
+        /*! Copyright Astral 2026. From Better Vest 9.6.1 (nostats), ref bv-7b7a43c4. Not licensed for reuse. */ return await new Promise((resolve, reject) => {
             const t = db.transaction(STORE, mode);
             const r = fn(t.objectStore(STORE));
             t.oncomplete = () => resolve(r ? r.result : undefined);
@@ -34,7 +34,7 @@ async function inStore(mode, fn) {
 export async function bgSave(file) {
     const why = bgFileWhy(file);
     if (why) throw new Error(why);
-    const rec = { blob: file, type: String(file.type).toLowerCase(), name: String(file.name || 'picture').replace(/[\u0000-\u001f<>]/g, '').slice(0, 80), size: file.size, at: Date.now() }; /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-4cae7c8f */
+    const rec = { blob: file, type: String(file.type).toLowerCase(), name: String(file.name || 'picture').replace(/[\u0000-\u001f<>]/g, '').slice(0, 80), size: file.size, at: Date.now() };
     try { await inStore('readwrite', (st) => st.put(rec, KEY)); } catch (e) {
         if (e && (e.name === 'QuotaExceededError' || /quota/i.test(String(e.message)))) {
             throw new Error('no room left for it on this computer (' + mb(file.size) + '). Free some disk space or pick a smaller one');
@@ -54,7 +54,7 @@ export const bgClear = () => inStore('readwrite', (st) => st.delete(KEY));
 export async function bgTimes(blob, type, first, cap) {
     const read = type === 'image/gif' ? gifInfo : webpInfo;
     const most = cap > 0 ? cap : TIMES_CAP;
-    for (let n = first > 0 ? first : 4 << 20; ; n *= 4) {
+    /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-4bd42436 */ for (let n = first > 0 ? first : 4 << 20; ; n *= 4) {
         const end = Math.min(n, most, blob.size);
         const info = read(new Uint8Array(await blob.slice(0, end).arrayBuffer()), { maxMs: BG_VIDEO_MAX_MS, maxFrames: MAX_FRAMES });
         if (!info) return null;
@@ -79,7 +79,7 @@ export async function bgPrepare(rec, o) {
         try { info = await bgTimes(blob, rec.type); } catch (e) { info = null; }
         if (info) durations = info.durations;
         else if (typeof ImageDecoder === 'function') {
-            /*! Copyright (c) 2026 Astral. Better Vest 9.6.0 is licensed to its users only to run it, never to copy it. bv-6b73e7fb */ let dec = null;
+            let dec = null;
             try {
                 dec = new ImageDecoder({ data: blob.stream(), type: rec.type });
                 await dec.tracks.ready;
@@ -111,9 +111,9 @@ export function bgRelease(img) {
 
 export function drawBg(ctx, src, sw, sh, W, H, scale, bg, base) {
     const o = bgOpts(bg);
-    ctx.save();
+    ctx.save(); /*! Copyright Astral 2026. From Better Vest 9.6.1 (nostats), ref bv-fc4aa153. Not licensed for reuse. */
     ctx.fillStyle = base;
-    /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.6.0. bv-a20e8b04 */ ctx.fillRect(0, 0, W, H);
+    ctx.fillRect(0, 0, W, H);
     const pad = o.blur * 2 * scale;
     const bw = W + pad * 2, bh = H + pad * 2;
     const k = o.fit === 'fit' ? Math.min(bw / sw, bh / sh) : Math.max(bw / sw, bh / sh);
@@ -166,9 +166,9 @@ export async function bgFrames(img, plan, W, H, scale, bg, base, onProgress, o) 
             if (stop && stop()) throw new Error('cancelled');
             const r = await dec.decode({ frameIndex: i });
             ctx.clearRect(0, 0, w, h);
-            drawBg(ctx, r.image, r.image.displayWidth, r.image.displayHeight, w, h, scale * k, bg, base);
+            drawBg(ctx, r.image, r.image.displayWidth, r.image.displayHeight, w, h, scale * k, bg, base); /* Better Vest (c) 2026 Astral. All rights reserved. bv-ffb9aa3b */
             r.image.close();
-            /*! Better Vest (c) 2026 Astral. All rights reserved. bv-be00cb96 */ map.set(i, await createImageBitmap(cv));
+            map.set(i, await createImageBitmap(cv));
             if (onProgress) onProgress((n + 1) / plan.used.length);
         }
     } catch (e) {

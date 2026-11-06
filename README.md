@@ -26,9 +26,9 @@ Each [release](https://github.com/ax4p/better-vest/releases/latest) has three zi
 
 | Zip | What's in it |
 |---|---|
-| `better-vest-9.6.0.zip` | **Standard.** Everything. Take this one if you're not sure. |
-| `better-vest-lite-9.6.0.zip` | **Lite.** Everything but the spoken voice lines, under 1 MB. |
-| `better-vest-nostats-9.6.0.zip` | **No stats.** Standard without the usage stats and the error reports. See [Security](SECURITY.md#the-usage-stats). |
+| `better-vest-9.6.1.zip` | **Standard.** Everything. Take this one if you're not sure. |
+| `better-vest-lite-9.6.1.zip` | **Lite.** Everything but the spoken voice lines, under 1 MB. |
+| `better-vest-nostats-9.6.1.zip` | **No stats.** Standard without the usage stats and the error reports. See [Security](SECURITY.md#the-usage-stats). |
 
 Then load it in Chrome: the [video and steps](https://bv.astrals.dev/#install) on the site, or the [install guide](CONTRIBUTING.md) here. After that it updates itself.
 
@@ -40,15 +40,15 @@ Then load it in Chrome: the [video and steps](https://bv.astrals.dev/#install) o
 - **Price alerts:** click the chart where you want one. When price gets there you hear it and see a note. It never places an order.
 - **Voice commands (beta):** hold a key and say "long" or "close half", or say "Astral" first. Your voice stays on your computer.
 - **[Up to four charts](https://bv.astrals.dev/features/multi-chart),** each with its own market and timeframe.
-- **[Limits and locks](https://bv.astrals.dev/features/limits):** a daily loss and profit limit, a tilt guard, a lock button for the days you should stop, and a spending limit for new Vest accounts a day, a week and a month.
+- **[Limits and locks](https://bv.astrals.dev/features/limits):** a daily loss and profit limit, a tilt guard, a lock button for the days you should stop, and a spending limit for new Vest accounts a day, a week and a month, one click away on the dock.
 - **A voice** that says what just filled, and a countdown to the New York open and the news.
-- **Your look:** themes, your own colors, and a background behind Vest.
+- **Your look:** themes, your own colors, a background behind Vest, and a compact dock with only the buttons you use.
 - **[P&L cards](https://bv.astrals.dev/features/pnl-cards)** of your day as an image, a video or a GIF, and a payout card.
-- **[The Calendar](https://bv.astrals.dev/features/calendar):** every trade from every account as a daily P&L calendar.
+- **[The Calendar](https://bv.astrals.dev/features/calendar):** every trade from every account as a daily P&L calendar, with what you spent on accounts next to what you got paid out.
 
 ## Is it safe?
 
-- **Scanned.** `better-vest-9.6.0.zip` comes back clean on VirusTotal, with no engine flagging it ([report](https://www.virustotal.com/gui/file/f474c9db250702488aa52251b02b13a88462c995c429f9fdb64422e10f71c97f)).
+- **Scanned.** `better-vest-9.6.1.zip` comes back clean on VirusTotal, with no engine flagging it ([report](https://www.virustotal.com/gui/file/bc2d9221cc2f332efd53899872caea7793885d5b3db10a7288ec1f660119223f)).
 - **Readable.** The [`extension`](extension) folder is the Standard zip, file for file, not minified.
 - **Signed updates.** Your copy checks my signature and every file before it writes anything.
 - **Safety switches.** If Vest changes something, I can pause one feature until it's fixed, for everyone or only for the versions it hits, and closing always keeps working ([how](SECURITY.md#safety-switches)).

@@ -8,7 +8,7 @@ const cache = new Map();
 function blobToDataUri(blob) {
     return new Promise((resolve, reject) => {
         const r = new FileReader();
-        r.onload = () => resolve(String(r.result));
+        r.onload = () => resolve(String(r.result)); /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-df8c06ab */
         r.onerror = () => reject(r.error || new Error('read failed'));
         r.readAsDataURL(blob);
     });
@@ -29,7 +29,7 @@ async function dataUriOf(url) {
 async function cssWithInlinedUrls(cssUrl) {
     const res = await fetch(cssUrl);
     if (!res.ok) throw new Error('stylesheet: HTTP ' + res.status);
-    /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-20170959 */ let css = await res.text();
+    let css = await res.text();
     const base = new URL(cssUrl, document.baseURI);
     const urls = [...new Set([...css.matchAll(/url\(\s*(['"]?)([^'")]+)\1\s*\)/g)].map((m) => m[2]))];
     for (const u of urls) {
@@ -54,10 +54,10 @@ export async function cardToSvg(card, { cssUrl, width, height }) {
     const clone = card.cloneNode(true);
     clone.style.transform = 'none';
     clone.style.margin = '0';
-    for (const img of clone.querySelectorAll('img')) { /* Copyright (c) 2026 Astral. Better Vest 9.6.0 is licensed to its users only to run it, never to copy it. bv-fe3de33a */
+    for (const img of clone.querySelectorAll('img')) {
         const abs = new URL(img.getAttribute('src'), document.baseURI).href;
         img.setAttribute('src', await dataUriOf(abs));
-    }
+    /* @license Better Vest 9.6.1. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-5b4d5038 */ }
     const wrap = document.createElementNS(NS_XHTML, 'div');
     wrap.setAttribute('xmlns', NS_XHTML);
     wrap.setAttribute('style', `width:${width}px;height:${height}px;margin:0;padding:0;background:transparent`);

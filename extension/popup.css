@@ -35,7 +35,7 @@ button:hover { border-color: var(--accent); }
 button.on { border-color: var(--accent); color: #7dd3fc; background: rgba(56, 189, 248, 0.14); }
 button.primary { width: 100%; background: #2563eb; border-color: var(--accent); color: #fff; padding: 8px 0; }
 .themes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
-.theme { height: 38px; border-radius: 7px; border: 1px solid; display: flex; flex-direction: column; justify-content: space-between; align-items: flex-start; padding: 5px 6px; text-align: left; } /* Copyright (c) 2026 Astral. Better Vest 9.6.0 is licensed to its users only to run it, never to copy it. bv-2d7fab00 */
+.theme { height: 38px; border-radius: 7px; border: 1px solid; display: flex; flex-direction: column; justify-content: space-between; align-items: flex-start; padding: 5px 6px; text-align: left; } /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-525a35e3 */
 .theme.on { outline: 2px solid var(--accent); outline-offset: 1px; }
 .theme i { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 2px; }
 .theme b { font-size: 9.5px; }
@@ -53,7 +53,7 @@ button:active { transform: scale(.97); }
 
 .cal { background: linear-gradient(180deg, rgba(56, 189, 248, 0.07), transparent 70%), var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 9px 10px 10px; margin-bottom: 10px; }
 .cal-head { display: flex; justify-content: space-between; align-items: baseline; }
-.cal-label { margin: 0 0 7px; } /* @license Better Vest 9.6.0. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-3aeabe5b */
+.cal-label { margin: 0 0 7px; }
 .cal-sync { color: var(--muted); font-size: 10px; }
 .cal-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 9px; }
 .cal-grid div { display: flex; flex-direction: column; gap: 1px; }
@@ -69,7 +69,7 @@ button.cal-open { display: flex; justify-content: center; align-items: center; g
 .upd b { color: #7dd3fc; }
 .upd button.mini { background: #2563eb; border-color: var(--accent); color: #fff; }
 .upd-pref { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; color: var(--muted); font-size: 11px; }
-.upd-pref input { accent-color: #2563eb; vertical-align: -2px; }
+.upd-pref input { accent-color: #2563eb; vertical-align: -2px; } /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-22dd4670 */
 
 .bv-tile { display: inline-grid; place-items: center; flex: none; width: var(--t); height: var(--t); border-radius: 22%;
     background: #050506; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .1); }

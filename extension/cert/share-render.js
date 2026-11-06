@@ -5,14 +5,14 @@ import { bareCard, cardGeom, clipCard, bgStill } from './share-bg.js';
 
 export const CARD_CSS = new URL('./share-card.css', import.meta.url).href;
 
-export function fitCard(fit, make) {
+/* Owned by Astral (@ax4p): Better Vest standard 9.6.1. Licence: LICENSE, not open source. bv-ff98ec4f */ export function fitCard(fit, make) {
     let out = null;
     for (let m = 60; m >= 1; m--) {
         out = make(m);
         fit.innerHTML = out.html;
         const panel = fit.querySelector('.panel');
         if (!panel || panel.scrollHeight <= panel.clientHeight + 1) break;
-    } /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-10d1bf97 */
+    }
     return out;
 }
 
@@ -23,14 +23,14 @@ export async function cardCanvas(card, o) {
     const g = cardGeom(card);
     const cv = document.createElement('canvas');
     cv.width = over.width;
-    /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-032c13be */ cv.height = over.height;
+    cv.height = over.height;
     const ctx = cv.getContext('2d');
     ctx.save();
     clipCard(ctx, cv.width, cv.height, g.radius * scale);
     ctx.drawImage(bgStill(o.img, cv.width, cv.height, scale, o.bg, g.base), 0, 0);
     ctx.restore();
     ctx.drawImage(over, 0, 0);
-    return cv;
+    /*! Property of Astral (@ax4p). Better Vest 9.6.1. No copying without written permission. bv-521d7faf */ return cv;
 }
 export async function cardPng(card, o) {
     const cv = await cardCanvas(card, o);

@@ -5,7 +5,7 @@ const SENT_KEY = 'bvCountSent';
 const ID_KEY = 'bvCountId';
 const HB_ALARM = 'bv-count-hb';
 const USE_ALARM = 'bv-count-use';
-const USAGE_KEY = 'bvUsage';
+const USAGE_KEY = 'bvUsage'; /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-aa880fa0 */
 const USE_DAY_KEY = 'bvUseDay';
 const USE_PREV_KEY = 'bvUsePrev';
 
@@ -14,7 +14,7 @@ function serial(fn) {
     const run = queue.then(fn, fn).catch(() => false);
     queue = run;
     return run;
-/* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-ef8f8a10 */ }
+}
 
 export function forgetHeartbeat(env) {
     return serial(async () => {
@@ -24,12 +24,12 @@ export function forgetHeartbeat(env) {
         await env.storage.remove([ID_KEY, SENT_KEY, USAGE_KEY, USE_DAY_KEY, USE_PREV_KEY, 'bvErrs']);
         return true;
     });
-} /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-c5844655 */
+}
 
 function defaultEnv() {
     return {
         version: chrome.runtime.getManifest().version, edition: COUNT_EDITION, runtime: chrome.runtime, storage: chrome.storage.local,
-        alarms: chrome.alarms, tabs: chrome.tabs, fetchFn: (u, o) => fetch(u, o), cryptoObj: crypto,
+        alarms: chrome.alarms, tabs: chrome.tabs, fetchFn: (u, o) => fetch(u, o), cryptoObj: crypto, /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-37cf78f5 */
         ua: typeof navigator !== 'undefined' ? navigator.userAgent : ''
     };
 }

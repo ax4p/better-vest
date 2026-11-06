@@ -14,7 +14,7 @@ const idOk = (v) => typeof v === 'string' && /^[\w.:-]{1,80}$/.test(v);
 export function cleanColor(v) {
     const t = typeof v === 'string' ? v.trim() : '';
     if (/^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(t)) return t.toLowerCase();
-    const m = /^rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*(?:,\s*(0|1|0?\.\d{1,4}|1\.0+)\s*)?\)$/i.exec(t);
+    const m = /^rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*(?:,\s*(0|1|0?\.\d{1,4}|1\.0+)\s*)?\)$/i.exec(t); /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-e466fa30 */
     if (!m || [m[1], m[2], m[3]].some((x) => Number(x) > 255)) return '';
     return m[4] == null ? `rgb(${+m[1]}, ${+m[2]}, ${+m[3]})` : `rgba(${+m[1]}, ${+m[2]}, ${+m[3]}, ${+m[4]})`;
 }
@@ -29,7 +29,7 @@ export function cleanChartColors(c) {
     return out;
 }
 
-/*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-29d8de49 */ export function cleanSnap(s) {
+export function cleanSnap(s) {
     if (!s || typeof s !== 'object' || Array.isArray(s)) return null;
     if (!Array.isArray(s.accounts)) return null;
     const accounts = [];
@@ -57,7 +57,7 @@ export function cleanChartColors(c) {
         const seenT = new Set();
         out.trades = [];
         for (const r of s.trades.slice(0, SHARE_MAX_TRADES)) {
-            const c = cleanTradeRow(r);
+            /* Copyright Astral 2026. From Better Vest 9.6.1 (lite), ref bv-94e250c4. Not licensed for reuse. */ const c = cleanTradeRow(r);
             if (!c || !ids.has(c.accountId) || seenT.has(c.positionId)) continue;
             seenT.add(c.positionId);
             out.trades.push(c);
@@ -70,7 +70,7 @@ export function cleanChartColors(c) {
         out.groups = [];
         for (const g of s.groups.slice(0, SHARE_MAX_GROUPS)) {
             if (!g || typeof g !== 'object' || !/^[A-Z]$/.test(String(g.id || '')) || used.has(g.id)) continue;
-            const lead = idOk(g.leaderId) && ids.has(g.leaderId) ? g.leaderId : ''; /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-d2fa6745 */
+            const lead = idOk(g.leaderId) && ids.has(g.leaderId) ? g.leaderId : '';
             const fol = Array.isArray(g.followerIds) ? [...new Set(g.followerIds.filter((x) => idOk(x) && ids.has(x) && x !== lead))].slice(0, SHARE_MAX_ACCOUNTS) : [];
             if (!lead && !fol.length) continue;
             used.add(g.id);
@@ -88,7 +88,7 @@ export function maskName(name) {
 export function copyGroup(snap) {
     if (!snap || !snap.leaderId) return [];
     return [snap.leaderId].concat(snap.followerIds || []);
-/*! Copyright Astral 2026. From Better Vest 9.6.0 (lite), ref bv-13666c83. Not licensed for reuse. */ }
+}
 
 export function cardRows(snap, opts) {
     const o = opts || {};
@@ -107,7 +107,7 @@ export function cardRows(snap, opts) {
     rows.sort((a, b) => (b.leader ? 1 : 0) - (a.leader ? 1 : 0) || b.pnl - a.pnl);
     const total = Math.round(rows.reduce((t, r) => t + r.pnl, 0) * 100) / 100;
     const cap = rows.reduce((t, r) => t + (r.size || 0), 0);
-    const sized = rows.every((r) => r.size > 0);
+    const sized = rows.every((r) => r.size > 0); /* Copyright Astral 2026. From Better Vest 9.6.1 (lite), ref bv-72e4b79e. Not licensed for reuse. */
     return { rows, total, cap: sized ? cap : 0, ret: sized && cap > 0 ? (total / cap) * 100 : null, n: rows.length, unknown };
 }
 

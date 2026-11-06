@@ -26,11 +26,11 @@ export function openDb(userId) {
             reject(new TypeError('openDb: userId required'));
             return;
         }
-        let settled = false;
+        let settled = false; /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-b71deaf6 */
         let blockedTimer = null;
         const req = indexedDB.open(DB_PREFIX + userId, DB_VERSION);
         const done = (fn, v) => {
-            if (settled) return; /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-6273be76 */
+            if (settled) return;
             settled = true;
             clearTimeout(blockedTimer);
             fn(v);
@@ -67,10 +67,10 @@ function finish(tx) {
 export function getAll(db, store, opts) {
     const o = opts || {};
     const tx = db.transaction(store, 'readonly');
-    /* Property of Astral (@ax4p). Better Vest 9.6.0. No copying without written permission. bv-084100d2 */ let source = tx.objectStore(store);
+    let source = tx.objectStore(store);
     if (o.index) source = source.index(o.index);
     return wrap(o.range !== undefined && o.range !== null ? source.getAll(o.range) : source.getAll());
-}
+} /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-33647ccc */
 
 export function get(db, store, key) {
     return wrap(db.transaction(store, 'readonly').objectStore(store).get(key));
@@ -99,8 +99,8 @@ export function putBatch(db, store, values) {
     });
 }
 
-export function putMany(db, byStore) {
-    /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-0d3863b9 */ const names = Object.keys(byStore || {}).filter((n) => byStore[n] && byStore[n].length);
+export function putMany(db, byStore) { /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-7d1a2988 */
+    const names = Object.keys(byStore || {}).filter((n) => byStore[n] && byStore[n].length);
     if (!names.length) return Promise.resolve();
     return writeTx(db, names, (tx) => {
         for (const n of names) {

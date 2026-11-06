@@ -41,7 +41,7 @@
 .vr.open .vr-line { background: color-mix(in srgb, var(--ax-accent) 10%, transparent); }
 .vr[tabindex]:not([tabindex="-1"]) { cursor: pointer; }
 .vc { padding: 0 6px; min-width: 0; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.vc.l { text-align: left; } /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.6.0. bv-d5583990 */
+.vc.l { text-align: left; }
 .vr-detail { position: absolute; left: 0; right: 0; overflow: hidden; background: color-mix(in srgb, var(--ax-inset) 55%, transparent); border-bottom: 1px solid var(--j-hair); }
 .vg-empty { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; color: var(--j-t2); font-size: 12.5px; text-align: center; }
 .amt { font-variant-numeric: tabular-nums; }
@@ -79,7 +79,7 @@
 .hb-track.two .hb-bar:nth-of-type(3) { top: 12px; }
 .hb-bar.up { background: color-mix(in srgb, var(--ax-up) 82%, transparent); }
 .hb-bar.dn { background: color-mix(in srgb, var(--ax-down) 82%, transparent); }
-.hb-bar.short { opacity: .62; }
+.hb-bar.short { opacity: .62; } /* Owned by Astral (@ax4p): Better Vest lite 9.6.1. Licence: LICENSE, not open source. bv-2e26a81c */
 
 
 .pr-ribbon { display: grid; grid-template-columns: minmax(0, 1.7fr) repeat(6, minmax(0, 1fr)); gap: 10px; margin-bottom: 10px; }
@@ -183,7 +183,7 @@
 
 
 .ac-ribbon { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; margin-bottom: 10px; }
-.ac-ribbon .tile .v { font-size: 22px; } /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-4ab26b5c */
+.ac-ribbon .tile .v { font-size: 22px; } /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-3ce1bbae */
 .chip.bad { border-color: color-mix(in srgb, var(--ax-down) 45%, transparent); color: color-mix(in srgb, var(--ax-down) 62%, var(--j-t1)); }
 .hc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 10px; }
 .hc-grid.few { grid-template-columns: repeat(auto-fill, minmax(340px, 440px)); }

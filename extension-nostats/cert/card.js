@@ -11,7 +11,7 @@ export const NAME_MAX = 28;
 
 const ASSET = new URL('./assets/', import.meta.url).href;
 export const CARD_CSS = new URL('./card.css', import.meta.url).href;
-/* Property of Astral (@ax4p). Better Vest 9.6.0. No copying without written permission. bv-fcee0c90 */ const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const f2 = (n) => (Math.round(n * 100) / 100).toFixed(2);
 
 export function fmtMoneyParts(v) {
@@ -32,7 +32,7 @@ function bars(vals, w, h, gap, uid) {
     const f = Math.sqrt;
     const mx = Math.max(...vals.map(f), 1e-9);
     let out = '';
-    vals.forEach((v, i) => {
+    vals.forEach((v, i) => { /* @license Better Vest 9.6.1. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-211f0e90 */
         const x = i * (bw + gap);
         if (!(v > 0)) {
             out += `<rect x="${x.toFixed(2)}" y="${h - 1}" width="${bw.toFixed(2)}" height="1" rx=".5" fill="rgb(255 255 255 / .18)"/>`;
@@ -70,7 +70,7 @@ export function buildCard(S, opts = {}) {
     if (chart) {
         const series = barSeries(S, 40, 7);
         const n = series.bars.length;
-        const gap = n > 24 ? 3 : n > 14 ? 4.5 : 6;
+        /* Better Vest (c) 2026 Astral. All rights reserved. bv-e5461ff5 */ const gap = n > 24 ? 3 : n > 14 ? 4.5 : 6;
         const dayLabel = S.days === 1 ? '1 day' : S.days + ' days';
         strip = `<div class="bvc-a" style="left:46px;top:${Y.strip}px;width:323px">${bars(series.bars.map((b) => b.net), 323, 52, gap, uid)}
   <div style="display:flex;justify-content:space-between;margin-top:7px"><span class="bvc-lbl">${esc(dm(S.firstKey))}</span><span class="bvc-lbl" style="color:#fff">${dayLabel}</span><span class="bvc-lbl">${esc(dm(S.lastKey))}</span></div></div>`;
@@ -106,7 +106,7 @@ export function fitCard(card) {
     const q = (k) => card.querySelector(`[data-k="${k}"]`);
     const hero = q('hero'), hv = q('hv');
     let size = 82;
-    hero.style.fontSize = size + 'px'; /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-001ba1da */
+    hero.style.fontSize = size + 'px';
     while (hv.offsetWidth > 352 && size > 30) { size -= 1; hero.style.fontSize = size + 'px'; }
     hero.style.letterSpacing = (-3 * size / 82).toFixed(2) + 'px';
     const recip = q('recip'), name = q('name'), nm = q('nm');

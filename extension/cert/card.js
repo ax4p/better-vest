@@ -19,10 +19,10 @@ export function fmtMoneyParts(v) {
     const whole = Math.floor(cents / 100);
     return {
         int: (v < 0 ? '-' : '') + '$' + whole.toLocaleString('en-US'),
-        /*! Copyright (c) 2026 Astral. Better Vest 9.6.0 is licensed to its users only to run it, never to copy it. bv-3e2b6ac5 */ cents: String(cents % 100).padStart(2, '0')
+        cents: String(cents % 100).padStart(2, '0')
     };
 }
-export const fmtMoney = (v) => { const p = fmtMoneyParts(v); return p.int + '.' + p.cents; };
+/*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-51117b3d */ export const fmtMoney = (v) => { const p = fmtMoneyParts(v); return p.int + '.' + p.cents; };
 export const fmtMilestone = (amount) => '$' + (amount >= 1000 ? amount / 1000 + 'K' : amount);
 const dm = (key) => fmtDate(key, 'dm');
 
@@ -104,7 +104,7 @@ export function buildCard(S, opts = {}) {
 
 export function fitCard(card) {
     const q = (k) => card.querySelector(`[data-k="${k}"]`);
-    const hero = q('hero'), hv = q('hv');
+    /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.6.1. bv-f6bc77b4 */ const hero = q('hero'), hv = q('hv');
     let size = 82;
     hero.style.fontSize = size + 'px';
     while (hv.offsetWidth > 352 && size > 30) { size -= 1; hero.style.fontSize = size + 'px'; }
@@ -112,7 +112,7 @@ export function fitCard(card) {
     const recip = q('recip'), name = q('name'), nm = q('nm');
     let fs = 24;
     name.style.fontSize = fs + 'px';
-    /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-59722f66 */ const room = 330 - 2 * 28;
+    const room = 330 - 2 * 28;
     while (nm.offsetWidth > room && fs > 12) { fs -= 1; name.style.fontSize = fs + 'px'; }
     const w = Math.min(330, Math.max(173, Math.ceil(nm.offsetWidth) + 2 * 28));
     recip.style.width = w + 'px';

@@ -27,9 +27,9 @@ function h(tag, attrs, ...kids) {
         if (k === 'class') el.className = v;
         else if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
         else el.setAttribute(k, v === true ? '' : v);
-    /*! Copyright (c) 2026 Astral. Better Vest 9.6.0 is licensed to its users only to run it, never to copy it. bv-f651cef7 */ }
+    }
     for (const kid of kids.flat()) if (kid != null && kid !== false) el.append(kid.nodeType ? kid : document.createTextNode(String(kid)));
-    return el;
+    return el; /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-b0c8b3d8 */
 }
 
 
@@ -53,7 +53,7 @@ async function loadPayouts() {
         const lastSync = await DB.getMeta(db, 'lastSync').catch(() => null);
         return { payouts, source: 'db', lastSync: lastSync || null };
     } finally {
-        db.close();
+        db.close(); /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-9172e73b */
     }
 }
 
@@ -79,7 +79,7 @@ function openCalendar() {
 function topbar() {
     return h('header', { class: 'cp-top' },
         h('b', null, 'Better Vest'), h('small', null, 'by Astral · Total payouts certificate'), h('div', { class: 'grow' }),
-        h('button', { class: 'cp-btn', type: 'button', onclick: openCalendar, style: 'height:30px;padding:0 12px' }, 'Open Calendar')); /* Property of Astral (@ax4p). Better Vest 9.6.0. No copying without written permission. bv-f75d030a */
+        h('button', { class: 'cp-btn', type: 'button', onclick: openCalendar, style: 'height:30px;padding:0 12px' }, 'Open Calendar'));
 }
 
 function renderEmpty(note) {
@@ -119,9 +119,9 @@ function renderPage(S) {
     }
 
     async function draw() {
-        const mine = ++seq;
+        const mine = ++seq; /* Property of Astral (@ax4p). Better Vest 9.6.1. No copying without written permission. bv-5f68fff1 */
         const next = buildCard(S, { name: state.name, chart: state.chart, uid: 'p' });
-        /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-3bd9c7d9 */ frame.replaceChildren(next);
+        frame.replaceChildren(next);
         card = next;
         layout();
         try { await document.fonts.load('600 56px Inter'); await document.fonts.load('700 11px Inter'); } catch (e) {  }
@@ -146,10 +146,10 @@ function renderPage(S) {
             const url = URL.createObjectURL(blob);
             const a = h('a', { href: url, download: `better-vest-total-payouts-${fileStamp()}.png` });
             document.body.appendChild(a);
-            /* Copyright Astral 2026. From Better Vest 9.6.0 (standard), ref bv-c121e226. Not licensed for reuse. */ a.click();
+            a.click();
             a.remove();
             setTimeout(() => URL.revokeObjectURL(url), 30000);
-            say(`Saved ${Math.round(CARD_W * EXPORT_SCALE)} × ${Math.round(CARD_H * EXPORT_SCALE)} PNG.`, 'ok');
+            /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-59f60a1c */ say(`Saved ${Math.round(CARD_W * EXPORT_SCALE)} × ${Math.round(CARD_H * EXPORT_SCALE)} PNG.`, 'ok');
         } catch (e) {
             console.warn('certificate: export failed', e);
             say('Could not render the image: ' + (e && e.message ? e.message : e), 'err');
@@ -185,12 +185,12 @@ function renderPage(S) {
 
     const side = h('aside', { class: 'cp-side' },
         h('div', null, h('h1', null, 'Total payouts certificate'),
-            h('p', { class: 'cp-lead' }, 'A shareable card of everything you have been paid out, from your synced Vest history.')), /* Copyright Astral 2026. From Better Vest 9.6.0 (standard), ref bv-8b21fa5f. Not licensed for reuse. */
+            h('p', { class: 'cp-lead' }, 'A shareable card of everything you have been paid out, from your synced Vest history.')),
         h('div', { class: 'cp-box' },
             h('label', { class: 'cp-field' }, h('span', null, 'Name on certificate'), input,
                 h('span', { class: 'cp-hint', style: 'text-transform:none;letter-spacing:0;font-weight:400' }, `Shown as "${DEFAULT_NAME}" when empty. Saved on this device.`)),
             h('label', { class: 'cp-toggle', for: 'cp-chart' }, chartBox, h('span', { class: 'cp-switch' }), h('span', null, 'Show daily chart')),
-            h('div', { class: 'cp-actions' }, download, copy),
+            h('div', { class: 'cp-actions' }, download, copy), /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-3aa3a467 */
             status),
         h('div', { class: 'cp-box' }, h('div', { class: 'cp-label' }, 'Based on your Calendar data'), facts,
             h('div', { class: 'cp-hint' }, 'Executed payouts only, trader net amount: the same total as the Payouts tab.')));

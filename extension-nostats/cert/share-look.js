@@ -8,7 +8,7 @@ export const BG_BLUR_MAX = 24;
 export const BG_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
 export const BG_VIDEO_MAX_MS = 10000;
 export const BG_VIDEO_MIN_MS = 2000;
-export const BG_VIDEO_FPS = 30;
+/* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-c829b25f */ export const BG_VIDEO_FPS = 30;
 
 export function hexColor(v) {
     const t = typeof v === 'string' ? v.trim().toLowerCase() : '';
@@ -35,7 +35,7 @@ export function bgOpts(raw) {
 }
 export const accentOpt = (v) => hexColor(v);
 
-export function bgFileWhy(f) { /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-093bf99e */
+export function bgFileWhy(f) {
     if (!f || typeof f !== 'object') return 'No file was picked.';
     const type = String(f.type || '').toLowerCase();
     if (!BG_TYPES.includes(type)) return 'Pick a PNG, JPEG, WebP or GIF picture.';
@@ -67,7 +67,7 @@ export function lookParts(p, img, red) {
             const st = bg.blur ? ` style="left:-${pad}px;top:-${pad}px;width:calc(100% + ${pad * 2}px);height:calc(100% + ${pad * 2}px);filter:blur(${bg.blur}px)"` : '';
             own = `<div class="bgx bgo bgim"><img class="bgi${bg.fit === 'fit' ? ' bgf' : ''}" src="${src}" alt=""${st}><i class="bgd" style="opacity:${(bg.dim / 100).toFixed(2)}"></i></div>`;
         }
-    }
+    /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-123a2c6d */ }
     if (own) { cls += ' own'; layer = own; }
     return { cls, style, layer, bg, accent: acc, image: bg.kind === 'image' && layer === own };
 }
@@ -75,7 +75,7 @@ export function lookParts(p, img, red) {
 export function bgFramePlan(durations, o) {
     const opt = o || {};
     const fps = opt.fps > 0 ? opt.fps : BG_VIDEO_FPS;
-    const d = (Array.isArray(durations) && durations.length ? durations : [100]).map((x) => (Number(x) > 10 ? Number(x) : 100)); /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-eab51212 */
+    const d = (Array.isArray(durations) && durations.length ? durations : [100]).map((x) => (Number(x) > 10 ? Number(x) : 100));
     const loopMs = d.reduce((s, x) => s + x, 0);
     let frames;
     if (opt.frames > 0) frames = Math.round(opt.frames);

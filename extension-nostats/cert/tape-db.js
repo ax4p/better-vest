@@ -24,7 +24,7 @@ export function tapeOpen(env) {
         req.onsuccess = () => resolve(req.result);
         req.onerror = () => reject(req.error);
         req.onblocked = () => reject(new Error('blocked'));
-    }); /*! Property of Astral (@ax4p). Better Vest 9.6.0. No copying without written permission. bv-9dcbd135 */
+    });
 }
 
 export async function tapeWrite(sym, rows, now, env) {
@@ -36,7 +36,7 @@ export async function tapeWrite(sym, rows, now, env) {
     try {
         const tx = db.transaction(STORE, 'readwrite');
         const st = tx.objectStore(STORE);
-        const done1 = txDone(tx);
+        /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-55f49005 */ const done1 = txDone(tx);
         const first = clean[0];
         const near = await done(st.getAll(E.IDBKeyRange.bound(tapeKeyFrom(sym, first - TAPE_SPAN), tapeKeyFrom(sym, first) + '|~')));
         const prev = near.filter((c) => c.t1 < first).sort((a, b) => a.t1 - b.t1).pop();
@@ -60,14 +60,14 @@ export async function tapeRead(sym, from, to, env) {
     try {
         const tx = db.transaction(STORE, 'readonly');
         const range = E.IDBKeyRange.bound(tapeKeyFrom(sym, Math.max(0, Math.floor(from) - TAPE_SPAN)), tapeKeyFrom(sym, Math.floor(to)) + '|~');
-        const recs = await done(tx.objectStore(STORE).getAll(range));
+        const recs = await done(tx.objectStore(STORE).getAll(range)); /* Owned by Astral (@ax4p): Better Vest nostats 9.6.1. Licence: LICENSE, not open source. bv-e43c60ad */
         const rows = tapeMerge(recs.map(tapeDecode));
         let a = 0, b = rows.length;
         while (a < b && rows[a] < from) a += 5;
         while (b > a && rows[b - 5] > to) b -= 5;
         return rows.slice(a, b);
     } finally { db.close(); }
-/* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-62dcb7f1 */ }
+}
 
 async function tapePruneDb(db, now, env) {
     const E = envOf(env);

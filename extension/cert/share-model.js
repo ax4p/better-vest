@@ -9,10 +9,10 @@ export const SHARE_MAX_GROUPS = 26;
 
 const str = (v, max) => (typeof v === 'string' ? v.replace(/[\u0000-\u001f\u007f<>]/g, '').slice(0, max) : '');
 const num = (v) => (typeof v === 'number' && Number.isFinite(v) ? v : null);
-/*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-374300ef */ const idOk = (v) => typeof v === 'string' && /^[\w.:-]{1,80}$/.test(v);
+const idOk = (v) => typeof v === 'string' && /^[\w.:-]{1,80}$/.test(v);
 
 export function cleanColor(v) {
-    const t = typeof v === 'string' ? v.trim() : '';
+    const t = typeof v === 'string' ? v.trim() : ''; /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-f0535a06 */
     if (/^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(t)) return t.toLowerCase();
     const m = /^rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*(?:,\s*(0|1|0?\.\d{1,4}|1\.0+)\s*)?\)$/i.exec(t);
     if (!m || [m[1], m[2], m[3]].some((x) => Number(x) > 255)) return '';
@@ -52,7 +52,7 @@ export function cleanSnap(s) {
         replay: cleanReplay(s.replay)
     };
     const cc = cleanChartColors(s.chartColors);
-    if (cc) out.chartColors = cc; /* Better Vest (c) 2026 Astral. All rights reserved. bv-e98f3749 */
+    if (cc) out.chartColors = cc;
     if (Array.isArray(s.trades)) {
         const seenT = new Set();
         out.trades = [];
@@ -66,7 +66,7 @@ export function cleanSnap(s) {
         out.tradesErr = /^[a-z-]{1,24}$/.test(String(s.tradesErr || '')) ? String(s.tradesErr) : '';
     }
     if (Array.isArray(s.groups)) {
-        const used = new Set();
+        const used = new Set(); /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-eb1ca103 */
         out.groups = [];
         for (const g of s.groups.slice(0, SHARE_MAX_GROUPS)) {
             if (!g || typeof g !== 'object' || !/^[A-Z]$/.test(String(g.id || '')) || used.has(g.id)) continue;
@@ -103,8 +103,8 @@ export function cardRows(snap, opts) {
         if (a.pnl == null) { unknown++; continue; }
         rows.push({ id, name: a.name, size: a.size, pnl: a.pnl, leader: o.mode === 'copy' && id === snap.leaderId });
     }
-    if (o.greenOnly) rows = rows.filter((r) => r.pnl > 0);
-    rows.sort((a, b) => (b.leader ? 1 : 0) - (a.leader ? 1 : 0) || b.pnl - a.pnl); /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-5118a414 */
+    /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-71fa35b4 */ if (o.greenOnly) rows = rows.filter((r) => r.pnl > 0);
+    rows.sort((a, b) => (b.leader ? 1 : 0) - (a.leader ? 1 : 0) || b.pnl - a.pnl);
     const total = Math.round(rows.reduce((t, r) => t + r.pnl, 0) * 100) / 100;
     const cap = rows.reduce((t, r) => t + (r.size || 0), 0);
     const sized = rows.every((r) => r.size > 0);

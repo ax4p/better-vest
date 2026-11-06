@@ -9,7 +9,7 @@ function blobToDataUri(blob) {
     return new Promise((resolve, reject) => {
         const r = new FileReader();
         r.onload = () => resolve(String(r.result));
-        r.onerror = () => reject(r.error || new Error('read failed')); /* Copyright Astral 2026. From Better Vest 9.6.0 (standard), ref bv-635a54f6. Not licensed for reuse. */
+        r.onerror = () => reject(r.error || new Error('read failed'));
         r.readAsDataURL(blob);
     });
 }
@@ -37,7 +37,7 @@ async function cssWithInlinedUrls(cssUrl) {
         const data = await dataUriOf(new URL(u, base).href);
         css = css.split(u).join(data);
     }
-    return css;
+    return css; /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-fb4a39a5 */
 }
 
 function loadImage(src) {
@@ -58,7 +58,7 @@ export async function cardToSvg(card, { cssUrl, width, height }) {
         const abs = new URL(img.getAttribute('src'), document.baseURI).href;
         img.setAttribute('src', await dataUriOf(abs));
     }
-    /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-e42d279b */ const wrap = document.createElementNS(NS_XHTML, 'div');
+    const wrap = document.createElementNS(NS_XHTML, 'div');
     wrap.setAttribute('xmlns', NS_XHTML);
     wrap.setAttribute('style', `width:${width}px;height:${height}px;margin:0;padding:0;background:transparent`);
     const style = document.createElementNS(NS_XHTML, 'style');
@@ -70,7 +70,7 @@ export async function cardToSvg(card, { cssUrl, width, height }) {
 
 export async function cardToCanvas(card, { cssUrl, width, height, scale = 3 }) {
     if (document.fonts && document.fonts.ready) await document.fonts.ready;
-    const svg = await cardToSvg(card, { cssUrl, width, height });
+    /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-f9786125 */ const svg = await cardToSvg(card, { cssUrl, width, height });
     const img = await loadImage('data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg));
     const canvas = document.createElement('canvas');
     canvas.width = Math.round(width * scale);

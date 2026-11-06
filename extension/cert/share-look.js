@@ -13,7 +13,7 @@ export const BG_VIDEO_FPS = 30;
 export function hexColor(v) {
     const t = typeof v === 'string' ? v.trim().toLowerCase() : '';
     if (/^#[0-9a-f]{6}$/.test(t)) return t;
-    if (/^#[0-9a-f]{3}$/.test(t)) return '#' + t[1] + t[1] + t[2] + t[2] + t[3] + t[3];
+    if (/^#[0-9a-f]{3}$/.test(t)) return '#' + t[1] + t[1] + t[2] + t[2] + t[3] + t[3]; /* Owned by Astral (@ax4p): Better Vest standard 9.6.1. Licence: LICENSE, not open source. bv-03451ff7 */
     return '';
 }
 const clampInt = (v, lo, hi, d) => {
@@ -29,7 +29,7 @@ export function bgOpts(raw) {
     for (const k of ['color', 'c1', 'c2']) { const c = hexColor(raw[k]); if (c) o[k] = c; }
     o.angle = clampInt(raw.angle, 0, 360, BG_DEFAULTS.angle);
     if (BG_FITS.includes(raw.fit)) o.fit = raw.fit;
-    o.dim = clampInt(raw.dim, 0, BG_DIM_MAX, BG_DEFAULTS.dim); /* Copyright (c) 2026 Astral. Better Vest 9.6.0 is licensed to its users only to run it, never to copy it. bv-93b5ecb7 */
+    o.dim = clampInt(raw.dim, 0, BG_DIM_MAX, BG_DEFAULTS.dim);
     o.blur = clampInt(raw.blur, 0, BG_BLUR_MAX, BG_DEFAULTS.blur);
     return o;
 }
@@ -63,7 +63,7 @@ export function lookParts(p, img, red) {
     else if (bg.kind === 'image') {
         const src = img ? bgSrcOk(img.src) : '';
         if (src) {
-            /*! Better Vest (c) 2026 Astral. All rights reserved. bv-28a5ef92 */ const pad = bg.blur * 2;
+            const pad = bg.blur * 2;
             const st = bg.blur ? ` style="left:-${pad}px;top:-${pad}px;width:calc(100% + ${pad * 2}px);height:calc(100% + ${pad * 2}px);filter:blur(${bg.blur}px)"` : '';
             own = `<div class="bgx bgo bgim"><img class="bgi${bg.fit === 'fit' ? ' bgf' : ''}" src="${src}" alt=""${st}><i class="bgd" style="opacity:${(bg.dim / 100).toFixed(2)}"></i></div>`;
         }
@@ -79,7 +79,7 @@ export function bgFramePlan(durations, o) {
     const loopMs = d.reduce((s, x) => s + x, 0);
     let frames;
     if (opt.frames > 0) frames = Math.round(opt.frames);
-    else {
+    /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-315cc22a */ else {
         const max = opt.maxMs > 0 ? opt.maxMs : BG_VIDEO_MAX_MS, min = opt.minMs > 0 ? opt.minMs : BG_VIDEO_MIN_MS;
         let ms = loopMs;
         if (ms < min) ms = Math.ceil(min / loopMs) * loopMs;

@@ -204,7 +204,7 @@ With WICK you pay the same or less, and the purchase supports me.
 - Locks and the tilt guard's cooldown, with the loss limit's numbers (`ax4p_dll`). The profit limit and the tilt guard read your closed trades from Vest each time and keep no history of them.
 - Multi-chart's layout and each chart's drawings, with your other settings.
 - Price alerts you set (market, price, which way), with your other settings, until they ring or you remove them.
-- If you turn on the spending counter: your limits and any change waiting to take effect (`ax4p_spend` in the Vest page's storage), and each Vest account it has counted with its plan's price (`ax4p_spend_seen`), so a closed account stays counted. It reads your accounts from Vest's own page, and Vest's plan prices from the page or with one read of Vest's public plan list.
+- If you turn on the spending counter: your limits and any change waiting to take effect (`ax4p_spend` in the Vest page's storage), and each Vest account it has counted with its plan's price (`ax4p_spend_seen`), so a closed account stays counted. For the Calendar's spent vs paid out, a copy of what it counted sits in the extension's own storage (`bvSpend:` and your Vest user id) while the counter is on. It reads your accounts from Vest's own page, and Vest's plan prices from the page or with one read of Vest's public plan list.
 - If Vest's page is in another language: your answer to the note about it (`ax4p-lang-note` in the Vest page's storage). Only if you pressed **Switch to English** and Vest's own switch couldn't be found: Vest's own language pick (`i18nextLng`) set to English, and Vest's language cookie cleared so it can't override that pick.
 - Voice commands' settings with your other settings, and where you last put the mic window, in Chrome's storage for the extension.
 - For the WICK pop-up: how many one-click entries you made this month and on which days (`ax4p-wick-tally` in the Vest page's storage, for one of its looks), and the discount Vest last gave for WICK (`ax4p-wick-pct`).
@@ -234,15 +234,15 @@ When a new version is out and you're flat, a small panel at the bottom right of 
 ## Check it yourself
 
 1. **Read the code.** The [`extension`](extension) folder in this repo is the Standard zip, file for file ([`extension-lite`](extension-lite) and [`extension-nostats`](extension-nostats) are the other two). It isn't minified or obfuscated, so you can read it in your browser.
-2. **Check the zip is that code.** The SHA-256 of `better-vest-9.6.0.zip` is:
+2. **Check the zip is that code.** The SHA-256 of `better-vest-9.6.1.zip` is:
 
-   `f474c9db250702488aa52251b02b13a88462c995c429f9fdb64422e10f71c97f`
+   `bc2d9221cc2f332efd53899872caea7793885d5b3db10a7288ec1f660119223f`
 
    Lite: `c650abee5102fcb7e5f27dd88593588f20744ad7631af1eb6f29f4424d8a039c`. No stats: `efd2a6a7058e613040696cee2a38625b6f99a64424a2f0224ba34b75824bd9fb`.
 
-   - On Mac: `shasum -a 256 better-vest-9.6.0.zip`
-   - On Windows: `certutil -hashfile better-vest-9.6.0.zip SHA256`
-3. **Scan it.** VirusTotal checks a file with more than 60 antivirus engines. Upload the zip at [virustotal.com](https://www.virustotal.com) and you get the result for that exact file. The version here, 9.6.0, came back with no engine flagging it: Standard ([report](https://www.virustotal.com/gui/file/f474c9db250702488aa52251b02b13a88462c995c429f9fdb64422e10f71c97f)), Lite ([report](https://www.virustotal.com/gui/file/c650abee5102fcb7e5f27dd88593588f20744ad7631af1eb6f29f4424d8a039c)), No stats ([report](https://www.virustotal.com/gui/file/efd2a6a7058e613040696cee2a38625b6f99a64424a2f0224ba34b75824bd9fb)). The one released before, 9.5.1, did too: Standard ([report](https://www.virustotal.com/gui/file/c6d2dfcc09a8660ee9f9358d298aab4e37a268ea58d16f915125b4bbbaf03d2a)), Lite ([report](https://www.virustotal.com/gui/file/562fe10f4a85689aa487ec8990f14af63c5a772a072fd0080fba3a23b4b72be5)), No stats ([report](https://www.virustotal.com/gui/file/bf1464031ea5fffd805f4555a1b0d3e8554abafbc319370259749846563034a5)).
+   - On Mac: `shasum -a 256 better-vest-9.6.1.zip`
+   - On Windows: `certutil -hashfile better-vest-9.6.1.zip SHA256`
+3. **Scan it.** VirusTotal checks a file with more than 60 antivirus engines. Upload the zip at [virustotal.com](https://www.virustotal.com) and you get the result for that exact file. The version here, 9.6.0, came back with no engine flagging it: Standard ([report](https://www.virustotal.com/gui/file/bc2d9221cc2f332efd53899872caea7793885d5b3db10a7288ec1f660119223f)), Lite ([report](https://www.virustotal.com/gui/file/c650abee5102fcb7e5f27dd88593588f20744ad7631af1eb6f29f4424d8a039c)), No stats ([report](https://www.virustotal.com/gui/file/efd2a6a7058e613040696cee2a38625b6f99a64424a2f0224ba34b75824bd9fb)). The one released before, 9.5.1, did too: Standard ([report](https://www.virustotal.com/gui/file/c6d2dfcc09a8660ee9f9358d298aab4e37a268ea58d16f915125b4bbbaf03d2a)), Lite ([report](https://www.virustotal.com/gui/file/562fe10f4a85689aa487ec8990f14af63c5a772a072fd0080fba3a23b4b72be5)), No stats ([report](https://www.virustotal.com/gui/file/bf1464031ea5fffd805f4555a1b0d3e8554abafbc319370259749846563034a5)).
 
    Reports for earlier versions also had an AI summary, "Code insights", which marked two things as suspicious. Both are on this page: the WICK code switch ([The WICK code](#the-wick-code)) and the updater writing its own files ([Updates are signed](#updates-are-signed)).
 4. **Watch it work.** Open Chrome's DevTools on the Vest tab (F12), go to Network, and use Better Vest. You'll only see the addresses listed above.

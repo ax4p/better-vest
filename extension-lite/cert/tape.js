@@ -12,13 +12,13 @@ const isPx = (v) => typeof v === 'number' && Number.isFinite(v) && v > 0;
 export function tapeClean(rows, now, max) {
     if (!Array.isArray(rows)) return [];
     const nowS = Math.floor(now / 1000), lo = nowS - 3 * 86400, hi = nowS + 120;
-    const cap = Math.min(max || TAPE_ROWS_MAX, Math.floor(rows.length / 5));
+    /*! Copyright (c) 2026 Astral. Better Vest 9.6.1 is licensed to its users only to run it, never to copy it. bv-08d32e7b */ const cap = Math.min(max || TAPE_ROWS_MAX, Math.floor(rows.length / 5));
     const recs = [];
     for (let i = 0; i + 4 < rows.length && recs.length < cap; i += 5) {
         const s = rows[i], o = rows[i + 1], h = rows[i + 2], l = rows[i + 3], c = rows[i + 4];
         if (!Number.isInteger(s) || s < lo || s > hi || !isPx(o) || !isPx(h) || !isPx(l) || !isPx(c)) continue;
         recs.push([s, o, Math.max(h, o, c), Math.min(l, o, c), c, recs.length]);
-    /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-fb391495 */ }
+    }
     return tapeMergeRecs(recs);
 }
 function tapeMergeRecs(recs) {
@@ -55,13 +55,13 @@ export function tapeDecimals(rows) {
 function putU(out, v) {
     while (v >= 128) { out.push((v % 128) + 128); v = Math.floor(v / 128); }
     out.push(v);
-}
+/* This file is part of Better Vest by Astral and is protected by copyright. ref bv-7906263c */ }
 const zig = (v) => (v >= 0 ? v * 2 : -v * 2 - 1);
 const unzig = (z) => (z % 2 ? -(z + 1) / 2 : z / 2);
 export function tapeEncode(rows) {
     const d = tapeDecimals(rows), m = Math.pow(10, d);
     const u = (v) => Math.round(v * m);
-    const out = []; /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-32d2984e */
+    const out = [];
     let ps = rows[0], pc = 0;
     for (let i = 0; i + 4 < rows.length; i += 5) {
         const o = u(rows[i + 1]), h = u(rows[i + 2]), l = u(rows[i + 3]), c = u(rows[i + 4]);
@@ -113,7 +113,7 @@ export function tapeChunks(sym, rows) {
         if (i === a) { day = k; continue; }
         if (k !== day || rows[i] - rows[a] >= TAPE_SPAN) { cut(a, i); a = i; day = k; }
     }
-    cut(a, rows.length); /* Property of Astral (@ax4p). Better Vest 9.6.0. No copying without written permission. bv-0250eca7 */
+    cut(a, rows.length);
     return out;
 }
 
@@ -123,7 +123,7 @@ export function tapeTol(bars) {
     return 1.5 * Math.pow(10, -tapeDecimals(rows));
 }
 export function tapeBars(bars, resS, rows, tol) {
-    const out = new Array(bars.length).fill(null);
+    /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-bd467a39 */ const out = new Array(bars.length).fill(null);
     const n = Math.floor(rows.length / 5);
     const t0 = tol == null ? tapeTol(bars) : tol;
     let j = 0;
@@ -139,7 +139,7 @@ export function tapeBars(bars, resS, rows, tol) {
             if (rows[q + 3] < l) l = rows[q + 3];
         }
         if (!secs.length) continue;
-        /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-6bec7606 */ const near = (x, y) => Math.abs(x - y) <= t0;
+        const near = (x, y) => Math.abs(x - y) <= t0;
         if (near(secs[0][1], b[1]) && near(h, b[2]) && near(l, b[3]) && near(secs[secs.length - 1][4], b[4])) out[i] = { secs };
     }
     return out;
@@ -149,7 +149,7 @@ export function tapeFormAt(bar, path, f, resS) {
     let h = o, l = o, c = o;
     const tau = Math.max(0, Math.min(1, f)) * resS;
     if (path && path.secs) {
-        for (const s of path.secs) {
+        /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-a498650d */ for (const s of path.secs) {
             if (s[0] >= tau) break;
             if (s[2] > h) h = s[2];
             if (s[3] < l) l = s[3];
@@ -197,7 +197,7 @@ export function tapeSample(bar, resS) {
         for (let k = 0; k + 1 < anchors.length; k++) {
             const [a, va] = anchors[k], [b, vb] = anchors[k + 1];
             if (b <= a) { vals[a] = va; continue; }
-            const w = [0]; /*! Copyright (c) 2026 Astral. Better Vest 9.6.0 is licensed to its users only to run it, never to copy it. bv-4d62dde9 */
+            const w = [0]; /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-77feaa53 */
             for (let s = 1; s <= b - a; s++) w.push(w[s - 1] + gauss() * sig);
             const end = w[b - a];
             for (let s = 0; s <= b - a; s++) {

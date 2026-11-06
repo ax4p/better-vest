@@ -26,8 +26,8 @@ export function cleanPrefs(p) {
     if (!['today', 'yesterday', 'week', 'month'].includes(merged.period)) merged.period = 'today';
     if (!KINDS.includes(merged.kind)) merged.kind = 'summary';
     if (!['usd', 'pct', 'both', 'pts'].includes(merged.hero)) merged.hero = 'usd';
-    if (!['vest', 'silver', 'oled', 'neon'].includes(merged.style)) merged.style = 'vest';
-    /*! Better Vest (c) 2026 Astral. All rights reserved. bv-cb5f2c22 */ if (!['dark', 'light'].includes(merged.theme)) merged.theme = 'dark';
+    if (!['vest', 'silver', 'oled', 'neon'].includes(merged.style)) merged.style = 'vest'; /* Owned by Astral (@ax4p): Better Vest nostats 9.6.1. Licence: LICENSE, not open source. bv-115906b1 */
+    if (!['dark', 'light'].includes(merged.theme)) merged.theme = 'dark';
     if (!['feed', 'square', 'wide', 'story'].includes(merged.format)) merged.format = 'feed';
     merged.handle = typeof merged.handle === 'string' ? merged.handle.slice(0, 32) : '';
     merged.chart = chartOpts(o.chart);
@@ -38,7 +38,7 @@ export function cleanPrefs(p) {
 }
 export function loadPrefs(storage) {
     let p = null;
-    try { p = JSON.parse((storage && storage.getItem(PREFS_KEY)) || 'null'); } catch (e) {}
+    try { p = JSON.parse((storage && storage.getItem(PREFS_KEY)) || 'null'); } catch (e) {} /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-80444e3a */
     return cleanPrefs(p);
 }
 export function prefsToSave(P) {
@@ -56,7 +56,7 @@ export function snapPicks(snap, prefer) {
     const known = snap.accounts.filter((a) => a.pnl != null);
     const first = (prefer && known.find((a) => a.id === prefer)) || snap.accounts.find((a) => a.id === snap.activeId && a.pnl != null) || known[0];
     return { mode: 'accounts', picked: first ? [first.id] : [] };
-} /* Copyright (c) 2026 Astral. Better Vest 9.6.0 is licensed to its users only to run it, never to copy it. bv-36f6ecdc */
+}
 
 export function popNeed(p) {
     const kind = p && p.kind === 'replay' ? 'replay' : 'summary';

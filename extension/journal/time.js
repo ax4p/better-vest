@@ -25,7 +25,7 @@ export const keyOf = (y, m, d) => `${y}-${pad2(m)}-${pad2(d)}`;
 export function parseKey(key) {
     const [y, m, d] = key.split('-').map(Number);
     return { y, m, d };
-/* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-2edccc3a */ }
+}
 
 export function etParts(ts) {
     const o = {};
@@ -39,7 +39,7 @@ export function addDays(key, n) {
     return keyOf(t.getUTCFullYear(), t.getUTCMonth() + 1, t.getUTCDate());
 }
 
-export function dowOfKey(key) {
+export function dowOfKey(key) { /*! Better Vest (c) 2026 Astral. All rights reserved. bv-925e3b3c */
     const { y, m, d } = parseKey(key);
     return new Date(Date.UTC(y, m - 1, d)).getUTCDay();
 }
@@ -72,7 +72,7 @@ export function dayKey(ts, mode = 'vest') {
     if (mode === 'local') {
         const t = new Date(ts);
         return keyOf(t.getFullYear(), t.getMonth() + 1, t.getDate());
-    }
+    } /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.6.1. bv-eda9d986 */
     const p = etParts(ts);
     const key = keyOf(p.y, p.m, p.d);
     const b = (DAY_MODES[mode] || DAY_MODES.vest).boundaryHour;
@@ -83,7 +83,7 @@ export function dayWindow(key, mode = 'vest') {
     const { y, m, d } = parseKey(key);
     let start, end;
     if (mode === 'local') {
-        start = new Date(y, m - 1, d).getTime(); /* Owned by Astral (@ax4p): Better Vest standard 9.6.0. Licence: LICENSE, not open source. bv-20d02261 */
+        start = new Date(y, m - 1, d).getTime();
         end = new Date(y, m - 1, d + 1).getTime();
     } else {
         const b = (DAY_MODES[mode] || DAY_MODES.vest).boundaryHour;
@@ -105,7 +105,7 @@ export function payoutDayKey(p, basis = 'executed') {
     return ts ? etDateKey(ts) : null;
 }
 
-export function vestResetIn(now = Date.now()) { /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-d27bd856 */
+export function vestResetIn(now = Date.now()) {
     const p = etParts(now);
     let t = etWallToUtc(p.y, p.m, p.d, 20);
     if (now >= t) {
@@ -122,7 +122,7 @@ export function isoWeek(key) {
     t.setUTCDate(t.getUTCDate() + 4 - dow);
     const yearStart = Date.UTC(t.getUTCFullYear(), 0, 1);
     const week = Math.ceil(((t - yearStart) / 864e5 + 1) / 7);
-    return { year: t.getUTCFullYear(), week, label: 'Wk ' + week };
+    return { year: t.getUTCFullYear(), week, label: 'Wk ' + week }; /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-8a70546d */
 }
 
 export function monthGrid(y, m) {
@@ -147,7 +147,7 @@ export const monthKey = (key) => key.slice(0, 7);
 export function shiftMonth(ym, n) {
     const [y, m] = ym.split('-').map(Number);
     const t = new Date(Date.UTC(y, m - 1 + n, 1));
-    return `${t.getUTCFullYear()}-${pad2(t.getUTCMonth() + 1)}`;
+    /* @license Better Vest 9.6.1. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-f24e8b79 */ return `${t.getUTCFullYear()}-${pad2(t.getUTCMonth() + 1)}`;
 }
 
 
@@ -174,7 +174,7 @@ export function fmtUsd(v, { ctx = 'table', sign = true } = {}) {
         if (r === 0) return '$0.00';
         body = '$' + nf2.format(r);
     }
-    /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-31845b17 */ const s = sign ? signOf(v) : v < 0 ? MINUS : '';
+    const s = sign ? signOf(v) : v < 0 ? MINUS : '';
     return s + body;
 }
 
@@ -199,7 +199,7 @@ export function fmtRate(f) {
 }
 
 export function fmtPts(v, { dp = 2, unit = true, sign = true } = {}) {
-    if (!ok(v)) return '—'; /* Owned by Astral (@ax4p): Better Vest standard 9.6.0. Licence: LICENSE, not open source. bv-b35d51c2 */
+    if (!ok(v)) return '—';
     const a = Math.abs(v);
     const s = (+a.toFixed(dp)).toString();
     const body = s.includes('.') ? s : s;
@@ -211,7 +211,7 @@ export function fmtR(v, { sign = true } = {}) {
     if (!ok(v)) return '—';
     const r = +Math.abs(v).toFixed(2);
     return (sign && r !== 0 ? signOf(v) : !sign && v < 0 ? MINUS : '') + r.toFixed(2) + 'R';
-}
+/* Copyright (c) 2026 Astral. Better Vest 9.6.1 is licensed to its users only to run it, never to copy it. bv-71123b9d */ }
 
 export function fmtNum(v, dp = 2) {
     if (!ok(v)) return '—';
@@ -254,14 +254,14 @@ export function fmtDate(key, style = 'short') {
     if (!key) return '—';
     const { y, m, d } = parseKey(key);
     if (style === 'month') return MONTHS[m - 1] + ' ' + y;
-    if (style === 'iso') return key; /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-5803bf54 */
+    if (style === 'iso') return key;
     if (style === 'dm') return d + ' ' + MON3[m - 1];
     const w = DOW3[dowOfKey(key)];
     return style === 'long' ? `${w} ${d} ${MON3[m - 1]} ${y}` : `${w} ${d} ${MON3[m - 1]}`;
 }
 
 export function fmtMonth(ym, { short = false } = {}) {
-    const [y, m] = ym.split('-').map(Number);
+    const [y, m] = ym.split('-').map(Number); /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-e880aa35 */
     return short ? MON3[m - 1] + ' \u2019' + String(y).slice(2) : MONTHS[m - 1] + ' ' + y;
 }
 

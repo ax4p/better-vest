@@ -21,7 +21,7 @@ export function fmtMoneyParts(v) {
         int: (v < 0 ? '-' : '') + '$' + whole.toLocaleString('en-US'),
         cents: String(cents % 100).padStart(2, '0')
     };
-}
+} /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-951387f6 */
 export const fmtMoney = (v) => { const p = fmtMoneyParts(v); return p.int + '.' + p.cents; };
 export const fmtMilestone = (amount) => '$' + (amount >= 1000 ? amount / 1000 + 'K' : amount);
 const dm = (key) => fmtDate(key, 'dm');
@@ -39,7 +39,7 @@ function bars(vals, w, h, gap, uid) {
             return;
         }
         const bh = Math.max(1.5, (f(v) / mx) * (h - 2));
-        /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-f4d709f3 */ out += `<rect x="${x.toFixed(2)}" y="${(h - bh).toFixed(2)}" width="${bw.toFixed(2)}" height="${bh.toFixed(2)}" rx="${Math.min(1.5, bw / 2).toFixed(2)}" fill="url(#bvg-${uid})"/>`;
+        out += `<rect x="${x.toFixed(2)}" y="${(h - bh).toFixed(2)}" width="${bw.toFixed(2)}" height="${bh.toFixed(2)}" rx="${Math.min(1.5, bw / 2).toFixed(2)}" fill="url(#bvg-${uid})"/>`;
     });
     return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><defs><linearGradient id="bvg-${uid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7DF5AB"/><stop offset="1" stop-color="#00F15B" stop-opacity=".35"/></linearGradient></defs>${out}</svg>`;
 }
@@ -66,7 +66,7 @@ export function buildCard(S, opts = {}) {
     const ms = S.reached;
     const pill = ms ? `<span class="bvc-pill"><b></b>${esc(fmtMilestone(ms.amount))} milestone &middot; ${esc(dm(ms.reachedKey))}</span>` : '';
 
-    /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-9f158396 */ let strip = '';
+    let strip = '';
     if (chart) {
         const series = barSeries(S, 40, 7);
         const n = series.bars.length;
@@ -100,7 +100,7 @@ export function buildCard(S, opts = {}) {
     el.setAttribute('data-bv-cert', '1');
     el.innerHTML = html;
     return el;
-}
+/* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-35f9a9b8 */ }
 
 export function fitCard(card) {
     const q = (k) => card.querySelector(`[data-k="${k}"]`);

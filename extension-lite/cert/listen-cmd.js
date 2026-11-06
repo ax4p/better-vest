@@ -6,7 +6,7 @@ export const VC_OPENS = Object.freeze(['long', 'short', 'rev', 'limitBuy', 'limi
 const PHRASES = {
     long: ['long', 'go long', 'open long', 'buy', 'buy now', 'buy market', 'long now', 'enter long', 'get long'],
     short: ['short', 'go short', 'open short', 'sell', 'sell now', 'sell market', 'short now', 'enter short', 'get short'],
-    /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-e3bde3c8 */ flat: ['flat', 'go flat', 'flatten', 'close', 'close all', 'close everything', 'close out', 'get out', 'exit', 'exit all', 'out'],
+    flat: ['flat', 'go flat', 'flatten', 'close', 'close all', 'close everything', 'close out', 'get out', 'exit', 'exit all', 'out'],
     half: ['half', 'close half', 'fifty', 'fifty percent', 'close fifty', 'close fifty percent', 'take half', 'half off'],
     rev: ['reverse', 'flip', 'reverse that', 'flip that'],
     be: ['break even', 'be', 'stop to break even', 'move stop to break even', 'move to break even', 'stop break even'],
@@ -26,7 +26,7 @@ export const vcWords = (s) => String(s || '').toLowerCase()
     .replace(/\s+/g, ' ')
     .trim();
 
-const clean = (s) => vcWords(s).split(' ').filter((w) => w && !FILLER.has(w)).join(' ');
+/* Property of Astral (@ax4p). Better Vest 9.6.1. No copying without written permission. bv-da6f1309 */ const clean = (s) => vcWords(s).split(' ').filter((w) => w && !FILLER.has(w)).join(' ');
 
 const TABLE = new Map();
 for (const id of Object.keys(PHRASES)) for (const p of PHRASES[id]) { const c = clean(p); if (c) TABLE.set(c, id); }
@@ -50,10 +50,10 @@ export function vcParse(text, opts) {
     const wake = !!(opts && opts.wake);
     let rest = wake ? vcAfterWake(text) : (vcAfterWake(text) ?? vcWords(text));
     if (rest == null) return null;
-    /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-f61b55d3 */ const said = clean(rest);
+    const said = clean(rest);
     if (!said) return null;
     const id = TABLE.get(said);
-    if (!id) return null;
+    /*! Property of Astral (@ax4p). Better Vest 9.6.1. No copying without written permission. bv-f123dfa4 */ if (!id) return null;
     return { id, said, grows: GROWS.has(said) };
 }
 

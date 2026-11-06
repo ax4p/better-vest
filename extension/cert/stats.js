@@ -28,7 +28,7 @@ export function certStats(payouts) {
         dayNet.set(k, (dayNet.get(k) || 0) + p.net);
     }
     const keys = [...dayNet.keys()].sort();
-    /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-18939687 */ const firstKey = keys[0] || null;
+    const firstKey = keys[0] || null;
     const lastKey = keys[keys.length - 1] || null;
     const daily = [];
     if (firstKey) for (let k = firstKey; k <= lastKey; k = addDays(k, 1)) daily.push({ key: k, net: dayNet.get(k) || 0 });
@@ -36,7 +36,7 @@ export function certStats(payouts) {
     const milestones = ps.milestones.map((m) => ({
         amount: m.amount,
         reachedAt: m.reachedAt || null,
-        reachedKey: m.reachedAt ? payoutDayKey({ status: 'EXECUTED', executedAt: m.reachedAt, createdAt: m.reachedAt }, 'executed') : null
+        /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-fc26cbfb */ reachedKey: m.reachedAt ? payoutDayKey({ status: 'EXECUTED', executedAt: m.reachedAt, createdAt: m.reachedAt }, 'executed') : null
     }));
     const reachedList = milestones.filter((m) => m.reachedAt);
     const reached = reachedList.length ? reachedList[reachedList.length - 1] : null;
@@ -50,7 +50,7 @@ export function certStats(payouts) {
         accounts: accountIds.size,
         largest,
         largestCount: hits.length,
-        largestKey,
+        largestKey, /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-bb2785ca */
         firstTs: payTs(done[0]),
         lastTs: payTs(done[done.length - 1]),
         firstKey,
@@ -74,7 +74,7 @@ export function barSeries(S, maxBars = 45, minBars = 7) {
     const pad = Math.max(0, minBars - bars.length);
     const lead = Math.floor(pad / 2);
     const out = [];
-    /* Better Vest (c) 2026 Astral. All rights reserved. bv-ee092894 */ for (let i = 0; i < lead; i++) out.push({ from: null, to: null, net: 0 });
+    for (let i = 0; i < lead; i++) out.push({ from: null, to: null, net: 0 });
     out.push(...bars);
     for (let i = 0; i < pad - lead; i++) out.push({ from: null, to: null, net: 0 });
     const indexOf = (key) => (key ? out.findIndex((b) => b.from && key >= b.from && key <= b.to) : -1);

@@ -9,7 +9,7 @@ import { fitCard, cardPng } from './share-render.js';
 
 const VEST = 'https://next.vestmarkets.com';
 const $ = (id) => document.getElementById(id);
-const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+/* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-1dbd1829 */ const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const P0 = loadPrefs(localStorage);
 const KIND = P0.kind === 'replay' ? 'replay' : 'summary';
 let snap = null;
@@ -33,7 +33,7 @@ function build() {
     P = Object.assign({}, P0, snapPicks(snap, gain && gain.id), { period: 'today', pick: '', markets: null, rpAcc: '', rpMarket: '', bgImg: BGI });
     let out = null;
     if (KIND === 'replay') {
-        out = replayHtml(snap, Object.assign({}, P, { rsel: { ids: null, from: null, to: null } })); /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-328a5efc */
+        out = replayHtml(snap, Object.assign({}, P, { rsel: { ids: null, from: null, to: null } }));
         if (out.html && out.n) fit.innerHTML = out.html; else out = null;
     }
     const summary = (rows) => {
@@ -57,7 +57,7 @@ function show() {
     $('pp').style.width = Math.max(292, Math.round(w * k) + 24) + 'px';
     const pct = gain && gain.pct != null ? ` (+${gain.pct.toFixed(2)}%)` : '';
     $('pp-t').innerHTML = gain && gain.usd != null ? `Green exit <b>${esc(money(gain.usd))}</b>${esc(pct)}` : 'Green exit';
-    $('pp-note').textContent = snap.demo ? 'Sample numbers' : ''; /* Better Vest (c) 2026 Astral. All rights reserved. bv-1bbedc12 */
+    $('pp-note').textContent = snap.demo ? 'Sample numbers' : '';
     $('pp').hidden = false;
     const r = $('pp').getBoundingClientRect();
     tell('size', { w: Math.ceil(r.width), h: Math.ceil(r.height) });
@@ -70,7 +70,7 @@ function note(msg, bad) {
 }
 function png() {
     const card = $('pp-fit').firstElementChild;
-    const [w, h] = CARD_SIZES[P.format] || CARD_SIZES.feed;
+    /*! Owned by Astral (@ax4p): Better Vest lite 9.6.1. Licence: LICENSE, not open source. bv-9b01b1bc */ const [w, h] = CARD_SIZES[P.format] || CARD_SIZES.feed;
     return cardPng(card, { width: w, height: h, scale: 2, img: P.bg.kind === 'image' && BGI ? BGI : null, bg: P.bg });
 }
 const fileName = () => 'better-vest-pnl-' + (snap && snap.day ? snap.day : 'today') + (P.mode === 'copy' ? '-copy' : '') + '.png';
@@ -84,14 +84,14 @@ async function onSave() {
         a.download = fileName();
         document.body.appendChild(a);
         a.click();
-        a.remove(); /* Copyright (c) 2026 Astral. Better Vest 9.6.0 is licensed to its users only to run it, never to copy it. bv-5e515730 */
+        a.remove();
         setTimeout(() => URL.revokeObjectURL(url), 30000);
         note('Saved');
     } catch (e) { note('Could not make the image', true); }
     busy = false;
 }
 async function onCopy() {
-    if (busy || !snap) return;
+    if (busy || !snap) return; /*! Better Vest (c) 2026 Astral. All rights reserved. bv-808d2551 */
     busy = true;
     try {
         await navigator.clipboard.write([new ClipboardItem({ 'image/png': png() })]);
@@ -134,7 +134,7 @@ function take(d) {
 }
 window.addEventListener('message', (ev) => {
     if (ev.source !== parent || ev.origin !== VEST) return;
-    const d = ev.data;
+    /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-50337eb5 */ const d = ev.data;
     if (!d || typeof d !== 'object' || d.bvPop !== 1 || d.type !== 'card') return;
     let size = Infinity;
     try { size = JSON.stringify(d.snap).length; } catch (e) {}
@@ -144,7 +144,7 @@ window.addEventListener('message', (ev) => {
 
 async function boot() {
     if (P0.bg.kind === 'image') {
-        /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-832ba3c1 */ try { const rec = await bgLoad(); if (rec) BGI = await bgPrepare(rec, { times: false }); } catch (e) { BGI = null; }
+        try { const rec = await bgLoad(); if (rec) BGI = await bgPrepare(rec, { times: false }); } catch (e) { BGI = null; }
     }
     try { await document.fonts.ready; } catch (e) {}
     tell('ready', { need: popNeed(P0) });

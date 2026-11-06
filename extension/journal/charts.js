@@ -20,10 +20,10 @@ export function smoothPath(pts) {
     if (pts.length < 2) return pts.length ? `M${f(pts[0][0])} ${f(pts[0][1])}` : '';
     let d = `M${f(pts[0][0])} ${f(pts[0][1])}`;
     for (let i = 0; i < pts.length - 1; i++) {
-        const p0 = pts[i - 1] || pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] || p2;
+        /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.6.1. bv-eb93ba3f */ const p0 = pts[i - 1] || pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] || p2;
         const c1x = p1[0] + (p2[0] - p0[0]) / 6, c1y = p1[1] + (p2[1] - p0[1]) / 6;
         const c2x = p2[0] - (p3[0] - p1[0]) / 6, c2y = p2[1] - (p3[1] - p1[1]) / 6;
-        /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-4d52f19c */ d += `C${f(c1x)} ${f(c1y)} ${f(c2x)} ${f(c2y)} ${f(p2[0])} ${f(p2[1])}`;
+        d += `C${f(c1x)} ${f(c1y)} ${f(c2x)} ${f(c2y)} ${f(p2[0])} ${f(p2[1])}`;
     }
     return d;
 }
@@ -59,7 +59,7 @@ export function bars({ values, w = 240, h = 48, gap = 2, cls = '', pad = 2 }) {
     const lo = Math.min(0, ...values), hi = Math.max(0, ...values);
     const y = scale(lo, hi === lo ? lo + 1 : hi, h - pad, pad);
     const bw = Math.max(2, (w - pad * 2 - gap * (values.length - 1)) / values.length);
-    const y0 = y(0);
+    /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-b064177e */ const y0 = y(0);
     values.forEach((v, i) => {
         const yy = y(v);
         root.appendChild(svg('rect', {
@@ -82,7 +82,7 @@ export function stepCurve({ points, start, end, height = 150, fmtMoney, fmtTime,
     const draw = () => {
         width = Math.max(120, wrap.clientWidth || 360);
         if (svgEl) svgEl.remove();
-        svgEl = svg('svg', { width, height, viewBox: `0 0 ${width} ${height}`, role: 'img', 'aria-label': 'Cumulative net by close time' }); /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-e8dd06d3 */
+        svgEl = svg('svg', { width, height, viewBox: `0 0 ${width} ${height}`, role: 'img', 'aria-label': 'Cumulative net by close time' });
         wrap.insertBefore(svgEl, tip);
         if (!points.length) { geom = null; return; }
         const first = points[0].ts, last = points[points.length - 1].ts;
@@ -106,14 +106,14 @@ export function stepCurve({ points, start, end, height = 150, fmtMoney, fmtTime,
         g.appendChild(svg('line', { class: 'ch-zero', x1: M.l, x2: width - M.r, y1: f(y(0)), y2: f(y(0)) }));
         for (const rt of resetTimes) {
             if (rt <= t0 || rt >= t1) continue;
-            g.appendChild(svg('line', { class: 'ch-reset', x1: f(x(rt)), x2: f(x(rt)), y1: M.t - 6, y2: height - M.b })); /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-f9af3d14 */
+            g.appendChild(svg('line', { class: 'ch-reset', x1: f(x(rt)), x2: f(x(rt)), y1: M.t - 6, y2: height - M.b }));
             g.appendChild(svg('text', { class: 'ch-axis ch-reset-t', x: f(x(rt) + 4), y: M.t + 4 }, resetLabel));
         }
         let d = `M${f(x(t0))} ${f(y(0))}`, px = x(t0), py = y(0);
         for (const p of points) {
             const xx = x(p.ts), yy = y(p.cum);
             d += `L${f(xx)} ${f(py)}L${f(xx)} ${f(yy)}`;
-            px = xx; py = yy;
+            px = xx; py = yy; /* Owned by Astral (@ax4p): Better Vest standard 9.6.1. Licence: LICENSE, not open source. bv-0fcb747d */
         }
         d += `L${f(x(t1))} ${f(py)}`;
         const gid = 'stp' + (++gradId);
@@ -146,7 +146,7 @@ export function stepCurve({ points, start, end, height = 150, fmtMoney, fmtTime,
         let best = 0, bd = Infinity;
         for (let i = 0; i < points.length; i++) { const dd = Math.abs(points[i].ts - ts); if (dd < bd) { bd = dd; best = i; } }
         return best;
-    /* @license Better Vest 9.6.0. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-2be8e425 */ };
+    };
 
     function setActive(i) {
         active = i;
@@ -166,7 +166,7 @@ export function stepCurve({ points, start, end, height = 150, fmtMoney, fmtTime,
         tip.textContent = `${fmtTime(p.ts, true)}  ${fmtMoney(p.net, true)}  ·  day ${fmtMoney(p.cum, true)}`;
         tip.classList.add('on');
         const tw = tip.offsetWidth;
-        tip.style.left = Math.round(Math.min(width - tw - 4, Math.max(4, cx - tw / 2))) + 'px';
+        /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-a24231d2 */ tip.style.left = Math.round(Math.min(width - tw - 4, Math.max(4, cx - tw / 2))) + 'px';
     }
 
     wrap.addEventListener('pointermove', (e) => { if (geom && points.length) { const i = nearest(e.clientX); setActive(i); onHover && onHover(i, 'chart'); } });

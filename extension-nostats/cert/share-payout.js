@@ -17,7 +17,7 @@ export function receivedPayouts(list) {
         if (seen.has(id)) continue;
         seen.add(id);
         out.push(p);
-    }
+    /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.6.1. bv-aa457d18 */ }
     return out.sort((a, b) => paidAt(a) - paidAt(b) || (String(a.id) < String(b.id) ? -1 : 1));
 }
 
@@ -29,7 +29,7 @@ export function payoutModel(payouts, o) {
     const names = opt.names instanceof Map ? opt.names : new Map();
     const nameOf = (id) => (id != null && names.get(String(id))) || (id != null ? 'Account ' + String(id).slice(-4) : 'Account');
     const item = (p) => ({ id: String(p.id), accountId: p.accountId == null ? '' : String(p.accountId), name: nameOf(p.accountId), net: r2(p.net),
-        /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-4eda9e5e */ gross: Number.isFinite(p.gross) ? r2(p.gross) : null, at: paidAt(p), day: dayKey(paidAt(p), 'vest') });
+        gross: Number.isFinite(p.gross) ? r2(p.gross) : null, at: paidAt(p), day: dayKey(paidAt(p), 'vest') });
     const accountsIn = (list) => new Set(list.map((p) => (p.accountId == null ? '' : String(p.accountId)))).size;
     const total = r2(done.reduce((s, p) => s + p.net, 0));
     const big = done.reduce((a, p) => (p.net > a.net ? p : a), done[0]);
@@ -59,11 +59,11 @@ export function ordinal(n) {
 function seeded(str) {
     let h = 2166136261;
     for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
-    return () => { h = Math.imul(h ^ (h >>> 15), 2246822507); h = Math.imul(h ^ (h >>> 13), 3266489909); h ^= h >>> 16; return (h >>> 0) / 4294967296; };
+    return () => { h = Math.imul(h ^ (h >>> 15), 2246822507); h = Math.imul(h ^ (h >>> 13), 3266489909); h ^= h >>> 16; return (h >>> 0) / 4294967296; }; /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-f0260779 */
 }
 export const SAMPLE_PAY_ACCOUNTS = [['sample-pay-a', '100K Funded · 1'], ['sample-pay-b', '50K Funded · 2'], ['sample-pay-c', '150K Funded · 3']];
 export const samplePayNames = () => new Map(SAMPLE_PAY_ACCOUNTS);
-export function samplePayouts(today) { /* Copyright (c) 2026 Astral. Better Vest 9.6.0 is licensed to its users only to run it, never to copy it. bv-75b6e4af */
+export function samplePayouts(today) {
     const t = KEY_RE.test(String(today || '')) ? today : dayKey(Date.now(), 'vest');
     const rnd = seeded('payouts|' + t);
     const out = [];

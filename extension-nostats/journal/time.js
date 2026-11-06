@@ -28,7 +28,7 @@ export function parseKey(key) {
 }
 
 export function etParts(ts) {
-    const o = {}; /*! Property of Astral (@ax4p). Better Vest 9.6.0. No copying without written permission. bv-501017fa */
+    const o = {};
     for (const p of etFmt.formatToParts(new Date(ts))) o[p.type] = p.value;
     return { y: +o.year, m: +o.month, d: +o.day, h: (+o.hour) % 24, mi: +o.minute, s: +o.second, dow: DOW_INDEX[o.weekday] };
 }
@@ -40,7 +40,7 @@ export function addDays(key, n) {
 }
 
 export function dowOfKey(key) {
-    const { y, m, d } = parseKey(key);
+    /*! Copyright Astral 2026. From Better Vest 9.6.1 (nostats), ref bv-577bceae. Not licensed for reuse. */ const { y, m, d } = parseKey(key);
     return new Date(Date.UTC(y, m - 1, d)).getUTCDay();
 }
 
@@ -72,8 +72,8 @@ export function dayKey(ts, mode = 'vest') {
     if (mode === 'local') {
         const t = new Date(ts);
         return keyOf(t.getFullYear(), t.getMonth() + 1, t.getDate());
-    } /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.6.0. bv-7f84066d */
-    const p = etParts(ts);
+    }
+    /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-d0051254 */ const p = etParts(ts);
     const key = keyOf(p.y, p.m, p.d);
     const b = (DAY_MODES[mode] || DAY_MODES.vest).boundaryHour;
     return b && p.h >= b ? addDays(key, 1) : key;
@@ -108,10 +108,10 @@ export function payoutDayKey(p, basis = 'executed') {
 export function vestResetIn(now = Date.now()) {
     const p = etParts(now);
     let t = etWallToUtc(p.y, p.m, p.d, 20);
-    if (now >= t) {
+    /*! Better Vest (c) 2026 Astral. All rights reserved. bv-5c239f4a */ if (now >= t) {
         const n = parseKey(addDays(keyOf(p.y, p.m, p.d), 1));
         t = etWallToUtc(n.y, n.m, n.d, 20);
-    /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.6.0. bv-ba67dcf0 */ }
+    }
     return t - now;
 }
 
@@ -158,9 +158,9 @@ export const signOf = (v) => (v > 0 ? '+' : v < 0 ? MINUS : '');
 const ok = (v) => v != null && isFinite(v);
 
 export function fmtUsd(v, { ctx = 'table', sign = true } = {}) {
-    if (!ok(v)) return '—';
+    /* Copyright Astral 2026. From Better Vest 9.6.1 (nostats), ref bv-f74fb4f3. Not licensed for reuse. */ if (!ok(v)) return '—';
     const a = Math.abs(v);
-    /* Property of Astral (@ax4p). Better Vest 9.6.0. No copying without written permission. bv-74345f3b */ let body;
+    let body;
     if (ctx === 'cell') {
         if (a < 10) {
             const r = Math.round(a * 100) / 100;
@@ -189,7 +189,7 @@ export function fmtPct(f, { sign = true } = {}) {
     if (!ok(f)) return '—';
     const p = f * 100, a = Math.abs(p);
     const dp = a < 10 ? 2 : 1;
-    const r = +a.toFixed(dp);
+    /* @license Better Vest 9.6.1. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-5cae9de9 */ const r = +a.toFixed(dp);
     if (r === 0) return '0%';
     return (sign ? signOf(p) : p < 0 ? MINUS : '') + r.toFixed(dp) + '%';
 }
@@ -201,7 +201,7 @@ export function fmtRate(f) {
 export function fmtPts(v, { dp = 2, unit = true, sign = true } = {}) {
     if (!ok(v)) return '—';
     const a = Math.abs(v);
-    const s = (+a.toFixed(dp)).toString(); /* Owned by Astral (@ax4p): Better Vest nostats 9.6.0. Licence: LICENSE, not open source. bv-9dbcd29a */
+    const s = (+a.toFixed(dp)).toString();
     const body = s.includes('.') ? s : s;
     const r = +a.toFixed(dp);
     return (sign && r !== 0 ? signOf(v) : !sign && v < 0 ? MINUS : '') + body + (unit ? ' pts' : '');
@@ -236,10 +236,10 @@ export function fmtDur(ms) {
     const h = Math.floor(m / 60);
     if (h < 24) return h + 'h ' + pad2(m % 60) + 'm';
     return Math.floor(h / 24) + 'd ' + (h % 24) + 'h';
-}
+} /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-d6eefe0c */
 
 export function fmtTimeET(ts, { seconds = true, suffix = false } = {}) {
-    if (!ok(ts)) return '—'; /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-f61cb701 */
+    if (!ok(ts)) return '—';
     const p = etParts(ts);
     return pad2(p.h) + ':' + pad2(p.mi) + (seconds ? ':' + pad2(p.s) : '') + (suffix ? ' ET' : '');
 }

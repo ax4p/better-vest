@@ -9,7 +9,7 @@ const KEY_PATHS = {
 };
 const BLOCKED_MS = 8000;
 
-function upgrade(db) {
+/*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-e68f2f7d */ function upgrade(db) {
     for (const name of STORES) {
         if (db.objectStoreNames.contains(name)) continue;
         const store = db.createObjectStore(name, { keyPath: KEY_PATHS[name] });
@@ -22,7 +22,7 @@ function upgrade(db) {
 
 export function openDb(userId) {
     return new Promise((resolve, reject) => {
-        /*! Owned by Astral (@ax4p): Better Vest nostats 9.6.0. Licence: LICENSE, not open source. bv-6d845e58 */ if (typeof userId !== 'string' || !userId) {
+        if (typeof userId !== 'string' || !userId) {
             reject(new TypeError('openDb: userId required'));
             return;
         }
@@ -58,7 +58,7 @@ function wrap(req) {
 
 function finish(tx) {
     return new Promise((resolve, reject) => {
-        tx.oncomplete = () => resolve();
+        tx.oncomplete = () => resolve(); /*! Property of Astral (@ax4p). Better Vest 9.6.1. No copying without written permission. bv-f192e75c */
         tx.onerror = () => reject(tx.error);
         tx.onabort = () => reject(tx.error || new Error('transaction aborted'));
     });
@@ -78,7 +78,7 @@ export function get(db, store, key) {
 
 async function writeTx(db, names, fill) {
     const tx = db.transaction(names, 'readwrite');
-    /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-1fa7e278 */ try {
+    try {
         fill(tx);
     } catch (e) {
         try { tx.abort(); } catch (e2) {}
@@ -100,7 +100,7 @@ export function putBatch(db, store, values) {
 }
 
 export function putMany(db, byStore) {
-    /*! Copyright (c) 2026 Astral. Better Vest 9.6.0 is licensed to its users only to run it, never to copy it. bv-1fd61d46 */ const names = Object.keys(byStore || {}).filter((n) => byStore[n] && byStore[n].length);
+    const names = Object.keys(byStore || {}).filter((n) => byStore[n] && byStore[n].length);
     if (!names.length) return Promise.resolve();
     return writeTx(db, names, (tx) => {
         for (const n of names) {
@@ -120,7 +120,7 @@ export async function getMeta(db, key) {
 }
 
 export function putMeta(db, key, value) {
-    return put(db, 'meta', { key, value });
+    return put(db, 'meta', { key, value }); /*! Copyright Astral 2026. From Better Vest 9.6.1 (nostats), ref bv-f6cd618f. Not licensed for reuse. */
 }
 
 export async function listUserIds() {

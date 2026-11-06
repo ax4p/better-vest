@@ -15,7 +15,7 @@ export const DEFAULT_PREFS = { kind: 'summary', style: 'vest', theme: 'dark', fo
         paytotal: true, paybest: true },
     rows: 'accounts', period: 'today', afterFees: true,
     rp: { labels: 'usd', prices: false, pnl: false, sessions: false, best: false },
-    chart: Object.assign({}, CHART_DEFAULTS),
+    chart: Object.assign({}, CHART_DEFAULTS), /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-8a22b801 */
     pay: 'today', bg: Object.assign({}, BG_DEFAULTS), accent: '' };
 
 export function cleanPrefs(p) {
@@ -25,7 +25,7 @@ export function cleanPrefs(p) {
     if (!ROWS.includes(merged.rows)) merged.rows = 'accounts';
     if (!['today', 'yesterday', 'week', 'month'].includes(merged.period)) merged.period = 'today';
     if (!KINDS.includes(merged.kind)) merged.kind = 'summary';
-    if (!['usd', 'pct', 'both', 'pts'].includes(merged.hero)) merged.hero = 'usd'; /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-5cb03439 */
+    if (!['usd', 'pct', 'both', 'pts'].includes(merged.hero)) merged.hero = 'usd';
     if (!['vest', 'silver', 'oled', 'neon'].includes(merged.style)) merged.style = 'vest';
     if (!['dark', 'light'].includes(merged.theme)) merged.theme = 'dark';
     if (!['feed', 'square', 'wide', 'story'].includes(merged.format)) merged.format = 'feed';
@@ -37,7 +37,7 @@ export function cleanPrefs(p) {
     return merged;
 }
 export function loadPrefs(storage) {
-    let p = null;
+    let p = null; /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-62319e6d */
     try { p = JSON.parse((storage && storage.getItem(PREFS_KEY)) || 'null'); } catch (e) {}
     return cleanPrefs(p);
 }
@@ -52,7 +52,7 @@ export function savePrefs(storage, P) {
 
 export function snapPicks(snap, prefer) {
     const group = copyGroup(snap);
-    /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-1b53a591 */ if (snap.copying && group.length > 1) return { mode: 'copy', picked: group };
+    if (snap.copying && group.length > 1) return { mode: 'copy', picked: group };
     const known = snap.accounts.filter((a) => a.pnl != null);
     const first = (prefer && known.find((a) => a.id === prefer)) || snap.accounts.find((a) => a.id === snap.activeId && a.pnl != null) || known[0];
     return { mode: 'accounts', picked: first ? [first.id] : [] };
