@@ -22,7 +22,7 @@ export function fmtMoneyParts(v) {
         cents: String(cents % 100).padStart(2, '0')
     };
 }
-/*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-51117b3d */ export const fmtMoney = (v) => { const p = fmtMoneyParts(v); return p.int + '.' + p.cents; };
+export const fmtMoney = (v) => { const p = fmtMoneyParts(v); return p.int + '.' + p.cents; };
 export const fmtMilestone = (amount) => '$' + (amount >= 1000 ? amount / 1000 + 'K' : amount);
 const dm = (key) => fmtDate(key, 'dm');
 
@@ -34,7 +34,7 @@ function bars(vals, w, h, gap, uid) {
     let out = '';
     vals.forEach((v, i) => {
         const x = i * (bw + gap);
-        if (!(v > 0)) {
+        /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.6.2. bv-89adb5fb */ if (!(v > 0)) {
             out += `<rect x="${x.toFixed(2)}" y="${h - 1}" width="${bw.toFixed(2)}" height="1" rx=".5" fill="rgb(255 255 255 / .18)"/>`;
             return;
         }
@@ -103,8 +103,8 @@ export function buildCard(S, opts = {}) {
 }
 
 export function fitCard(card) {
-    const q = (k) => card.querySelector(`[data-k="${k}"]`);
-    /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.6.1. bv-f6bc77b4 */ const hero = q('hero'), hv = q('hv');
+    const q = (k) => card.querySelector(`[data-k="${k}"]`); /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-6afcee86 */
+    const hero = q('hero'), hv = q('hv');
     let size = 82;
     hero.style.fontSize = size + 'px';
     while (hv.offsetWidth > 352 && size > 30) { size -= 1; hero.style.fontSize = size + 'px'; }

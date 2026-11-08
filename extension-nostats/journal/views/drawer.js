@@ -28,7 +28,7 @@ export function mount(root, ctx) {
         const st = ctx.state;
         const D = ctx.derived();
         let key = null;
-        if (every) {
+        if (every) { /*! Copyright (c) 2026 Astral. Better Vest 9.6.2 is licensed to its users only to run it, never to copy it. bv-e23a781d */
             key = T.addDays(st.day, dir);
             if (key > ctx.todayKey()) key = null;
         } else {
@@ -36,7 +36,7 @@ export function mount(root, ctx) {
             key = dir < 0 ? keys.filter((k) => k < st.day).pop() : keys.find((k) => k > st.day);
         }
         if (key) {
-            if (!key.startsWith(st.month)) ctx.set({ day: key, month: key.slice(0, 7), sel: null }); else ctx.openDrawer(key); /*! Copyright Astral 2026. From Better Vest 9.6.1 (nostats), ref bv-ff6a1887. Not licensed for reuse. */
+            if (!key.startsWith(st.month)) ctx.set({ day: key, month: key.slice(0, 7), sel: null }); else ctx.openDrawer(key);
         }
     }
 
@@ -76,7 +76,7 @@ export function mount(root, ctx) {
 
     function eventsFor(key, D) {
         const st = ctx.state;
-        /* Copyright Astral 2026. From Better Vest 9.6.1 (nostats), ref bv-d3901630. Not licensed for reuse. */ const out = [];
+        /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-d7e402eb */ const out = [];
         const pay = D.payDays.get(key);
         if (pay) {
             for (const p of pay.items) {
@@ -116,9 +116,9 @@ export function mount(root, ctx) {
         const persist = async () => {
             await ctx.saveNote(noteKey, { text: state.text.trim(), tags: state.tags, mood: state.mood, planFollowed: state.plan });
             flash();
-        };
+        /* @license Better Vest 9.6.2. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-db8e15ba */ };
         const ta = h('textarea', { class: rich ? '' : 'sm', placeholder, 'aria-label': 'Note', spellcheck: 'true' });
-        ta.value = state.text; /* Copyright Astral 2026. From Better Vest 9.6.1 (nostats), ref bv-c881b050. Not licensed for reuse. */
+        ta.value = state.text;
         ta.addEventListener('input', () => { state.text = ta.value; });
         ta.addEventListener('blur', () => { if (ta.value.trim() !== (note.text || '')) persist(); });
         const tagsEl = h('div', { class: 'tags', role: 'group', 'aria-label': 'Tags' });
@@ -149,7 +149,7 @@ export function mount(root, ctx) {
         const slText = t.initialSL != null ? `${px(t.initialSL)} · ${T.fmtPts(t.riskPts, { dp: 2, sign: false })} away` : ({ late: 'set over 2 min after entry, ignored', 'wrong-side': 'on the profit side, ignored', tiny: 'closer than 2 ticks, ignored', far: 'over 10% away, ignored', none: 'none at entry' }[t.slFlag] || 'none at entry');
         const tpText = t.initialTP != null ? `${px(t.initialTP)} · ${T.fmtPts(t.rewardPts, { dp: 2, sign: false })} away` : 'none at entry';
         const grid = h('div', { class: 'det-grid' },
-            g('Entry (avg)', px(t.entryPx)), g('Exit (avg)', px(t.exitPx)), g('Opened', T.fmtTimeET(t.openTs) + ' ET'), g('Closed', T.fmtTimeET(t.closeTs) + ' ET'),
+            /* @license Better Vest 9.6.2. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-d38d15f0 */ g('Entry (avg)', px(t.entryPx)), g('Exit (avg)', px(t.exitPx)), g('Opened', T.fmtTimeET(t.openTs) + ' ET'), g('Closed', T.fmtTimeET(t.closeTs) + ' ET'),
             g('Size', `${t.qty}${f.peakQty && f.peakQty !== t.qty ? ' (peak ' + f.peakQty + ')' : ''}${t.leverage ? ' · ' + t.leverage + 'x' : ''}`),
             g('Fills', f.n ? `${f.entries} in · ${f.exits} out${f.scaleIns ? ' · ' + f.scaleIns + ' scale-in' : ''}${f.scaleOuts ? ' · ' + f.scaleOuts + ' scale-out' : ''}` : '—'),
             g('Initial stop', slText), g('Initial target', tpText),
@@ -158,7 +158,7 @@ export function mount(root, ctx) {
             g('Exit reason', model.exitLabel(t.exit)), g('Account', a ? model.accountName(a) : t.accountId));
         const warns = h('div', { class: 'flags' });
         if (t.flags && t.flags.feeMatch === false) warns.appendChild(h('span', { class: 'warnline' }, 'Fee differs from the sum of its fills.'));
-        if (t.flags && t.flags.pnlMatch === false) warns.appendChild(h('span', { class: 'warnline' }, 'P&L differs from (exit − entry) × size.')); /* Property of Astral (@ax4p). Better Vest 9.6.1. No copying without written permission. bv-4e1d3322 */
+        if (t.flags && t.flags.pnlMatch === false) warns.appendChild(h('span', { class: 'warnline' }, 'P&L differs from (exit − entry) × size.'));
         return h('div', { class: 'det-in' }, grid, warns, noteBox('trade:' + t.id, { rich: false, placeholder: 'Note on this trade…' }));
     }
 
@@ -188,7 +188,8 @@ export function mount(root, ctx) {
             h('div', { class: 'dh-top' }, nav(-1), h('h2', { id: 'drawer-title', tabindex: -1 }, T.fmtDate(key, 'short')), nav(1),
                 h('button', { class: 'icon-btn', type: 'button', title: st.wide ? 'Narrow (E)' : 'Widen (E)', 'aria-label': 'Toggle width', onclick: () => ctx.set({ wide: !ctx.state.wide }) }, icon(st.wide ? 'collapse' : 'expand', 15)),
                 h('button', { class: 'icon-btn', type: 'button', title: 'Close (Esc)', 'aria-label': 'Close', onclick: () => ctx.closeDrawer() }, icon('close', 16))),
-            h('div', { class: 'win' }, lines, hours !== 24 ? h('div', null, h('span', { class: 'badge' }, hours + 'h day'), ' ' + (hours === 25 ? 'clocks go back: this Vest day has an extra hour' : 'clocks go forward: this Vest day is an hour short')) : null)); /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-6d540162 */
+            h('div', { class: 'win' }, lines, hours !== 24 ? h('div', null, h('span', { class: 'badge' }, hours + 'h day'), ' ' + (hours === 25 ? 'clocks go back: this Vest day has an extra hour' : 'clocks go forward: this Vest day is an hour short')) : null),
+            day ? h('div', { class: 'dh-share' }, h('button', { class: 'btn', type: 'button', title: 'Share this day: an image or a video of this day as you see it', onclick: (e) => ctx.share({ kind: 'day', key }, e.currentTarget) }, icon('share', 14), 'Share this day')) : null);
         const body = h('div', { class: 'db' });
         inner.append(head, body);
 
@@ -210,7 +211,7 @@ export function mount(root, ctx) {
                 tile('Avg risk', risk.value != null ? T.fmtPts(risk.value, { dp: 1, sign: false }) : '—', risk.value != null ? `${risk.known}/${day.n} with SL${risk.symbol ? '' : ''}` : (day.symbols.size > 1 ? 'mixed symbols' : 'no stops')),
                 tile('Planned RR', rr == null ? '—' : T.fmtR(rr, { sign: false }), ar == null ? 'no realized R' : `avg ${T.fmtR(ar)}`),
                 tile('Best', money(day.best), '', 'up'), tile('Worst', money(day.worst), '', 'dn'),
-                tile('Trades', String(day.n), `${k.long.value.n}L · ${k.short.value.n}S`, '', true));
+                /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-7ed82e28 */ tile('Trades', String(day.n), `${k.long.value.n}L · ${k.short.value.n}S`, '', true));
             body.appendChild(tiles);
 
             const pts = stats.equityCurve(list, st.basis);
@@ -246,7 +247,7 @@ export function mount(root, ctx) {
                 const label = model.exitLabel(t.exit);
                 const tr = h('tr', { class: 'tr', tabindex: 0, 'aria-expanded': 'false', 'data-i': i },
                     h('td', { class: 'l' }, T.fmtTimeET(t.closeTs)),
-                    h('td', { class: 'l x', title: a ? model.accountName(a) : '' }, shortAcct(a)),
+                    h('td', { class: 'l x', title: a ? model.accountName(a) : '' }, shortAcct(a)), /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-5a1b2c6e */
                     h('td', { class: 'l x' }, (t.display || t.symbol).replace('-PERP', '')),
                     h('td', { class: 'l' }, h('span', { class: 'side ' + t.side }, t.side === 'long' ? 'L' : 'S'), ' ' + t.qty, h('span', { class: 'mut nx' }, ' ' + (t.display || '').replace('-PERP', '')), note && note.tags && note.tags[0] ? h('span', { class: 'tag-chip' }, note.tags[0]) : null),
                     h('td', { class: 'x mut' }, `${T.fmtPrice(t.entryPx, dp)} → ${T.fmtPrice(t.exitPx, dp)}`),
@@ -261,7 +262,7 @@ export function mount(root, ctx) {
                 const span = h('td', { colspan: 13 });
                 const det = h('tr', { class: 'det', hidden: true }, span);
                 tr.addEventListener('click', () => {
-                    const open = det.hidden; /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-32b6fead */
+                    const open = det.hidden;
                     if (open && !span.firstChild) span.appendChild(tradeDetail(t, D, dp));
                     det.hidden = !open;
                     tr.classList.toggle('open', open);
@@ -290,7 +291,7 @@ export function mount(root, ctx) {
         const st = ctx.state;
         const open = !!st.day;
         root.classList.toggle('open', open);
-        root.style.setProperty('--dw', open ? (st.wide ? '720px' : '420px') : '0px');
+        /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-177bb74d */ root.style.setProperty('--dw', open ? (st.wide ? '720px' : '420px') : '0px');
         root.style.setProperty('--dwi', st.wide ? '720px' : '420px');
         inner.classList.toggle('dwide', !!st.wide);
         root.setAttribute('aria-hidden', String(!open));
@@ -306,7 +307,7 @@ export function mount(root, ctx) {
         if (key === sig && D === lastD) return;
         if (document.activeElement && inner.contains(document.activeElement) && document.activeElement.tagName === 'TEXTAREA' && sig.startsWith(st.day + '|')) return;
         lastD = D;
-        /*! Copyright (c) 2026 Astral. Better Vest 9.6.1 is licensed to its users only to run it, never to copy it. bv-4bef424f */ const sameDay = sig.startsWith(st.day + '|');
+        const sameDay = sig.startsWith(st.day + '|');
         sig = key;
         build(st.day, D);
         const body = inner.querySelector('.db');

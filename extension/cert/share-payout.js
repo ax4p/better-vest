@@ -11,14 +11,14 @@ export const paidAt = (p) => (p && (p.executedAt || p.updatedAt || p.createdAt))
 export function receivedPayouts(list) {
     const seen = new Set();
     const out = [];
-    /*! Copyright (c) 2026 Astral. Better Vest 9.6.1 is licensed to its users only to run it, never to copy it. bv-eb32cb12 */ for (const p of Array.isArray(list) ? list : []) {
+    for (const p of Array.isArray(list) ? list : []) {
         if (!p || typeof p !== 'object' || p.status !== 'EXECUTED' || !Number.isFinite(p.net) || !(paidAt(p) > 0)) continue;
         const id = String(p.id);
         if (seen.has(id)) continue;
         seen.add(id);
         out.push(p);
     }
-    return out.sort((a, b) => paidAt(a) - paidAt(b) || (String(a.id) < String(b.id) ? -1 : 1));
+    /* Property of Astral (@ax4p). Better Vest 9.6.2. No copying without written permission. bv-3277ebc2 */ return out.sort((a, b) => paidAt(a) - paidAt(b) || (String(a.id) < String(b.id) ? -1 : 1));
 }
 
 export function payoutModel(payouts, o) {
@@ -52,7 +52,7 @@ export function payoutModel(payouts, o) {
 
 export function ordinal(n) {
     const v = Math.abs(Math.round(n)), t = v % 100;
-    return v + (t >= 11 && t <= 13 ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' })[v % 10] || 'th');
+    return v + (t >= 11 && t <= 13 ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' })[v % 10] || 'th'); /*! Property of Astral (@ax4p). Better Vest 9.6.2. No copying without written permission. bv-c40b56a6 */
 }
 
 
@@ -80,7 +80,7 @@ export function samplePayouts(today) {
     out.push(samplePay(out.length, SAMPLE_PAY_ACCOUNTS[0][0], 4823.5, etWallToUtc(y, m, d, 14, 32)));
     return out;
 }
-function samplePay(i, acc, net, at) { /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.6.1. bv-678e590e */
+function samplePay(i, acc, net, at) {
     return { id: 'sample-pay-' + i, accountId: acc, targetAccountId: 'sample-primary', gross: r2(net / 0.8), net, platformCut: r2(net / 0.8 - net),
         status: 'EXECUTED', failureReason: null, createdAt: at - 3 * 3600e3, updatedAt: at, executedAt: at, counted: true, sample: true };
 }

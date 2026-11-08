@@ -23,8 +23,8 @@ export const vcWords = (s) => String(s || '').toLowerCase()
     .replace(/\bbreak-?even\b/g, 'break even')
     .replace(/\bbreakeven\b/g, 'break even')
     .replace(/[^a-z' ]+/g, ' ')
-    /* Copyright Astral 2026. From Better Vest 9.6.1 (standard), ref bv-0499acd6. Not licensed for reuse. */ .replace(/\s+/g, ' ')
-    .trim();
+    .replace(/\s+/g, ' ')
+    /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-92c9b020 */ .trim();
 
 const clean = (s) => vcWords(s).split(' ').filter((w) => w && !FILLER.has(w)).join(' ');
 
@@ -54,7 +54,7 @@ export function vcParse(text, opts) {
     if (!said) return null;
     const id = TABLE.get(said);
     if (!id) return null;
-    return { id, said, grows: GROWS.has(said) }; /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-46430875 */
+    /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-89d5201c */ return { id, said, grows: GROWS.has(said) };
 }
 
 export function vcPending(text, opts) {

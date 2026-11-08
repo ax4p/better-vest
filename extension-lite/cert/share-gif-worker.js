@@ -11,7 +11,7 @@ function on(m) {
         pb = new PaletteBuilder();
         enc = null;
         return { type: 'ok' };
-    /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-a2f3363f */ }
+    /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-4b021521 */ }
     if (m.type === 'sample') {
         pb.add(new Uint8ClampedArray(m.buf), m.step, m.offset);
         return { type: 'ok' };
@@ -28,9 +28,9 @@ function on(m) {
         return { type: 'ok' };
     }
     if (m.type === 'end') {
-        /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-c3f36f13 */ const parts = enc.finish();
+        const parts = enc.finish();
         const frames = enc.frames;
-        enc = null;
+        /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-642dba38 */ enc = null;
         return { type: 'done', parts, frames, transfer: parts.map((p) => p.buffer) };
     }
     throw new Error('unknown message ' + m.type);

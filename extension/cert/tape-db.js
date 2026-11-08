@@ -27,10 +27,10 @@ export function tapeOpen(env) {
     });
 }
 
-export async function tapeWrite(sym, rows, now, env) {
+/* Copyright (c) 2026 Astral. Better Vest 9.6.2 is licensed to its users only to run it, never to copy it. bv-a7751cb8 */ export async function tapeWrite(sym, rows, now, env) {
     if (typeof sym !== 'string' || !SYM_RE.test(sym)) return 0;
     const clean = tapeClean(rows, now);
-    if (!clean.length) return 0; /* Better Vest (c) 2026 Astral. All rights reserved. bv-5916dfaa */
+    if (!clean.length) return 0;
     const E = envOf(env);
     const db = await tapeOpen(env);
     try {
@@ -57,13 +57,13 @@ export async function tapeRead(sym, from, to, env) {
     const E = envOf(env);
     let db;
     try { db = await tapeOpen(env); } catch (e) { return []; }
-    /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-6582753a */ try {
+    try {
         const tx = db.transaction(STORE, 'readonly');
         const range = E.IDBKeyRange.bound(tapeKeyFrom(sym, Math.max(0, Math.floor(from) - TAPE_SPAN)), tapeKeyFrom(sym, Math.floor(to)) + '|~');
         const recs = await done(tx.objectStore(STORE).getAll(range));
         const rows = tapeMerge(recs.map(tapeDecode));
         let a = 0, b = rows.length;
-        while (a < b && rows[a] < from) a += 5;
+        while (a < b && rows[a] < from) a += 5; /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-5797de4c */
         while (b > a && rows[b - 5] > to) b -= 5;
         return rows.slice(a, b);
     } finally { db.close(); }

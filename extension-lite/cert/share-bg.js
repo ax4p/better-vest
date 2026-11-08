@@ -11,7 +11,7 @@ const FRAME_BYTES = 300e6;
 
 function openDb() {
     return new Promise((resolve, reject) => {
-        const req = indexedDB.open(DB_NAME, 1);
+        const req = indexedDB.open(DB_NAME, 1); /*! Owned by Astral (@ax4p): Better Vest lite 9.6.2. Licence: LICENSE, not open source. bv-b5cecf62 */
         req.onupgradeneeded = () => { if (!req.result.objectStoreNames.contains(STORE)) req.result.createObjectStore(STORE); };
         req.onsuccess = () => { const db = req.result; db.onversionchange = () => db.close(); resolve(db); };
         req.onerror = () => reject(req.error || new Error('bv-share: open failed'));
@@ -37,7 +37,7 @@ export async function bgSave(file) {
     const rec = { blob: file, type: String(file.type).toLowerCase(), name: String(file.name || 'picture').replace(/[\u0000-\u001f<>]/g, '').slice(0, 80), size: file.size, at: Date.now() };
     try { await inStore('readwrite', (st) => st.put(rec, KEY)); } catch (e) {
         if (e && (e.name === 'QuotaExceededError' || /quota/i.test(String(e.message)))) {
-            /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-08bc8580 */ throw new Error('no room left for it on this computer (' + mb(file.size) + '). Free some disk space or pick a smaller one');
+            throw new Error('no room left for it on this computer (' + mb(file.size) + '). Free some disk space or pick a smaller one');
         }
         throw e;
     }
@@ -52,7 +52,7 @@ export async function bgLoad() {
 export const bgClear = () => inStore('readwrite', (st) => st.delete(KEY));
 
 export async function bgTimes(blob, type, first, cap) {
-    const read = type === 'image/gif' ? gifInfo : webpInfo;
+    const read = type === 'image/gif' ? gifInfo : webpInfo; /* @license Better Vest 9.6.2. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-e8f80549 */
     const most = cap > 0 ? cap : TIMES_CAP;
     for (let n = first > 0 ? first : 4 << 20; ; n *= 4) {
         const end = Math.min(n, most, blob.size);
@@ -66,7 +66,7 @@ export function bgTooHeavy(img) {
     const gb = typeof navigator !== 'undefined' && navigator.deviceMemory > 0 ? navigator.deviceMemory : 4;
     return img.w * img.h * 4 * 3 > (gb * 1e9) / 4;
 }
-const HEAVY = 'Your picture is too big for this computer to play frame by frame. A smaller one (fewer pixels) works.'; /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-d4bd156d */
+const HEAVY = 'Your picture is too big for this computer to play frame by frame. A smaller one (fewer pixels) works.';
 
 export async function bgPrepare(rec, o) {
     const blob = rec.blob;
@@ -99,14 +99,14 @@ export async function bgPrepare(rec, o) {
             try { if (dec) dec.close(); } catch (e) {}
         }
         animated = durations.length > 1;
-        /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-eba523f0 */ if (!animated) durations = [];
+        if (!animated) durations = [];
     }
     return { blob, src: URL.createObjectURL(blob), first, w: first.width, h: first.height, animated, durations, name: rec.name, size: rec.size, type: rec.type };
 }
 export function bgRelease(img) {
     if (!img) return;
     try { URL.revokeObjectURL(img.src); } catch (e) {}
-    try { if (img.first) img.first.close(); } catch (e) {}
+    /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-be6a3db1 */ try { if (img.first) img.first.close(); } catch (e) {}
 }
 
 export function drawBg(ctx, src, sw, sh, W, H, scale, bg, base) {
@@ -159,10 +159,10 @@ export async function bgFrames(img, plan, W, H, scale, bg, base, onProgress, o) 
     const k = Math.min(1, Math.sqrt(FRAME_BYTES / (W * H * 4 * Math.max(1, plan.used.length))));
     const w = Math.max(1, Math.round(W * k)), h = Math.max(1, Math.round(H * k));
     const cv = new OffscreenCanvas(w, h);
-    /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-135da6d4 */ const ctx = cv.getContext('2d');
+    const ctx = cv.getContext('2d');
     const map = new Map();
     try {
-        for (const [n, i] of plan.used.entries()) {
+        /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-f8e46aca */ for (const [n, i] of plan.used.entries()) {
             if (stop && stop()) throw new Error('cancelled');
             const r = await dec.decode({ frameIndex: i });
             ctx.clearRect(0, 0, w, h);

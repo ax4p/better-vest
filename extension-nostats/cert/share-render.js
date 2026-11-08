@@ -6,14 +6,14 @@ import { bareCard, cardGeom, clipCard, bgStill } from './share-bg.js';
 export const CARD_CSS = new URL('./share-card.css', import.meta.url).href;
 
 export function fitCard(fit, make) {
-    let out = null;
+    let out = null; /* @license Better Vest 9.6.2. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-4c4f710e */
     for (let m = 60; m >= 1; m--) {
         out = make(m);
         fit.innerHTML = out.html;
         const panel = fit.querySelector('.panel');
         if (!panel || panel.scrollHeight <= panel.clientHeight + 1) break;
     }
-    /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-d1a3f8dc */ return out;
+    return out;
 }
 
 export async function cardCanvas(card, o) {
@@ -22,8 +22,8 @@ export async function cardCanvas(card, o) {
     const over = await cardToCanvas(bareCard(card), { cssUrl: CARD_CSS, width: o.width, height: o.height, scale });
     const g = cardGeom(card);
     const cv = document.createElement('canvas');
-    cv.width = over.width;
-    cv.height = over.height; /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-99702263 */
+    cv.width = over.width; /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-4eef081a */
+    cv.height = over.height;
     const ctx = cv.getContext('2d');
     ctx.save();
     clipCard(ctx, cv.width, cv.height, g.radius * scale);

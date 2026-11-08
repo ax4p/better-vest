@@ -26,9 +26,9 @@ Each [release](https://github.com/ax4p/better-vest/releases/latest) has three zi
 
 | Zip | What's in it |
 |---|---|
-| `better-vest-9.6.1.zip` | **Standard.** Everything. Take this one if you're not sure. |
-| `better-vest-lite-9.6.1.zip` | **Lite.** Everything but the spoken voice lines, under 1 MB. |
-| `better-vest-nostats-9.6.1.zip` | **No stats.** Standard without the usage stats and the error reports. See [Security](SECURITY.md#the-usage-stats). |
+| `better-vest-9.6.2.zip` | **Standard.** Everything. Take this one if you're not sure. |
+| `better-vest-lite-9.6.2.zip` | **Lite.** Everything but the spoken voice lines, under 1 MB. |
+| `better-vest-nostats-9.6.2.zip` | **No stats.** Standard without the usage stats and the error reports. See [Security](SECURITY.md#the-usage-stats). |
 
 Then load it in Chrome: the [video and steps](https://bv.astrals.dev/#install) on the site, or the [install guide](CONTRIBUTING.md) here. After that it updates itself.
 
@@ -43,12 +43,12 @@ Then load it in Chrome: the [video and steps](https://bv.astrals.dev/#install) o
 - **[Limits and locks](https://bv.astrals.dev/features/limits):** a daily loss and profit limit, a tilt guard, a lock button for the days you should stop, and a spending limit for new Vest accounts a day, a week and a month, one click away on the dock.
 - **A voice** that says what just filled, and a countdown to the New York open and the news.
 - **Your look:** themes, your own colors, a background behind Vest, and a compact dock with only the buttons you use.
-- **[P&L cards](https://bv.astrals.dev/features/pnl-cards)** of your day as an image, a video or a GIF, and a payout card.
-- **[The Calendar](https://bv.astrals.dev/features/calendar):** every trade from every account as a daily P&L calendar, with what you spent on accounts next to what you got paid out.
+- **[P&L cards](https://bv.astrals.dev/features/pnl-cards)** of your day as an image, a video or a GIF, a payout card, a card to post when you pass an evaluation or get paid out, and your cards right beside Vest's own Share PnL.
+- **[The Calendar](https://bv.astrals.dev/features/calendar):** every trade from every account as a daily P&L calendar, with what you spent on accounts next to what you got paid out. Share the month or a day as you see it.
 
 ## Is it safe?
 
-- **Scanned.** `better-vest-9.6.1.zip` comes back clean on VirusTotal, with no engine flagging it ([report](https://www.virustotal.com/gui/file/bc2d9221cc2f332efd53899872caea7793885d5b3db10a7288ec1f660119223f)).
+- **Scanned.** `better-vest-9.6.2.zip` comes back clean on VirusTotal, with no engine flagging it ([report](https://www.virustotal.com/gui/file/a77c5ed563198ecb077066c7819486915aabbca6755f27273b2f1c3910b71632)).
 - **Readable.** The [`extension`](extension) folder is the Standard zip, file for file, not minified.
 - **Signed updates.** Your copy checks my signature and every file before it writes anything.
 - **Safety switches.** If Vest changes something, I can pause one feature until it's fixed, for everyone or only for the versions it hits, and closing always keeps working ([how](SECURITY.md#safety-switches)).

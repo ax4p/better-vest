@@ -16,8 +16,8 @@ function palette(card) {
     const v = (n, d) => (cs.getPropertyValue(n) || '').trim() || d;
     const cu = v('--k-cu', '#00d68f'), cd = v('--k-cd', '#ff3b5c');
     return { grid: v('--k-grid', 'rgba(255,255,255,.05)'), dim: v('--k-dim', '#737373'), mut: v('--k-mut', '#a3a3a3'), text: v('--k-text', '#fafafa'), bg: v('--k-bg', '#0a0a0a'),
-        up: v('--k-up', '#22c55e'), down: v('--k-down', '#ff3b5c'), cu, cd, wu: v('--k-wu', cu), wd: v('--k-wd', cd), bu: v('--k-bu', cu), bd: v('--k-bd', cd) };
-/*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-3428b8bf */ }
+        up: v('--k-up', '#22c55e'), down: v('--k-down', '#ff3b5c'), cu, cd, wu: v('--k-wu', cu), wd: v('--k-wd', cd), bu: v('--k-bu', cu), bd: v('--k-bd', cd) }; /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-ce41db8c */
+}
 function paint(ctx, d, P) {
     const has = (c) => (' ' + d.c + ' ').includes(' ' + c + ' ');
     ctx.save();
@@ -67,13 +67,13 @@ function paint(ctx, d, P) {
         ctx.fillStyle = fill;
         ctx.fillText(d.s, d.x, d.y);
     } else if (d.t === 'group') {
-        for (const part of d.parts) paint(ctx, part, P);
+        for (const part of d.parts) paint(ctx, part, P); /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-4c829ed8 */
     }
     ctx.restore();
 }
 
 export async function recordCanvas(canvas, plan, draw, o) {
-    const opt = o || {}; /*! Copyright (c) 2026 Astral. Better Vest 9.6.1 is licensed to its users only to run it, never to copy it. bv-f8eca264 */
+    const opt = o || {};
     const mime = opt.mime || videoMime();
     if (!mime) throw new Error('this browser cannot record video');
     const stream = canvas.captureStream(plan.fps);
@@ -111,9 +111,9 @@ export async function replayStage(card, scene, o) {
     const cr = chart.getBoundingClientRect(), kr = card.getBoundingClientRect();
     const k = kr.width / o.width;
     const ox = (cr.left - kr.left) / k, oy = (cr.top - kr.top) / k;
-    if (document.fonts && document.fonts.load) { try { await document.fonts.load('700 11px Inter'); await document.fonts.load('400 10px Inter'); } catch (e) {} } /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-3523a09d */
+    if (document.fonts && document.fonts.load) { try { await document.fonts.load('700 11px Inter'); await document.fonts.load('400 10px Inter'); } catch (e) {} }
     const P = palette(card);
-    const canvas = document.createElement('canvas');
+    /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-76b0a47d */ const canvas = document.createElement('canvas');
     canvas.width = baseCanvas.width;
     canvas.height = baseCanvas.height;
     const ctx = canvas.getContext('2d');
@@ -143,11 +143,11 @@ export async function replayStage(card, scene, o) {
 
 export const frameCtx = (scene) => { const tagItem = scene.items.find(isLastTag); return { tagItem, tick: tagItem ? sceneTick(scene) : 0 }; };
 export function frameItems(scene, p, tape, fc) {
-    /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-eef67deb */ const { tagItem, tick } = fc || frameCtx(scene);
+    const { tagItem, tick } = fc || frameCtx(scene);
     const out = [];
     const cur = Math.floor(p), frac = p - cur;
     const live = tagItem && p < scene.n;
-    const q = tape && frac > 0 && scene.type !== 'ha' ? tape.form(cur, frac) : null;
+    /*! Property of Astral (@ax4p). Better Vest 9.6.2. No copying without written permission. bv-eb380132 */ const q = tape && frac > 0 && scene.type !== 'ha' ? tape.form(cur, frac) : null;
     const now = tape && frac > 0 ? tape.at(cur, frac) : null;
     let close = null;
     for (const it of scene.items) {
@@ -200,7 +200,7 @@ export function liveTag(d, close, scene, tick) {
     const t0 = tick > 0 ? tick : 0.01;
     const px = Math.round(priceAtY(scene, close.y) / t0) * t0;
     const s = px.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    /*! Owned by Astral (@ax4p): Better Vest standard 9.6.1. Licence: LICENSE, not open source. bv-33537b41 */ return { t: 'group', parts: [Object.assign({}, r, { y: r.y + dy, c: close.up ? 'cu' : 'cd' }), Object.assign({}, t, { y: t.y + dy, s })] };
+    return { t: 'group', parts: [Object.assign({}, r, { y: r.y + dy, c: close.up ? 'cu' : 'cd' }), Object.assign({}, t, { y: t.y + dy, s })] };
 }
 
 const hasC = (q, c) => (' ' + q.c + ' ').includes(' ' + c + ' ');
@@ -209,7 +209,7 @@ export function formingParts(d, f) {
     const parts = d.t === 'group' ? d.parts : [d];
     const body = parts.find((q) => q.t === 'rect' && (hasC(q, 'cu') || hasC(q, 'cd')));
     const up = body ? hasC(body, 'cu') : true;
-    const oy = body ? (up ? body.y + body.h : body.y) : null;
+    const oy = body ? (up ? body.y + body.h : body.y) : null; /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-2db3363f */
     let clipX = null;
     const out = [];
     for (const q of parts) {
@@ -231,9 +231,9 @@ export function formingParts(d, f) {
     }
     return { parts: out, clipX };
 }
-export function barKind(d) { /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-f237389e */
+export function barKind(d) {
     if (!d) return '';
-    if (d.t === 'path') return hasC(d, 'ou') || hasC(d, 'od') ? 'ohlc' : '';
+    /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-61f25823 */ if (d.t === 'path') return hasC(d, 'ou') || hasC(d, 'od') ? 'ohlc' : '';
     if (d.t !== 'group') return '';
     if (d.parts.some((q) => q.t === 'path' && hasC(q, 'ln'))) return 'line';
     const body = d.parts.some((q) => q.t === 'rect' && (hasC(q, 'cu') || hasC(q, 'cd')));
@@ -264,11 +264,11 @@ export function tapeShape(d, kind, q, scene) {
 }
 function paintForming(ctx, d, P, f) {
     const { parts, clipX } = formingParts(d, f);
-    ctx.save();
+    ctx.save(); /* Copyright Astral 2026. From Better Vest 9.6.2 (standard), ref bv-5e7de646. Not licensed for reuse. */
     if (clipX != null) { ctx.beginPath(); ctx.rect(-1e5, -1e5, clipX + 1e5, 2e5); ctx.clip(); }
     for (const q of parts) paint(ctx, q, P);
     ctx.restore();
-/*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-6b416953 */ }
+}
 
 export async function recordReplay(card, scene, o) {
     const mime = o.mime || videoMime();

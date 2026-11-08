@@ -8,14 +8,14 @@ const cents = (v) => Math.round(v * 100);
 
 export function certStats(payouts) {
     const list = Array.isArray(payouts) ? payouts : [];
-    const ps = payoutStats(list);
+    const ps = payoutStats(list); /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-e770fa53 */
     if (!ps.count) return null;
     const done = list
         .filter((p) => p.status === 'EXECUTED')
         .sort((a, b) => ((payTs(a) ?? 0) - (payTs(b) ?? 0)) || (a.id < b.id ? -1 : 1));
 
     const accountIds = new Set();
-    for (const p of done) if (p.accountId != null && p.accountId !== '') accountIds.add(String(p.accountId)); /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-36c167c3 */
+    for (const p of done) if (p.accountId != null && p.accountId !== '') accountIds.add(String(p.accountId));
 
     const largest = ps.largest;
     const hits = done.filter((p) => cents(p.net) === cents(largest));
@@ -59,7 +59,7 @@ export function certStats(payouts) {
         daily,
         milestones,
         reached,
-        next
+        next /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.6.2. bv-306edfd8 */
     };
 }
 
@@ -70,7 +70,7 @@ export function barSeries(S, maxBars = 45, minBars = 7) {
     for (let i = 0; i < days.length; i += step) {
         const chunk = days.slice(i, i + step);
         bars.push({ from: chunk[0].key, to: chunk[chunk.length - 1].key, net: chunk.reduce((s, d) => s + d.net, 0) });
-    } /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-4be0bd38 */
+    }
     const pad = Math.max(0, minBars - bars.length);
     const lead = Math.floor(pad / 2);
     const out = [];

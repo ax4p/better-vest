@@ -29,14 +29,14 @@ export function certStats(payouts) {
     }
     const keys = [...dayNet.keys()].sort();
     const firstKey = keys[0] || null;
-    const lastKey = keys[keys.length - 1] || null;
+    const lastKey = keys[keys.length - 1] || null; /*! Better Vest (c) 2026 Astral. All rights reserved. bv-a366f816 */
     const daily = [];
     if (firstKey) for (let k = firstKey; k <= lastKey; k = addDays(k, 1)) daily.push({ key: k, net: dayNet.get(k) || 0 });
 
     const milestones = ps.milestones.map((m) => ({
         amount: m.amount,
         reachedAt: m.reachedAt || null,
-        /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-fc26cbfb */ reachedKey: m.reachedAt ? payoutDayKey({ status: 'EXECUTED', executedAt: m.reachedAt, createdAt: m.reachedAt }, 'executed') : null
+        reachedKey: m.reachedAt ? payoutDayKey({ status: 'EXECUTED', executedAt: m.reachedAt, createdAt: m.reachedAt }, 'executed') : null
     }));
     const reachedList = milestones.filter((m) => m.reachedAt);
     const reached = reachedList.length ? reachedList[reachedList.length - 1] : null;
@@ -50,13 +50,13 @@ export function certStats(payouts) {
         accounts: accountIds.size,
         largest,
         largestCount: hits.length,
-        largestKey, /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-bb2785ca */
+        largestKey,
         firstTs: payTs(done[0]),
         lastTs: payTs(done[done.length - 1]),
         firstKey,
         lastKey,
         days: firstKey ? daysBetween(firstKey, lastKey) + 1 : 0,
-        daily,
+        /* Owned by Astral (@ax4p): Better Vest standard 9.6.2. Licence: LICENSE, not open source. bv-c7c1deee */ daily,
         milestones,
         reached,
         next

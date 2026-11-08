@@ -26,11 +26,11 @@ export function cleanSpend(x) {
         const at = num(b.at), c = num(b.c), q = Math.round(num(b.q));
         if (!(at > 0) || !(c >= 0)) continue;
         live.push({ at, c: Math.round(c), q: q >= 1 && q <= 50 ? q : 1 });
-    /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-7b259f5a */ }
+    }
     return { on: true, stop: false, buys, live };
 }
 
-export function spendScope(rec, o = {}) {
+export function spendScope(rec, o = {}) { /*! Owned by Astral (@ax4p): Better Vest nostats 9.6.2. Licence: LICENSE, not open source. bv-79fc7a83 */
     if (!rec || !rec.on) return { buys: [], live: [] };
     const phases = PHASES[o.scope] || null;
     const pick = Array.isArray(o.accounts) ? new Set(o.accounts) : null;
@@ -72,7 +72,7 @@ export function spendDays(scoped, mode = 'vest') {
 }
 
 export function spendAll(scoped) {
-    let c = 0, n = 0, later = 0;
+    let c = 0, n = 0, later = 0; /*! Copyright (c) 2026 Astral. Better Vest 9.6.2 is licensed to its users only to run it, never to copy it. bv-ac41917c */
     for (const b of scoped.buys) { c += b.c; n++; if (!(b.at > 0)) later++; }
     for (const b of scoped.live) { c += b.c; n += b.q; }
     return { c, n, later };
@@ -80,7 +80,7 @@ export function spendAll(scoped) {
 
 export function spendIn(days, keys) {
     let c = 0, n = 0;
-    /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-26e2299b */ for (const k of keys) { const d = days.get(k); if (d) { c += d.c; n += d.n; } }
+    for (const k of keys) { const d = days.get(k); if (d) { c += d.c; n += d.n; } }
     return { c, n };
 }
 

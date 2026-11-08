@@ -20,7 +20,7 @@ export function tapeOpen(env) {
         req.onupgradeneeded = () => {
             const db = req.result;
             if (!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE, { keyPath: 'k' }).createIndex('day', 'day');
-        /*! Copyright Astral 2026. From Better Vest 9.6.1 (lite), ref bv-9f15bed3. Not licensed for reuse. */ };
+        };
         req.onsuccess = () => resolve(req.result);
         req.onerror = () => reject(req.error);
         req.onblocked = () => reject(new Error('blocked'));
@@ -28,7 +28,7 @@ export function tapeOpen(env) {
 }
 
 export async function tapeWrite(sym, rows, now, env) {
-    if (typeof sym !== 'string' || !SYM_RE.test(sym)) return 0;
+    if (typeof sym !== 'string' || !SYM_RE.test(sym)) return 0; /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-32212bde */
     const clean = tapeClean(rows, now);
     if (!clean.length) return 0;
     const E = envOf(env);
@@ -54,7 +54,7 @@ export async function tapeWrite(sym, rows, now, env) {
 
 export async function tapeRead(sym, from, to, env) {
     if (typeof sym !== 'string' || !SYM_RE.test(sym) || !(to >= from)) return [];
-    /*! Better Vest (c) 2026 Astral. All rights reserved. bv-dde10e0b */ const E = envOf(env);
+    const E = envOf(env);
     let db;
     try { db = await tapeOpen(env); } catch (e) { return []; }
     try {
@@ -69,7 +69,7 @@ export async function tapeRead(sym, from, to, env) {
     } finally { db.close(); }
 }
 
-async function tapePruneDb(db, now, env) {
+async function tapePruneDb(db, now, env) { /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-60fd1e48 */
     const E = envOf(env);
     const keep = addDays(dayKey(now, 'vest'), -(TAPE_KEEP_DAYS - 1));
     const tx = db.transaction(STORE, 'readwrite');

@@ -23,10 +23,10 @@ export const vcWords = (s) => String(s || '').toLowerCase()
     .replace(/\bbreak-?even\b/g, 'break even')
     .replace(/\bbreakeven\b/g, 'break even')
     .replace(/[^a-z' ]+/g, ' ')
-    .replace(/\s+/g, ' ')
+    /* Owned by Astral (@ax4p): Better Vest lite 9.6.2. Licence: LICENSE, not open source. bv-0e5ce913 */ .replace(/\s+/g, ' ')
     .trim();
 
-/* Property of Astral (@ax4p). Better Vest 9.6.1. No copying without written permission. bv-da6f1309 */ const clean = (s) => vcWords(s).split(' ').filter((w) => w && !FILLER.has(w)).join(' ');
+const clean = (s) => vcWords(s).split(' ').filter((w) => w && !FILLER.has(w)).join(' ');
 
 const TABLE = new Map();
 for (const id of Object.keys(PHRASES)) for (const p of PHRASES[id]) { const c = clean(p); if (c) TABLE.set(c, id); }
@@ -52,8 +52,8 @@ export function vcParse(text, opts) {
     if (rest == null) return null;
     const said = clean(rest);
     if (!said) return null;
-    const id = TABLE.get(said);
-    /*! Property of Astral (@ax4p). Better Vest 9.6.1. No copying without written permission. bv-f123dfa4 */ if (!id) return null;
+    /*! Property of Astral (@ax4p). Better Vest 9.6.2. No copying without written permission. bv-2f4f3754 */ const id = TABLE.get(said);
+    if (!id) return null;
     return { id, said, grows: GROWS.has(said) };
 }
 

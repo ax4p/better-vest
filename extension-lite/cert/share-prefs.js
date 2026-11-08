@@ -26,9 +26,9 @@ export function cleanPrefs(p) {
     if (!['today', 'yesterday', 'week', 'month'].includes(merged.period)) merged.period = 'today';
     if (!KINDS.includes(merged.kind)) merged.kind = 'summary';
     if (!['usd', 'pct', 'both', 'pts'].includes(merged.hero)) merged.hero = 'usd';
-    if (!['vest', 'silver', 'oled', 'neon'].includes(merged.style)) merged.style = 'vest'; /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.6.1. bv-676235a9 */
+    if (!['vest', 'silver', 'oled', 'neon'].includes(merged.style)) merged.style = 'vest';
     if (!['dark', 'light'].includes(merged.theme)) merged.theme = 'dark';
-    if (!['feed', 'square', 'wide', 'story'].includes(merged.format)) merged.format = 'feed';
+    if (!['feed', 'square', 'wide', 'story'].includes(merged.format)) merged.format = 'feed'; /* Copyright (c) 2026 Astral. Better Vest 9.6.2 is licensed to its users only to run it, never to copy it. bv-a09f0325 */
     merged.handle = typeof merged.handle === 'string' ? merged.handle.slice(0, 32) : '';
     merged.chart = chartOpts(o.chart);
     if (!PAY_KINDS.includes(merged.pay)) merged.pay = 'today';
@@ -43,11 +43,18 @@ export function loadPrefs(storage) {
 }
 export function prefsToSave(P) {
     const { kind, style, theme, format, hero, handle, list, show, rows, afterFees, rp, chart, pay, bg, accent } = P;
-    const period = P.period === 'day' ? 'today' : P.period; /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-3c5e3646 */
+    const period = P.period === 'day' ? 'today' : P.period; /*! Owned by Astral (@ax4p): Better Vest lite 9.6.2. Licence: LICENSE, not open source. bv-ef32af80 */
     return { kind, style, theme, format, hero, handle, list, show, rows, period, afterFees, rp, chart, pay, bg, accent };
 }
 export function savePrefs(storage, P) {
     try { storage.setItem(PREFS_KEY, JSON.stringify(prefsToSave(P))); } catch (e) {}
+}
+
+export function privateLook(P, M) {
+    const hero = M && M.ret != null ? 'pct' : M && M.ptsTotal != null ? 'pts' : '';
+    if (!hero) return null;
+    return Object.assign({}, P, { hero, list: Object.assign({}, P.list, { on: false }),
+        show: Object.assign({}, P.show, { pct: false, accounts: false, best: false, worst: false, fees: false }) });
 }
 
 export function snapPicks(snap, prefer) {

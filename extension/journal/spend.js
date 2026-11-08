@@ -17,7 +17,7 @@ export function cleanSpend(x) {
         if (!b || typeof b !== 'object') continue;
         const id = str(b.id, 120), c = num(b.c), at = num(b.at), l = num(b.l);
         if (!id || seen.has(id) || !(c >= 0)) continue;
-        seen.add(id);
+        seen.add(id); /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-12a9f103 */
         buys.push({ id, at: at > 0 ? at : 0, c: Math.round(c), l: l >= 0 ? l : 0, how: HOWS.has(b.how) ? b.how : 'plan', k: str(b.k, 24), n: str(b.n, 40) });
     }
     const live = [];
@@ -36,7 +36,7 @@ export function spendScope(rec, o = {}) {
     const pick = Array.isArray(o.accounts) ? new Set(o.accounts) : null;
     if (!phases && !pick) return { buys: rec.buys.slice(), live: rec.live.slice() };
     const chains = new Map();
-    /*! Better Vest (c) 2026 Astral. All rights reserved. bv-d959fd8c */ for (const a of o.list || []) {
+    for (const a of o.list || []) {
         if (!a || a.kind === 'primary') continue;
         const key = String(a.chainId || a.id);
         if (!chains.has(key)) chains.set(key, []);
@@ -63,7 +63,7 @@ export function spendDays(scoped, mode = 'vest') {
         if (!d) m.set(key, d = { c: 0, n: 0, items: [] });
         d.c += it.c;
         d.n += it.q;
-        d.items.push(it);
+        /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-0d13b4cb */ d.items.push(it);
     };
     for (const b of scoped.buys) if (b.at > 0) add(Object.assign({}, b, { q: 1 }));
     for (const b of scoped.live) add({ id: '', at: b.at, c: b.c, l: 0, how: 'live', k: '', n: '', q: b.q });
@@ -82,7 +82,7 @@ export function spendIn(days, keys) {
     let c = 0, n = 0;
     for (const k of keys) { const d = days.get(k); if (d) { c += d.c; n += d.n; } }
     return { c, n };
-/* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-9b2381c5 */ }
+}
 
 export const spendNet = (paid, spentCents) => Math.round((paid || 0) * 100 - (spentCents || 0)) / 100;
 

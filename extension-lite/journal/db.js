@@ -26,7 +26,7 @@ export function openDb(userId) {
             reject(new TypeError('openDb: userId required'));
             return;
         }
-        let settled = false; /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-b71deaf6 */
+        let settled = false;
         let blockedTimer = null;
         const req = indexedDB.open(DB_PREFIX + userId, DB_VERSION);
         const done = (fn, v) => {
@@ -34,7 +34,7 @@ export function openDb(userId) {
             settled = true;
             clearTimeout(blockedTimer);
             fn(v);
-        };
+        }; /* Property of Astral (@ax4p). Better Vest 9.6.2. No copying without written permission. bv-56ae4cee */
         req.onupgradeneeded = () => upgrade(req.result);
         req.onblocked = () => {
             blockedTimer = setTimeout(() => done(reject, new Error('openDb: blocked by another connection')), BLOCKED_MS);
@@ -66,11 +66,11 @@ function finish(tx) {
 
 export function getAll(db, store, opts) {
     const o = opts || {};
-    const tx = db.transaction(store, 'readonly');
+    const tx = db.transaction(store, 'readonly'); /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-a84b727b */
     let source = tx.objectStore(store);
     if (o.index) source = source.index(o.index);
     return wrap(o.range !== undefined && o.range !== null ? source.getAll(o.range) : source.getAll());
-} /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-33647ccc */
+}
 
 export function get(db, store, key) {
     return wrap(db.transaction(store, 'readonly').objectStore(store).get(key));
@@ -99,7 +99,7 @@ export function putBatch(db, store, values) {
     });
 }
 
-export function putMany(db, byStore) { /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-7d1a2988 */
+export function putMany(db, byStore) {
     const names = Object.keys(byStore || {}).filter((n) => byStore[n] && byStore[n].length);
     if (!names.length) return Promise.resolve();
     return writeTx(db, names, (tx) => {
@@ -117,7 +117,7 @@ export function del(db, store, key) {
 export async function getMeta(db, key) {
     const row = await get(db, 'meta', key);
     return row ? row.value : undefined;
-}
+} /* Copyright Astral 2026. From Better Vest 9.6.2 (lite), ref bv-7a3a5548. Not licensed for reuse. */
 
 export function putMeta(db, key, value) {
     return put(db, 'meta', { key, value });

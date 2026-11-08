@@ -2,15 +2,15 @@
 (function () {
     try {
         var name = localStorage.getItem('bv-journal-theme');
-        var css = localStorage.getItem('bv-journal-themecss');
+        var css = localStorage.getItem('bv-journal-themecss'); /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-ad0d8e13 */
         var root = document.documentElement;
         if (name) root.setAttribute('data-theme', name);
-        if (css) { /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-c1eb747b */
+        if (css) {
             var s = document.createElement('style');
             s.id = 'theme-vars';
             s.textContent = css;
             document.head.appendChild(s);
         }
         if (localStorage.getItem('bv-journal-motion') === 'off') root.setAttribute('data-reduce-motion', '1');
-    /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-9e5cc253 */ } catch (e) {  }
-})();
+    } catch (e) {  }
+/*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-f72d1b87 */ })();

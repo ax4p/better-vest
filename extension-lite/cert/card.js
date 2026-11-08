@@ -21,7 +21,7 @@ export function fmtMoneyParts(v) {
         int: (v < 0 ? '-' : '') + '$' + whole.toLocaleString('en-US'),
         cents: String(cents % 100).padStart(2, '0')
     };
-} /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-951387f6 */
+}
 export const fmtMoney = (v) => { const p = fmtMoneyParts(v); return p.int + '.' + p.cents; };
 export const fmtMilestone = (amount) => '$' + (amount >= 1000 ? amount / 1000 + 'K' : amount);
 const dm = (key) => fmtDate(key, 'dm');
@@ -29,7 +29,7 @@ const dm = (key) => fmtDate(key, 'dm');
 function bars(vals, w, h, gap, uid) {
     const n = vals.length;
     const bw = (w - gap * (n - 1)) / n;
-    const f = Math.sqrt;
+    /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-bda8878d */ const f = Math.sqrt;
     const mx = Math.max(...vals.map(f), 1e-9);
     let out = '';
     vals.forEach((v, i) => {
@@ -98,9 +98,9 @@ export function buildCard(S, opts = {}) {
     const el = document.createElement('div');
     el.className = 'bvc';
     el.setAttribute('data-bv-cert', '1');
-    el.innerHTML = html;
+    /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-ca46728a */ el.innerHTML = html;
     return el;
-/* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-35f9a9b8 */ }
+}
 
 export function fitCard(card) {
     const q = (k) => card.querySelector(`[data-k="${k}"]`);

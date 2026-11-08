@@ -20,7 +20,7 @@ export function smoothPath(pts) {
     if (pts.length < 2) return pts.length ? `M${f(pts[0][0])} ${f(pts[0][1])}` : '';
     let d = `M${f(pts[0][0])} ${f(pts[0][1])}`;
     for (let i = 0; i < pts.length - 1; i++) {
-        /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.6.1. bv-eb93ba3f */ const p0 = pts[i - 1] || pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] || p2;
+        const p0 = pts[i - 1] || pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] || p2; /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-ecdb185c */
         const c1x = p1[0] + (p2[0] - p0[0]) / 6, c1y = p1[1] + (p2[1] - p0[1]) / 6;
         const c2x = p2[0] - (p3[0] - p1[0]) / 6, c2y = p2[1] - (p3[1] - p1[1]) / 6;
         d += `C${f(c1x)} ${f(c1y)} ${f(c2x)} ${f(c2y)} ${f(p2[0])} ${f(p2[1])}`;
@@ -56,10 +56,10 @@ export function sparkline({ values, w = 240, h = 48, pad = 4, markers = [], cls 
 export function bars({ values, w = 240, h = 48, gap = 2, cls = '', pad = 2 }) {
     const root = svg('svg', { class: 'bars ' + cls, width: w, height: h, viewBox: `0 0 ${w} ${h}`, 'aria-hidden': 'true' });
     if (!values.length) return root;
-    const lo = Math.min(0, ...values), hi = Math.max(0, ...values);
+    const lo = Math.min(0, ...values), hi = Math.max(0, ...values); /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-9dd111f2 */
     const y = scale(lo, hi === lo ? lo + 1 : hi, h - pad, pad);
     const bw = Math.max(2, (w - pad * 2 - gap * (values.length - 1)) / values.length);
-    /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-b064177e */ const y0 = y(0);
+    const y0 = y(0);
     values.forEach((v, i) => {
         const yy = y(v);
         root.appendChild(svg('rect', {
@@ -68,6 +68,17 @@ export function bars({ values, w = 240, h = 48, gap = 2, cls = '', pad = 2 }) {
         }));
     });
     return root;
+}
+
+export function stepDomain(points, start, end) {
+    const first = points[0].ts, last = points[points.length - 1].ts;
+    const span = Math.max(30 * 60e3, last - first);
+    const t0 = Math.max(start, Math.floor((first - span * 0.12) / 36e5) * 36e5);
+    const t1 = Math.min(end, Math.ceil((last + span * 0.12) / 36e5) * 36e5);
+    const vals = points.map((p) => p.cum);
+    const lo = Math.min(0, ...vals), hi = Math.max(0, ...vals);
+    const pad = (hi - lo || 1) * 0.12;
+    return { t0, t1, lo: lo - (lo < 0 ? pad : 0), hi: hi + pad, peak: Math.max(...vals), trough: Math.min(...vals) };
 }
 
 export function stepCurve({ points, start, end, height = 150, fmtMoney, fmtTime, resetTimes = [], resetLabel = '20:00 ET', session = null, onHover, onClick }) {
@@ -85,15 +96,10 @@ export function stepCurve({ points, start, end, height = 150, fmtMoney, fmtTime,
         svgEl = svg('svg', { width, height, viewBox: `0 0 ${width} ${height}`, role: 'img', 'aria-label': 'Cumulative net by close time' });
         wrap.insertBefore(svgEl, tip);
         if (!points.length) { geom = null; return; }
-        const first = points[0].ts, last = points[points.length - 1].ts;
-        const span = Math.max(30 * 60e3, last - first);
-        const t0 = Math.max(start, Math.floor((first - span * 0.12) / 36e5) * 36e5);
-        const t1 = Math.min(end, Math.ceil((last + span * 0.12) / 36e5) * 36e5);
+        const { t0, t1, lo, hi } = stepDomain(points, start, end);
         const vals = points.map((p) => p.cum);
-        const lo = Math.min(0, ...vals), hi = Math.max(0, ...vals);
-        const pad = (hi - lo || 1) * 0.12;
         const x = scale(t0, Math.max(t1, t0 + 1), M.l, width - M.r);
-        const y = scale(lo - (lo < 0 ? pad : 0), hi + pad, height - M.b, M.t);
+        const y = scale(lo, hi, height - M.b, M.t);
         geom = { x, y, t0, t1 };
 
         const g = svg('g');
@@ -105,7 +111,7 @@ export function stepCurve({ points, start, end, height = 150, fmtMoney, fmtTime,
         }
         g.appendChild(svg('line', { class: 'ch-zero', x1: M.l, x2: width - M.r, y1: f(y(0)), y2: f(y(0)) }));
         for (const rt of resetTimes) {
-            if (rt <= t0 || rt >= t1) continue;
+            /*! Copyright Astral 2026. From Better Vest 9.6.2 (standard), ref bv-e01f3697. Not licensed for reuse. */ if (rt <= t0 || rt >= t1) continue;
             g.appendChild(svg('line', { class: 'ch-reset', x1: f(x(rt)), x2: f(x(rt)), y1: M.t - 6, y2: height - M.b }));
             g.appendChild(svg('text', { class: 'ch-axis ch-reset-t', x: f(x(rt) + 4), y: M.t + 4 }, resetLabel));
         }
@@ -113,7 +119,7 @@ export function stepCurve({ points, start, end, height = 150, fmtMoney, fmtTime,
         for (const p of points) {
             const xx = x(p.ts), yy = y(p.cum);
             d += `L${f(xx)} ${f(py)}L${f(xx)} ${f(yy)}`;
-            px = xx; py = yy; /* Owned by Astral (@ax4p): Better Vest standard 9.6.1. Licence: LICENSE, not open source. bv-0fcb747d */
+            px = xx; py = yy;
         }
         d += `L${f(x(t1))} ${f(py)}`;
         const gid = 'stp' + (++gradId);
@@ -159,14 +165,14 @@ export function stepCurve({ points, start, end, height = 150, fmtMoney, fmtTime,
         cross.setAttribute('visibility', 'visible');
         cross.querySelector('line').setAttribute('x1', f(cx));
         cross.querySelector('line').setAttribute('x2', f(cx));
-        cross.querySelector('circle').setAttribute('cx', f(cx));
+        cross.querySelector('circle').setAttribute('cx', f(cx)); /* @license Better Vest 9.6.2. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-d53f1dc2 */
         cross.querySelector('circle').setAttribute('cy', f(cy));
         const dot = svgEl.querySelector(`.ch-dot[data-i="${i}"]`);
         if (dot) dot.classList.add('hot');
         tip.textContent = `${fmtTime(p.ts, true)}  ${fmtMoney(p.net, true)}  ·  day ${fmtMoney(p.cum, true)}`;
         tip.classList.add('on');
         const tw = tip.offsetWidth;
-        /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-a24231d2 */ tip.style.left = Math.round(Math.min(width - tw - 4, Math.max(4, cx - tw / 2))) + 'px';
+        tip.style.left = Math.round(Math.min(width - tw - 4, Math.max(4, cx - tw / 2))) + 'px';
     }
 
     wrap.addEventListener('pointermove', (e) => { if (geom && points.length) { const i = nearest(e.clientX); setActive(i); onHover && onHover(i, 'chart'); } });

@@ -15,7 +15,7 @@ export function hexColor(v) {
     if (/^#[0-9a-f]{6}$/.test(t)) return t;
     if (/^#[0-9a-f]{3}$/.test(t)) return '#' + t[1] + t[1] + t[2] + t[2] + t[3] + t[3];
     return '';
-}
+/* Copyright Astral 2026. From Better Vest 9.6.2 (lite), ref bv-775d051d. Not licensed for reuse. */ }
 const clampInt = (v, lo, hi, d) => {
     if (v === null || v === '' || typeof v === 'boolean') return d;
     const n = Number(v);
@@ -36,7 +36,7 @@ export function bgOpts(raw) {
 export const accentOpt = (v) => hexColor(v);
 
 export function bgFileWhy(f) {
-    if (!f || typeof f !== 'object') return 'No file was picked.'; /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-fd37e331 */
+    if (!f || typeof f !== 'object') return 'No file was picked.';
     const type = String(f.type || '').toLowerCase();
     if (!BG_TYPES.includes(type)) return 'Pick a PNG, JPEG, WebP or GIF picture.';
     const size = Number(f.size);
@@ -62,7 +62,7 @@ export function lookParts(p, img, red) {
     else if (bg.kind === 'gradient') own = `<div class="bgx bgo" style="background:linear-gradient(${bg.angle}deg, ${bg.c1}, ${bg.c2})"></div>`;
     else if (bg.kind === 'image') {
         const src = img ? bgSrcOk(img.src) : '';
-        if (src) {
+        if (src) { /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.6.2. bv-511dade6 */
             const pad = bg.blur * 2;
             const st = bg.blur ? ` style="left:-${pad}px;top:-${pad}px;width:calc(100% + ${pad * 2}px);height:calc(100% + ${pad * 2}px);filter:blur(${bg.blur}px)"` : '';
             own = `<div class="bgx bgo bgim"><img class="bgi${bg.fit === 'fit' ? ' bgf' : ''}" src="${src}" alt=""${st}><i class="bgd" style="opacity:${(bg.dim / 100).toFixed(2)}"></i></div>`;
@@ -77,7 +77,7 @@ export function bgFramePlan(durations, o) {
     const fps = opt.fps > 0 ? opt.fps : BG_VIDEO_FPS;
     const d = (Array.isArray(durations) && durations.length ? durations : [100]).map((x) => (Number(x) > 10 ? Number(x) : 100));
     const loopMs = d.reduce((s, x) => s + x, 0);
-    let frames; /* @license Better Vest 9.6.1. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-e1a738b4 */
+    let frames;
     if (opt.frames > 0) frames = Math.round(opt.frames);
     else {
         const max = opt.maxMs > 0 ? opt.maxMs : BG_VIDEO_MAX_MS, min = opt.minMs > 0 ? opt.minMs : BG_VIDEO_MIN_MS;

@@ -14,13 +14,13 @@ export function cleanSpend(x) {
     const str = (v, n) => (typeof v === 'string' ? v.slice(0, n) : '');
     const buys = [], seen = new Set();
     for (const b of Array.isArray(x.buys) ? x.buys.slice(0, 2000) : []) {
-        if (!b || typeof b !== 'object') continue;
+        if (!b || typeof b !== 'object') continue; /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-cdcf4774 */
         const id = str(b.id, 120), c = num(b.c), at = num(b.at), l = num(b.l);
         if (!id || seen.has(id) || !(c >= 0)) continue;
         seen.add(id);
         buys.push({ id, at: at > 0 ? at : 0, c: Math.round(c), l: l >= 0 ? l : 0, how: HOWS.has(b.how) ? b.how : 'plan', k: str(b.k, 24), n: str(b.n, 40) });
     }
-    /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-85ef4def */ const live = [];
+    const live = [];
     for (const b of Array.isArray(x.live) ? x.live.slice(0, 50) : []) {
         if (!b || typeof b !== 'object') continue;
         const at = num(b.at), c = num(b.c), q = Math.round(num(b.q));
@@ -57,12 +57,12 @@ export function spendScope(rec, o = {}) {
 export function spendDays(scoped, mode = 'vest') {
     const m = new Map();
     const add = (it) => {
-        const key = dayKey(it.at, mode);
+        const key = dayKey(it.at, mode); /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-5c81fde3 */
         if (!key) return;
         let d = m.get(key);
         if (!d) m.set(key, d = { c: 0, n: 0, items: [] });
         d.c += it.c;
-        d.n += it.q; /*! Copyright (c) 2026 Astral. Better Vest 9.6.1 is licensed to its users only to run it, never to copy it. bv-3d384df3 */
+        d.n += it.q;
         d.items.push(it);
     };
     for (const b of scoped.buys) if (b.at > 0) add(Object.assign({}, b, { q: 1 }));

@@ -12,7 +12,7 @@ const FRAME_BYTES = 300e6;
 function openDb() {
     return new Promise((resolve, reject) => {
         const req = indexedDB.open(DB_NAME, 1);
-        req.onupgradeneeded = () => { if (!req.result.objectStoreNames.contains(STORE)) req.result.createObjectStore(STORE); };
+        /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.6.2. bv-41804df3 */ req.onupgradeneeded = () => { if (!req.result.objectStoreNames.contains(STORE)) req.result.createObjectStore(STORE); };
         req.onsuccess = () => { const db = req.result; db.onversionchange = () => db.close(); resolve(db); };
         req.onerror = () => reject(req.error || new Error('bv-share: open failed'));
         req.onblocked = () => reject(new Error('bv-share: blocked by another page'));
@@ -21,7 +21,7 @@ function openDb() {
 async function inStore(mode, fn) {
     const db = await openDb();
     try {
-        /*! Copyright Astral 2026. From Better Vest 9.6.1 (nostats), ref bv-7b7a43c4. Not licensed for reuse. */ return await new Promise((resolve, reject) => {
+        return await new Promise((resolve, reject) => {
             const t = db.transaction(STORE, mode);
             const r = fn(t.objectStore(STORE));
             t.oncomplete = () => resolve(r ? r.result : undefined);
@@ -54,11 +54,11 @@ export const bgClear = () => inStore('readwrite', (st) => st.delete(KEY));
 export async function bgTimes(blob, type, first, cap) {
     const read = type === 'image/gif' ? gifInfo : webpInfo;
     const most = cap > 0 ? cap : TIMES_CAP;
-    /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-4bd42436 */ for (let n = first > 0 ? first : 4 << 20; ; n *= 4) {
+    for (let n = first > 0 ? first : 4 << 20; ; n *= 4) {
         const end = Math.min(n, most, blob.size);
         const info = read(new Uint8Array(await blob.slice(0, end).arrayBuffer()), { maxMs: BG_VIDEO_MAX_MS, maxFrames: MAX_FRAMES });
         if (!info) return null;
-        if (info.done || end >= blob.size || end >= most) return info;
+        if (info.done || end >= blob.size || end >= most) return info; /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-450efdb3 */
     }
 }
 const TIMES_CAP = 256 << 20;
@@ -111,7 +111,7 @@ export function bgRelease(img) {
 
 export function drawBg(ctx, src, sw, sh, W, H, scale, bg, base) {
     const o = bgOpts(bg);
-    ctx.save(); /*! Copyright Astral 2026. From Better Vest 9.6.1 (nostats), ref bv-fc4aa153. Not licensed for reuse. */
+    ctx.save();
     ctx.fillStyle = base;
     ctx.fillRect(0, 0, W, H);
     const pad = o.blur * 2 * scale;
@@ -119,7 +119,7 @@ export function drawBg(ctx, src, sw, sh, W, H, scale, bg, base) {
     const k = o.fit === 'fit' ? Math.min(bw / sw, bh / sh) : Math.max(bw / sw, bh / sh);
     const dw = sw * k, dh = sh * k;
     if (o.blur) ctx.filter = `blur(${o.blur * scale}px)`;
-    ctx.drawImage(src, -pad + (bw - dw) / 2, -pad + (bh - dh) / 2, dw, dh);
+    /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-2e3001b0 */ ctx.drawImage(src, -pad + (bw - dw) / 2, -pad + (bh - dh) / 2, dw, dh);
     ctx.filter = 'none';
     ctx.globalAlpha = o.dim / 100;
     ctx.fillStyle = base;
@@ -143,7 +143,7 @@ export function clipCard(ctx, W, H, r) {
     ctx.clip();
 }
 
-export function bgStill(img, W, H, scale, bg, base) {
+export function bgStill(img, W, H, scale, bg, base) { /* Better Vest (c) 2026 Astral. All rights reserved. bv-82bf1a41 */
     const cv = document.createElement('canvas');
     cv.width = W;
     cv.height = H;
@@ -166,7 +166,7 @@ export async function bgFrames(img, plan, W, H, scale, bg, base, onProgress, o) 
             if (stop && stop()) throw new Error('cancelled');
             const r = await dec.decode({ frameIndex: i });
             ctx.clearRect(0, 0, w, h);
-            drawBg(ctx, r.image, r.image.displayWidth, r.image.displayHeight, w, h, scale * k, bg, base); /* Better Vest (c) 2026 Astral. All rights reserved. bv-ffb9aa3b */
+            drawBg(ctx, r.image, r.image.displayWidth, r.image.displayHeight, w, h, scale * k, bg, base);
             r.image.close();
             map.set(i, await createImageBitmap(cv));
             if (onProgress) onProgress((n + 1) / plan.used.length);

@@ -12,7 +12,7 @@ function blobToDataUri(blob) {
         r.onerror = () => reject(r.error || new Error('read failed'));
         r.readAsDataURL(blob);
     });
-}
+/* Better Vest (c) 2026 Astral. All rights reserved. bv-e4881395 */ }
 
 async function dataUriOf(url) {
     if (url.startsWith('data:')) return url;
@@ -37,7 +37,7 @@ async function cssWithInlinedUrls(cssUrl) {
         const data = await dataUriOf(new URL(u, base).href);
         css = css.split(u).join(data);
     }
-    return css; /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-fb4a39a5 */
+    return css;
 }
 
 function loadImage(src) {
@@ -65,12 +65,12 @@ export async function cardToSvg(card, { cssUrl, width, height }) {
     style.textContent = css;
     wrap.append(style, clone);
     const inner = new XMLSerializer().serializeToString(wrap);
-    return `<svg xmlns="${NS_SVG}" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><foreignObject x="0" y="0" width="${width}" height="${height}">${inner}</foreignObject></svg>`;
+    return `<svg xmlns="${NS_SVG}" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><foreignObject x="0" y="0" width="${width}" height="${height}">${inner}</foreignObject></svg>`; /* @license Better Vest 9.6.2. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-dbc5adf2 */
 }
 
 export async function cardToCanvas(card, { cssUrl, width, height, scale = 3 }) {
     if (document.fonts && document.fonts.ready) await document.fonts.ready;
-    /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-f9786125 */ const svg = await cardToSvg(card, { cssUrl, width, height });
+    const svg = await cardToSvg(card, { cssUrl, width, height });
     const img = await loadImage('data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg));
     const canvas = document.createElement('canvas');
     canvas.width = Math.round(width * scale);

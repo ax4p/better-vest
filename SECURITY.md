@@ -30,7 +30,7 @@ It comes in three editions: Standard, Lite (Standard without the voice) and No s
 
 That's the full list. It can't read your browsing history or cookies, and it doesn't touch your other tabs or downloads. You can see the same list yourself on `chrome://extensions` → Better Vest → **Details**.
 
-Three kinds of its own files can be loaded by the Vest page (Chrome calls them web-accessible): the voice's sound files (not in Lite), the two sounds of the price alerts, and the small page that shows the P&L card's pop-up. Only next.vestmarkets.com can load them. It also means Vest's page can tell that Better Vest is installed.
+Three kinds of its own files can be loaded by the Vest page (Chrome calls them web-accessible): the voice's sound files (not in Lite), the two sounds of the price alerts, and the small page that shows the P&L card's pop-up and Better Vest's cards in Vest's Share PnL window. Only next.vestmarkets.com can load them. It also means Vest's page can tell that Better Vest is installed.
 
 ## Where it connects
 
@@ -117,7 +117,7 @@ Apart from the copy trader's Flash mode, Better Vest never builds a trading requ
 
 One more thing it does to your clicks: while a lock is on (your own lock, the daily loss limit, the daily profit limit or the tilt guard), it swallows a click on Vest's own Buy and Sell on your screen, until the lock runs out. **Also block Vest's own Buy and Sell** in Settings > Risk and limits turns that off. It never blocks a close. With **Close my positions at the limit** on (the default), hitting the daily loss limit also closes every position of that account, one by one through Vest's own Close button and close window, the way FLAT does, and any position that opens on that account until Vest's day resets at 8 pm New York. The profit limit never closes anything.
 
-The P&L card makes its image, its video and its GIF in your browser. For Replay it takes the candles from Vest's own chart, and for an older day, another market you traded that day, or a finer timeframe, it asks Vest's own chart code for them, the way the chart does when you scroll back. **My chart** takes the candle colors from your own chart's settings on the page. The image, video or GIF only leaves your computer if you post it. The pop-up after a big close is that small page of the extension inside Vest's page: it only draws the card it's given, and Save and Copy work on your computer.
+The P&L card makes its image, its video and its GIF in your browser. For Replay it takes the candles from Vest's own chart, and for an older day, another market you traded that day, or a finer timeframe, it asks Vest's own chart code for them, the way the chart does when you scroll back. **My chart** takes the candle colors from your own chart's settings on the page. The image, video or GIF only leaves your computer if you post it. The pop-up after a big close, the card when something big happens (you pass an evaluation, get a payout, have your best day or win 5 in a row) and Better Vest's cards beside Vest's own in its Share PnL window are that small page of the extension inside Vest's page: it only draws the card it's given, and Save and Copy work on your computer. To spot those moments it reads your Calendar history on this computer. The Calendar's Share makes its month and day cards in your browser too. **Post on X** copies the card and opens an empty post on x.com in a new tab: you paste it yourself.
 
 And one thing it does to the chart by itself: while you hold a position, it widens TradingView's right margin just enough for the TP/SL labels, and puts it back when you're flat. Settings > Stops and exits turns that off.
 
@@ -196,7 +196,7 @@ With WICK you pay the same or less, and the purchase supports me.
 - Your Calendar history, in the browser's database on this computer.
 - If you turn on the daily loss limit, the Account Value it first saw each day, per account (`ax4p_dll` in the Vest page's storage). It reads the number from the page you're looking at and never asks Vest for it.
 - Stop orders you've armed, with your other settings, so a reload doesn't lose them, and the ids of stops you removed, so another Vest tab can't bring them back.
-- The P&L card's look (theme, style, size, what shows) in its own page's storage, and the numbers for the card you opened in Chrome's session storage, which Chrome clears when it closes.
+- The P&L card's look (theme, style, size, what shows) in its own page's storage, and the numbers for the card you opened in Chrome's session storage, which Chrome clears when it closes. In the same page storage: which moments already showed you a card, so each shows once (`bvRunSeen`), and the shape you last picked for the Calendar's Share (`bv-journal-share`).
 - If you use the copy trader: its settings (groups, leaders, followers, ratios, the markets it copies, the ids of limit orders it placed) with your other settings, and its log in Chrome's storage for the extension. With **Size by account** on, the account sizes each trade started with, in that Vest tab's session storage (`ax4p-copy-size`) until the leader is flat on that market; Chrome clears it when the tab closes.
 - The account menu's nicknames, pins and hidden accounts, and whether the limits panel is open, with your other settings. For accounts Vest gives no daily reset for, each account's first value of the trading day (`ax4p_vu_day` in the Vest page's storage), read from the page. For the warning near an account's limit, which warnings it already gave today (`ax4p_vu_warned`), so a reload doesn't repeat them.
 - The price of every second while a Vest trade page is open, for the P&L card's replays, in the extension's own database, kept for 30 days (under 1 MB a day for a market). Settings > Privacy and data turns it off.
@@ -234,15 +234,15 @@ When a new version is out and you're flat, a small panel at the bottom right of 
 ## Check it yourself
 
 1. **Read the code.** The [`extension`](extension) folder in this repo is the Standard zip, file for file ([`extension-lite`](extension-lite) and [`extension-nostats`](extension-nostats) are the other two). It isn't minified or obfuscated, so you can read it in your browser.
-2. **Check the zip is that code.** The SHA-256 of `better-vest-9.6.1.zip` is:
+2. **Check the zip is that code.** The SHA-256 of `better-vest-9.6.2.zip` is:
 
-   `bc2d9221cc2f332efd53899872caea7793885d5b3db10a7288ec1f660119223f`
+   `a77c5ed563198ecb077066c7819486915aabbca6755f27273b2f1c3910b71632`
 
    Lite: `c650abee5102fcb7e5f27dd88593588f20744ad7631af1eb6f29f4424d8a039c`. No stats: `efd2a6a7058e613040696cee2a38625b6f99a64424a2f0224ba34b75824bd9fb`.
 
-   - On Mac: `shasum -a 256 better-vest-9.6.1.zip`
-   - On Windows: `certutil -hashfile better-vest-9.6.1.zip SHA256`
-3. **Scan it.** VirusTotal checks a file with more than 60 antivirus engines. Upload the zip at [virustotal.com](https://www.virustotal.com) and you get the result for that exact file. The version here, 9.6.0, came back with no engine flagging it: Standard ([report](https://www.virustotal.com/gui/file/bc2d9221cc2f332efd53899872caea7793885d5b3db10a7288ec1f660119223f)), Lite ([report](https://www.virustotal.com/gui/file/c650abee5102fcb7e5f27dd88593588f20744ad7631af1eb6f29f4424d8a039c)), No stats ([report](https://www.virustotal.com/gui/file/efd2a6a7058e613040696cee2a38625b6f99a64424a2f0224ba34b75824bd9fb)). The one released before, 9.5.1, did too: Standard ([report](https://www.virustotal.com/gui/file/c6d2dfcc09a8660ee9f9358d298aab4e37a268ea58d16f915125b4bbbaf03d2a)), Lite ([report](https://www.virustotal.com/gui/file/562fe10f4a85689aa487ec8990f14af63c5a772a072fd0080fba3a23b4b72be5)), No stats ([report](https://www.virustotal.com/gui/file/bf1464031ea5fffd805f4555a1b0d3e8554abafbc319370259749846563034a5)).
+   - On Mac: `shasum -a 256 better-vest-9.6.2.zip`
+   - On Windows: `certutil -hashfile better-vest-9.6.2.zip SHA256`
+3. **Scan it.** VirusTotal checks a file with more than 60 antivirus engines. Upload the zip at [virustotal.com](https://www.virustotal.com) and you get the result for that exact file. The version here, 9.6.2, came back with no engine flagging it: Standard ([report](https://www.virustotal.com/gui/file/a77c5ed563198ecb077066c7819486915aabbca6755f27273b2f1c3910b71632)), Lite ([report](https://www.virustotal.com/gui/file/21d5e52d17521cc8d704496ed92e5991a8dc8a6abd17b2727bd71fcf5bed13f2)), No stats ([report](https://www.virustotal.com/gui/file/679ed5cf307503f46627302711d24c197b84573a77f0e22d29bebb4be17f9497)). The one released before, 9.6.1, did too: Standard ([report](https://www.virustotal.com/gui/file/bc2d9221cc2f332efd53899872caea7793885d5b3db10a7288ec1f660119223f)), Lite ([report](https://www.virustotal.com/gui/file/6b7c5f4392b06bb29a2b4bb3c87645eb90d2c6833fa7d6a042ffaca8e224c0d3)), No stats ([report](https://www.virustotal.com/gui/file/8cf85f4a94e44a1e2095652d285e6fcd1c11c3bcd7e9e7e8b74de36c5de6c475)).
 
    Reports for earlier versions also had an AI summary, "Code insights", which marked two things as suspicious. Both are on this page: the WICK code switch ([The WICK code](#the-wick-code)) and the updater writing its own files ([Updates are signed](#updates-are-signed)).
 4. **Watch it work.** Open Chrome's DevTools on the Vest tab (F12), go to Network, and use Better Vest. You'll only see the addresses listed above.

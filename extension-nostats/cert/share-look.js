@@ -8,7 +8,7 @@ export const BG_BLUR_MAX = 24;
 export const BG_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
 export const BG_VIDEO_MAX_MS = 10000;
 export const BG_VIDEO_MIN_MS = 2000;
-/* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-c829b25f */ export const BG_VIDEO_FPS = 30;
+export const BG_VIDEO_FPS = 30; /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-530def41 */
 
 export function hexColor(v) {
     const t = typeof v === 'string' ? v.trim().toLowerCase() : '';
@@ -63,11 +63,11 @@ export function lookParts(p, img, red) {
     else if (bg.kind === 'image') {
         const src = img ? bgSrcOk(img.src) : '';
         if (src) {
-            const pad = bg.blur * 2;
+            const pad = bg.blur * 2; /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-794a247a */
             const st = bg.blur ? ` style="left:-${pad}px;top:-${pad}px;width:calc(100% + ${pad * 2}px);height:calc(100% + ${pad * 2}px);filter:blur(${bg.blur}px)"` : '';
             own = `<div class="bgx bgo bgim"><img class="bgi${bg.fit === 'fit' ? ' bgf' : ''}" src="${src}" alt=""${st}><i class="bgd" style="opacity:${(bg.dim / 100).toFixed(2)}"></i></div>`;
         }
-    /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-123a2c6d */ }
+    }
     if (own) { cls += ' own'; layer = own; }
     return { cls, style, layer, bg, accent: acc, image: bg.kind === 'image' && layer === own };
 }

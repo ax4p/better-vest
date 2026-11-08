@@ -26,9 +26,9 @@ export function cleanPrefs(p) {
     if (!['today', 'yesterday', 'week', 'month'].includes(merged.period)) merged.period = 'today';
     if (!KINDS.includes(merged.kind)) merged.kind = 'summary';
     if (!['usd', 'pct', 'both', 'pts'].includes(merged.hero)) merged.hero = 'usd';
-    if (!['vest', 'silver', 'oled', 'neon'].includes(merged.style)) merged.style = 'vest'; /* Owned by Astral (@ax4p): Better Vest nostats 9.6.1. Licence: LICENSE, not open source. bv-115906b1 */
+    if (!['vest', 'silver', 'oled', 'neon'].includes(merged.style)) merged.style = 'vest';
     if (!['dark', 'light'].includes(merged.theme)) merged.theme = 'dark';
-    if (!['feed', 'square', 'wide', 'story'].includes(merged.format)) merged.format = 'feed';
+    if (!['feed', 'square', 'wide', 'story'].includes(merged.format)) merged.format = 'feed'; /* Better Vest (c) 2026 Astral. All rights reserved. bv-f01844bf */
     merged.handle = typeof merged.handle === 'string' ? merged.handle.slice(0, 32) : '';
     merged.chart = chartOpts(o.chart);
     if (!PAY_KINDS.includes(merged.pay)) merged.pay = 'today';
@@ -38,7 +38,7 @@ export function cleanPrefs(p) {
 }
 export function loadPrefs(storage) {
     let p = null;
-    try { p = JSON.parse((storage && storage.getItem(PREFS_KEY)) || 'null'); } catch (e) {} /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-80444e3a */
+    try { p = JSON.parse((storage && storage.getItem(PREFS_KEY)) || 'null'); } catch (e) {}
     return cleanPrefs(p);
 }
 export function prefsToSave(P) {
@@ -48,6 +48,13 @@ export function prefsToSave(P) {
 }
 export function savePrefs(storage, P) {
     try { storage.setItem(PREFS_KEY, JSON.stringify(prefsToSave(P))); } catch (e) {}
+}
+
+/*! Property of Astral (@ax4p). Better Vest 9.6.2. No copying without written permission. bv-326839e7 */ export function privateLook(P, M) {
+    const hero = M && M.ret != null ? 'pct' : M && M.ptsTotal != null ? 'pts' : '';
+    if (!hero) return null;
+    return Object.assign({}, P, { hero, list: Object.assign({}, P.list, { on: false }),
+        show: Object.assign({}, P.show, { pct: false, accounts: false, best: false, worst: false, fees: false }) });
 }
 
 export function snapPicks(snap, prefer) {

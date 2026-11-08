@@ -23,9 +23,9 @@
     const COPY_REPLY_MS = 65000;
     const copyPending = new Map();
 
-    /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-c220a916 */ function copyToPage(fields) {
+    function copyToPage(fields) {
         try { window.postMessage(Object.assign({}, fields, { bv: 1, dir: 'toPage', type: 'copy' }), location.origin); } catch (e) {}
-    }
+    /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-cef5f7e0 */ }
 
     function copyBody(msg) {
         const out = {};
@@ -70,12 +70,12 @@
         }
         const key = String(rid);
         if (!COPY_RID_RE.test(key) || copyPending.has(key)) { sendResponse({ ok: false, error: 'rid' }); return false; }
-        const timer = setTimeout(() => { /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-2ca0eb23 */
+        const timer = setTimeout(() => {
             if (copyPending.delete(key)) sendResponse({ ok: false, error: 'timeout' });
         }, COPY_REPLY_MS);
         copyPending.set(key, { respond: sendResponse, timer });
         copyToPage(body);
-        return true;
+        return true; /*! Better Vest (c) 2026 Astral. All rights reserved. bv-bf7f4842 */
     }
 
     function alive() {
@@ -109,7 +109,7 @@
         }
         swEverConnected = true;
         return p;
-    } /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-8ba51ed3 */
+    }
 
     function toSw(msg) {
         for (let i = 0; i < 2; i++) {
@@ -125,7 +125,7 @@
         if (!d || typeof d !== 'object' || d.v !== 1 || typeof d.op !== 'string' || !PAGE_OPS.has(d.op)) return;
         if (!Number.isInteger(d.seq) || d.seq < 0) return;
         if (d.seq === 1) lastAck = 0;
-        toSw(d);
+        /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-1b03573e */ toSw(d);
     }
 
     function vcHello(d) {
@@ -146,7 +146,7 @@
             if (m.op === 'done') {
                 out.id = typeof m.id === 'string' ? m.id.slice(0, 20) : '';
                 out.ok = m.ok === true;
-                out.why = typeof m.why === 'string' ? m.why.slice(0, 120) : ''; /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-62c0d634 */
+                out.why = typeof m.why === 'string' ? m.why.slice(0, 120) : '';
                 out.text = typeof m.text === 'string' ? m.text.slice(0, 60) : '';
                 out.level = m.level === 'warn' ? 'warn' : '';
                 out.seq = Number.isInteger(m.seq) ? m.seq : null;
@@ -154,7 +154,7 @@
             chrome.runtime.sendMessage(out).catch(() => {});
         };
         window.postMessage({ bv: 1, dir: 'toPage', type: 'vcport', nonce: d.nonce }, location.origin, [ch.port2]);
-    }
+    /* Copyright Astral 2026. From Better Vest 9.6.2 (lite), ref bv-1aebfb20. Not licensed for reuse. */ }
 
     function answerHello(d) {
         if (pagePort || typeof d.nonce !== 'string' || d.nonce.length < 8 || d.nonce.length > 64) return;
@@ -183,7 +183,7 @@
             if (!s || typeof s !== 'object' || s.can !== true) return;
             window.postMessage({ bv: 1, dir: 'toPage', cmd: 'usage', can: true, on: s.on === true, ack: s.ack === true, store: s.store === true }, location.origin);
         }).catch(() => {});
-    }
+    } /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-7e66350a */
 
     function feedbackFromPage(d) {
         const id = typeof d.id === 'string' && /^[a-z0-9]{1,20}$/.test(d.id) ? d.id : '';
@@ -210,7 +210,7 @@
                 if (it.x && typeof it.x === 'object' && !Array.isArray(it.x)) {
                     for (const k of Object.keys(it.x).slice(0, 20)) {
                         const v = it.x[k];
-                        if (typeof v === 'string') x[str(k, 12)] = v.slice(0, 240); /* Owned by Astral (@ax4p): Better Vest lite 9.6.1. Licence: LICENSE, not open source. bv-d67d0d2a */
+                        if (typeof v === 'string') x[str(k, 12)] = v.slice(0, 240);
                         else if ((typeof v === 'number' && Number.isFinite(v)) || typeof v === 'boolean') x[str(k, 12)] = v;
                     }
                 }
@@ -228,7 +228,7 @@
     function spendFromPage(d) {
         if (typeof d.u !== 'string' || !SPEND_USER.test(d.u) || !d.rec || typeof d.rec !== 'object') return;
         const t = Date.now();
-        const r = d.rec; /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-23206af3 */
+        const r = d.rec;
         const num = (x) => (typeof x === 'number' && Number.isFinite(x) ? x : 0);
         const str = (x, max) => (typeof x === 'string' ? x.slice(0, max) : '');
         const out = r.on !== true ? { v: 1, on: false, stop: r.stop === true, at: t } : {
@@ -256,7 +256,7 @@
         const at = Number(a.at);
         if (!(at > 0) || Math.abs(Date.now() - at) > 120e3) return;
         window.postMessage({ bv: 1, dir: 'toPage', cmd: 'spend-ask', u: a.u, at }, location.origin);
-    }
+    } /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-9c85ceb0 */
     function readSpendAsk() {
         if (!alive()) return;
         try { chrome.storage.local.get(['bvSpendAsk']).then((o) => tellSpendAsk(o && o.bvSpendAsk)).catch(() => {}); } catch (e) {}
@@ -273,11 +273,11 @@
             lastState = d.state;
             chrome.runtime.sendMessage({ type: 'state', state: d.state }).catch(() => {});
         } else if (d.type === 'jhello') {
-            answerHello(d);
+            answerHello(d); /*! Copyright (c) 2026 Astral. Better Vest 9.6.2 is licensed to its users only to run it, never to copy it. bv-d99f7d6f */
         } else if (d.type === 'vchello') {
             vcHello(d);
         } else if (d.type === 'jopen') {
-            const t = Date.now(); /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-0d8797aa */
+            const t = Date.now();
             if (t - lastOpen < 1000) return;
             lastOpen = t;
             chrome.runtime.sendMessage({ type: 'journal-open' }).catch(() => {});
@@ -332,7 +332,7 @@
             if (sender && sender.id === chrome.runtime.id && !sender.tab) return copyFromSw(msg, sendResponse);
             sendResponse({ ok: false, error: 'sender' });
             return false;
-        } /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.6.1. bv-3bdde8a0 */
+        } /*! Copyright (c) 2026 Astral. Better Vest 9.6.2 is licensed to its users only to run it, never to copy it. bv-f35fc4a6 */
         if (msg.type === 'vc') {
             const ok = !!(sender && sender.id === chrome.runtime.id && !sender.tab && vcPort && typeof msg.id === 'string' && /^[a-zA-Z]{1,20}$/.test(msg.id));
             if (ok) vcPort.postMessage({ op: 'cmd', id: msg.id, said: typeof msg.said === 'string' ? msg.said.slice(0, 60) : '', seq: Number.isInteger(msg.seq) ? msg.seq : 0 });
@@ -357,7 +357,7 @@
             }
             return true;
         }
-    }); /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.6.1. bv-1cc0aa8e */
+    });
 
     chrome.storage.local.get('settings').then((r) => {
         try {
@@ -372,7 +372,7 @@
     function tellBase() {
         if (!alive()) return;
         try { window.postMessage({ bv: 1, dir: 'toPage', cmd: 'base', url: chrome.runtime.getURL('') }, location.origin); } catch (e) {}
-    }
+    } /* Owned by Astral (@ax4p): Better Vest lite 9.6.2. Licence: LICENSE, not open source. bv-106fa3f7 */
     setTimeout(tellBase, 1500);
     setTimeout(tellBase, 6000);
 
@@ -405,7 +405,7 @@
         if (!alive()) return;
         const out = {};
         if (off && typeof off === 'object' && !Array.isArray(off)) {
-            /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.6.1. bv-a1fa1349 */ for (const k of Object.keys(off)) if (REMOTE_NAME.test(k) && typeof off[k] === 'string') out[k] = off[k].slice(0, 200);
+            for (const k of Object.keys(off)) if (REMOTE_NAME.test(k) && typeof off[k] === 'string') out[k] = off[k].slice(0, 200);
         }
         window.postMessage({ bv: 1, dir: 'toPage', cmd: 'remote', off: out, rules: remoteRules(rules) }, location.origin);
     }
@@ -424,7 +424,7 @@
         }
         window.postMessage({ bv: 1, dir: 'toPage', cmd: 'news', news: out }, location.origin);
     }
-    function tellWkx(at, wickp) {
+    function tellWkx(at, wickp) { /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.6.2. bv-26784cfd */
         if (!alive()) return;
         const ms = typeof at === 'number' && Number.isInteger(at) && at > 0 && at < 1e14 ? at : 0;
         let p = null;
@@ -455,7 +455,7 @@
                 if (s && s.state === 'new') window.postMessage({ bv: 1, dir: 'toPage', cmd: 'onboard', fresh: true }, location.origin);
             }).catch(() => {});
         } catch (e) {}
-    }
+    /* @license Better Vest 9.6.2. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-85d72092 */ }
     setTimeout(tellOnboard, 1200);
     setTimeout(tellOnboard, 5000);
     setTimeout(readSpendAsk, 2500);
@@ -467,7 +467,7 @@
     try {
         chrome.storage.onChanged.addListener((ch, area) => {
             if (area !== 'local' || !alive()) return;
-            /* Copyright Astral 2026. From Better Vest 9.6.1 (lite), ref bv-4a79d60b. Not licensed for reuse. */ if (ch.bvRemoteOff || ch.bvRemoteRules) tellRemoteNow();
+            if (ch.bvRemoteOff || ch.bvRemoteRules) tellRemoteNow();
             if (ch.bvNews) tellNews(ch.bvNews.newValue);
             if (ch.bvWickp) chrome.storage.local.get(['bvInstalledAt']).then((o) => tellWkx(o.bvInstalledAt, ch.bvWickp.newValue)).catch(() => {});
             if (ch.bvStorePending && ch.bvStorePending.newValue) tellStore(ch.bvStorePending.newValue, null);

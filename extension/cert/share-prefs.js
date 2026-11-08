@@ -15,7 +15,7 @@ export const DEFAULT_PREFS = { kind: 'summary', style: 'vest', theme: 'dark', fo
         paytotal: true, paybest: true },
     rows: 'accounts', period: 'today', afterFees: true,
     rp: { labels: 'usd', prices: false, pnl: false, sessions: false, best: false },
-    chart: Object.assign({}, CHART_DEFAULTS), /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-8a22b801 */
+    chart: Object.assign({}, CHART_DEFAULTS),
     pay: 'today', bg: Object.assign({}, BG_DEFAULTS), accent: '' };
 
 export function cleanPrefs(p) {
@@ -26,7 +26,7 @@ export function cleanPrefs(p) {
     if (!['today', 'yesterday', 'week', 'month'].includes(merged.period)) merged.period = 'today';
     if (!KINDS.includes(merged.kind)) merged.kind = 'summary';
     if (!['usd', 'pct', 'both', 'pts'].includes(merged.hero)) merged.hero = 'usd';
-    if (!['vest', 'silver', 'oled', 'neon'].includes(merged.style)) merged.style = 'vest';
+    if (!['vest', 'silver', 'oled', 'neon'].includes(merged.style)) merged.style = 'vest'; /* @license Better Vest 9.6.2. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-db37cc2a */
     if (!['dark', 'light'].includes(merged.theme)) merged.theme = 'dark';
     if (!['feed', 'square', 'wide', 'story'].includes(merged.format)) merged.format = 'feed';
     merged.handle = typeof merged.handle === 'string' ? merged.handle.slice(0, 32) : '';
@@ -37,17 +37,24 @@ export function cleanPrefs(p) {
     return merged;
 }
 export function loadPrefs(storage) {
-    let p = null; /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-62319e6d */
+    let p = null;
     try { p = JSON.parse((storage && storage.getItem(PREFS_KEY)) || 'null'); } catch (e) {}
     return cleanPrefs(p);
 }
 export function prefsToSave(P) {
     const { kind, style, theme, format, hero, handle, list, show, rows, afterFees, rp, chart, pay, bg, accent } = P;
-    const period = P.period === 'day' ? 'today' : P.period;
+    /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-755eca42 */ const period = P.period === 'day' ? 'today' : P.period;
     return { kind, style, theme, format, hero, handle, list, show, rows, period, afterFees, rp, chart, pay, bg, accent };
 }
 export function savePrefs(storage, P) {
     try { storage.setItem(PREFS_KEY, JSON.stringify(prefsToSave(P))); } catch (e) {}
+}
+
+export function privateLook(P, M) {
+    const hero = M && M.ret != null ? 'pct' : M && M.ptsTotal != null ? 'pts' : '';
+    if (!hero) return null;
+    return Object.assign({}, P, { hero, list: Object.assign({}, P.list, { on: false }),
+        show: Object.assign({}, P.show, { pct: false, accounts: false, best: false, worst: false, fees: false }) });
 }
 
 export function snapPicks(snap, prefer) {
