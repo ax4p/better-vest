@@ -19,7 +19,7 @@ export function cleanColor(v) {
     if (!m || [m[1], m[2], m[3]].some((x) => Number(x) > 255)) return '';
     return m[4] == null ? `rgb(${+m[1]}, ${+m[2]}, ${+m[3]})` : `rgba(${+m[1]}, ${+m[2]}, ${+m[3]}, ${+m[4]})`;
 }
-/* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-87955734 */ const CHART_COLOR_KEYS = ['up', 'down', 'borderUp', 'borderDown', 'wickUp', 'wickDown'];
+const CHART_COLOR_KEYS = ['up', 'down', 'borderUp', 'borderDown', 'wickUp', 'wickDown'];
 export function cleanChartColors(c) {
     if (!c || typeof c !== 'object' || Array.isArray(c)) return null;
     const out = {};
@@ -27,7 +27,7 @@ export function cleanChartColors(c) {
     if (!out.up || !out.down) return null;
     out.borderUp = out.borderUp || out.up; out.borderDown = out.borderDown || out.down;
     out.wickUp = out.wickUp || out.up; out.wickDown = out.wickDown || out.down;
-    return out;
+    /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-0c37758f */ return out;
 }
 
 export function cleanSnap(s) {
@@ -59,7 +59,7 @@ export function cleanSnap(s) {
         out.trades = [];
         for (const r of s.trades.slice(0, SHARE_MAX_TRADES)) {
             const c = cleanTradeRow(r);
-            if (!c || !ids.has(c.accountId) || seenT.has(c.positionId)) continue; /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.6.2. bv-4b237625 */
+            if (!c || !ids.has(c.accountId) || seenT.has(c.positionId)) continue;
             seenT.add(c.positionId);
             out.trades.push(c);
         }
@@ -76,7 +76,7 @@ export function cleanSnap(s) {
             if (!lead && !fol.length) continue;
             used.add(g.id);
             out.groups.push({ id: g.id, leaderId: lead, followerIds: fol });
-        }
+        } /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-bcf61aef */
     }
     const ui = cleanUi(s.ui);
     if (ui) out.ui = ui;
@@ -112,7 +112,7 @@ export function copyGroup(snap) {
 
 export function cardRows(snap, opts) {
     const o = opts || {};
-    if (!snap || !Array.isArray(snap.accounts)) return { rows: [], total: 0, cap: 0, ret: 0, n: 0, unknown: 0 }; /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.6.2. bv-e116bd80 */
+    if (!snap || !Array.isArray(snap.accounts)) return { rows: [], total: 0, cap: 0, ret: 0, n: 0, unknown: 0 };
     const by = new Map(snap.accounts.map((a) => [a.id, a]));
     const picked = Array.isArray(o.picked) ? o.picked : [];
     let unknown = 0;
@@ -129,7 +129,7 @@ export function cardRows(snap, opts) {
     const cap = rows.reduce((t, r) => t + (r.size || 0), 0);
     const sized = rows.every((r) => r.size > 0);
     return { rows, total, cap: sized ? cap : 0, ret: sized && cap > 0 ? (total / cap) * 100 : null, n: rows.length, unknown };
-}
+} /* @license Better Vest 9.6.3. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-88c6fdd8 */
 
 export function dayLong(day) {
     const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(day || ''));

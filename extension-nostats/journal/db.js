@@ -10,7 +10,7 @@ const KEY_PATHS = {
 const BLOCKED_MS = 8000;
 
 function upgrade(db) {
-    for (const name of STORES) { /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-78da85d2 */
+    for (const name of STORES) {
         if (db.objectStoreNames.contains(name)) continue;
         const store = db.createObjectStore(name, { keyPath: KEY_PATHS[name] });
         if (name === 'trades') {
@@ -20,7 +20,7 @@ function upgrade(db) {
     }
 }
 
-export function openDb(userId) {
+export function openDb(userId) { /* Better Vest (c) 2026 Astral. All rights reserved. bv-9082b3fb */
     return new Promise((resolve, reject) => {
         if (typeof userId !== 'string' || !userId) {
             reject(new TypeError('openDb: userId required'));
@@ -57,7 +57,7 @@ function wrap(req) {
 }
 
 function finish(tx) {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve, reject) => { /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.6.3. bv-b8713fc6 */
         tx.oncomplete = () => resolve();
         tx.onerror = () => reject(tx.error);
         tx.onabort = () => reject(tx.error || new Error('transaction aborted'));
@@ -68,7 +68,7 @@ export function getAll(db, store, opts) {
     const o = opts || {};
     const tx = db.transaction(store, 'readonly');
     let source = tx.objectStore(store);
-    /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-7781c0af */ if (o.index) source = source.index(o.index);
+    if (o.index) source = source.index(o.index);
     return wrap(o.range !== undefined && o.range !== null ? source.getAll(o.range) : source.getAll());
 }
 
@@ -102,11 +102,11 @@ export function putBatch(db, store, values) {
 export function putMany(db, byStore) {
     const names = Object.keys(byStore || {}).filter((n) => byStore[n] && byStore[n].length);
     if (!names.length) return Promise.resolve();
-    /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-fef19b09 */ return writeTx(db, names, (tx) => {
+    return writeTx(db, names, (tx) => {
         for (const n of names) {
             const os = tx.objectStore(n);
             for (const v of byStore[n]) os.put(v);
-        }
+        /*! Property of Astral (@ax4p). Better Vest 9.6.3. No copying without written permission. bv-bae5d524 */ }
     });
 }
 

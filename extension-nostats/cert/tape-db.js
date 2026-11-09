@@ -14,7 +14,7 @@ const done = (req) => new Promise((resolve, reject) => { req.onsuccess = () => r
 const txDone = (tx) => new Promise((resolve, reject) => { tx.oncomplete = () => resolve(); tx.onerror = tx.onabort = () => reject(tx.error || new Error('aborted')); });
 
 export function tapeOpen(env) {
-    const E = envOf(env);
+    /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-bdba2633 */ const E = envOf(env);
     return new Promise((resolve, reject) => {
         const req = E.indexedDB.open(TAPE_DB, 1);
         req.onupgradeneeded = () => {
@@ -30,7 +30,7 @@ export function tapeOpen(env) {
 export async function tapeWrite(sym, rows, now, env) {
     if (typeof sym !== 'string' || !SYM_RE.test(sym)) return 0;
     const clean = tapeClean(rows, now);
-    if (!clean.length) return 0; /* @license Better Vest 9.6.2. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-77570ad8 */
+    if (!clean.length) return 0;
     const E = envOf(env);
     const db = await tapeOpen(env);
     try {
@@ -64,14 +64,14 @@ export async function tapeRead(sym, from, to, env) {
         const rows = tapeMerge(recs.map(tapeDecode));
         let a = 0, b = rows.length;
         while (a < b && rows[a] < from) a += 5;
-        while (b > a && rows[b - 5] > to) b -= 5;
+        while (b > a && rows[b - 5] > to) b -= 5; /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-e1a64f61 */
         return rows.slice(a, b);
     } finally { db.close(); }
 }
 
 async function tapePruneDb(db, now, env) {
     const E = envOf(env);
-    /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-1d9f1bcb */ const keep = addDays(dayKey(now, 'vest'), -(TAPE_KEEP_DAYS - 1));
+    const keep = addDays(dayKey(now, 'vest'), -(TAPE_KEEP_DAYS - 1));
     const tx = db.transaction(STORE, 'readwrite');
     const idx = tx.objectStore(STORE).index('day');
     const keys = await done(idx.getAllKeys(E.IDBKeyRange.upperBound(keep, true)));

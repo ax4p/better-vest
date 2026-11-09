@@ -6,8 +6,8 @@ function sfRand(seed) {
     return () => {
         t = (t + 0x6d2b79f5) | 0;
         let r = Math.imul(t ^ (t >>> 15), 1 | t);
-        r = (r + Math.imul(r ^ (r >>> 7), 61 | r)) ^ r;
-        /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-7cef8a4c */ return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
+        /* @license Better Vest 9.6.3. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-5399f724 */ r = (r + Math.imul(r ^ (r >>> 7), 61 | r)) ^ r;
+        return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
     };
 }
 export function buildStars(w, h) {
@@ -25,13 +25,13 @@ export function buildStars(w, h) {
             a: tier < 0.4 ? 0.22 + rnd() * 0.18 : tier < 0.8 ? 0.45 + rnd() * 0.25 : 0.78 + rnd() * 0.22
         });
     }
-    return out;
+    return out; /*! Owned by Astral (@ax4p): Better Vest nostats 9.6.3. Licence: LICENSE, not open source. bv-6db797df */
 }
 export function paintStar(g, s) {
     const { x, y, size } = s;
     if (s.type === 'dot') { g.beginPath(); g.arc(x, y, size, 0, Math.PI * 2); g.fill(); return; }
     g.lineWidth = 0.9;
-    /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.6.2. bv-1b506c25 */ g.beginPath();
+    g.beginPath();
     if (s.type === 'plus') { g.moveTo(x - size, y); g.lineTo(x + size, y); g.moveTo(x, y - size); g.lineTo(x, y + size); g.stroke(); return; }
     const k = size * 0.28;
     g.moveTo(x, y - size); g.quadraticCurveTo(x + k, y - k, x + size, y); g.quadraticCurveTo(x + k, y + k, x, y + size);

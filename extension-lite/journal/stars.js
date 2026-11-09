@@ -9,10 +9,10 @@ function sfRand(seed) {
         r = (r + Math.imul(r ^ (r >>> 7), 61 | r)) ^ r;
         return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
     };
-} /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-c7cf1952 */
+}
 export function buildStars(w, h) {
     const rnd = sfRand(4242);
-    const n = Math.round((w * h) / 2600 * 0.6);
+    const n = Math.round((w * h) / 2600 * 0.6); /*! Owned by Astral (@ax4p): Better Vest lite 9.6.3. Licence: LICENSE, not open source. bv-962ae37e */
     const total = SF_TYPES.reduce((a, t) => a + t[1], 0);
     const out = [];
     for (let i = 0; i < n; i++) {
@@ -26,8 +26,8 @@ export function buildStars(w, h) {
         });
     }
     return out;
-}
-/* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-e90fcffc */ export function paintStar(g, s) {
+/* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-8040ac4b */ }
+export function paintStar(g, s) {
     const { x, y, size } = s;
     if (s.type === 'dot') { g.beginPath(); g.arc(x, y, size, 0, Math.PI * 2); g.fill(); return; }
     g.lineWidth = 0.9;

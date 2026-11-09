@@ -31,14 +31,14 @@ function bars(vals, w, h, gap, uid) {
     const bw = (w - gap * (n - 1)) / n;
     const f = Math.sqrt;
     const mx = Math.max(...vals.map(f), 1e-9);
-    let out = '';
+    let out = ''; /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-89bed270 */
     vals.forEach((v, i) => {
         const x = i * (bw + gap);
         if (!(v > 0)) {
             out += `<rect x="${x.toFixed(2)}" y="${h - 1}" width="${bw.toFixed(2)}" height="1" rx=".5" fill="rgb(255 255 255 / .18)"/>`;
             return;
         }
-        /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-4bd498ff */ const bh = Math.max(1.5, (f(v) / mx) * (h - 2));
+        const bh = Math.max(1.5, (f(v) / mx) * (h - 2));
         out += `<rect x="${x.toFixed(2)}" y="${(h - bh).toFixed(2)}" width="${bw.toFixed(2)}" height="${bh.toFixed(2)}" rx="${Math.min(1.5, bw / 2).toFixed(2)}" fill="url(#bvg-${uid})"/>`;
     });
     return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><defs><linearGradient id="bvg-${uid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7DF5AB"/><stop offset="1" stop-color="#00F15B" stop-opacity=".35"/></linearGradient></defs>${out}</svg>`;
@@ -69,7 +69,7 @@ export function buildCard(S, opts = {}) {
     let strip = '';
     if (chart) {
         const series = barSeries(S, 40, 7);
-        const n = series.bars.length; /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-89f3a165 */
+        const n = series.bars.length;
         const gap = n > 24 ? 3 : n > 14 ? 4.5 : 6;
         const dayLabel = S.days === 1 ? '1 day' : S.days + ' days';
         strip = `<div class="bvc-a" style="left:46px;top:${Y.strip}px;width:323px">${bars(series.bars.map((b) => b.net), 323, 52, gap, uid)}
@@ -77,7 +77,7 @@ export function buildCard(S, opts = {}) {
     }
 
     const cell = (label, value) => `<div class="bvc-stat"><dt class="bvc-lbl">${label}</dt><dd class="bvc-val">${esc(value)}</dd></div>`;
-    const html = `${backdrop()}
+    /* Better Vest (c) 2026 Astral. All rights reserved. bv-171d1143 */ const html = `${backdrop()}
  <div class="bvc-a bvc-vw" style="left:30px;top:30px">VEST</div>
  <div class="bvc-a" data-k="head" style="left:30px;top:${Y.hero}px;width:355.5px;text-align:center">
   <p class="bvc-kick">Total Payouts</p>

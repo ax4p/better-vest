@@ -11,12 +11,12 @@ const PHRASES = {
     rev: ['reverse', 'flip', 'reverse that', 'flip that'],
     be: ['break even', 'be', 'stop to break even', 'move stop to break even', 'move to break even', 'stop break even'],
     limitBuy: ['buy limit', 'limit buy', 'buy at the bid', 'buy the bid', 'bid'],
-    limitSell: ['sell limit', 'limit sell', 'sell at the ask', 'sell the ask', 'offer']
+    limitSell: ['sell limit', 'limit sell', 'sell at the ask', 'sell the ask', 'offer'] /* Better Vest (c) 2026 Astral. All rights reserved. bv-92221452 */
 };
 const WAKE = ['astral', 'astro', 'astra', 'austral', 'astrel', 'astrall', 'astrol', 'astrid', 'a stroll', 'astral\'s', 'astrals'];
 const FILLER = new Set(['uh', 'um', 'er', 'erm', 'ah', 'please', 'now', 'the', 'a', 'an', 'it', 'my', 'position', 'trade', 'okay', 'ok', 'hey', 'yo', 'so', 'just']);
 
-export const vcWords = (s) => String(s || '').toLowerCase() /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-aabe135e */
+export const vcWords = (s) => String(s || '').toLowerCase()
     .replace(/(\d+)\s*%/g, '$1 percent')
     .replace(/\b50\b/g, 'fifty')
     .replace(/\bb\s*\.?\s*e\b\.?/g, 'be')
@@ -51,13 +51,13 @@ export function vcParse(text, opts) {
     let rest = wake ? vcAfterWake(text) : (vcAfterWake(text) ?? vcWords(text));
     if (rest == null) return null;
     const said = clean(rest);
-    if (!said) return null;
+    if (!said) return null; /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-4db6412b */
     const id = TABLE.get(said);
     if (!id) return null;
     return { id, said, grows: GROWS.has(said) };
 }
 
-export function vcPending(text, opts) { /* Property of Astral (@ax4p). Better Vest 9.6.2. No copying without written permission. bv-24e61b08 */
+export function vcPending(text, opts) {
     const wake = !!(opts && opts.wake);
     const rest = wake ? vcAfterWake(text) : (vcAfterWake(text) ?? vcWords(text));
     if (rest == null) return false;

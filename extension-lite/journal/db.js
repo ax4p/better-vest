@@ -18,7 +18,7 @@ function upgrade(db) {
             store.createIndex('closeTs', 'closeTs', { unique: false });
         }
     }
-}
+/* Better Vest (c) 2026 Astral. All rights reserved. bv-eb7455fa */ }
 
 export function openDb(userId) {
     return new Promise((resolve, reject) => {
@@ -34,7 +34,7 @@ export function openDb(userId) {
             settled = true;
             clearTimeout(blockedTimer);
             fn(v);
-        }; /* Property of Astral (@ax4p). Better Vest 9.6.2. No copying without written permission. bv-56ae4cee */
+        };
         req.onupgradeneeded = () => upgrade(req.result);
         req.onblocked = () => {
             blockedTimer = setTimeout(() => done(reject, new Error('openDb: blocked by another connection')), BLOCKED_MS);
@@ -66,11 +66,11 @@ function finish(tx) {
 
 export function getAll(db, store, opts) {
     const o = opts || {};
-    const tx = db.transaction(store, 'readonly'); /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-a84b727b */
+    const tx = db.transaction(store, 'readonly');
     let source = tx.objectStore(store);
     if (o.index) source = source.index(o.index);
     return wrap(o.range !== undefined && o.range !== null ? source.getAll(o.range) : source.getAll());
-}
+/* This file is part of Better Vest by Astral and is protected by copyright. ref bv-cb0e7f3c */ }
 
 export function get(db, store, key) {
     return wrap(db.transaction(store, 'readonly').objectStore(store).get(key));
@@ -112,12 +112,12 @@ export function putMany(db, byStore) {
 
 export function del(db, store, key) {
     return writeTx(db, store, (tx) => { tx.objectStore(store).delete(key); });
-}
+} /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-5015d80a */
 
 export async function getMeta(db, key) {
     const row = await get(db, 'meta', key);
     return row ? row.value : undefined;
-} /* Copyright Astral 2026. From Better Vest 9.6.2 (lite), ref bv-7a3a5548. Not licensed for reuse. */
+}
 
 export function putMeta(db, key, value) {
     return put(db, 'meta', { key, value });

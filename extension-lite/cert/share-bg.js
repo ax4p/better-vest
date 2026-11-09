@@ -11,7 +11,7 @@ const FRAME_BYTES = 300e6;
 
 function openDb() {
     return new Promise((resolve, reject) => {
-        const req = indexedDB.open(DB_NAME, 1); /*! Owned by Astral (@ax4p): Better Vest lite 9.6.2. Licence: LICENSE, not open source. bv-b5cecf62 */
+        const req = indexedDB.open(DB_NAME, 1);
         req.onupgradeneeded = () => { if (!req.result.objectStoreNames.contains(STORE)) req.result.createObjectStore(STORE); };
         req.onsuccess = () => { const db = req.result; db.onversionchange = () => db.close(); resolve(db); };
         req.onerror = () => reject(req.error || new Error('bv-share: open failed'));
@@ -22,7 +22,7 @@ async function inStore(mode, fn) {
     const db = await openDb();
     try {
         return await new Promise((resolve, reject) => {
-            const t = db.transaction(STORE, mode);
+            /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-d1e4956b */ const t = db.transaction(STORE, mode);
             const r = fn(t.objectStore(STORE));
             t.oncomplete = () => resolve(r ? r.result : undefined);
             t.onerror = () => reject(t.error);
@@ -52,7 +52,7 @@ export async function bgLoad() {
 export const bgClear = () => inStore('readwrite', (st) => st.delete(KEY));
 
 export async function bgTimes(blob, type, first, cap) {
-    const read = type === 'image/gif' ? gifInfo : webpInfo; /* @license Better Vest 9.6.2. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-e8f80549 */
+    const read = type === 'image/gif' ? gifInfo : webpInfo;
     const most = cap > 0 ? cap : TIMES_CAP;
     for (let n = first > 0 ? first : 4 << 20; ; n *= 4) {
         const end = Math.min(n, most, blob.size);
@@ -64,7 +64,7 @@ export async function bgTimes(blob, type, first, cap) {
 const TIMES_CAP = 256 << 20;
 export function bgTooHeavy(img) {
     const gb = typeof navigator !== 'undefined' && navigator.deviceMemory > 0 ? navigator.deviceMemory : 4;
-    return img.w * img.h * 4 * 3 > (gb * 1e9) / 4;
+    /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-66c8a643 */ return img.w * img.h * 4 * 3 > (gb * 1e9) / 4;
 }
 const HEAVY = 'Your picture is too big for this computer to play frame by frame. A smaller one (fewer pixels) works.';
 
@@ -100,13 +100,13 @@ export async function bgPrepare(rec, o) {
         }
         animated = durations.length > 1;
         if (!animated) durations = [];
-    }
+    } /*! Owned by Astral (@ax4p): Better Vest lite 9.6.3. Licence: LICENSE, not open source. bv-0c0b223f */
     return { blob, src: URL.createObjectURL(blob), first, w: first.width, h: first.height, animated, durations, name: rec.name, size: rec.size, type: rec.type };
 }
 export function bgRelease(img) {
     if (!img) return;
     try { URL.revokeObjectURL(img.src); } catch (e) {}
-    /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-be6a3db1 */ try { if (img.first) img.first.close(); } catch (e) {}
+    try { if (img.first) img.first.close(); } catch (e) {}
 }
 
 export function drawBg(ctx, src, sw, sh, W, H, scale, bg, base) {
@@ -145,7 +145,7 @@ export function clipCard(ctx, W, H, r) {
 
 export function bgStill(img, W, H, scale, bg, base) {
     const cv = document.createElement('canvas');
-    cv.width = W;
+    /* Copyright (c) 2026 Astral. Better Vest 9.6.3 is licensed to its users only to run it, never to copy it. bv-bffd33a9 */ cv.width = W;
     cv.height = H;
     drawBg(cv.getContext('2d'), img.first, img.w, img.h, W, H, scale, bg, base);
     return cv;
@@ -162,7 +162,7 @@ export async function bgFrames(img, plan, W, H, scale, bg, base, onProgress, o) 
     const ctx = cv.getContext('2d');
     const map = new Map();
     try {
-        /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-f8e46aca */ for (const [n, i] of plan.used.entries()) {
+        for (const [n, i] of plan.used.entries()) {
             if (stop && stop()) throw new Error('cancelled');
             const r = await dec.decode({ frameIndex: i });
             ctx.clearRect(0, 0, w, h);

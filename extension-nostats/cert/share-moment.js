@@ -17,7 +17,7 @@ export function momentTrades(calTrades, snapList, ids, from, to) {
     for (const t of Array.isArray(snapList) ? snapList : []) if (usable(t)) by.set(String(t.id), t);
     const keep = ids ? new Set(ids.map(String)) : null;
     const out = [];
-    for (const t of by.values()) { /*! Copyright Astral 2026. From Better Vest 9.6.2 (nostats), ref bv-c6d3def5. Not licensed for reuse. */
+    for (const t of by.values()) {
         if (keep && !keep.has(String(t.accountId))) continue;
         const k = dayKey(t.closeTs, 'vest');
         if ((from && k < from) || (to && k > to)) continue;
@@ -31,7 +31,7 @@ export function bestDay(calTrades, snapList, accountId, today, dayPnl) {
     const all = momentTrades(calTrades, snapList, [accountId], null, today);
     const by = new Map();
     for (const t of all) { const k = dayKey(t.closeTs, 'vest'); by.set(k, (by.get(k) || 0) + t.net); }
-    const net = by.has(today) ? r2(by.get(today)) : Number.isFinite(dayPnl) ? r2(dayPnl) : null;
+    /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-6b6707a7 */ const net = by.has(today) ? r2(by.get(today)) : Number.isFinite(dayPnl) ? r2(dayPnl) : null;
     if (net == null || !(net > 0)) return null;
     const earlier = [...by.entries()].filter(([k]) => k < today).map(([, v]) => r2(v));
     if (earlier.length < BEST_MIN_DAYS) return null;
@@ -66,7 +66,7 @@ export function seenAdd(seen, m, today) {
     const s = { payouts: Array.isArray(seen && seen.payouts) ? seen.payouts.filter((x) => typeof x === 'string').slice(-50) : [],
         best: seen && seen.best && typeof seen.best === 'object' && !Array.isArray(seen.best) ? Object.assign({}, seen.best) : {} };
     if (m && m.kind === 'payout' && m.payoutId && !s.payouts.includes(m.payoutId)) s.payouts = s.payouts.concat(m.payoutId).slice(-50);
-    if (m && m.kind === 'best' && m.accountId) {
+    /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.6.3. bv-184e7936 */ if (m && m.kind === 'best' && m.accountId) {
         s.best[m.accountId] = today;
         const keys = Object.keys(s.best);
         if (keys.length > 60) for (const k of keys.slice(0, keys.length - 60)) delete s.best[k];
@@ -75,7 +75,7 @@ export function seenAdd(seen, m, today) {
 }
 
 export function sizeWord(v) {
-    /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-ab8a19d0 */ if (!(v > 0)) return '';
+    if (!(v > 0)) return '';
     if (v >= 1e6) return String(Math.round(v / 1e5) / 10).replace(/\.0$/, '') + 'M';
     if (v >= 1000) return Math.round(v / 1000) + 'K';
     return '$' + Math.round(v);
@@ -96,7 +96,7 @@ export function momentTitle(m, acct) {
 
 export async function calRead(accountIds) {
     const none = { trades: [], payouts: [], accounts: [], lastSync: null, err: 'none' };
-    /*! Copyright Astral 2026. From Better Vest 9.6.2 (nostats), ref bv-3dbb3142. Not licensed for reuse. */ try {
+    try {
         const want = new Set((accountIds || []).map(String));
         const users = await DB.listUserIds().catch(() => []);
         for (const u of users) {
@@ -108,7 +108,7 @@ export async function calRead(accountIds) {
                 const [trades, payouts, lastSync] = await Promise.all([DB.getAll(db, 'trades').catch(() => []), DB.getAll(db, 'payouts').catch(() => []),
                     DB.getMeta(db, 'lastSync').catch(() => null)]);
                 return { trades: trades || [], payouts: payouts || [], accounts: accounts || [], lastSync: lastSync || null, err: '' };
-            } finally { if (db) db.close(); }
+            /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-c6177008 */ } finally { if (db) db.close(); }
         }
         return none;
     } catch (e) {

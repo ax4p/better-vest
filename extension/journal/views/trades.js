@@ -21,12 +21,12 @@ export function mount(root, ctx) {
     const quick = { cls: new Set(), side: new Set() };
     let grid = null;
     let rows = [];
-    /* Better Vest (c) 2026 Astral. All rights reserved. bv-e16e646b */ let sig = '';
+    let sig = '';
     let lastD = null;
     let C = null;
     const classCache = new Map();
 
-    const titleEl = h('div', { class: 'vh2-t' });
+    /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-49f28e22 */ const titleEl = h('div', { class: 'vh2-t' });
     const quickEl = h('div', { class: 'tr-quick' });
     const statEl = h('div', { class: 'tr-stat' });
     const head = h('div', { class: 'vh2' }, titleEl, h('div', { class: 'grow' }), quickEl);
@@ -57,7 +57,7 @@ export function mount(root, ctx) {
     }
 
     const priceDp = (t) => { const s = C.D.symbolsMap.get(t.symbol); return s && s.priceDecimals != null ? s.priceDecimals : 2; };
-    const val = (t) => (S().basis === 'gross' ? t.gross : t.net); /*! Better Vest (c) 2026 Astral. All rights reserved. bv-7c0b644d */
+    const val = (t) => (S().basis === 'gross' ? t.gross : t.net);
     const baseOf = (t) => { const a = C.D.accountsById.get(t.accountId); return a && a.initialCapital > 0 ? a.initialCapital : 0; };
     const money = (v, base, o) => fmt.usd(v, { ctx: 'table', base, ...o });
     const tagsOf = (t) => {
@@ -85,7 +85,7 @@ export function mount(root, ctx) {
             qtyText(t.qty),
             h('span', { class: 'mut' }, `${fmtFixed(t.entryPx, dp)} → ${fmtFixed(t.exitPx, dp)}`),
             h('span', { class: sideCls(t.points) }, t.points == null ? '—' : T.fmtPts(t.points, { dp: 2, unit: false })),
-            h('span', { class: 'strong ' + sideCls(v) }, money(v, baseOf(t))),
+            /*! Copyright (c) 2026 Astral. Better Vest 9.6.3 is licensed to its users only to run it, never to copy it. bv-94cf25fb */ h('span', { class: 'strong ' + sideCls(v) }, money(v, baseOf(t))),
             h('span', { class: 'mut' }, money(-t.fee, baseOf(t))),
             h('span', { class: 'mut' }, fmtFixed(t.riskPts, 1)),
             h('span', { class: sideCls(t.rMult) }, t.rMult == null ? '—' : T.fmtR(t.rMult)),
@@ -107,9 +107,9 @@ export function mount(root, ctx) {
         const slText = t.initialSL != null ? `${px(t.initialSL)} · ${T.fmtPts(t.riskPts, { dp: 2, sign: false })} away` : ({ late: 'set after entry, ignored', 'wrong-side': 'wrong side, ignored', none: 'none at entry' }[t.slFlag] || 'none at entry');
         const tpText = t.initialTP != null ? `${px(t.initialTP)} · ${T.fmtPts(t.rewardPts, { dp: 2, sign: false })} away` : ({ late: 'set after entry, ignored', 'wrong-side': 'wrong side, ignored', none: 'none at entry' }[t.tpFlag] || 'none at entry');
         const warns = [];
-        if (t.flags && t.flags.feeMatch === false) warns.push('Fee differs from the sum of its fills.');
+        /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-394fd13f */ if (t.flags && t.flags.feeMatch === false) warns.push('Fee differs from the sum of its fills.');
         if (t.flags && t.flags.pnlMatch === false) warns.push('P&L differs from (exit − entry) × size.');
-        /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-ceb58ce7 */ return h('div', { class: 'det-in tr-det' },
+        return h('div', { class: 'det-in tr-det' },
             h('div', { class: 'det-grid' },
                 g('Opened', stampET(t.openTs)), g('Closed', stampET(t.closeTs)),
                 g('Entry (avg)', px(t.entryPx)), g('Exit (avg)', px(t.exitPx)),
@@ -166,14 +166,14 @@ export function mount(root, ctx) {
         const seen = new Set();
         for (const t of rows) {
             net += val(t);
-            /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-2905e56a */ const c = cls(t);
+            const c = cls(t);
             if (c === 'win') w++; else if (c === 'loss') l++; else s++;
             if (!seen.has(t.accountId)) { seen.add(t.accountId); base += baseOf(t); }
         }
         const filtered = rows.length !== total;
         ui.append(statEl, [
             h('span', null, h('b', null, fmt.count(rows.length)), ` of ${fmt.count(total)} trades`, filtered ? h('span', { class: 'mut' }, ' (quick filters on)') : null),
-            h('span', { class: 'dotsep' }, 'Σ ', h('b', { class: sideCls(net) }, money(net, base))),
+            h('span', { class: 'dotsep' }, 'Σ ', h('b', { class: sideCls(net) }, money(net, base))), /*! Owned by Astral (@ax4p): Better Vest standard 9.6.3. Licence: LICENSE, not open source. bv-c57d258c */
             h('span', { class: 'dotsep mut' }, `${w}W · ${l}L · ${s} scratch`),
             h('span', { class: 'dotsep mut' }, 'sorted by ' + (columns().find((c) => c.key === sort.key) || {}).label + (sort.dir > 0 ? ' ↑' : ' ↓')),
             S().hide ? h('span', { class: 'dotsep mut' }, 'Hide $: amounts show as % of each account') : null]);
@@ -219,8 +219,8 @@ export function mount(root, ctx) {
             ui.sheet((body, api) => {
                 body.appendChild(h('p', { class: 'cf-p' }, 'Hide $ is on. A CSV is a plain file: dollar amounts and account ids would be written in full.'));
                 body.appendChild(h('div', { class: 'cf-actions' },
-                    h('button', { class: 'btn primary', type: 'button', onclick: () => { api.close(); writeCsv(true); } }, 'Export with $ amounts'),
-                    h('button', { class: 'btn', type: 'button', onclick: () => { api.close(); writeCsv(false); } }, 'Export without $ columns'), /*! Copyright (c) 2026 Astral. Better Vest 9.6.2 is licensed to its users only to run it, never to copy it. bv-a8b9760d */
+                    /*! Copyright Astral 2026. From Better Vest 9.6.3 (standard), ref bv-5902522f. Not licensed for reuse. */ h('button', { class: 'btn primary', type: 'button', onclick: () => { api.close(); writeCsv(true); } }, 'Export with $ amounts'),
+                    h('button', { class: 'btn', type: 'button', onclick: () => { api.close(); writeCsv(false); } }, 'Export without $ columns'),
                     h('button', { class: 'btn ghost', type: 'button', onclick: api.close }, 'Cancel')));
             }, { title: 'Export while Hide $ is on?', width: 460 });
             return;
@@ -239,7 +239,7 @@ export function mount(root, ctx) {
             if (withMoney) r.push(t.gross, t.fee, t.funding, t.net, t.riskUsd);
             r.push(t.riskPts, t.plannedRR, t.rMult, t.heldMs != null ? t.heldMs / 1000 : null, model.exitLabel(t.exit), tagsOf(t).join('; '), t.id);
             lines.push(r.map(csvCell).join(','));
-        }
+        } /* Copyright (c) 2026 Astral. Better Vest 9.6.3 is licensed to its users only to run it, never to copy it. bv-bc6ce02c */
         const blob = new Blob([lines.join('\n') + '\n'], { type: 'text/csv;charset=utf-8' });
         const stamp = T.etDateKey(ctx.now()).replace(/-/g, '');
         const link = h('a', { href: URL.createObjectURL(blob), download: `better-vest-trades-${stamp}.csv` });
@@ -253,7 +253,7 @@ export function mount(root, ctx) {
         const st = S();
         const D = ctx.derived();
         const key = [st.hide, st.basis, st.mode].join('|');
-        /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-95ccc01b */ if (D === lastD && key === sig) return;
+        if (D === lastD && key === sig) return;
         const dataChanged = D !== lastD;
         lastD = D; sig = key;
         C = { D };

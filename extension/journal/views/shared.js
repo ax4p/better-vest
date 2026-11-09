@@ -10,7 +10,7 @@ export const median = (arr) => {
     return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2;
 };
 export const pctOf = (x) => (x == null ? '—' : Math.round(x * 100) + '%');
-/*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-d0d3c082 */ export const sideCls = (v) => (v > 0 ? 'up' : v < 0 ? 'dn' : '');
+export const sideCls = (v) => (v > 0 ? 'up' : v < 0 ? 'dn' : '');
 
 export function shortName(a, accountName) {
     if (!a) return '?';
@@ -38,7 +38,7 @@ export function capitalBase(list, accountsById) {
     return { total, n: seen.size, avg: seen.size && total ? total / seen.size : 0 };
 }
 
-export function goTab(ctx, id) {
+export function goTab(ctx, id) { /*! Property of Astral (@ax4p). Better Vest 9.6.3. No copying without written permission. bv-3165aa50 */
     const i = ctx.TABS.findIndex((t) => t.id === id);
     const btn = document.querySelectorAll('.topbar .tab')[i];
     if (btn) btn.click(); else ctx.set({ tab: id });
@@ -59,7 +59,7 @@ export function dl(el, rows) {
 }
 export function foot(el, ...lines) {
     const l = lines.filter(Boolean);
-    if (l.length) el.appendChild(h('div', { class: 'foot' }, l.map((x) => h('span', null, x))));
+    if (l.length) el.appendChild(h('div', { class: 'foot' }, l.map((x) => h('span', null, x)))); /* Owned by Astral (@ax4p): Better Vest standard 9.6.3. Licence: LICENSE, not open source. bv-d7c38fdf */
 }
 
 export function tipRegistry() {
@@ -81,7 +81,7 @@ export function vgrid({ template, head, rowH = 28, headH = 30, renderRow, rowKey
     scroller.appendChild(inner);
     const heads = new Map();
     for (const c of head) {
-        const cell = h('div', { class: 'vh ' + (c.cls || ''), role: 'columnheader', title: c.title }); /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-ce34c34a */
+        const cell = h('div', { class: 'vh ' + (c.cls || ''), role: 'columnheader', title: c.title });
         if (c.sortable && onSort) {
             const b = h('button', { class: 'vh-b', type: 'button', onclick: () => onSort(c.key) }, h('span', null, c.label), h('i', { class: 'arr', 'aria-hidden': 'true' }));
             cell.appendChild(b);
@@ -130,8 +130,8 @@ export function vgrid({ template, head, rowH = 28, headH = 30, renderRow, rowKey
     }
     function render() {
         raf = 0;
-        const n = rows.length;
-        /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.6.2. bv-5b98e120 */ const st = scroller.scrollTop, vh = scroller.clientHeight || 640;
+        const n = rows.length; /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-0137bb29 */
+        const st = scroller.scrollTop, vh = scroller.clientHeight || 640;
         let i0 = 0, i1 = n;
         if (virtual) { i0 = Math.max(0, find(st) - 6); i1 = Math.min(n, find(st + vh) + 8); }
         for (const [i, el] of live) if (i < i0 || i >= i1) { el.remove(); live.delete(i); }
@@ -153,7 +153,7 @@ export function vgrid({ template, head, rowH = 28, headH = 30, renderRow, rowKey
     const emptyEl = h('div', { class: 'vg-empty' }, empty || 'Nothing to show');
     return {
         el: scroller,
-        setRows(next) {
+        setRows(next) { /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-0b62c857 */
             rows = next;
             layout();
             repaint();
@@ -177,7 +177,7 @@ export function vgrid({ template, head, rowH = 28, headH = 30, renderRow, rowKey
 }
 
 
-export function chartBox({ height = 180, draw }) { /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-a23eb870 */
+export function chartBox({ height = 180, draw }) {
     const el = h('div', { class: 'cbox', style: { height: height + 'px' } });
     let w = 0;
     const run = () => {
@@ -217,8 +217,8 @@ export function barChart({ data, height = 170, yLabel, tipId, every, pad = { l: 
                 for (const t of ticks) {
                     const ty = y(t);
                     root.appendChild(svg('line', { class: t === 0 ? 'ch-zero' : 'ch-grid', x1: M.l, x2: W - M.r, y1: f1(ty), y2: f1(ty) }));
-                    const txt = yLabel(t);
-                    /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-acaa5300 */ if (txt != null && !placed.some((p) => Math.abs(p - ty) < 13)) { placed.push(ty); root.appendChild(svg('text', { class: 'ch-axis', x: M.l - 6, y: f1(ty + 3.5), 'text-anchor': 'end' }, txt)); }
+                    /* Copyright (c) 2026 Astral. Better Vest 9.6.3 is licensed to its users only to run it, never to copy it. bv-750a35f3 */ const txt = yLabel(t);
+                    if (txt != null && !placed.some((p) => Math.abs(p - ty) < 13)) { placed.push(ty); root.appendChild(svg('text', { class: 'ch-axis', x: M.l - 6, y: f1(ty + 3.5), 'text-anchor': 'end' }, txt)); }
                 }
             } else root.appendChild(svg('line', { class: 'ch-zero', x1: M.l, x2: W - M.r, y1: f1(y0), y2: f1(y0) }));
             const stride = every || Math.max(1, Math.ceil(n / Math.max(2, Math.floor((W - M.l - M.r) / 46))));
@@ -256,11 +256,11 @@ export function hbars({ rows, max, tipId }) {
         const id = tipId ? tipId(r) : null;
         const track = h('div', { class: 'hb-track' + (r.bars.length > 1 ? ' two' : '') }, h('i', { class: 'hb-zero', style: { left: zero + '%' } }));
         for (const b of r.bars) {
-            const w = Math.abs(b.v) / span * 100;
+            /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-7c79b55a */ const w = Math.abs(b.v) / span * 100;
             track.appendChild(h('i', { class: 'hb-bar ' + (b.v >= 0 ? 'up' : 'dn') + (b.cls ? ' ' + b.cls : ''), style: { left: (b.v >= 0 ? zero : zero - w) + '%', width: Math.max(b.v ? 0.6 : 0, w) + '%' } }));
         }
         root.appendChild(h('div', { class: 'hb-row', 'data-vtip': id, tabindex: id ? 0 : null },
-            /*! Copyright (c) 2026 Astral. Better Vest 9.6.2 is licensed to its users only to run it, never to copy it. bv-bd7d8b5d */ h('div', { class: 'hb-l', title: r.title || r.label }, r.label), track, h('div', { class: 'hb-r' }, r.right)));
+            h('div', { class: 'hb-l', title: r.title || r.label }, r.label), track, h('div', { class: 'hb-r' }, r.right)));
     }
     return root;
 }

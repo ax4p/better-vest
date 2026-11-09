@@ -34,11 +34,11 @@ function bars(vals, w, h, gap, uid) {
     let out = '';
     vals.forEach((v, i) => {
         const x = i * (bw + gap);
-        /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.6.2. bv-89adb5fb */ if (!(v > 0)) {
+        if (!(v > 0)) {
             out += `<rect x="${x.toFixed(2)}" y="${h - 1}" width="${bw.toFixed(2)}" height="1" rx=".5" fill="rgb(255 255 255 / .18)"/>`;
             return;
         }
-        const bh = Math.max(1.5, (f(v) / mx) * (h - 2));
+        /*! Copyright Astral 2026. From Better Vest 9.6.3 (standard), ref bv-66316006. Not licensed for reuse. */ const bh = Math.max(1.5, (f(v) / mx) * (h - 2));
         out += `<rect x="${x.toFixed(2)}" y="${(h - bh).toFixed(2)}" width="${bw.toFixed(2)}" height="${bh.toFixed(2)}" rx="${Math.min(1.5, bw / 2).toFixed(2)}" fill="url(#bvg-${uid})"/>`;
     });
     return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><defs><linearGradient id="bvg-${uid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7DF5AB"/><stop offset="1" stop-color="#00F15B" stop-opacity=".35"/></linearGradient></defs>${out}</svg>`;
@@ -97,13 +97,13 @@ export function buildCard(S, opts = {}) {
 
     const el = document.createElement('div');
     el.className = 'bvc';
-    el.setAttribute('data-bv-cert', '1');
+    el.setAttribute('data-bv-cert', '1'); /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-cd349ab7 */
     el.innerHTML = html;
     return el;
 }
 
 export function fitCard(card) {
-    const q = (k) => card.querySelector(`[data-k="${k}"]`); /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-6afcee86 */
+    const q = (k) => card.querySelector(`[data-k="${k}"]`);
     const hero = q('hero'), hv = q('hv');
     let size = 82;
     hero.style.fontSize = size + 'px';

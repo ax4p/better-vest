@@ -1,39 +1,264 @@
-Better Vest by Astral
-Copyright (c) 2026 Astral (Discord: @ax4p). All rights reserved.
+BETTER VEST BY ASTRAL
+PROPRIETARY SOFTWARE LICENCE AGREEMENT
 
-This is not open-source software. The code is public so you can see exactly
-what runs in your browser, and so you can install it yourself.
+Copyright (c) 2026 Astral (the pseudonym of the Author identified in Section 1.1).
+All rights reserved.
 
-You may:
-  - download Better Vest from this repository and install it in your own browser
-  - use it with your own Vest Markets accounts, for personal or professional trading
-  - read the code and keep copies for your own private use
+THIS IS NOT OPEN-SOURCE SOFTWARE. NO LICENCE IS GRANTED EXCEPT AS EXPRESSLY SET OUT
+IN SECTION 3. THIS AGREEMENT APPLIES TO EVERY VERSION OF THE WORK, INCLUDING EVERY
+VERSION PUBLISHED BEFORE IT (SECTION 12). BY DOWNLOADING, INSTALLING, ACCESSING,
+READING OR OTHERWISE USING THE WORK, YOU ACKNOWLEDGE THAT YOU HAVE READ AND UNDERSTOOD
+THIS AGREEMENT AND AGREE TO BE BOUND BY IT. IF YOU DO NOT AGREE, YOU SHALL NOT
+DOWNLOAD, INSTALL, ACCESS OR USE THE WORK.
 
-You may not, without written permission from Astral:
-  - share, re-upload or redistribute the extension or any part of it
-    (send people a link to this repository instead)
-  - sell it, bundle it, or offer it as part of a paid product or service
-  - publish modified versions, forks or derivative works, or reuse the code in
-    other projects
-  - rename or rebrand it, or remove or change the copyright notice, the credits
-    or the support code shown on purchase screens
-  - present it, or any part of it, as your own work
+1. DEFINITIONS
 
-The name "Better Vest", the Astral name and logo, and the screenshots and GIFs in
-this repository are part of the work and are covered by this notice.
+1.1 "Licensor" means the natural person who created the Work and publishes it under the
+    pseudonym "Astral" (the "Author"), together with any successor in title to the
+    Author's rights. The Author is the person who, at the Effective Date, holds and
+    controls each of the following:
+    (a) the GitHub account "ax4p", which publishes this repository;
+    (b) the Discord account "ax4p";
+    (c) the X (formerly Twitter) account "ax4pa";
+    (d) the Instagram account "ax4pa";
+    (e) the domain names astrals.dev and bv.astrals.dev, and the email address
+        a@astrals.dev;
+    (f) the Chrome Web Store developer account that publishes Better Vest (item
+        ilegencblfidpnobbgekejbphjkafobb); and
+    (g) the private signing key whose public key is published with the Work (in the
+        extension's update/key.js) and with which the releases of the Work published in
+        this repository are signed.
+    "Astral" is the Author's generally known pseudonym and leaves no doubt as to the
+    Author's identity. The Author is accordingly presumed to be the author of the Work
+    within the meaning of Section 7 of the Swedish Copyright Act, Article 15(1) of the
+    Berne Convention and Article 5 of Directive 2004/48/EC. The Author's legal name is
+    withheld from publication and shall be disclosed only to a competent court or
+    authority where the law so requires.
+1.2 "You" means any natural or legal person who downloads, installs, accesses, reads or
+    otherwise uses the Work, and any person acting on that person's behalf or for that
+    person's benefit.
+1.3 "Work" means, in every version, edition and channel of distribution, whenever
+    published (including this repository, the Chrome Web Store and the mobile
+    userscript): the software known as Better Vest, its source code and object code,
+    its structure, sequence and organisation, its user interface, layouts, texts and
+    messages, its designs, logo, icons, images, videos and sounds, its documentation,
+    and the selection, arrangement, combination and manner of operation of its
+    features, including without limitation the copy trader and its engines, the
+    Execute card, the orders and labels on the chart, the limits and locks, the
+    spending counter, the P&L cards and the Calendar.
+1.4 "Platform Party" means Vest Markets, every company, partnership or other entity
+    that operates, owns, controls, develops or markets Vest Markets or is under common
+    control with any of them, and every other operator of a trading platform,
+    exchange, brokerage, proprietary-trading firm or evaluation programme, together
+    with each of their respective owners, directors, officers, employees,
+    contractors, agents, partners and affiliates.
+1.5 "Competing Purpose" means designing, developing, building, testing, improving,
+    benchmarking, marketing or distributing any software, browser extension, feature,
+    product or service, whether or not offered for a fee.
+1.6 "Effective Date" means the date on which this Agreement was first published in this
+    repository.
 
-Better Vest is an independent project. It is not made by, endorsed by or
-affiliated with Vest Markets. All trademarks belong to their owners.
+2. RESERVATION OF RIGHTS AND OWNERSHIP
 
-One part is not covered by this notice: the Inter typeface in
-extension/cert/assets/inter.woff2 is Copyright 2016 The Inter Project Authors
-(https://github.com/rsms/inter) and is used under the SIL Open Font License 1.1
-(https://openfontlicense.org).
+2.1 The Work is licensed, not sold. The Licensor retains all right, title and interest
+    in and to the Work, including all copyright, database rights, design rights,
+    trademark rights, rights in confidential information and every other intellectual
+    property right, whether registered or unregistered, throughout the world. The Work
+    is protected, among other laws, by the Swedish Copyright Act (Lag (1960:729) om
+    upphovsrätt till litterära och konstnärliga verk), the Swedish Trademarks Act
+    (Varumärkeslag (2010:1877)), Directive 2009/24/EC on the legal protection of
+    computer programs, Directive 2001/29/EC on the harmonisation of certain aspects of
+    copyright and related rights in the information society, Directive (EU) 2019/790 on
+    copyright and related rights in the Digital Single Market, and the international
+    treaties to which Sweden and the European Union are party, including the Berne
+    Convention and the WIPO Copyright Treaty.
+2.2 The publication of the source code of the Work in this repository is made solely to
+    enable transparency as to what the Work does in Your browser. Such publication does
+    not constitute, and shall not be construed as, a waiver, abandonment or licence of
+    any right, nor a dedication of any part of the Work to the public.
+2.3 No right or licence is granted by implication, estoppel, conduct or otherwise. Every
+    right not expressly granted in Section 3 is reserved to the Licensor.
+2.4 No consent. The Licensor does not grant, and will not grant, to any person any
+    permission, consent, waiver or licence in respect of the Work beyond the limited
+    licence in Section 3. No statement, conduct, silence, delay or course of dealing of
+    the Licensor shall be construed as any such permission, consent, waiver or licence.
 
-NO WARRANTY. Better Vest is provided "as is", without warranty of any kind,
-express or implied. Trading carries real risk. You are responsible for every
-order, stop and target on your accounts, including the ones placed or moved
-through this extension. In no event shall the author be liable for any claim,
-loss or damages arising from the use of this software.
+3. LIMITED LICENCE
 
-Permission requests and questions: Discord @ax4p
+3.1 Subject to Your continuing compliance with this Agreement, the Licensor hereby
+    grants You a personal, non-exclusive, non-transferable, non-sublicensable,
+    revocable licence to:
+    (a) install the Work in a web browser that You use, from the Chrome Web Store or
+        from a release published by the Licensor in this repository;
+    (b) use the Work with Your own Vest Markets accounts, for personal or professional
+        trading; and
+    (c) read the source code of the Work for the sole purpose of understanding what the
+        Work does in Your browser.
+
+4. RESTRICTIONS
+
+4.1 Save as expressly permitted in Section 3, You shall not, and shall not permit,
+    assist or enable any third party to:
+    (a) copy, reproduce, publish, distribute, redistribute, re-upload, transmit, sell,
+        resell, rent, lease, lend, license or sublicense the Work or any part of it;
+    (b) modify, adapt, translate, port, fork or create any derivative work of the Work
+        or any part of it, including by rewriting, re-implementing or paraphrasing its
+        code, in any language or form, while having access to the Work;
+    (c) use the Work, or any part of it, or any knowledge, information or insight
+        obtained from accessing, reading or studying it, for any Competing Purpose;
+    (d) reverse engineer, decompile, disassemble or otherwise attempt to derive the
+        source code, algorithms or methods of operation of the released packages,
+        except to the extent that applicable mandatory law expressly permits such
+        activity notwithstanding a contractual prohibition;
+    (e) use the Work, or any part of it, to train, fine-tune, prompt, ground, evaluate
+        or benchmark any machine-learning model, large language model or other
+        artificial-intelligence system, or submit it to any such system for the purpose
+        of reproducing, rewriting, summarising or describing its code or its methods of
+        operation;
+    (f) remove, obscure, alter or circumvent any copyright notice, credit, reference
+        code (including any "ref bv-" marker), support code, licence text or other
+        notice in or on the Work; or
+    (g) represent the Work, or any part of it, as the work of any person other than the
+        Licensor.
+4.2 Text and data mining. The Licensor hereby expressly reserves the use of the Work for
+    text and data mining, within the meaning of Article 2(2) and Article 4(3) of
+    Directive (EU) 2019/790 and the Swedish provisions implementing them. No text and
+    data mining of the Work is permitted, for any purpose, including the development
+    or training of any artificial-intelligence model. Every provider of a
+    general-purpose AI model is reminded of its obligation under Article 53(1)(c) of
+    Regulation (EU) 2024/1689 (the Artificial Intelligence Act) to identify and comply
+    with this reservation of rights.
+
+5. PLATFORM PARTIES
+
+5.1 Notwithstanding anything to the contrary in this Agreement, no Platform Party is
+    granted any right under Section 3.1(c), and no Platform Party shall access, read,
+    copy, analyse, study or use the Work, or any part of it, or any knowledge,
+    information or insight obtained from it, for any Competing Purpose or for the
+    purpose of designing, building, changing, testing or marketing any product, feature
+    or service of its own.
+5.2 The sole exception is a review of the Work carried out strictly for the purpose of
+    assessing the security of an extension used by that Platform Party's own users,
+    the results of which shall not be used for any other purpose.
+5.3 No other access to or use of the Work by a Platform Party is permitted, and no
+    permission, consent, waiver or licence shall be granted to any Platform Party.
+
+6. TRADEMARKS
+
+6.1 "Better Vest", "Astral", the B logo and every screenshot, animation and video of the
+    Work are the property of the Licensor and form part of the Work. No right to use
+    any of them is granted.
+6.2 The Work is an independent product. It is not made, endorsed, sponsored or
+    approved by, nor affiliated with, Vest Markets. All other trademarks are the
+    property of their respective owners.
+
+7. TERMINATION
+
+7.1 This Agreement, and every right granted to You under it, shall terminate
+    automatically and with immediate effect, without notice, upon any breach by You of
+    any of its terms. The Licensor may also revoke the licence in Section 3 at any
+    time.
+7.2 Upon termination or revocation You shall immediately cease all use of the Work and
+    permanently delete and destroy every copy of the Work in Your possession, custody
+    or control.
+7.3 Sections 1, 2, 4, 5, 6, 7, 8, 9, 10, 11 and 12 shall survive termination or
+    revocation.
+
+8. REMEDIES
+
+8.1 You acknowledge that any breach of Section 4 or Section 5 would cause the Licensor
+    irreparable harm for which damages alone would not be an adequate remedy. The
+    Licensor shall accordingly be entitled to injunctive relief and other equitable,
+    interim or provisional relief, without the need to post a bond or other security,
+    in addition to damages, an account of profits and every other remedy available at
+    law or in equity.
+8.2 The Licensor shall further be entitled to every measure, procedure and remedy
+    provided for by Directive 2004/48/EC on the enforcement of intellectual property
+    rights and the Swedish provisions implementing it, including evidence-preservation
+    and information orders, provisional and precautionary measures, the recall,
+    removal and destruction of infringing copies, and damages that take into account
+    all appropriate aspects, including lost profits and any unfair profits made by the
+    infringer.
+8.3 You shall indemnify the Licensor against all losses, damages, costs and expenses,
+    including reasonable legal fees, arising out of any breach of this Agreement by You.
+8.4 Infringement of the Licensor's rights in the Work may also constitute a criminal
+    offence under the Swedish Copyright Act and under the laws of other jurisdictions,
+    and the Licensor reserves the right to report any such infringement to the
+    competent authorities.
+
+9. THIRD-PARTY COMPONENTS
+
+9.1 The following components are excluded from this Agreement and are governed solely
+    by their own licences:
+    (a) the Inter typeface in extension/cert/assets/inter.woff2, Copyright 2016 The
+        Inter Project Authors (https://github.com/rsms/inter), licensed under the SIL
+        Open Font License 1.1 (https://openfontlicense.org); and
+    (b) the QR code encoder in the extension's page script, written after the QR Code
+        generator library by Project Nayuki
+        (https://www.nayuki.io/page/qr-code-generator-library), Copyright (c) Project
+        Nayuki, licensed under the MIT License, the full notice of which is reproduced
+        in the code.
+
+10. DISCLAIMER OF WARRANTY AND LIMITATION OF LIABILITY
+
+10.1 THE WORK IS PROVIDED "AS IS" AND "AS AVAILABLE", WITHOUT WARRANTY OF ANY KIND,
+     EXPRESS OR IMPLIED, INCLUDING WITHOUT LIMITATION ANY WARRANTY OF MERCHANTABILITY,
+     FITNESS FOR A PARTICULAR PURPOSE, ACCURACY OR NON-INFRINGEMENT.
+10.2 TRADING INVOLVES SUBSTANTIAL RISK OF LOSS. YOU ARE SOLELY RESPONSIBLE FOR EVERY
+     ORDER, STOP AND TARGET ON YOUR ACCOUNTS, INCLUDING THOSE PLACED, MOVED OR CLOSED
+     THROUGH THE WORK.
+10.3 TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT SHALL THE LICENSOR BE
+     LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL OR EXEMPLARY
+     DAMAGES, OR FOR ANY LOSS OF PROFITS, FUNDS, DATA OR OPPORTUNITY, ARISING OUT OF OR
+     IN CONNECTION WITH THE WORK OR THIS AGREEMENT, HOWEVER CAUSED AND ON ANY THEORY OF
+     LIABILITY, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
+
+11. GENERAL
+
+11.1 Severability. If any provision of this Agreement is held invalid or unenforceable,
+     it shall be enforced to the maximum extent permissible and the remaining
+     provisions shall continue in full force and effect.
+11.2 No waiver. No failure or delay by the Licensor in exercising any right or remedy
+     shall operate as a waiver of it, nor shall any single or partial exercise of any
+     right or remedy preclude any further exercise of it.
+11.3 Entire agreement. This Agreement constitutes the entire agreement concerning the
+     Work and supersedes every prior notice, licence or understanding relating to it,
+     save that nothing in this Agreement releases, waives or limits any right or claim
+     of the Licensor arising under any prior notice or licence (Section 12.3).
+11.4 Assignment. You may not assign or transfer any right under this Agreement. The
+     Licensor may assign this Agreement, or any right under it, at any time.
+11.5 Governing law. This Agreement and any dispute or claim arising out of or in
+     connection with it or the Work, including non-contractual disputes and claims,
+     shall be governed by and construed in accordance with the laws of Sweden and the
+     law of the European Union applicable in Sweden, without regard to any
+     conflict-of-laws rule that would lead to the application of any other law.
+     Nothing in this Agreement deprives the Licensor of the protection afforded by the
+     law of any country in which the Work is used, accessed or infringed.
+11.6 Jurisdiction. Subject to Regulation (EU) No 1215/2012, the courts of Sweden shall
+     have exclusive jurisdiction to settle any dispute or claim arising out of or in
+     connection with this Agreement or the Work, without prejudice to the Licensor's
+     right to bring proceedings, including for interim, provisional or protective
+     measures, before the courts of any other Member State of the European Union or of
+     any other country having jurisdiction, including the courts of the place where an
+     infringement occurred or may occur.
+
+12. APPLICATION TO EVERY VERSION
+
+12.1 This Agreement applies to every version, edition and release of the Work, whenever
+     and wherever published or obtained, including every version published before the
+     Effective Date.
+12.2 From the Effective Date, every copy of any version of the Work, however and whenever
+     obtained, may be held and used only under this Agreement. Any permission granted
+     under any earlier notice or licence is withdrawn and replaced by Section 3 with
+     effect from the Effective Date, to the fullest extent permitted by law.
+12.3 Every act done before the Effective Date remains governed by the notice or licence
+     that applied to the version concerned, under which all rights were likewise
+     reserved to the Licensor. Every right and claim of the Licensor arising from any
+     such act is expressly preserved, and nothing in this Agreement waives, releases or
+     limits it.
+12.4 No person may rely on the existence of an earlier version of the Work or of an
+     earlier notice or licence, or on the absence of this Agreement from any copy of
+     the Work, to avoid the application of this Agreement to any act done on or after
+     the Effective Date.
+
+Notices: Discord @ax4p, a@astrals.dev

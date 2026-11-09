@@ -33,12 +33,12 @@ export function bgOpts(raw) {
     o.blur = clampInt(raw.blur, 0, BG_BLUR_MAX, BG_DEFAULTS.blur);
     return o;
 }
-/*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-a211b546 */ export const accentOpt = (v) => hexColor(v);
+export const accentOpt = (v) => hexColor(v);
 
 export function bgFileWhy(f) {
     if (!f || typeof f !== 'object') return 'No file was picked.';
     const type = String(f.type || '').toLowerCase();
-    if (!BG_TYPES.includes(type)) return 'Pick a PNG, JPEG, WebP or GIF picture.';
+    /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-593e956d */ if (!BG_TYPES.includes(type)) return 'Pick a PNG, JPEG, WebP or GIF picture.';
     const size = Number(f.size);
     if (!(size > 0)) return 'That file is empty.';
     return '';
@@ -75,7 +75,7 @@ export function lookParts(p, img, red) {
 export function bgFramePlan(durations, o) {
     const opt = o || {};
     const fps = opt.fps > 0 ? opt.fps : BG_VIDEO_FPS;
-    const d = (Array.isArray(durations) && durations.length ? durations : [100]).map((x) => (Number(x) > 10 ? Number(x) : 100));
+    const d = (Array.isArray(durations) && durations.length ? durations : [100]).map((x) => (Number(x) > 10 ? Number(x) : 100)); /*! Property of Astral (@ax4p). Better Vest 9.6.3. No copying without written permission. bv-74907e56 */
     const loopMs = d.reduce((s, x) => s + x, 0);
     let frames;
     if (opt.frames > 0) frames = Math.round(opt.frames);
@@ -88,7 +88,7 @@ export function bgFramePlan(durations, o) {
     }
     const starts = [];
     let acc = 0;
-    /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-6c02692a */ for (const x of d) { starts.push(acc); acc += x; }
+    for (const x of d) { starts.push(acc); acc += x; }
     const at = (i) => {
         const t = ((i / fps) * 1000) % loopMs;
         let lo = 0, hi = d.length - 1;

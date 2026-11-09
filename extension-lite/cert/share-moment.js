@@ -24,7 +24,7 @@ export function momentTrades(calTrades, snapList, ids, from, to) {
         out.push(t);
     }
     return out.sort((a, b) => a.closeTs - b.closeTs || (String(a.id) < String(b.id) ? -1 : 1));
-}
+/* Copyright Astral 2026. From Better Vest 9.6.3 (lite), ref bv-4bfc04c8. Not licensed for reuse. */ }
 
 export function bestDay(calTrades, snapList, accountId, today, dayPnl) {
     if (!accountId || !KEY_RE.test(String(today || ''))) return null;
@@ -35,7 +35,7 @@ export function bestDay(calTrades, snapList, accountId, today, dayPnl) {
     if (net == null || !(net > 0)) return null;
     const earlier = [...by.entries()].filter(([k]) => k < today).map(([, v]) => r2(v));
     if (earlier.length < BEST_MIN_DAYS) return null;
-    if (!earlier.every((v) => net > v)) return null; /*! Owned by Astral (@ax4p): Better Vest lite 9.6.2. Licence: LICENSE, not open source. bv-918d33ed */
+    if (!earlier.every((v) => net > v)) return null;
     return { net, days: earlier.length };
 }
 export function newPayout(payouts, now, seen) {
@@ -59,10 +59,10 @@ export function momentCheck(cal, o) {
     if (id && !(seen.best && seen.best[id] === opt.today)) {
         const b = bestDay(cal && cal.trades, opt.snapList, id, opt.today, opt.dayPnl);
         if (b) return { kind: 'best', accountId: id, at: now, net: b.net, days: b.days };
-    }
+    /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-3d9499cc */ }
     return null;
 }
-export function seenAdd(seen, m, today) { /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-f0bec697 */
+export function seenAdd(seen, m, today) {
     const s = { payouts: Array.isArray(seen && seen.payouts) ? seen.payouts.filter((x) => typeof x === 'string').slice(-50) : [],
         best: seen && seen.best && typeof seen.best === 'object' && !Array.isArray(seen.best) ? Object.assign({}, seen.best) : {} };
     if (m && m.kind === 'payout' && m.payoutId && !s.payouts.includes(m.payoutId)) s.payouts = s.payouts.concat(m.payoutId).slice(-50);
@@ -95,7 +95,7 @@ export function momentTitle(m, acct) {
 }
 
 export async function calRead(accountIds) {
-    const none = { trades: [], payouts: [], accounts: [], lastSync: null, err: 'none' };
+    const none = { trades: [], payouts: [], accounts: [], lastSync: null, err: 'none' }; /*! Better Vest (c) 2026 Astral. All rights reserved. bv-af5951a9 */
     try {
         const want = new Set((accountIds || []).map(String));
         const users = await DB.listUserIds().catch(() => []);
@@ -107,7 +107,7 @@ export async function calRead(accountIds) {
                 if (want.size && !accounts.some((a) => a && want.has(String(a.id)))) continue;
                 const [trades, payouts, lastSync] = await Promise.all([DB.getAll(db, 'trades').catch(() => []), DB.getAll(db, 'payouts').catch(() => []),
                     DB.getMeta(db, 'lastSync').catch(() => null)]);
-                /* Copyright Astral 2026. From Better Vest 9.6.2 (lite), ref bv-fbe0242a. Not licensed for reuse. */ return { trades: trades || [], payouts: payouts || [], accounts: accounts || [], lastSync: lastSync || null, err: '' };
+                return { trades: trades || [], payouts: payouts || [], accounts: accounts || [], lastSync: lastSync || null, err: '' };
             } finally { if (db) db.close(); }
         }
         return none;

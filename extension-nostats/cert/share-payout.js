@@ -10,7 +10,7 @@ export const paidAt = (p) => (p && (p.executedAt || p.updatedAt || p.createdAt))
 
 export function receivedPayouts(list) {
     const seen = new Set();
-    const out = []; /* Copyright (c) 2026 Astral. Better Vest 9.6.2 is licensed to its users only to run it, never to copy it. bv-51aed78a */
+    const out = [];
     for (const p of Array.isArray(list) ? list : []) {
         if (!p || typeof p !== 'object' || p.status !== 'EXECUTED' || !Number.isFinite(p.net) || !(paidAt(p) > 0)) continue;
         const id = String(p.id);
@@ -34,7 +34,7 @@ export function payoutModel(payouts, o) {
     const total = r2(done.reduce((s, p) => s + p.net, 0));
     const big = done.reduce((a, p) => (p.net > a.net ? p : a), done[0]);
     const life = { total, count: done.length, accounts: accountsIn(done), first: item(done[0]), last: item(done[done.length - 1]), biggest: item(big) };
-    if (kind === 'lifetime') {
+    if (kind === 'lifetime') { /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-c1f2efed */
         return Object.assign({ kind, empty: false, day: life.last.day, items: done.slice().reverse().map(item) }, life);
     }
     const today = KEY_RE.test(String(opt.today || '')) ? opt.today : dayKey(Date.now(), 'vest');
@@ -53,7 +53,7 @@ export function payoutModel(payouts, o) {
 export function ordinal(n) {
     const v = Math.abs(Math.round(n)), t = v % 100;
     return v + (t >= 11 && t <= 13 ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' })[v % 10] || 'th');
-}
+} /* Copyright (c) 2026 Astral. Better Vest 9.6.3 is licensed to its users only to run it, never to copy it. bv-b119ff5d */
 
 
 function seeded(str) {
@@ -82,7 +82,7 @@ export function samplePayouts(today) {
 }
 function samplePay(i, acc, net, at) {
     return { id: 'sample-pay-' + i, accountId: acc, targetAccountId: 'sample-primary', gross: r2(net / 0.8), net, platformCut: r2(net / 0.8 - net),
-        /* Property of Astral (@ax4p). Better Vest 9.6.2. No copying without written permission. bv-cd3a9741 */ status: 'EXECUTED', failureReason: null, createdAt: at - 3 * 3600e3, updatedAt: at, executedAt: at, counted: true, sample: true };
+        status: 'EXECUTED', failureReason: null, createdAt: at - 3 * 3600e3, updatedAt: at, executedAt: at, counted: true, sample: true };
 }
 
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];

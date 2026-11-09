@@ -7,7 +7,7 @@ const PHRASES = {
     long: ['long', 'go long', 'open long', 'buy', 'buy now', 'buy market', 'long now', 'enter long', 'get long'],
     short: ['short', 'go short', 'open short', 'sell', 'sell now', 'sell market', 'short now', 'enter short', 'get short'],
     flat: ['flat', 'go flat', 'flatten', 'close', 'close all', 'close everything', 'close out', 'get out', 'exit', 'exit all', 'out'],
-    half: ['half', 'close half', 'fifty', 'fifty percent', 'close fifty', 'close fifty percent', 'take half', 'half off'],
+    /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-2c82717d */ half: ['half', 'close half', 'fifty', 'fifty percent', 'close fifty', 'close fifty percent', 'take half', 'half off'],
     rev: ['reverse', 'flip', 'reverse that', 'flip that'],
     be: ['break even', 'be', 'stop to break even', 'move stop to break even', 'move to break even', 'stop break even'],
     limitBuy: ['buy limit', 'limit buy', 'buy at the bid', 'buy the bid', 'bid'],
@@ -24,7 +24,7 @@ export const vcWords = (s) => String(s || '').toLowerCase()
     .replace(/\bbreakeven\b/g, 'break even')
     .replace(/[^a-z' ]+/g, ' ')
     .replace(/\s+/g, ' ')
-    /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-92c9b020 */ .trim();
+    .trim();
 
 const clean = (s) => vcWords(s).split(' ').filter((w) => w && !FILLER.has(w)).join(' ');
 
@@ -53,8 +53,8 @@ export function vcParse(text, opts) {
     const said = clean(rest);
     if (!said) return null;
     const id = TABLE.get(said);
-    if (!id) return null;
-    /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-89d5201c */ return { id, said, grows: GROWS.has(said) };
+    if (!id) return null; /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-5853e453 */
+    return { id, said, grows: GROWS.has(said) };
 }
 
 export function vcPending(text, opts) {

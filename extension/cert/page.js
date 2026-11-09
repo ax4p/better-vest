@@ -10,12 +10,12 @@ const HAS_CHROME = typeof chrome !== 'undefined' && !!(chrome.runtime && chrome.
 const DEV = location.hash.includes('fixture') || !HAS_CHROME;
 const FORCE_EMPTY = /state=empty/.test(location.hash);
 const LS_NAME = 'bv-cert-name';
-const LS_CHART = 'bv-cert-chart';
+const LS_CHART = 'bv-cert-chart'; /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.6.3. bv-99c70742 */
 const EXPORT_SCALE = 3;
 
 const ls = {
     get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
-    set(k, v) { try { localStorage.setItem(k, v); } catch (e) {  } } /* Better Vest (c) 2026 Astral. All rights reserved. bv-6b1730d5 */
+    set(k, v) { try { localStorage.setItem(k, v); } catch (e) {  } }
 };
 
 const root = document.getElementById('cp-root');
@@ -58,11 +58,11 @@ async function loadPayouts() {
 }
 
 
-function syncTheme() {
+function syncTheme() { /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-753a38bc */
     const name = ls.get('bv-journal-theme');
     const css = ls.get('bv-journal-themecss');
     if (name) document.documentElement.setAttribute('data-theme', name);
-    /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-f0f52ff9 */ if (css) {
+    if (css) {
         let s = document.getElementById('theme-vars');
         if (!s) { s = document.createElement('style'); s.id = 'theme-vars'; document.head.appendChild(s); }
         s.textContent = css;
@@ -104,8 +104,8 @@ function renderPage(S) {
     let card = null;
     let seq = 0;
 
-    const stage = h('div', { class: 'cp-stage', 'data-state': 'ready' });
-    /* Copyright (c) 2026 Astral. Better Vest 9.6.2 is licensed to its users only to run it, never to copy it. bv-00151014 */ const frame = h('div', { class: 'cp-card' });
+    /* Owned by Astral (@ax4p): Better Vest standard 9.6.3. Licence: LICENSE, not open source. bv-652eda4b */ const stage = h('div', { class: 'cp-stage', 'data-state': 'ready' });
+    const frame = h('div', { class: 'cp-card' });
     stage.append(frame);
     const status = h('div', { class: 'cp-status', role: 'status', 'aria-live': 'polite' });
     const say = (text, kind) => { status.textContent = text || ''; status.className = 'cp-status' + (kind ? ' ' + kind : ''); };
@@ -156,9 +156,9 @@ function renderPage(S) {
         } finally { busy([download, copy], false); }
     });
     copy.addEventListener('click', async () => {
-        /* Better Vest (c) 2026 Astral. All rights reserved. bv-74824988 */ busy([download, copy], true);
+        busy([download, copy], true);
         try {
-            if (!(navigator.clipboard && window.ClipboardItem)) throw new Error('this browser cannot copy images');
+            /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-a51bfd5b */ if (!(navigator.clipboard && window.ClipboardItem)) throw new Error('this browser cannot copy images');
             await navigator.clipboard.write([new ClipboardItem({ 'image/png': makePng() })]);
             say('Image copied to the clipboard.', 'ok');
         } catch (e) {
@@ -181,7 +181,7 @@ function renderPage(S) {
         h('dt', null, 'Funded accounts paid'), h('dd', null, S.accounts),
         h('dt', null, 'Largest'), h('dd', null, fmtMoney(S.largest) + (S.largestCount > 1 ? ` × ${S.largestCount}` : '')),
         h('dt', null, 'First → latest'), h('dd', null, `${stamp(S.firstKey)} → ${stamp(S.lastKey)}`),
-        h('dt', null, 'Milestone'), h('dd', null, ms ? `${fmtMilestone(ms.amount)} · ${stamp(ms.reachedKey)}` : (S.next ? `next ${fmtMilestone(S.next.amount)}` : '—'))); /*! Copyright Astral 2026. From Better Vest 9.6.2 (standard), ref bv-a419c32d. Not licensed for reuse. */
+        h('dt', null, 'Milestone'), h('dd', null, ms ? `${fmtMilestone(ms.amount)} · ${stamp(ms.reachedKey)}` : (S.next ? `next ${fmtMilestone(S.next.amount)}` : '—')));
 
     const side = h('aside', { class: 'cp-side' },
         h('div', null, h('h1', null, 'Total payouts certificate'),
@@ -203,7 +203,7 @@ function renderPage(S) {
 
 
 (async function boot() {
-    syncTheme();
+    /* Owned by Astral (@ax4p): Better Vest standard 9.6.3. Licence: LICENSE, not open source. bv-a8f94260 */ syncTheme();
     try {
         const { payouts } = await loadPayouts();
         const S = certStats(payouts);

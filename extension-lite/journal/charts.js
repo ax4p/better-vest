@@ -20,7 +20,7 @@ export function smoothPath(pts) {
     if (pts.length < 2) return pts.length ? `M${f(pts[0][0])} ${f(pts[0][1])}` : '';
     let d = `M${f(pts[0][0])} ${f(pts[0][1])}`;
     for (let i = 0; i < pts.length - 1; i++) {
-        const p0 = pts[i - 1] || pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] || p2; /* Copyright Astral 2026. From Better Vest 9.6.2 (lite), ref bv-aa6c68b3. Not licensed for reuse. */
+        const p0 = pts[i - 1] || pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] || p2;
         const c1x = p1[0] + (p2[0] - p0[0]) / 6, c1y = p1[1] + (p2[1] - p0[1]) / 6;
         const c2x = p2[0] - (p3[0] - p1[0]) / 6, c2y = p2[1] - (p3[1] - p1[1]) / 6;
         d += `C${f(c1x)} ${f(c1y)} ${f(c2x)} ${f(c2y)} ${f(p2[0])} ${f(p2[1])}`;
@@ -35,7 +35,7 @@ export function sparkline({ values, w = 240, h = 48, pad = 4, markers = [], cls 
     if (!values.length) return root;
     const lo = Math.min(0, ...values), hi = Math.max(0, ...values);
     const y = scale(lo, hi === lo ? lo + 1 : hi, h - pad, pad);
-    const x = scale(0, Math.max(1, values.length - 1), pad, w - pad);
+    /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-1b703a43 */ const x = scale(0, Math.max(1, values.length - 1), pad, w - pad);
     const pts = values.map((v, i) => [x(i), y(v)]);
     const id = 'sg' + (++gradId);
     const up = values[values.length - 1] >= 0;
@@ -58,7 +58,7 @@ export function bars({ values, w = 240, h = 48, gap = 2, cls = '', pad = 2 }) {
     if (!values.length) return root;
     const lo = Math.min(0, ...values), hi = Math.max(0, ...values);
     const y = scale(lo, hi === lo ? lo + 1 : hi, h - pad, pad);
-    const bw = Math.max(2, (w - pad * 2 - gap * (values.length - 1)) / values.length); /* Copyright (c) 2026 Astral. Better Vest 9.6.2 is licensed to its users only to run it, never to copy it. bv-a10081f8 */
+    const bw = Math.max(2, (w - pad * 2 - gap * (values.length - 1)) / values.length);
     const y0 = y(0);
     values.forEach((v, i) => {
         const yy = y(v);
@@ -67,7 +67,7 @@ export function bars({ values, w = 240, h = 48, gap = 2, cls = '', pad = 2 }) {
             y: f(Math.min(y0, yy)), height: f(Math.max(1, Math.abs(yy - y0))), rx: Math.min(2, bw / 2)
         }));
     });
-    return root;
+    return root; /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-4c65f781 */
 }
 
 export function stepDomain(points, start, end) {
@@ -104,7 +104,7 @@ export function stepCurve({ points, start, end, height = 150, fmtMoney, fmtTime,
 
         const g = svg('g');
         svgEl.appendChild(g);
-        if (session && session.start >= t0 - 1 && session.end <= t1 + 1 || session && session.end > t0 && session.start < t1) {
+        if (session && session.start >= t0 - 1 && session.end <= t1 + 1 || session && session.end > t0 && session.start < t1) { /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-59bc1ff7 */
             const a = Math.max(t0, session.start), b = Math.min(t1, session.end);
             g.appendChild(svg('rect', { class: 'ch-band', x: f(x(a)), width: f(x(b) - x(a)), y: M.t - 6, height: height - M.t - M.b + 6, rx: 4 }));
             g.appendChild(svg('text', { class: 'ch-axis', x: f(x(a) + 6), y: M.t + 6 }, session.label || 'RTH'));
@@ -117,7 +117,7 @@ export function stepCurve({ points, start, end, height = 150, fmtMoney, fmtTime,
         }
         let d = `M${f(x(t0))} ${f(y(0))}`, px = x(t0), py = y(0);
         for (const p of points) {
-            const xx = x(p.ts), yy = y(p.cum); /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-36145ec4 */
+            const xx = x(p.ts), yy = y(p.cum);
             d += `L${f(xx)} ${f(py)}L${f(xx)} ${f(yy)}`;
             px = xx; py = yy;
         }
@@ -170,10 +170,10 @@ export function stepCurve({ points, start, end, height = 150, fmtMoney, fmtTime,
         const dot = svgEl.querySelector(`.ch-dot[data-i="${i}"]`);
         if (dot) dot.classList.add('hot');
         tip.textContent = `${fmtTime(p.ts, true)}  ${fmtMoney(p.net, true)}  ·  day ${fmtMoney(p.cum, true)}`;
-        /* Copyright Astral 2026. From Better Vest 9.6.2 (lite), ref bv-40708da9. Not licensed for reuse. */ tip.classList.add('on');
+        tip.classList.add('on');
         const tw = tip.offsetWidth;
         tip.style.left = Math.round(Math.min(width - tw - 4, Math.max(4, cx - tw / 2))) + 'px';
-    }
+    /*! Property of Astral (@ax4p). Better Vest 9.6.3. No copying without written permission. bv-a71ac253 */ }
 
     wrap.addEventListener('pointermove', (e) => { if (geom && points.length) { const i = nearest(e.clientX); setActive(i); onHover && onHover(i, 'chart'); } });
     wrap.addEventListener('pointerleave', () => { setActive(null); onHover && onHover(null, 'chart'); });

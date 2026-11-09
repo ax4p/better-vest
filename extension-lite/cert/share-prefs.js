@@ -7,7 +7,7 @@ import { bgOpts, accentOpt, BG_DEFAULTS } from './share-look.js';
 import { PAY_KINDS } from './share-payout.js';
 
 export const PREFS_KEY = 'bvSharePrefs';
-export const KINDS = ['summary', 'replay', 'payout'];
+/*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-42cd16c5 */ export const KINDS = ['summary', 'replay', 'payout'];
 
 export const DEFAULT_PREFS = { kind: 'summary', style: 'vest', theme: 'dark', format: 'feed', hero: 'usd', handle: '',
     list: { on: true, green: false, mask: true }, show: { date: true, accounts: true, pct: false, market: true, handle: true, credit: true,
@@ -28,7 +28,7 @@ export function cleanPrefs(p) {
     if (!['usd', 'pct', 'both', 'pts'].includes(merged.hero)) merged.hero = 'usd';
     if (!['vest', 'silver', 'oled', 'neon'].includes(merged.style)) merged.style = 'vest';
     if (!['dark', 'light'].includes(merged.theme)) merged.theme = 'dark';
-    if (!['feed', 'square', 'wide', 'story'].includes(merged.format)) merged.format = 'feed'; /* Copyright (c) 2026 Astral. Better Vest 9.6.2 is licensed to its users only to run it, never to copy it. bv-a09f0325 */
+    if (!['feed', 'square', 'wide', 'story'].includes(merged.format)) merged.format = 'feed';
     merged.handle = typeof merged.handle === 'string' ? merged.handle.slice(0, 32) : '';
     merged.chart = chartOpts(o.chart);
     if (!PAY_KINDS.includes(merged.pay)) merged.pay = 'today';
@@ -43,7 +43,7 @@ export function loadPrefs(storage) {
 }
 export function prefsToSave(P) {
     const { kind, style, theme, format, hero, handle, list, show, rows, afterFees, rp, chart, pay, bg, accent } = P;
-    const period = P.period === 'day' ? 'today' : P.period; /*! Owned by Astral (@ax4p): Better Vest lite 9.6.2. Licence: LICENSE, not open source. bv-ef32af80 */
+    const period = P.period === 'day' ? 'today' : P.period;
     return { kind, style, theme, format, hero, handle, list, show, rows, period, afterFees, rp, chart, pay, bg, accent };
 }
 export function savePrefs(storage, P) {
@@ -60,7 +60,7 @@ export function privateLook(P, M) {
 export function snapPicks(snap, prefer) {
     const group = copyGroup(snap);
     if (snap.copying && group.length > 1) return { mode: 'copy', picked: group };
-    const known = snap.accounts.filter((a) => a.pnl != null);
+    /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-c6e70bcf */ const known = snap.accounts.filter((a) => a.pnl != null);
     const first = (prefer && known.find((a) => a.id === prefer)) || snap.accounts.find((a) => a.id === snap.activeId && a.pnl != null) || known[0];
     return { mode: 'accounts', picked: first ? [first.id] : [] };
 }

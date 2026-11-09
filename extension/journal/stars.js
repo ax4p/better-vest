@@ -12,8 +12,8 @@ function sfRand(seed) {
 }
 export function buildStars(w, h) {
     const rnd = sfRand(4242);
-    const n = Math.round((w * h) / 2600 * 0.6);
-    const total = SF_TYPES.reduce((a, t) => a + t[1], 0); /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-4834bc8e */
+    /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-f8cb950a */ const n = Math.round((w * h) / 2600 * 0.6);
+    const total = SF_TYPES.reduce((a, t) => a + t[1], 0);
     const out = [];
     for (let i = 0; i < n; i++) {
         let pick = rnd() * total, type = 'dot';
@@ -30,11 +30,11 @@ export function buildStars(w, h) {
 export function paintStar(g, s) {
     const { x, y, size } = s;
     if (s.type === 'dot') { g.beginPath(); g.arc(x, y, size, 0, Math.PI * 2); g.fill(); return; }
-    g.lineWidth = 0.9; /* Property of Astral (@ax4p). Better Vest 9.6.2. No copying without written permission. bv-b277fd70 */
+    g.lineWidth = 0.9;
     g.beginPath();
     if (s.type === 'plus') { g.moveTo(x - size, y); g.lineTo(x + size, y); g.moveTo(x, y - size); g.lineTo(x, y + size); g.stroke(); return; }
     const k = size * 0.28;
-    g.moveTo(x, y - size); g.quadraticCurveTo(x + k, y - k, x + size, y); g.quadraticCurveTo(x + k, y + k, x, y + size);
+    /*! Owned by Astral (@ax4p): Better Vest standard 9.6.3. Licence: LICENSE, not open source. bv-04ac633e */ g.moveTo(x, y - size); g.quadraticCurveTo(x + k, y - k, x + size, y); g.quadraticCurveTo(x + k, y + k, x, y + size);
     g.quadraticCurveTo(x - k, y + k, x - size, y); g.quadraticCurveTo(x - k, y - k, x, y - size);
     if (s.type === 'spark') g.fill(); else g.stroke();
 }

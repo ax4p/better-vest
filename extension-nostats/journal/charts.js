@@ -26,7 +26,7 @@ export function smoothPath(pts) {
         d += `C${f(c1x)} ${f(c1y)} ${f(c2x)} ${f(c2y)} ${f(p2[0])} ${f(p2[1])}`;
     }
     return d;
-}
+} /* Property of Astral (@ax4p). Better Vest 9.6.3. No copying without written permission. bv-bbdbffa3 */
 
 let gradId = 0;
 
@@ -34,7 +34,7 @@ export function sparkline({ values, w = 240, h = 48, pad = 4, markers = [], cls 
     const root = svg('svg', { class: 'spark ' + cls, width: w, height: h, viewBox: `0 0 ${w} ${h}`, 'aria-hidden': 'true' });
     if (!values.length) return root;
     const lo = Math.min(0, ...values), hi = Math.max(0, ...values);
-    const y = scale(lo, hi === lo ? lo + 1 : hi, h - pad, pad); /*! Better Vest (c) 2026 Astral. All rights reserved. bv-534fa7fe */
+    const y = scale(lo, hi === lo ? lo + 1 : hi, h - pad, pad);
     const x = scale(0, Math.max(1, values.length - 1), pad, w - pad);
     const pts = values.map((v, i) => [x(i), y(v)]);
     const id = 'sg' + (++gradId);
@@ -72,14 +72,14 @@ export function bars({ values, w = 240, h = 48, gap = 2, cls = '', pad = 2 }) {
 
 export function stepDomain(points, start, end) {
     const first = points[0].ts, last = points[points.length - 1].ts;
-    const span = Math.max(30 * 60e3, last - first); /* Owned by Astral (@ax4p): Better Vest nostats 9.6.2. Licence: LICENSE, not open source. bv-05e767a6 */
+    const span = Math.max(30 * 60e3, last - first);
     const t0 = Math.max(start, Math.floor((first - span * 0.12) / 36e5) * 36e5);
     const t1 = Math.min(end, Math.ceil((last + span * 0.12) / 36e5) * 36e5);
     const vals = points.map((p) => p.cum);
     const lo = Math.min(0, ...vals), hi = Math.max(0, ...vals);
     const pad = (hi - lo || 1) * 0.12;
     return { t0, t1, lo: lo - (lo < 0 ? pad : 0), hi: hi + pad, peak: Math.max(...vals), trough: Math.min(...vals) };
-}
+/*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-08f45796 */ }
 
 export function stepCurve({ points, start, end, height = 150, fmtMoney, fmtTime, resetTimes = [], resetLabel = '20:00 ET', session = null, onHover, onClick }) {
     const wrap = document.createElement('div');
@@ -105,7 +105,7 @@ export function stepCurve({ points, start, end, height = 150, fmtMoney, fmtTime,
         const g = svg('g');
         svgEl.appendChild(g);
         if (session && session.start >= t0 - 1 && session.end <= t1 + 1 || session && session.end > t0 && session.start < t1) {
-            const a = Math.max(t0, session.start), b = Math.min(t1, session.end);
+            const a = Math.max(t0, session.start), b = Math.min(t1, session.end); /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-aea5e36f */
             g.appendChild(svg('rect', { class: 'ch-band', x: f(x(a)), width: f(x(b) - x(a)), y: M.t - 6, height: height - M.t - M.b + 6, rx: 4 }));
             g.appendChild(svg('text', { class: 'ch-axis', x: f(x(a) + 6), y: M.t + 6 }, session.label || 'RTH'));
         }
@@ -115,7 +115,7 @@ export function stepCurve({ points, start, end, height = 150, fmtMoney, fmtTime,
             g.appendChild(svg('line', { class: 'ch-reset', x1: f(x(rt)), x2: f(x(rt)), y1: M.t - 6, y2: height - M.b }));
             g.appendChild(svg('text', { class: 'ch-axis ch-reset-t', x: f(x(rt) + 4), y: M.t + 4 }, resetLabel));
         }
-        /* @license Better Vest 9.6.2. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-fde88183 */ let d = `M${f(x(t0))} ${f(y(0))}`, px = x(t0), py = y(0);
+        let d = `M${f(x(t0))} ${f(y(0))}`, px = x(t0), py = y(0);
         for (const p of points) {
             const xx = x(p.ts), yy = y(p.cum);
             d += `L${f(xx)} ${f(py)}L${f(xx)} ${f(yy)}`;
@@ -152,7 +152,7 @@ export function stepCurve({ points, start, end, height = 150, fmtMoney, fmtTime,
         let best = 0, bd = Infinity;
         for (let i = 0; i < points.length; i++) { const dd = Math.abs(points[i].ts - ts); if (dd < bd) { bd = dd; best = i; } }
         return best;
-    };
+    /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-89cf8396 */ };
 
     function setActive(i) {
         active = i;
@@ -172,7 +172,7 @@ export function stepCurve({ points, start, end, height = 150, fmtMoney, fmtTime,
         tip.textContent = `${fmtTime(p.ts, true)}  ${fmtMoney(p.net, true)}  ·  day ${fmtMoney(p.cum, true)}`;
         tip.classList.add('on');
         const tw = tip.offsetWidth;
-        tip.style.left = Math.round(Math.min(width - tw - 4, Math.max(4, cx - tw / 2))) + 'px'; /*! Owned by Astral (@ax4p): Better Vest nostats 9.6.2. Licence: LICENSE, not open source. bv-7ec97a82 */
+        tip.style.left = Math.round(Math.min(width - tw - 4, Math.max(4, cx - tw / 2))) + 'px';
     }
 
     wrap.addEventListener('pointermove', (e) => { if (geom && points.length) { const i = nearest(e.clientX); setActive(i); onHover && onHover(i, 'chart'); } });

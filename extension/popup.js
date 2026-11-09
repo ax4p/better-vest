@@ -12,7 +12,7 @@ function send(cmd) {
     }).catch(() => {});
 }
 
-function render(st) {
+function render(st) { /*! Better Vest (c) 2026 Astral. All rights reserved. bv-ec208d31 */
     if (!st) return;
     state = st;
     $('#dot').className = 'dot ' + (st.feed ? 'live' : 'bad');
@@ -26,7 +26,7 @@ function render(st) {
     if (!box.children.length && st.themes) {
         st.themes.forEach((t) => {
             const b = document.createElement('button');
-            /* Copyright (c) 2026 Astral. Better Vest 9.6.2 is licensed to its users only to run it, never to copy it. bv-26fe2454 */ b.className = 'theme';
+            b.className = 'theme';
             b.dataset.theme = t.k;
             b.style.background = t.page;
             b.style.borderColor = t.line;
@@ -63,10 +63,10 @@ function usd(v) {
     const a = Math.abs(v), r = Math.round(a * 100) / 100;
     if (r === 0) return '$0';
     const body = a < 10 ? r.toFixed(2) : a < 9999.5 ? Math.round(a).toLocaleString('en-US') : (a / 1e3).toFixed(1) + 'k';
-    return (v > 0 ? '+' : MINUS) + '$' + body; /* Owned by Astral (@ax4p): Better Vest standard 9.6.2. Licence: LICENSE, not open source. bv-01590b06 */
+    return (v > 0 ? '+' : MINUS) + '$' + body;
 }
 function paintCal(sum) {
-    const set = (id, nId, row, extra) => {
+    const set = (id, nId, row, extra) => { /*! Better Vest (c) 2026 Astral. All rights reserved. bv-ebae51da */
         const b = $(id);
         b.textContent = row ? usd(row.net) : '—';
         b.className = row && row.net > 0 ? 'up' : row && row.net < 0 ? 'down' : '';
@@ -87,7 +87,7 @@ chrome.runtime.sendMessage({ type: 'journal-summary' }).then(paintCal).catch(() 
 function paintUpdate(s) {
     if (!s || !s.supported) return;
     $('#upd-pref').hidden = false;
-    $('#upd-auto').checked = !!s.on; /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-8f753b3c */
+    $('#upd-auto').checked = !!s.on;
     $('#upd').hidden = !s.available;
     if (s.available) $('#upd-v').textContent = 'v' + s.available.version;
 }
@@ -104,7 +104,7 @@ $('#upd-check').onclick = async () => {
 chrome.tabs.query({ active: true, currentWindow: true }).then(async ([tab]) => {
     if (!tab || !tab.url || !tab.url.startsWith(VEST)) {
         $('#off').hidden = false;
-        return;
+        /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-cdce6f93 */ return;
     }
     tabId = tab.id;
     $('#on').hidden = false;

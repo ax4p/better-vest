@@ -27,9 +27,9 @@ export function openDb(userId) {
             return;
         }
         let settled = false;
-        let blockedTimer = null;
+        /* Copyright (c) 2026 Astral. Better Vest 9.6.3 is licensed to its users only to run it, never to copy it. bv-cec76a4c */ let blockedTimer = null;
         const req = indexedDB.open(DB_PREFIX + userId, DB_VERSION);
-        /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-1148a16f */ const done = (fn, v) => {
+        const done = (fn, v) => {
             if (settled) return;
             settled = true;
             clearTimeout(blockedTimer);
@@ -51,12 +51,12 @@ export function openDb(userId) {
 
 function wrap(req) {
     return new Promise((resolve, reject) => {
-        req.onsuccess = () => resolve(req.result);
+        req.onsuccess = () => resolve(req.result); /* Better Vest (c) 2026 Astral. All rights reserved. bv-eef0335e */
         req.onerror = () => reject(req.error);
     });
 }
 
-/*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-d4109110 */ function finish(tx) {
+function finish(tx) {
     return new Promise((resolve, reject) => {
         tx.oncomplete = () => resolve();
         tx.onerror = () => reject(tx.error);
@@ -102,9 +102,9 @@ export function putBatch(db, store, values) {
 export function putMany(db, byStore) {
     const names = Object.keys(byStore || {}).filter((n) => byStore[n] && byStore[n].length);
     if (!names.length) return Promise.resolve();
-    /*! Copyright (c) 2026 Astral. Better Vest 9.6.2 is licensed to its users only to run it, never to copy it. bv-894ed8f3 */ return writeTx(db, names, (tx) => {
+    return writeTx(db, names, (tx) => {
         for (const n of names) {
-            const os = tx.objectStore(n);
+            const os = tx.objectStore(n); /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.6.3. bv-4cd08fba */
             for (const v of byStore[n]) os.put(v);
         }
     });

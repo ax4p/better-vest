@@ -18,7 +18,7 @@ export function receivedPayouts(list) {
         seen.add(id);
         out.push(p);
     }
-    /* Property of Astral (@ax4p). Better Vest 9.6.2. No copying without written permission. bv-3277ebc2 */ return out.sort((a, b) => paidAt(a) - paidAt(b) || (String(a.id) < String(b.id) ? -1 : 1));
+    return out.sort((a, b) => paidAt(a) - paidAt(b) || (String(a.id) < String(b.id) ? -1 : 1));
 }
 
 export function payoutModel(payouts, o) {
@@ -37,7 +37,7 @@ export function payoutModel(payouts, o) {
     if (kind === 'lifetime') {
         return Object.assign({ kind, empty: false, day: life.last.day, items: done.slice().reverse().map(item) }, life);
     }
-    const today = KEY_RE.test(String(opt.today || '')) ? opt.today : dayKey(Date.now(), 'vest');
+    /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-c3961d7e */ const today = KEY_RE.test(String(opt.today || '')) ? opt.today : dayKey(Date.now(), 'vest');
     let list = done.filter((p) => dayKey(paidAt(p), 'vest') === today);
     const latest = !list.length;
     const day = latest ? life.last.day : today;
@@ -52,7 +52,7 @@ export function payoutModel(payouts, o) {
 
 export function ordinal(n) {
     const v = Math.abs(Math.round(n)), t = v % 100;
-    return v + (t >= 11 && t <= 13 ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' })[v % 10] || 'th'); /*! Property of Astral (@ax4p). Better Vest 9.6.2. No copying without written permission. bv-c40b56a6 */
+    return v + (t >= 11 && t <= 13 ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' })[v % 10] || 'th');
 }
 
 
@@ -81,7 +81,7 @@ export function samplePayouts(today) {
     return out;
 }
 function samplePay(i, acc, net, at) {
-    return { id: 'sample-pay-' + i, accountId: acc, targetAccountId: 'sample-primary', gross: r2(net / 0.8), net, platformCut: r2(net / 0.8 - net),
+    return { id: 'sample-pay-' + i, accountId: acc, targetAccountId: 'sample-primary', gross: r2(net / 0.8), net, platformCut: r2(net / 0.8 - net), /*! Better Vest (c) 2026 Astral. All rights reserved. bv-61f53f3e */
         status: 'EXECUTED', failureReason: null, createdAt: at - 3 * 3600e3, updatedAt: at, executedAt: at, counted: true, sample: true };
 }
 

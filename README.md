@@ -1,3 +1,11 @@
+> **This repository is no longer updated. 9.6.3 is the last GitHub version.**
+> Better Vest now updates only through the Chrome Web Store: faster updates for everyone, installed and checked by Chrome itself.
+> **[Add Better Vest to Chrome](https://chromewebstore.google.com/detail/better-vest-by-astral/ilegencblfidpnobbgekejbphjkafobb)**, then remove the GitHub copy from `chrome://extensions` (or press **Remove this copy** on the card Better Vest shows you).
+>
+> Your settings, looks, limits and locks, spending limit and copy groups come with you. The Calendar fills itself again from Vest. Calendar notes, the P&L card's own look and picture, and the copy log stay behind.
+>
+> The code stays here, read-only, so you can see what runs in your browser. It is proprietary: reading it gives you no rights in it. See [LICENSE](LICENSE).
+
 <p align="center">
   <img src="docs/media/hero.jpg" alt="Better Vest on the Vest Markets trade page: the dock, the Execute card with its pinned tools, and the copier copying to nine accounts" width="100%">
 </p>
@@ -26,9 +34,9 @@ Each [release](https://github.com/ax4p/better-vest/releases/latest) has three zi
 
 | Zip | What's in it |
 |---|---|
-| `better-vest-9.6.2.zip` | **Standard.** Everything. Take this one if you're not sure. |
-| `better-vest-lite-9.6.2.zip` | **Lite.** Everything but the spoken voice lines, under 1 MB. |
-| `better-vest-nostats-9.6.2.zip` | **No stats.** Standard without the usage stats and the error reports. See [Security](SECURITY.md#the-usage-stats). |
+| `better-vest-9.6.3.zip` | **Standard.** Everything. Take this one if you're not sure. |
+| `better-vest-lite-9.6.3.zip` | **Lite.** Everything but the spoken voice lines, under 1 MB. |
+| `better-vest-nostats-9.6.3.zip` | **No stats.** Standard without the usage stats and the error reports. See [Security](SECURITY.md#the-usage-stats). |
 
 Then load it in Chrome: the [video and steps](https://bv.astrals.dev/#install) on the site, or the [install guide](CONTRIBUTING.md) here. After that it updates itself.
 
@@ -36,7 +44,7 @@ Then load it in Chrome: the [video and steps](https://bv.astrals.dev/#install) o
 
 - **[Copy trader](https://bv.astrals.dev/features/copy-trader):** trade one account and up to ten others follow it, in as many groups as you like, each at its own ratio or sized to its account. Size a trade in % and every follower opens the same % of its own trading power.
 - **[Orders on the chart](https://bv.astrals.dev/features/chart-trading):** stop and limit orders in one click, price alerts, a trailing stop and auto breakeven.
-- **The Execute card:** long or short in one click with the stop and target attached, in points, dollars or at a price, your size from the dollars you risk, and FLAT, 50% (hover it for 10%, 25%, 75% or your own share) and REV. Float it, put it in place of Vest's ticket or under the chart, make it bigger or smaller by its edges, and hide the buttons you don't use.
+- **The Execute card:** long or short in one click with the stop and target attached, in points, dollars or at a price, your size from the dollars you risk, and FLAT, 50% (hover it for 10%, 25%, 75% or your own share) and REV. LONG and SHORT as limit orders at the best price or the mid, take profits as limit orders, and the partial closes always on the card if you like. Float it, put it in place of Vest's ticket or under the chart, make it bigger or smaller by its edges, and hide the buttons you don't use.
 - **Price alerts:** click the chart where you want one. When price gets there you hear it and see a note. It never places an order.
 - **Voice commands (beta):** hold a key and say "long" or "close half", or say "Astral" first. Your voice stays on your computer.
 - **[Up to four charts](https://bv.astrals.dev/features/multi-chart),** each with its own market and timeframe.
@@ -48,7 +56,7 @@ Then load it in Chrome: the [video and steps](https://bv.astrals.dev/#install) o
 
 ## Is it safe?
 
-- **Scanned.** `better-vest-9.6.2.zip` comes back clean on VirusTotal, with no engine flagging it ([report](https://www.virustotal.com/gui/file/a77c5ed563198ecb077066c7819486915aabbca6755f27273b2f1c3910b71632)).
+- **Scanned.** `better-vest-9.6.3.zip` comes back clean on VirusTotal, with no engine flagging it ([report](https://www.virustotal.com/gui/file/dee3240ad792e0c25f18063b007660e050043b0c834a45de61b483721f0f4a79)).
 - **Readable.** The [`extension`](extension) folder is the Standard zip, file for file, not minified.
 - **Signed updates.** Your copy checks my signature and every file before it writes anything.
 - **Safety switches.** If Vest changes something, I can pause one feature until it's fixed, for everyone or only for the versions it hits, and closing always keeps working ([how](SECURITY.md#safety-switches)).

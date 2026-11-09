@@ -104,6 +104,8 @@ It doesn't have its own way to trade. It works the page the way you would:
 - **Stop orders:** a stop you arm on the chart stays in your tab. Vest doesn't see it until the price touches it; then it places a market order the same way LONG or SHORT does, once: with the card's stop and target if **SL/TP on Stop & Limit** is on, plain if it's off. If the price went past it while the tab was reloading or offline, it's marked PASSED and nothing is sent.
 
 - **Limit orders from the chart (LIMIT):** fill in Vest's own order ticket on its Limit tab (size and the price you clicked) and press Vest's own Buy or Sell button, the way the E and Q hotkeys do, then put the ticket back on Market. A price the market already reached is refused.
+- **LONG and SHORT as limit orders (only if you turn it on):** the same way as LIMIT, at the best ask for LONG or the best bid for SHORT, or at the mid, from Vest's live order book at the moment you press. With no fresh book it sends nothing.
+- **Take profits as limit orders (only if you turn it on):** the take-profit row of Vest's own order ticket, or of its Edit TP/SL window for Partials, is set to Limit through Vest's own form; with **Also targets you drag on the chart**, a dragged take-profit goes through Vest's own TP/SL handler as a limit. The stop is never a limit.
 - **Cancel all orders:** presses Vest's own Cancel button on each row of its Open Orders tab, and removes the stop orders it holds in your tab. It never presses the cancel button of a TP or SL, and never closes a position.
 - **Other markets:** off NQ, LONG, SHORT, E, Q, LIMIT and STOP first put Vest's own size unit on that market's unit, through Vest's own toggle or drop-down.
 - **Switch, in multi-chart:** when you press Switch, it moves the page to that market through Vest's own navigation, with no reload. It sends no order.
@@ -193,6 +195,8 @@ With WICK you pay the same or less, and the purchase supports me.
 ## What stays on your computer
 
 - Your settings, in Chrome's storage for the extension and in the Vest page's own storage.
+- The version Chrome says was installed before the last update (`bvPrevVer` in Chrome's storage for the extension), so the window after an update shows everything since then.
+- In this GitHub version only: whether the Chrome Web Store version was seen on Vest's page (`bvMovedToStore`), so removing this copy opens no goodbye page; and whether you closed the card about the move for good (`ax4p-move` in the Vest page's storage). **Remove this copy** uses Chrome's own uninstall, with Chrome's own question first.
 - Your Calendar history, in the browser's database on this computer.
 - If you turn on the daily loss limit, the Account Value it first saw each day, per account (`ax4p_dll` in the Vest page's storage). It reads the number from the page you're looking at and never asks Vest for it.
 - Stop orders you've armed, with your other settings, so a reload doesn't lose them, and the ids of stops you removed, so another Vest tab can't bring them back.
@@ -204,7 +208,7 @@ With WICK you pay the same or less, and the purchase supports me.
 - Locks and the tilt guard's cooldown, with the loss limit's numbers (`ax4p_dll`). The profit limit and the tilt guard read your closed trades from Vest each time and keep no history of them.
 - Multi-chart's layout and each chart's drawings, with your other settings.
 - Price alerts you set (market, price, which way), with your other settings, until they ring or you remove them.
-- If you turn on the spending counter: your limits and any change waiting to take effect (`ax4p_spend` in the Vest page's storage), and each Vest account it has counted with its plan's price (`ax4p_spend_seen`), so a closed account stays counted. For the Calendar's spent vs paid out, a copy of what it counted sits in the extension's own storage (`bvSpend:` and your Vest user id) while the counter is on. It reads your accounts from Vest's own page, and Vest's plan prices from the page or with one read of Vest's public plan list.
+- If you turn on the spending counter: your limits and any change waiting to take effect (`ax4p_spend` in the Vest page's storage), and each Vest account it has counted with its plan's price (`ax4p_spend_seen`), so a closed account stays counted. For the Calendar's spent vs paid out, a copy of what it counted sits in the extension's own storage (`bvSpend:` and your Vest user id) while the counter is on. It reads your accounts from Vest's own page, and Vest's list of your closed accounts with read-only requests (the list Vest's Closed tab loads, the way the Calendar reads your trades), and Vest's plan prices from the page or with one read of Vest's public plan list.
 - If Vest's page is in another language: your answer to the note about it (`ax4p-lang-note` in the Vest page's storage). Only if you pressed **Switch to English** and Vest's own switch couldn't be found: Vest's own language pick (`i18nextLng`) set to English, and Vest's language cookie cleared so it can't override that pick.
 - Voice commands' settings with your other settings, and where you last put the mic window, in Chrome's storage for the extension.
 - For the WICK pop-up: how many one-click entries you made this month and on which days (`ax4p-wick-tally` in the Vest page's storage, for one of its looks), and the discount Vest last gave for WICK (`ax4p-wick-pct`).
@@ -234,15 +238,15 @@ When a new version is out and you're flat, a small panel at the bottom right of 
 ## Check it yourself
 
 1. **Read the code.** The [`extension`](extension) folder in this repo is the Standard zip, file for file ([`extension-lite`](extension-lite) and [`extension-nostats`](extension-nostats) are the other two). It isn't minified or obfuscated, so you can read it in your browser.
-2. **Check the zip is that code.** The SHA-256 of `better-vest-9.6.2.zip` is:
+2. **Check the zip is that code.** The SHA-256 of `better-vest-9.6.3.zip` is:
 
-   `a77c5ed563198ecb077066c7819486915aabbca6755f27273b2f1c3910b71632`
+   `dee3240ad792e0c25f18063b007660e050043b0c834a45de61b483721f0f4a79`
 
    Lite: `c650abee5102fcb7e5f27dd88593588f20744ad7631af1eb6f29f4424d8a039c`. No stats: `efd2a6a7058e613040696cee2a38625b6f99a64424a2f0224ba34b75824bd9fb`.
 
-   - On Mac: `shasum -a 256 better-vest-9.6.2.zip`
-   - On Windows: `certutil -hashfile better-vest-9.6.2.zip SHA256`
-3. **Scan it.** VirusTotal checks a file with more than 60 antivirus engines. Upload the zip at [virustotal.com](https://www.virustotal.com) and you get the result for that exact file. The version here, 9.6.2, came back with no engine flagging it: Standard ([report](https://www.virustotal.com/gui/file/a77c5ed563198ecb077066c7819486915aabbca6755f27273b2f1c3910b71632)), Lite ([report](https://www.virustotal.com/gui/file/21d5e52d17521cc8d704496ed92e5991a8dc8a6abd17b2727bd71fcf5bed13f2)), No stats ([report](https://www.virustotal.com/gui/file/679ed5cf307503f46627302711d24c197b84573a77f0e22d29bebb4be17f9497)). The one released before, 9.6.1, did too: Standard ([report](https://www.virustotal.com/gui/file/bc2d9221cc2f332efd53899872caea7793885d5b3db10a7288ec1f660119223f)), Lite ([report](https://www.virustotal.com/gui/file/6b7c5f4392b06bb29a2b4bb3c87645eb90d2c6833fa7d6a042ffaca8e224c0d3)), No stats ([report](https://www.virustotal.com/gui/file/8cf85f4a94e44a1e2095652d285e6fcd1c11c3bcd7e9e7e8b74de36c5de6c475)).
+   - On Mac: `shasum -a 256 better-vest-9.6.3.zip`
+   - On Windows: `certutil -hashfile better-vest-9.6.3.zip SHA256`
+3. **Scan it.** VirusTotal checks a file with more than 60 antivirus engines. Upload the zip at [virustotal.com](https://www.virustotal.com) and you get the result for that exact file. The version here, 9.6.3, came back with no engine flagging it: Standard ([report](https://www.virustotal.com/gui/file/dee3240ad792e0c25f18063b007660e050043b0c834a45de61b483721f0f4a79)), Lite ([report](https://www.virustotal.com/gui/file/f70be6c0fc664fbdb900746e7d50e4cc5e2dc88d38cbaf9394c523fe3ee58a12)), No stats ([report](https://www.virustotal.com/gui/file/ce35d8cef943a4ce87390c0303f05a0248f19e1d90ac71f0eb957876d135dabc)). The one released before, 9.6.2, did too: Standard ([report](https://www.virustotal.com/gui/file/a77c5ed563198ecb077066c7819486915aabbca6755f27273b2f1c3910b71632)), Lite ([report](https://www.virustotal.com/gui/file/21d5e52d17521cc8d704496ed92e5991a8dc8a6abd17b2727bd71fcf5bed13f2)), No stats ([report](https://www.virustotal.com/gui/file/679ed5cf307503f46627302711d24c197b84573a77f0e22d29bebb4be17f9497)).
 
    Reports for earlier versions also had an AI summary, "Code insights", which marked two things as suspicious. Both are on this page: the WICK code switch ([The WICK code](#the-wick-code)) and the updater writing its own files ([Updates are signed](#updates-are-signed)).
 4. **Watch it work.** Open Chrome's DevTools on the Vest tab (F12), go to Network, and use Better Vest. You'll only see the addresses listed above.

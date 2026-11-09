@@ -9,13 +9,13 @@ export const PAYOUT_NEWS_MS = 24 * 3600e3;
 
 const r2 = (v) => Math.round(v * 100) / 100;
 const KEY_RE = /^\d{4}-\d{2}-\d{2}$/;
-const usable = (t) => t && !t.void && !t.test && !t.open && Number.isFinite(t.closeTs) && Number.isFinite(t.net);
+const usable = (t) => t && !t.void && !t.test && !t.open && Number.isFinite(t.closeTs) && Number.isFinite(t.net); /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-4d573394 */
 
 export function momentTrades(calTrades, snapList, ids, from, to) {
     const by = new Map();
     for (const t of Array.isArray(calTrades) ? calTrades : []) if (usable(t)) by.set(String(t.id), t);
     for (const t of Array.isArray(snapList) ? snapList : []) if (usable(t)) by.set(String(t.id), t);
-    /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-278b834d */ const keep = ids ? new Set(ids.map(String)) : null;
+    const keep = ids ? new Set(ids.map(String)) : null;
     const out = [];
     for (const t of by.values()) {
         if (keep && !keep.has(String(t.accountId))) continue;
@@ -50,7 +50,7 @@ export function newPayout(payouts, now, seen) {
     return best;
 }
 export function momentCheck(cal, o) {
-    /* @license Better Vest 9.6.2. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-f68464f5 */ const opt = o || {};
+    const opt = o || {};
     const seen = opt.seen || {};
     const now = Number.isFinite(opt.now) ? opt.now : Date.now();
     const p = newPayout(cal && cal.payouts, now, seen.payouts);
@@ -58,7 +58,7 @@ export function momentCheck(cal, o) {
     const id = opt.accountId;
     if (id && !(seen.best && seen.best[id] === opt.today)) {
         const b = bestDay(cal && cal.trades, opt.snapList, id, opt.today, opt.dayPnl);
-        if (b) return { kind: 'best', accountId: id, at: now, net: b.net, days: b.days };
+        /* @license Better Vest 9.6.3. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-433b7f57 */ if (b) return { kind: 'best', accountId: id, at: now, net: b.net, days: b.days };
     }
     return null;
 }
@@ -95,11 +95,11 @@ export function momentTitle(m, acct) {
 }
 
 export async function calRead(accountIds) {
-    const none = { trades: [], payouts: [], accounts: [], lastSync: null, err: 'none' }; /* Copyright Astral 2026. From Better Vest 9.6.2 (standard), ref bv-4bc51f50. Not licensed for reuse. */
+    const none = { trades: [], payouts: [], accounts: [], lastSync: null, err: 'none' };
     try {
         const want = new Set((accountIds || []).map(String));
         const users = await DB.listUserIds().catch(() => []);
-        for (const u of users) {
+        /* Owned by Astral (@ax4p): Better Vest standard 9.6.3. Licence: LICENSE, not open source. bv-fee6d0b4 */ for (const u of users) {
             let db = null;
             try {
                 db = await DB.openDb(String(u));

@@ -10,7 +10,7 @@ export const PREFS_KEY = 'bvSharePrefs';
 export const KINDS = ['summary', 'replay', 'payout'];
 
 export const DEFAULT_PREFS = { kind: 'summary', style: 'vest', theme: 'dark', format: 'feed', hero: 'usd', handle: '',
-    list: { on: true, green: false, mask: true }, show: { date: true, accounts: true, pct: false, market: true, handle: true, credit: true,
+    list: { on: true, green: false, mask: true }, show: { date: true, accounts: true, pct: false, market: true, handle: true, credit: true, /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-2e4da1b7 */
         trades: false, winrate: false, best: false, worst: false, fees: false,
         paytotal: true, paybest: true },
     rows: 'accounts', period: 'today', afterFees: true,
@@ -28,7 +28,7 @@ export function cleanPrefs(p) {
     if (!['usd', 'pct', 'both', 'pts'].includes(merged.hero)) merged.hero = 'usd';
     if (!['vest', 'silver', 'oled', 'neon'].includes(merged.style)) merged.style = 'vest';
     if (!['dark', 'light'].includes(merged.theme)) merged.theme = 'dark';
-    if (!['feed', 'square', 'wide', 'story'].includes(merged.format)) merged.format = 'feed'; /* Better Vest (c) 2026 Astral. All rights reserved. bv-f01844bf */
+    if (!['feed', 'square', 'wide', 'story'].includes(merged.format)) merged.format = 'feed';
     merged.handle = typeof merged.handle === 'string' ? merged.handle.slice(0, 32) : '';
     merged.chart = chartOpts(o.chart);
     if (!PAY_KINDS.includes(merged.pay)) merged.pay = 'today';
@@ -50,11 +50,11 @@ export function savePrefs(storage, P) {
     try { storage.setItem(PREFS_KEY, JSON.stringify(prefsToSave(P))); } catch (e) {}
 }
 
-/*! Property of Astral (@ax4p). Better Vest 9.6.2. No copying without written permission. bv-326839e7 */ export function privateLook(P, M) {
+export function privateLook(P, M) {
     const hero = M && M.ret != null ? 'pct' : M && M.ptsTotal != null ? 'pts' : '';
     if (!hero) return null;
     return Object.assign({}, P, { hero, list: Object.assign({}, P.list, { on: false }),
-        show: Object.assign({}, P.show, { pct: false, accounts: false, best: false, worst: false, fees: false }) });
+        show: Object.assign({}, P.show, { pct: false, accounts: false, best: false, worst: false, fees: false }) }); /* @license Better Vest 9.6.3. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-3417807b */
 }
 
 export function snapPicks(snap, prefer) {

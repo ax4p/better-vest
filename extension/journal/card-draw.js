@@ -13,7 +13,7 @@ export function parseColor(s) {
     if (Array.isArray(s)) return s;
     const v = String(s == null ? '' : s).trim().toLowerCase();
     if (!v || v === 'transparent') return [0, 0, 0, 0];
-    let m = /^#([0-9a-f]{3,8})$/.exec(v);
+    /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.6.3. bv-ae71d8a7 */ let m = /^#([0-9a-f]{3,8})$/.exec(v);
     if (m) {
         let h = m[1];
         if (h.length === 3 || h.length === 4) h = [...h].map((c) => c + c).join('');
@@ -23,7 +23,7 @@ export function parseColor(s) {
     m = /^rgba?\(([^)]+)\)$/.exec(v);
     if (m) {
         const p = m[1].split(/[\s,/]+/).filter(Boolean).map(parseFloat);
-        return [p[0], p[1], p[2], p.length > 3 ? p[3] : 1]; /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-3cddfec5 */
+        return [p[0], p[1], p[2], p.length > 3 ? p[3] : 1];
     }
     return [0, 0, 0, 1];
 }
@@ -53,7 +53,7 @@ export function cardPalette(def, { name = '', stars = false } = {}) {
     const light = !!def.light;
     const text = parseColor(def.text), ink = light ? [0, 0, 0, 1] : text;
     const tA = (p) => rgba(mix(text, T0, p));
-    const inset = def.inset, up = def.up, down = def.down; /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-0cb7f81a */
+    const inset = def.inset, up = def.up, down = def.down;
     const mx = (INTENSITY_MAX[name] || 30) / 100;
     const level = (sg) => INTENSITY_STEPS.map((s, i) => ({ fill: rgba(mix(sg, inset, s * mx)), ring: rgba(mix(sg, T0, RING[i])) }));
     const base = parseColor(def.base)[3] > 0 ? rgba(def.base) : rgba(parseColor(def.page)[3] ? def.page : '#000000');
@@ -63,7 +63,7 @@ export function cardPalette(def, { name = '', stars = false } = {}) {
         light, stars: !!stars, base, page: parseGradient(def.page), pageSolid: solidPage,
         t1: rgba(text), t2: rgba(def.muted), t3: tA(0.6), meta: tA(0.72), hair: tA(0.09), hair2: tA(0.16),
         up: rgba(mix(up, ink, 0.6)), dn: rgba(mix(down, ink, 0.6)), upRaw: rgba(up), dnRaw: rgba(down),
-        gold: rgba(gold), goldGlow: rgba(mix(gold, T0, 0.55)), accent: rgba(def.accent), accentText: rgba(def.accentText),
+        gold: rgba(gold), goldGlow: rgba(mix(gold, T0, 0.55)), accent: rgba(def.accent), accentText: rgba(def.accentText), /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.6.3. bv-bd242c67 */
         sim: rgba(mix(light ? mix(def.warn, '#000000', 0.75) : def.warn, T0, 0.55)),
         cell: rgba(mix(inset, T0, 0.52)), empty: rgba(mix(inset, T0, 0.72)), flat: tA(0.06),
         lv: { p: level(up), n: level(down) },
@@ -105,10 +105,10 @@ const digitW = new Map();
 function measure(g, s, size, sp) {
     let w = 0;
     const key = g.font;
-    if (!digitW.has(key)) digitW.set(key, Math.max(...'0123456789'.split('').map((d) => g.measureText(d).width))); /*! Copyright Astral 2026. From Better Vest 9.6.2 (standard), ref bv-33551783. Not licensed for reuse. */
+    if (!digitW.has(key)) digitW.set(key, Math.max(...'0123456789'.split('').map((d) => g.measureText(d).width)));
     const dw = digitW.get(key);
     for (const ch of s) w += (DIGIT.test(ch) ? dw : g.measureText(ch).width) + sp * size;
-    return w - (s.length ? sp * size : 0);
+    return w - (s.length ? sp * size : 0); /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-c772553a */
 }
 export function text(g, s, o) {
     let str = String(s == null ? '' : s);
@@ -156,11 +156,11 @@ const fitText = (g, options, o) => text(g, pick(g, options, o), o);
 const widthOf = (g, str, size, weight, F, sp = 0) => { g.font = `${weight} ${size}px ${F || CARD_FONT}`; return measure(g, str, size, sp); };
 
 function bTile(g, x, y, s, P) {
-    box(g, x, y, s, s, s * 0.22, P.bTile.bg, null); /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-a05a69be */
+    box(g, x, y, s, s, s * 0.22, P.bTile.bg, null);
     rr(g, x + 0.5, y + 0.5, s - 1, s - 1, s * 0.22);
     g.lineWidth = 1; g.strokeStyle = P.bTile.ring; g.stroke();
     const bh = s * 0.58, bw = bh * 38 / 64;
-    const bx = x + (s - bw) / 2 + s * 0.02, by = y + (s - bh) / 2;
+    /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-343b5f61 */ const bx = x + (s - bw) / 2 + s * 0.02, by = y + (s - bh) / 2;
     const pts = [[0, 0], [18, 0], [38, 16], [18, 32], [38, 48], [18, 64], [0, 64]];
     g.beginPath();
     pts.forEach(([px, py], i) => { const X = bx + (px / 38) * bw, Y = by + (py / 64) * bh; if (i) g.lineTo(X, Y); else g.moveTo(X, Y); });
@@ -200,7 +200,7 @@ function background(g, W, H, P, holes) {
     g.fillRect(0, 0, W, H);
     const gr = P.page;
     if (gr) {
-        const cx = gr.x * W, cy = gr.y * H;
+        /* Property of Astral (@ax4p). Better Vest 9.6.3. No copying without written permission. bv-70ebb121 */ const cx = gr.x * W, cy = gr.y * H;
         g.save();
         let grad;
         if (gr.shape === 'circle') {
@@ -209,7 +209,7 @@ function background(g, W, H, P, holes) {
         } else {
             const rx = Math.SQRT2 * Math.max(cx, W - cx), ry = Math.SQRT2 * Math.max(cy, H - cy);
             g.translate(cx, cy); g.scale(1, ry / rx); g.translate(-cx, -cy);
-            /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-8ec4d472 */ grad = g.createRadialGradient(cx, cy, 0, cx, cy, rx);
+            grad = g.createRadialGradient(cx, cy, 0, cx, cy, rx);
         }
         for (const [p, c] of gr.stops) grad.addColorStop(Math.min(1, p), c);
         g.fillStyle = grad;
@@ -236,7 +236,7 @@ function hero(g, h, x, y, size, P, o = {}) {
     const color = h.text === '—' ? P.t3 : P.hero[h.sgn || ''];
     const F = o.font;
     if (!h.parts) return text(g, h.text, { x, y, size, weight: 300, sp: -0.03, color, max: o.max, min: o.min || size * 0.5, align: o.align, font: F, alpha: o.alpha });
-    let s = size;
+    let s = size; /*! Copyright Astral 2026. From Better Vest 9.6.3 (standard), ref bv-2dc256ef. Not licensed for reuse. */
     const widths = (sz) => {
         g.font = `300 ${sz}px ${F || CARD_FONT}`;
         const small = sz * 0.55, cents = sz * 0.5;
@@ -248,7 +248,7 @@ function hero(g, h, x, y, size, P, o = {}) {
     let [a, b, c] = widths(s);
     while (o.max && a + b + c > o.max && s > (o.min || size * 0.5)) { s -= 1; [a, b, c] = widths(s); }
     const total = a + b + c;
-    /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.6.2. bv-9f535658 */ let x0 = o.align === 'right' ? x - total : o.align === 'center' ? x - total / 2 : x;
+    let x0 = o.align === 'right' ? x - total : o.align === 'center' ? x - total / 2 : x;
     const al = o.alpha;
     if (a) text(g, h.parts.sign + h.parts.cur, { x: x0, y: y - s * 0.17, size: s * 0.55, weight: 300, sp: -0.03, color, font: F, alpha: al == null ? 0.72 : al * 0.72 });
     text(g, h.parts.int, { x: x0 + a, y, size: s, weight: 300, sp: -0.035, color, font: F, alpha: al });
@@ -282,13 +282,13 @@ function brand(g, x, y, s, P, card, F, o = {}) {
     const handle = card.handle && !o.noHandle ? card.handle : '';
     const bw = widthOf(g, 'Better Vest', size, 600, F);
     const both = !handle || !room || bw + 9 + widthOf(g, handle, size, 500, F) <= room;
-    let tx = x + s + 9; /* @license Better Vest 9.6.2. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-eaa54b93 */
+    let tx = x + s + 9;
     if (both) tx += text(g, 'Better Vest', { x: tx, y: ty, size, weight: 600, color: P.t1, font: F }) + 9;
     if (handle) text(g, handle, { x: tx, y: ty, size, weight: 500, color: P.t2, font: F, max: room ? room - (tx - x - s - 9) : 0, min: 9 });
 }
 
 
-function monthTimeline(card) {
+/* Copyright (c) 2026 Astral. Better Vest 9.6.3 is licensed to its users only to run it, never to copy it. bv-0158b5a9 */ function monthTimeline(card) {
     const N = card.order.length;
     const step = N ? Math.min(0.42, 4.1 / N) : 0;
     const at = new Map(card.order.map((k, i) => [k, 0.7 + i * step]));
@@ -328,9 +328,9 @@ function cellBox(g, c, x, y, w, h, P, o) {
             g.save(); if (c.payPending) g.globalAlpha *= 0.55;
             g.shadowColor = P.goldGlow; g.shadowBlur = 5;
             sparkle(g, mx, my, o.mark, P.gold);
-            /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-96448a0a */ g.restore();
+            g.restore();
             if (c.pay > 1) text(g, String(c.pay), { x: mx - o.mark / 2 - 1, y: my + o.mark * 0.38, size: o.mark * 0.8, weight: 700, color: P.gold, align: 'right', font: o.font });
-            mx -= o.mark + (c.pay > 1 ? o.mark * 0.8 + 2 : 3);
+            mx -= o.mark + (c.pay > 1 ? o.mark * 0.8 + 2 : 3); /* @license Better Vest 9.6.3. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-eb8349e2 */
         }
         if (c.passed) { tick(g, mx, my, o.mark + 2, P.up); mx -= o.mark + 4; }
         if (c.best) sparkle(g, mx, my, o.mark, P.accentText);
@@ -354,7 +354,7 @@ function monthGrid(g, card, P, x, y, w, h, o) {
     const rowH = (h - headH - gap * (rows - 1)) / rows;
     const names = { 1: 'Mon', 2: 'Tue', 3: 'Wed', 4: 'Thu', 5: 'Fri', 6: 'Sat', 0: 'Sun' };
     cols.forEach((d, i) => lab(g, names[d], x + i * (dayW + gap) + o.px, y + headH - 8, P, { size: o.hSize, sp: 0.14, font: F }));
-    if (wk) lab(g, 'Week', x + cols.length * (dayW + gap) + o.px, y + headH - 8, P, { size: o.hSize, sp: 0.14, font: F });
+    if (wk) lab(g, 'Week', x + cols.length * (dayW + gap) + o.px, y + headH - 8, P, { size: o.hSize, sp: 0.14, font: F }); /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-98867a28 */
     const big = rowH >= 62 && dayW >= 66;
     const nSize = Math.min(o.nMax, Math.max(11, Math.min(rowH * 0.25, dayW * 0.2)));
     const dSize = Math.max(9, Math.min(12, rowH * 0.15));
@@ -369,7 +369,7 @@ function monthGrid(g, card, P, x, y, w, h, o) {
         const wx = x + cols.length * (dayW + gap);
         box(g, wx, ry, wk, rowH, co.r, P.wk, P.hair);
         const a = TL ? TL.week(wkRow, t) : 1;
-        lab(g, wkRow.label, wx + o.px + 1, ry + co.top, P, { size: Math.max(8.5, dSize - 1.5), sp: 0.08, color: P.t3, font: F }); /* Owned by Astral (@ax4p): Better Vest standard 9.6.2. Licence: LICENSE, not open source. bv-345c7935 */
+        lab(g, wkRow.label, wx + o.px + 1, ry + co.top, P, { size: Math.max(8.5, dSize - 1.5), sp: 0.08, color: P.t3, font: F });
         text(g, wkRow.text, { x: wx + o.px + 1, y: ry + co.netY, size: Math.max(10.5, nSize - 2), weight: wkRow.zero ? 400 : 600, color: wkRow.zero ? P.t3 : wkRow.sgn === 'p' ? P.up : wkRow.sgn === 'n' ? P.dn : P.t1, max: wk - o.px * 2 - 2, min: 8.5, font: F, alpha: a });
         if (co.meta) {
             const mw = wk - o.px * 2 - 2;
@@ -396,7 +396,7 @@ function monthHero(card, t, TL) {
     return heroOf(TL.value(t), card.heroUnit, card.hide);
 }
 function tilesOf(card, S, P, n) {
-    const col = (s) => (s === 'p' ? P.up : s === 'n' ? P.dn : null);
+    /*! Copyright Astral 2026. From Better Vest 9.6.3 (standard), ref bv-97f3e989. Not licensed for reuse. */ const col = (s) => (s === 'p' ? P.up : s === 'n' ? P.dn : null);
     const out = [['Win rate', S.wr, S.wins + S.losses ? `${S.wins}W · ${S.losses}L` : ''], ['Trades', String(S.n), `${S.days} trading day${S.days === 1 ? '' : 's'}`]];
     const best = card.bestDay ? ['Best day', card.bestDay.text, card.bestDay.date, col(card.bestDay.sgn)] : null;
     const pc = card.payouts;
@@ -404,7 +404,7 @@ function tilesOf(card, S, P, n) {
         : ['Payout', pc.pendingAmt || String(pc.pendingN || 1), 'processing', P.gold];
     const worst = card.worstDay && card.worstDay.sgn === 'n' ? ['Worst day', card.worstDay.text, card.worstDay.date, col(card.worstDay.sgn)] : null;
     const order = n >= 4 || card.ledger ? [best, pay, worst] : [pay, best, worst];
-    for (const x of order) if (x && out.length < n) out.push(x); /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-22fd2cb7 */
+    for (const x of order) if (x && out.length < n) out.push(x);
     return out;
 }
 
@@ -457,12 +457,12 @@ function drawMonth(g, card, P, o) {
         brand(g, pad, pad, 28, P, card, F, { noHandle: true });
         if (card.handle) text(g, card.handle, { x: W - pad, y: pad + 14 + 5, size: 14, weight: 500, color: P.t2, align: 'right', max: IW - 170, min: 10, font: F });
         text(g, card.title, { x: pad, y: 118, size: 30, weight: 500, sp: -0.02, color: P.t1, max: IW, min: 18, font: F });
-        /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-3280de9d */ fitText(g, subs, { x: pad, y: 144, size: 14, weight: 500, color: P.t2, max: IW, min: 10, font: F });
+        fitText(g, subs, { x: pad, y: 144, size: 14, weight: 500, color: P.t2, max: IW, min: 10, font: F });
         hero(g, H0, pad, 224, 74, P, { max: IW, font: F });
         text(g, `${S.n} trade${S.n === 1 ? '' : 's'} · ${S.days} day${S.days === 1 ? '' : 's'}`, { x: pad, y: 254, size: 14, weight: 500, color: P.t2, max: IW, font: F });
         const tiles = tilesOf(card, S, P, 3);
         const tw = (IW - 8 * (tiles.length - 1)) / tiles.length;
-        tiles.forEach((tl, i) => tile(g, pad + i * (tw + 8), 278, tw, TILE_H, P, tl[0], tl[1], tl[2], { font: F, vColor: tl[3], subColor: tl[4], alpha: i >= 2 ? end : 1 }));
+        /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-35ad8de8 */ tiles.forEach((tl, i) => tile(g, pad + i * (tw + 8), 278, tw, TILE_H, P, tl[0], tl[1], tl[2], { font: F, vColor: tl[3], subColor: tl[4], alpha: i >= 2 ? end : 1 }));
         g.restore();
         const gridTop = 368, gridBottom = card.ledger ? H - pad - 84 - 18 : H - pad;
         monthGrid(g, card, P, pad, gridTop, IW, gridBottom - gridTop, { font: F, t, tl: TL, gap: 6, wk: 72, headH: 22, px: 8, hSize: 9.5, nMax: 16 });
@@ -476,11 +476,11 @@ function drawMonth(g, card, P, o) {
         fitText(g, subs, { x: pad + 34, y: pad + 40, size: 12, weight: 500, color: P.t2, max: IW - 34, min: 9, font: F });
         const stats = [['Win rate', S.wr], ['Trades', String(S.n)], ['Days', String(S.days)]];
         const sw = 70, sx = W - pad - sw * stats.length;
-        hero(g, H0, pad, 118, 46, P, { max: sx - pad - 12, font: F }); /*! Copyright (c) 2026 Astral. Better Vest 9.6.2 is licensed to its users only to run it, never to copy it. bv-6a3a77bf */
+        hero(g, H0, pad, 118, 46, P, { max: sx - pad - 12, font: F });
         stats.forEach(([l, v], i) => {
             const cx = sx + i * sw + sw;
             lab(g, l, cx, 96, P, { align: 'right', font: F, size: 8.5 });
-            text(g, v, { x: cx, y: 118, size: 18, weight: 600, color: P.t1, align: 'right', max: sw - 8, min: 11, font: F });
+            text(g, v, { x: cx, y: 118, size: 18, weight: 600, color: P.t1, align: 'right', max: sw - 8, min: 11, font: F }); /* @license Better Vest 9.6.3. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-e71ed9ef */
         });
         let lines = null, lineColor = P.gold;
         const pc = card.payouts;
@@ -524,7 +524,7 @@ function dayTimeline(card) {
             return v;
         }
     };
-/* This file is part of Better Vest by Astral and is protected by copyright. ref bv-b64246d1 */ }
+}
 
 function curveBox(g, card, P, x, y, w, h, o) {
     const c = card.curve, F = o.font;
@@ -539,7 +539,7 @@ function curveBox(g, card, P, x, y, w, h, o) {
         const a = Math.max(c.t0, c.rth.start), b = Math.min(c.t1, c.rth.end);
         box(g, X(a), y + M.t - 6, X(b) - X(a), h - M.t - M.b + 6, 4, P.curve.band, null, true);
         text(g, 'RTH', { x: X(a) + 6, y: y + M.t + 6, size: 9.5, weight: 500, color: P.curve.axis, font: F });
-    }
+    /* Better Vest (c) 2026 Astral. All rights reserved. bv-3e108ee2 */ }
     g.beginPath(); g.moveTo(x + M.l, Y(0)); g.lineTo(x + w - M.r, Y(0));
     g.setLineDash([3, 4]); g.lineWidth = 1; g.strokeStyle = P.curve.zero; g.stroke(); g.setLineDash([]);
     for (const rt of [c.start, c.end]) {
@@ -572,7 +572,7 @@ function curveBox(g, card, P, x, y, w, h, o) {
         g.beginPath(); g.arc(X(p.ts), Y(p.cum), 3.2 * (0.5 + 0.5 * k), 0, Math.PI * 2);
         g.fillStyle = P.curve.dot[p.net > 0 ? 'p' : p.net < 0 ? 'n' : '']; g.fill();
         g.lineWidth = 1.5; g.strokeStyle = P.curve.dotRing; g.stroke();
-    }); /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-86a7fe78 */
+    });
     g.restore();
     const ay = y + h - 7;
     text(g, c.axis[0], { x: x + M.l, y: ay, size: 9.5, weight: 500, color: P.curve.axis, font: F });
@@ -586,7 +586,7 @@ function curveBox(g, card, P, x, y, w, h, o) {
 }
 
 function tradeRows(g, card, P, x, y, w, h, o) {
-    const F = o.font, hide = card.hide;
+    /* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-bd85382c */ const F = o.font, hide = card.hide;
     const rowH = o.rowH || 25;
     const cols = hide ? [['Time', 0, 'l'], ['Side', 0.27, 'l'], ['Pts', 0.72, 'r'], ['R', 1, 'r']]
         : [['Time', 0, 'l'], ['Side', 0.24, 'l'], ['Pts', 0.58, 'r'], ['Net', 0.82, 'r'], ['R', 1, 'r']];
@@ -626,10 +626,10 @@ function eventRows(g, card, P, x, y, w, max, F, a) {
     const evs = card.events.slice(0, max);
     evs.forEach((e, i) => {
         const ry = y + i * 32;
-        g.save(); g.globalAlpha *= a;
+        /*! Property of Astral (@ax4p). Better Vest 9.6.3. No copying without written permission. bv-402ee555 */ g.save(); g.globalAlpha *= a;
         box(g, x, ry, w, 26, 9, P.tile, e.kind === 'payout' ? rgba(mix(P.gold, T0, 0.28)) : P.hair);
         if (e.kind === 'payout') sparkle(g, x + 15, ry + 13, 12, P.gold);
-        else if (e.kind === 'passed') tick(g, x + 15, ry + 13, 14, P.up); /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-1852ce0e */
+        else if (e.kind === 'passed') tick(g, x + 15, ry + 13, 14, P.up);
         else { g.beginPath(); g.arc(x + 15, ry + 13, 3, 0, Math.PI * 2); g.fillStyle = P.t2; g.fill(); }
         const sw = e.sub ? Math.min(110, w * 0.32) : 0;
         fitText(g, [e.text, e.short], { x: x + 30, y: ry + 17, size: 11.5, weight: 500, color: P.t1, max: w - 40 - sw, min: 8.5, font: F });
@@ -671,8 +671,8 @@ function drawDay(g, card, P, o) {
     if (o.format === 'wide') {
         const pad = 34, L = 290;
         g.save(); g.globalAlpha *= intro;
-        text(g, card.title, { x: pad, y: 62, size: 25, weight: 500, sp: -0.02, color: P.t1, max: L, min: 15, font: F });
-        /*! Owned by Astral (@ax4p): Better Vest standard 9.6.2. Licence: LICENSE, not open source. bv-c5bc2bd9 */ fitText(g, subs, { x: pad, y: 86, size: 12.5, weight: 500, color: P.t2, max: L, min: 9, font: F });
+        /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.6.3. bv-575e4aed */ text(g, card.title, { x: pad, y: 62, size: 25, weight: 500, sp: -0.02, color: P.t1, max: L, min: 15, font: F });
+        fitText(g, subs, { x: pad, y: 86, size: 12.5, weight: 500, color: P.t2, max: L, min: 9, font: F });
         hero(g, H0, pad, 166, 56, P, { max: L, font: F });
         text(g, subLine, { x: pad, y: 192, size: 13, weight: 500, color: P.t2, max: L, font: F });
         const tw = (L - 8) / 2, th = TILE_H;
@@ -697,7 +697,7 @@ function drawDay(g, card, P, o) {
         if (card.handle) text(g, card.handle, { x: W - pad, y: pad + 19, size: 14, weight: 500, color: P.t2, align: 'right', max: IW - 170, min: 10, font: F });
         text(g, card.title, { x: pad, y: 118, size: 30, weight: 500, sp: -0.02, color: P.t1, max: IW, min: 18, font: F });
         fitText(g, subs, { x: pad, y: 144, size: 13.5, weight: 500, color: P.t2, max: IW, min: 9, font: F });
-        hero(g, H0, pad, 224, 72, P, { max: IW, font: F }); /* Property of Astral (@ax4p). Better Vest 9.6.2. No copying without written permission. bv-c440130a */
+        hero(g, H0, pad, 224, 72, P, { max: IW, font: F });
         text(g, subLine, { x: pad, y: 254, size: 14, weight: 500, color: P.t2, max: IW, font: F });
         const tw = (IW - 8) / 2, th = TILE_H;
         tiles.forEach((tl, i) => tile(g, pad + (i % 2) * (tw + 8), 278 + Math.floor(i / 2) * (th + 8), tw, th, P, tl[0], tl[1], tl[2], { font: F, vColor: tileColor(tl[3]), alpha: i >= 2 ? end : 1 }));
@@ -710,7 +710,7 @@ function drawDay(g, card, P, o) {
         curveBox(g, card, P, pad, y + 32, IW, ch, curveO);
         y += 32 + ch + 30;
         g.save(); g.globalAlpha *= intro; lab(g, 'Trades', pad, y, P, { font: F }); g.restore();
-        tradeRows(g, card, P, pad, y + 8, IW, H - pad - y - 8, Object.assign(rowO, { rowH: 27, size: 13 }));
+        /*! Better Vest (c) 2026 Astral. All rights reserved. bv-a029ca60 */ tradeRows(g, card, P, pad, y + 8, IW, H - pad - y - 8, Object.assign(rowO, { rowH: 27, size: 13 }));
     } else {
         const pad = 26, IW = W - pad * 2;
         g.save(); g.globalAlpha *= intro;
@@ -729,7 +729,7 @@ function drawDay(g, card, P, o) {
         const ev = card.events[0];
         if (ev) {
             g.save(); g.globalAlpha *= end;
-            /* @license Better Vest 9.6.2. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-28abda0e */ if (ev.kind === 'payout') sparkle(g, pad + 6, 140, 11, P.gold); else if (ev.kind === 'passed') tick(g, pad + 6, 140, 13, P.up);
+            if (ev.kind === 'payout') sparkle(g, pad + 6, 140, 11, P.gold); else if (ev.kind === 'passed') tick(g, pad + 6, 140, 13, P.up);
             const more = card.events.length > 1 ? `  +${card.events.length - 1}` : '';
             fitText(g, [ev.text + more, ev.text, ev.short + more, ev.short], { x: pad + 18, y: 144, size: 12, weight: 500, color: ev.kind === 'payout' ? P.gold : P.t2, max: IW - 18, min: 9, font: F });
             g.restore();
@@ -747,7 +747,7 @@ export function drawCard(g, card, P, o) {
     let holes = null;
     if (P.stars) {
         const key = opt.format + '|' + opt.font;
-        card.__holes = card.__holes || {};
+        /*! Better Vest (c) 2026 Astral. All rights reserved. bv-0a798c23 */ card.__holes = card.__holes || {};
         if (!card.__holes[key]) {
             const rec = [], words = g.__words, marks = g.__marks;
             g.save(); g.globalAlpha = 0; g.__rec = rec; g.__words = null; g.__marks = null;

@@ -8,12 +8,12 @@
     -webkit-font-smoothing: antialiased; font-feature-settings: normal; letter-spacing: normal;
     background: linear-gradient(to top, var(--surface) 0%, var(--shadow) 112.26%);
 }
-.bvc .bvc-bg { position: absolute; inset: 0; z-index: -10; overflow: hidden; border-radius: inherit; pointer-events: none; }
+.bvc .bvc-bg { position: absolute; inset: 0; z-index: -10; overflow: hidden; border-radius: inherit; pointer-events: none; } /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-e96dacec */
 .bvc .bvc-bg img { position: absolute; max-width: none; }
 .bvc .bvc-a { position: absolute; }
 .bvc p, .bvc dl, .bvc dd, .bvc dt { margin: 0; padding: 0; }
 .bvc .bvc-lbl { font-size: 9px; line-height: 11px; letter-spacing: .18px; color: var(--mut); white-space: nowrap; font-weight: 400; }
-.bvc .bvc-val { font-size: 17px; line-height: 20px; font-weight: 600; letter-spacing: -.3px; white-space: nowrap; } /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-69c02687 */
+.bvc .bvc-val { font-size: 17px; line-height: 20px; font-weight: 600; letter-spacing: -.3px; white-space: nowrap; }
 .bvc .bvc-kick { font-size: 10px; line-height: 13px; font-weight: 600; letter-spacing: .32em; text-transform: uppercase; color: var(--mut); padding-left: .32em; }
 .bvc .bvc-hero {
     font-weight: 600; white-space: nowrap; line-height: 1.15;
@@ -37,5 +37,5 @@
 .bvc .bvc-stat { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1; }
 .bvc .bvc-sep { width: .75px; background: rgb(255 255 255 / .1); align-self: stretch; }
 .bvc .bvc-recip { display: flex; flex-direction: column; align-items: center; gap: 8px; }
-.bvc .bvc-recip img { position: absolute; } /*! Property of Astral (@ax4p). Better Vest 9.6.2. No copying without written permission. bv-2d4fa38a */
+.bvc .bvc-recip img { position: absolute; } /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-7daa5790 */
 .bvc svg { display: block; overflow: visible; }

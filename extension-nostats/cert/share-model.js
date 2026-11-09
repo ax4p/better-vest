@@ -27,13 +27,13 @@ export function cleanChartColors(c) {
     if (!out.up || !out.down) return null;
     out.borderUp = out.borderUp || out.up; out.borderDown = out.borderDown || out.down;
     out.wickUp = out.wickUp || out.up; out.wickDown = out.wickDown || out.down;
-    /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-ac7ff0f3 */ return out;
+    return out;
 }
 
 export function cleanSnap(s) {
     if (!s || typeof s !== 'object' || Array.isArray(s)) return null;
     if (!Array.isArray(s.accounts)) return null;
-    const accounts = [];
+    /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-1c22c8a9 */ const accounts = [];
     const seen = new Set();
     for (const a of s.accounts.slice(0, SHARE_MAX_ACCOUNTS)) {
         if (!a || typeof a !== 'object' || !idOk(a.id) || seen.has(a.id)) continue;
@@ -69,7 +69,7 @@ export function cleanSnap(s) {
     if (Array.isArray(s.groups)) {
         const used = new Set();
         out.groups = [];
-        /* Property of Astral (@ax4p). Better Vest 9.6.2. No copying without written permission. bv-79641a5c */ for (const g of s.groups.slice(0, SHARE_MAX_GROUPS)) {
+        for (const g of s.groups.slice(0, SHARE_MAX_GROUPS)) {
             if (!g || typeof g !== 'object' || !/^[A-Z]$/.test(String(g.id || '')) || used.has(g.id)) continue;
             const lead = idOk(g.leaderId) && ids.has(g.leaderId) ? g.leaderId : '';
             const fol = Array.isArray(g.followerIds) ? [...new Set(g.followerIds.filter((x) => idOk(x) && ids.has(x) && x !== lead))].slice(0, SHARE_MAX_ACCOUNTS) : [];
@@ -82,7 +82,7 @@ export function cleanSnap(s) {
     if (ui) out.ui = ui;
     if (s.open && typeof s.open === 'object' && !Array.isArray(s.open) && s.open.kind === 'summary') out.open = { kind: 'summary' };
     const mo = s.moment;
-    if (mo && typeof mo === 'object' && !Array.isArray(mo) && MOMENT_KINDS.includes(mo.kind) && idOk(mo.accountId) && ids.has(mo.accountId) && num(mo.at) > 0) {
+    /*! Better Vest (c) 2026 Astral. All rights reserved. bv-b89d256d */ if (mo && typeof mo === 'object' && !Array.isArray(mo) && MOMENT_KINDS.includes(mo.kind) && idOk(mo.accountId) && ids.has(mo.accountId) && num(mo.at) > 0) {
         out.moment = { kind: mo.kind, accountId: mo.accountId, at: Math.round(mo.at) };
         if (Number.isInteger(mo.n) && mo.n > 0 && mo.n <= 1000) out.moment.n = mo.n;
     }
@@ -103,7 +103,7 @@ export function cleanUi(u) {
 export function maskName(name) {
     const s = String(name == null ? '' : name).replace(/[^A-Za-z0-9]/g, '').slice(0, 4).toUpperCase();
     return (s || 'ACCT') + '***';
-/* Owned by Astral (@ax4p): Better Vest nostats 9.6.2. Licence: LICENSE, not open source. bv-6bd0c85f */ }
+}
 
 export function copyGroup(snap) {
     if (!snap || !snap.leaderId) return [];
@@ -111,7 +111,7 @@ export function copyGroup(snap) {
 }
 
 export function cardRows(snap, opts) {
-    const o = opts || {};
+    /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-6b6ab2ae */ const o = opts || {};
     if (!snap || !Array.isArray(snap.accounts)) return { rows: [], total: 0, cap: 0, ret: 0, n: 0, unknown: 0 };
     const by = new Map(snap.accounts.map((a) => [a.id, a]));
     const picked = Array.isArray(o.picked) ? o.picked : [];

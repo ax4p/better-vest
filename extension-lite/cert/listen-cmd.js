@@ -23,12 +23,12 @@ export const vcWords = (s) => String(s || '').toLowerCase()
     .replace(/\bbreak-?even\b/g, 'break even')
     .replace(/\bbreakeven\b/g, 'break even')
     .replace(/[^a-z' ]+/g, ' ')
-    /* Owned by Astral (@ax4p): Better Vest lite 9.6.2. Licence: LICENSE, not open source. bv-0e5ce913 */ .replace(/\s+/g, ' ')
+    .replace(/\s+/g, ' ')
     .trim();
 
 const clean = (s) => vcWords(s).split(' ').filter((w) => w && !FILLER.has(w)).join(' ');
 
-const TABLE = new Map();
+/* Better Vest (c) 2026 Astral. All rights reserved. bv-a57650a1 */ const TABLE = new Map();
 for (const id of Object.keys(PHRASES)) for (const p of PHRASES[id]) { const c = clean(p); if (c) TABLE.set(c, id); }
 
 const GROWS = new Set([...TABLE.keys()].filter((t) => [...TABLE.keys()].some((p) => p !== t && p.startsWith(t + ' ') && TABLE.get(p) !== TABLE.get(t))));
@@ -52,7 +52,7 @@ export function vcParse(text, opts) {
     if (rest == null) return null;
     const said = clean(rest);
     if (!said) return null;
-    /*! Property of Astral (@ax4p). Better Vest 9.6.2. No copying without written permission. bv-2f4f3754 */ const id = TABLE.get(said);
+    const id = TABLE.get(said);
     if (!id) return null;
     return { id, said, grows: GROWS.has(said) };
 }
@@ -60,7 +60,7 @@ export function vcParse(text, opts) {
 export function vcPending(text, opts) {
     const wake = !!(opts && opts.wake);
     const rest = wake ? vcAfterWake(text) : (vcAfterWake(text) ?? vcWords(text));
-    if (rest == null) return false;
+    /*! Property of Astral (@ax4p). Better Vest 9.6.3. No copying without written permission. bv-2721652e */ if (rest == null) return false;
     const said = clean(rest);
     return !!said && (STARTS.has(said) || GROWS.has(said));
 }

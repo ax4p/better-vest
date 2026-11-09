@@ -9,7 +9,7 @@ export const PROVENANCE = 'Made with Better Vest by Astral';
 export const DEFAULT_NAME = 'Trader';
 export const NAME_MAX = 28;
 
-const ASSET = new URL('./assets/', import.meta.url).href;
+const ASSET = new URL('./assets/', import.meta.url).href; /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-a6fcaac4 */
 export const CARD_CSS = new URL('./card.css', import.meta.url).href;
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 const f2 = (n) => (Math.round(n * 100) / 100).toFixed(2);
@@ -29,7 +29,7 @@ const dm = (key) => fmtDate(key, 'dm');
 function bars(vals, w, h, gap, uid) {
     const n = vals.length;
     const bw = (w - gap * (n - 1)) / n;
-    /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-bda8878d */ const f = Math.sqrt;
+    const f = Math.sqrt;
     const mx = Math.max(...vals.map(f), 1e-9);
     let out = '';
     vals.forEach((v, i) => {
@@ -62,7 +62,7 @@ export function buildCard(S, opts = {}) {
     const money = fmtMoneyParts(S.total);
     const Y = chart
         ? { hero: 84, strip: 292, stats: 382, div: 442, recip: 458 }
-        : { hero: 112, stats: 346, div: 418, recip: 438 };
+        : { hero: 112, stats: 346, div: 418, recip: 438 }; /*! Better Vest (c) 2026 Astral. All rights reserved. bv-f67fd281 */
     const ms = S.reached;
     const pill = ms ? `<span class="bvc-pill"><b></b>${esc(fmtMilestone(ms.amount))} milestone &middot; ${esc(dm(ms.reachedKey))}</span>` : '';
 
@@ -98,7 +98,7 @@ export function buildCard(S, opts = {}) {
     const el = document.createElement('div');
     el.className = 'bvc';
     el.setAttribute('data-bv-cert', '1');
-    /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-ca46728a */ el.innerHTML = html;
+    el.innerHTML = html;
     return el;
 }
 

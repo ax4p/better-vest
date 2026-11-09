@@ -20,7 +20,7 @@ export function cleanSpend(x) {
         seen.add(id);
         buys.push({ id, at: at > 0 ? at : 0, c: Math.round(c), l: l >= 0 ? l : 0, how: HOWS.has(b.how) ? b.how : 'plan', k: str(b.k, 24), n: str(b.n, 40) });
     }
-    const live = [];
+    const live = []; /*! Copyright Astral 2026. From Better Vest 9.6.3 (nostats), ref bv-016b042c. Not licensed for reuse. */
     for (const b of Array.isArray(x.live) ? x.live.slice(0, 50) : []) {
         if (!b || typeof b !== 'object') continue;
         const at = num(b.at), c = num(b.c), q = Math.round(num(b.q));
@@ -30,7 +30,7 @@ export function cleanSpend(x) {
     return { on: true, stop: false, buys, live };
 }
 
-export function spendScope(rec, o = {}) { /*! Owned by Astral (@ax4p): Better Vest nostats 9.6.2. Licence: LICENSE, not open source. bv-79fc7a83 */
+export function spendScope(rec, o = {}) {
     if (!rec || !rec.on) return { buys: [], live: [] };
     const phases = PHASES[o.scope] || null;
     const pick = Array.isArray(o.accounts) ? new Set(o.accounts) : null;
@@ -56,7 +56,7 @@ export function spendScope(rec, o = {}) { /*! Owned by Astral (@ax4p): Better Ve
 
 export function spendDays(scoped, mode = 'vest') {
     const m = new Map();
-    const add = (it) => {
+    /*! Copyright Astral 2026. From Better Vest 9.6.3 (nostats), ref bv-bbc05c18. Not licensed for reuse. */ const add = (it) => {
         const key = dayKey(it.at, mode);
         if (!key) return;
         let d = m.get(key);
@@ -72,7 +72,7 @@ export function spendDays(scoped, mode = 'vest') {
 }
 
 export function spendAll(scoped) {
-    let c = 0, n = 0, later = 0; /*! Copyright (c) 2026 Astral. Better Vest 9.6.2 is licensed to its users only to run it, never to copy it. bv-ac41917c */
+    let c = 0, n = 0, later = 0;
     for (const b of scoped.buys) { c += b.c; n++; if (!(b.at > 0)) later++; }
     for (const b of scoped.live) { c += b.c; n += b.q; }
     return { c, n, later };

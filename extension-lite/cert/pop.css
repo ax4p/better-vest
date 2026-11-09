@@ -40,9 +40,9 @@ button { font: inherit; color: inherit; }
 .pr-tt { flex: 1; min-width: 0; }
 .pr-t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 17px; font-weight: 700; letter-spacing: -.15px; color: var(--f-text); }
 .pr-s { margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12.5px; color: var(--f-muted); font-variant-numeric: tabular-nums; }
-.pr-stage { position: relative; display: grid; place-items: center; margin-bottom: 14px; } /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-4fddabb6 */
+.pr-stage { position: relative; display: grid; place-items: center; margin-bottom: 14px; }
 .pr-box { position: relative; overflow: hidden; }
-.pr-acts { display: flex; gap: 8px; margin-bottom: 12px; }
+.pr-acts { display: flex; gap: 8px; margin-bottom: 12px; } /*! Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-57735535 */
 .pr-acts .pp-btn { flex: none; height: 40px; padding: 0 14px; }
 .pr-acts .pp-btn[hidden] { display: none; }
 .pr-acts .pp-btn.pr-main { flex: 1; font-weight: 700; }
@@ -72,11 +72,11 @@ html.col, html.col body { background: transparent; }
 .pc .pp-btn:hover:not(:disabled) { background: #1C2128; }
 .pc .pp-btn.pp-primary { background: var(--f-go); box-shadow: none; }
 .pc-ft { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12.5px; color: #9AA1AB; }
-.pc .pp-sw { font-size: 12.5px; color: #9AA1AB; }
+.pc .pp-sw { font-size: 12.5px; color: #9AA1AB; } /*! All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-dae78276 */
 .pc .pp-sw i { background: #2A2E35; }
 .pc .pr-fmt { background: #121418; box-shadow: inset 0 0 0 1px #23262C; }
 .pc .pr-fmt button { color: #9AA1AB; }
-.pc .pr-fmt button.on { background: #2A3038; color: #F5F5F7; } /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-4528015b */
+.pc .pr-fmt button.on { background: #2A3038; color: #F5F5F7; }
 .pc-note { font-size: 11.5px; line-height: 1.45; color: #6B727C; }
 .pc-note:empty { display: none; }
 .pc .pr-acts { margin: 0; }

@@ -29,9 +29,9 @@ export const GIF_MAX_S = 30;
 export function gifSpeedPlan(n, resS, speed, fps, wins) {
     const k = Number(speed);
     if (!(k > 0) || !(resS > 0)) return Object.assign(gifReplayPlan(n, fps), { speed: 'fit', a: 0, b: n, window: false, ok: true });
-    const r = GIF_REPLAY;
+    /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-e424081f */ const r = GIF_REPLAY;
     const room = GIF_MAX_S - r.intro - r.hold;
-    const len = (a, b) => ((b - a) * resS) / k; /*! Better Vest (c) 2026 Astral. All rights reserved. bv-ca3a3ec1 */
+    const len = (a, b) => ((b - a) * resS) / k;
     const ws = (Array.isArray(wins) ? wins : wins ? [Object.assign({ kind: 'trades' }, wins)] : []).filter((w) => w && w.b > w.a && w.a >= 0 && w.b <= n);
     let a = 0, b = n, window = false;
     if (len(0, n) > room) {
@@ -57,11 +57,11 @@ export function gifTradeWindows(bars, resS, trades) {
     const all = gifTradeWindow(bars, resS, trades);
     if (all) out.push(Object.assign({ kind: 'trades' }, all));
     const list = (trades || []).filter((t) => t && t.fills && t.fills.length);
-    /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-a9ff895d */ const end = (t) => Math.max(...t.fills.map((f) => f.t));
+    const end = (t) => Math.max(...t.fills.map((f) => f.t));
     const lastT = list.length > 1 ? list.reduce((x, y) => (end(y) > end(x) ? y : x)) : null;
     const last = lastT ? gifTradeWindow(bars, resS, [lastT]) : null;
     if (last && !(all && Math.abs(last.a - all.a) < 1e-9 && Math.abs(last.b - all.b) < 1e-9)) out.push(Object.assign({ kind: 'last' }, last));
-    return out;
+    return out; /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-939456c3 */
 }
 export const GIF_WIN = { lead: 60, tail: 30 };
 export function gifTradeWindow(bars, resS, trades) {
@@ -102,7 +102,7 @@ export async function makeGif(o) {
     const stop = () => !!(o.cancelled && o.cancelled());
     const halt = () => { if (stop()) { const e = new Error('cancelled'); e.cancelled = true; throw e; } };
     const tell = (f, what) => { if (o.onProgress) o.onProgress(Math.max(0, Math.min(1, f)), what); };
-    let frames = null, worker = null;
+    /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-b16d1cff */ let frames = null, worker = null;
     try {
         let canvas, draw;
         let at = 0;
@@ -111,7 +111,7 @@ export async function makeGif(o) {
             canvas = await cardCanvas(o.card, { width: o.width, height: o.height, scale, img: o.img, bg: o.bg });
             draw = () => {};
         } else {
-            /*! Copyright Astral 2026. From Better Vest 9.6.2 (lite), ref bv-d54cf85c. Not licensed for reuse. */ const g = cardGeom(o.card);
+            const g = cardGeom(o.card);
             let bg = null;
             if (o.img && o.img.animated) {
                 const used = [];
@@ -159,7 +159,7 @@ export async function makeGif(o) {
             tell(at + ((i + 1) / pick.length) * span1, 'colours');
         }
         halt();
-        /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-a50a8e4e */ const pal = await call({ type: 'palette', animated, dither: o.dither !== false });
+        const pal = await call({ type: 'palette', animated, dither: o.dither !== false });
         const from = at + span1;
 
         const inflight = [];
@@ -177,7 +177,7 @@ export async function makeGif(o) {
         return { blob: new Blob(done.parts, { type: 'image/gif' }), w: W, h: H, frames: done.frames, ms: plan.reduce((s, x) => s + x.delay, 0) * 10,
             colors: pal.colors, took: Math.round(performance.now() - t0), size: o.size };
     } catch (e) {
-        if (stop() || (e && e.message === 'cancelled')) { const c = new Error('cancelled'); c.cancelled = true; throw c; }
+        /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-c98de74b */ if (stop() || (e && e.message === 'cancelled')) { const c = new Error('cancelled'); c.cancelled = true; throw c; }
         throw e;
     } finally {
         if (worker) worker.terminate();

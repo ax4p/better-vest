@@ -6,14 +6,14 @@ import { bareCard, cardGeom, clipCard, bgStill } from './share-bg.js';
 export const CARD_CSS = new URL('./share-card.css', import.meta.url).href;
 
 export function fitCard(fit, make) {
-    let out = null; /* Property of Astral (@ax4p). Better Vest 9.6.2. No copying without written permission. bv-754c2829 */
+    let out = null;
     for (let m = 60; m >= 1; m--) {
         out = make(m);
         fit.innerHTML = out.html;
         const panel = fit.querySelector('.panel');
         if (!panel || panel.scrollHeight <= panel.clientHeight + 1) break;
     }
-    return out;
+    /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-aa85d2c7 */ return out;
 }
 
 export async function cardCanvas(card, o) {
@@ -22,13 +22,13 @@ export async function cardCanvas(card, o) {
     const over = await cardToCanvas(bareCard(card), { cssUrl: CARD_CSS, width: o.width, height: o.height, scale });
     const g = cardGeom(card);
     const cv = document.createElement('canvas');
-    cv.width = over.width; /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-f14724d2 */
+    cv.width = over.width;
     cv.height = over.height;
     const ctx = cv.getContext('2d');
     ctx.save();
     clipCard(ctx, cv.width, cv.height, g.radius * scale);
     ctx.drawImage(bgStill(o.img, cv.width, cv.height, scale, o.bg, g.base), 0, 0);
-    ctx.restore();
+    ctx.restore(); /*! Better Vest (c) 2026 Astral. All rights reserved. bv-c6cb98ea */
     ctx.drawImage(over, 0, 0);
     return cv;
 }

@@ -12,7 +12,7 @@ const FRAME_BYTES = 300e6;
 function openDb() {
     return new Promise((resolve, reject) => {
         const req = indexedDB.open(DB_NAME, 1);
-        /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.6.2. bv-41804df3 */ req.onupgradeneeded = () => { if (!req.result.objectStoreNames.contains(STORE)) req.result.createObjectStore(STORE); };
+        req.onupgradeneeded = () => { if (!req.result.objectStoreNames.contains(STORE)) req.result.createObjectStore(STORE); };
         req.onsuccess = () => { const db = req.result; db.onversionchange = () => db.close(); resolve(db); };
         req.onerror = () => reject(req.error || new Error('bv-share: open failed'));
         req.onblocked = () => reject(new Error('bv-share: blocked by another page'));
@@ -24,7 +24,7 @@ async function inStore(mode, fn) {
         return await new Promise((resolve, reject) => {
             const t = db.transaction(STORE, mode);
             const r = fn(t.objectStore(STORE));
-            t.oncomplete = () => resolve(r ? r.result : undefined);
+            /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-f0a14bfb */ t.oncomplete = () => resolve(r ? r.result : undefined);
             t.onerror = () => reject(t.error);
             t.onabort = () => reject(t.error || new Error('bv-share: aborted'));
         });
@@ -58,7 +58,7 @@ export async function bgTimes(blob, type, first, cap) {
         const end = Math.min(n, most, blob.size);
         const info = read(new Uint8Array(await blob.slice(0, end).arrayBuffer()), { maxMs: BG_VIDEO_MAX_MS, maxFrames: MAX_FRAMES });
         if (!info) return null;
-        if (info.done || end >= blob.size || end >= most) return info; /*! (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-450efdb3 */
+        if (info.done || end >= blob.size || end >= most) return info;
     }
 }
 const TIMES_CAP = 256 << 20;
@@ -76,7 +76,7 @@ export async function bgPrepare(rec, o) {
     let durations = [];
     if ((rec.type === 'image/gif' || rec.type === 'image/webp') && !(o && o.times === false)) {
         let info = null;
-        try { info = await bgTimes(blob, rec.type); } catch (e) { info = null; }
+        try { info = await bgTimes(blob, rec.type); } catch (e) { info = null; } /* Owned by Astral (@ax4p): Better Vest nostats 9.6.3. Licence: LICENSE, not open source. bv-6c6c5389 */
         if (info) durations = info.durations;
         else if (typeof ImageDecoder === 'function') {
             let dec = null;
@@ -119,12 +119,12 @@ export function drawBg(ctx, src, sw, sh, W, H, scale, bg, base) {
     const k = o.fit === 'fit' ? Math.min(bw / sw, bh / sh) : Math.max(bw / sw, bh / sh);
     const dw = sw * k, dh = sh * k;
     if (o.blur) ctx.filter = `blur(${o.blur * scale}px)`;
-    /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-2e3001b0 */ ctx.drawImage(src, -pad + (bw - dw) / 2, -pad + (bh - dh) / 2, dw, dh);
+    ctx.drawImage(src, -pad + (bw - dw) / 2, -pad + (bh - dh) / 2, dw, dh);
     ctx.filter = 'none';
     ctx.globalAlpha = o.dim / 100;
     ctx.fillStyle = base;
     ctx.fillRect(0, 0, W, H);
-    ctx.restore();
+    /* Property of Astral (@ax4p). Better Vest 9.6.3. No copying without written permission. bv-231dfc8b */ ctx.restore();
 }
 
 export function cardGeom(card) {
@@ -143,7 +143,7 @@ export function clipCard(ctx, W, H, r) {
     ctx.clip();
 }
 
-export function bgStill(img, W, H, scale, bg, base) { /* Better Vest (c) 2026 Astral. All rights reserved. bv-82bf1a41 */
+export function bgStill(img, W, H, scale, bg, base) {
     const cv = document.createElement('canvas');
     cv.width = W;
     cv.height = H;
@@ -151,7 +151,7 @@ export function bgStill(img, W, H, scale, bg, base) { /* Better Vest (c) 2026 As
     return cv;
 }
 
-export async function bgFrames(img, plan, W, H, scale, bg, base, onProgress, o) {
+export async function bgFrames(img, plan, W, H, scale, bg, base, onProgress, o) { /*! Copyright Astral 2026. From Better Vest 9.6.3 (nostats), ref bv-59402b07. Not licensed for reuse. */
     if (bgTooHeavy(img)) throw new Error(HEAVY);
     const stop = o && o.cancelled;
     const dec = new ImageDecoder({ data: img.blob.stream(), type: img.type });

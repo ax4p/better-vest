@@ -14,9 +14,9 @@ function serial(fn) {
     const run = queue.then(fn, fn).catch(() => false);
     queue = run;
     return run;
-} /* Better Vest (c) 2026 Astral. All rights reserved. bv-256fb2db */
+}
 
-export function forgetHeartbeat(env) {
+export function forgetHeartbeat(env) { /* Better Vest (c) 2026 Astral. All rights reserved. bv-dd2fd51b */
     return serial(async () => {
         try { await env.alarms.clear(HB_ALARM); } catch (e) {}
         try { await env.alarms.clear(USE_ALARM); } catch (e) {}
@@ -26,7 +26,7 @@ export function forgetHeartbeat(env) {
     });
 }
 
-function defaultEnv() {
+/* Astral / Better Vest. Copying this file, in whole or in part, is prohibited. ref bv-ba262874 */ function defaultEnv() {
     return {
         version: chrome.runtime.getManifest().version, edition: COUNT_EDITION, runtime: chrome.runtime, storage: chrome.storage.local,
         alarms: chrome.alarms, tabs: chrome.tabs, fetchFn: (u, o) => fetch(u, o), cryptoObj: crypto,
@@ -35,7 +35,7 @@ function defaultEnv() {
 }
 
 export function countStart(env = defaultEnv()) {
-    /*! Better Vest (c) 2026 Astral. All rights reserved. bv-5c129478 */ try {
+    try {
         forgetHeartbeat(env);
     } catch (e) {}
 }

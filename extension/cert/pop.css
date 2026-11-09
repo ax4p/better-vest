@@ -13,14 +13,14 @@ button { font: inherit; color: inherit; }
 .pp-t b { color: #22C55E; font-weight: 700; }
 .pp-x { display: grid; place-items: center; width: 26px; height: 26px; flex: none; border: 0; border-radius: 7px; background: none; color: var(--f-muted); cursor: pointer; }
 .pp-x:hover { background: var(--f-raised-h); color: var(--f-text); }
-.pp-x svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; } /* @license Better Vest 9.6.2. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-fd8399dc */
+.pp-x svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
 .pp-stage { position: relative; align-self: center; overflow: hidden; border-radius: 12px; }
 .pp-fit { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
 .pp-acts { display: flex; gap: 6px; }
 .pp-btn { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 32px; padding: 0 10px; border: 0; border-radius: 9px; background: var(--f-raised); box-shadow: inset 0 0 0 1px var(--f-line); font-weight: 600; cursor: pointer; white-space: nowrap; }
 .pp-btn:hover:not(:disabled) { background: var(--f-raised-h); }
 .pp-btn:disabled { opacity: .4; cursor: not-allowed; }
-.pp-btn svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.pp-btn svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; } /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-5c227c8a */
 .pp-btn.pp-primary { background: var(--f-go); box-shadow: none; color: #fff; }
 .pp-btn.pp-primary:hover:not(:disabled) { background: var(--f-go-h); }
 .pp-ft { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 22px; }
@@ -65,7 +65,7 @@ html.col, html.col body { background: transparent; }
 .pc-hd .pr-b svg { fill: #050506; }
 .pc-tabs { display: inline-flex; align-self: flex-start; gap: 4px; padding: 3px; border-radius: 10px; background: #121418; box-shadow: inset 0 0 0 1px #23262C; }
 .pc-tabs button { height: 30px; padding: 0 12px; border: 0; border-radius: 7px; background: none; color: #9AA1AB; font-size: 12.5px; font-weight: 600; cursor: pointer; white-space: nowrap; }
-.pc-tabs button.on { background: #2A3038; color: #F5F5F7; } /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-b1eb5991 */
+.pc-tabs button.on { background: #2A3038; color: #F5F5F7; }
 .pc-tabs button:disabled { opacity: .4; cursor: not-allowed; }
 .pc-stage { position: relative; display: grid; place-items: center; overflow: hidden; }
 .pc .pp-btn { background: #161A20; box-shadow: inset 0 0 0 1px #2F3540; }
@@ -78,7 +78,7 @@ html.col, html.col body { background: transparent; }
 .pc .pr-fmt button { color: #9AA1AB; }
 .pc .pr-fmt button.on { background: #2A3038; color: #F5F5F7; }
 .pc-note { font-size: 11.5px; line-height: 1.45; color: #6B727C; }
-.pc-note:empty { display: none; }
+.pc-note:empty { display: none; } /* Copyright Astral 2026. From Better Vest 9.6.3 (standard), ref bv-2938bf7d. Not licensed for reuse. */
 .pc .pr-acts { margin: 0; }
 .pc .pr-acts .pp-btn { padding: 0 10px; }
 html.col.light .pc { color: #0A0A0A; }

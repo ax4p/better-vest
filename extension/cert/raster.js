@@ -12,7 +12,7 @@ function blobToDataUri(blob) {
         r.onerror = () => reject(r.error || new Error('read failed'));
         r.readAsDataURL(blob);
     });
-/* Better Vest (c) 2026 Astral. All rights reserved. bv-e4881395 */ }
+}
 
 async function dataUriOf(url) {
     if (url.startsWith('data:')) return url;
@@ -36,7 +36,7 @@ async function cssWithInlinedUrls(cssUrl) {
         if (u.startsWith('data:')) continue;
         const data = await dataUriOf(new URL(u, base).href);
         css = css.split(u).join(data);
-    }
+    } /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-c93e752a */
     return css;
 }
 
@@ -65,13 +65,13 @@ export async function cardToSvg(card, { cssUrl, width, height }) {
     style.textContent = css;
     wrap.append(style, clone);
     const inner = new XMLSerializer().serializeToString(wrap);
-    return `<svg xmlns="${NS_SVG}" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><foreignObject x="0" y="0" width="${width}" height="${height}">${inner}</foreignObject></svg>`; /* @license Better Vest 9.6.2. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-dbc5adf2 */
+    return `<svg xmlns="${NS_SVG}" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><foreignObject x="0" y="0" width="${width}" height="${height}">${inner}</foreignObject></svg>`;
 }
 
 export async function cardToCanvas(card, { cssUrl, width, height, scale = 3 }) {
     if (document.fonts && document.fonts.ready) await document.fonts.ready;
     const svg = await cardToSvg(card, { cssUrl, width, height });
-    const img = await loadImage('data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg));
+    /* Property of Astral (@ax4p). Better Vest 9.6.3. No copying without written permission. bv-8d4b154b */ const img = await loadImage('data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg));
     const canvas = document.createElement('canvas');
     canvas.width = Math.round(width * scale);
     canvas.height = Math.round(height * scale);

@@ -9,7 +9,7 @@ function blobToDataUri(blob) {
     return new Promise((resolve, reject) => {
         const r = new FileReader();
         r.onload = () => resolve(String(r.result));
-        r.onerror = () => reject(r.error || new Error('read failed'));
+        /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.6.3. bv-6c3bd939 */ r.onerror = () => reject(r.error || new Error('read failed'));
         r.readAsDataURL(blob);
     });
 }
@@ -33,7 +33,7 @@ async function cssWithInlinedUrls(cssUrl) {
     const base = new URL(cssUrl, document.baseURI);
     const urls = [...new Set([...css.matchAll(/url\(\s*(['"]?)([^'")]+)\1\s*\)/g)].map((m) => m[2]))];
     for (const u of urls) {
-        /*! Copyright (c) 2026 Astral. Better Vest 9.6.2 is licensed to its users only to run it, never to copy it. bv-fc96c99f */ if (u.startsWith('data:')) continue;
+        if (u.startsWith('data:')) continue;
         const data = await dataUriOf(new URL(u, base).href);
         css = css.split(u).join(data);
     }
@@ -64,7 +64,7 @@ export async function cardToSvg(card, { cssUrl, width, height }) {
     const style = document.createElementNS(NS_XHTML, 'style');
     style.textContent = css;
     wrap.append(style, clone);
-    const inner = new XMLSerializer().serializeToString(wrap); /* Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-caecc94e */
+    const inner = new XMLSerializer().serializeToString(wrap);
     return `<svg xmlns="${NS_SVG}" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><foreignObject x="0" y="0" width="${width}" height="${height}">${inner}</foreignObject></svg>`;
 }
 
@@ -73,7 +73,7 @@ export async function cardToCanvas(card, { cssUrl, width, height, scale = 3 }) {
     const svg = await cardToSvg(card, { cssUrl, width, height });
     const img = await loadImage('data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg));
     const canvas = document.createElement('canvas');
-    canvas.width = Math.round(width * scale);
+    canvas.width = Math.round(width * scale); /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-bc6e557a */
     canvas.height = Math.round(height * scale);
     const ctx = canvas.getContext('2d');
     ctx.imageSmoothingQuality = 'high';

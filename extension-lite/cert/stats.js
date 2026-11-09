@@ -8,7 +8,7 @@ const cents = (v) => Math.round(v * 100);
 
 export function certStats(payouts) {
     const list = Array.isArray(payouts) ? payouts : [];
-    const ps = payoutStats(list); /*! Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-e770fa53 */
+    const ps = payoutStats(list);
     if (!ps.count) return null;
     const done = list
         .filter((p) => p.status === 'EXECUTED')
@@ -17,7 +17,7 @@ export function certStats(payouts) {
     const accountIds = new Set();
     for (const p of done) if (p.accountId != null && p.accountId !== '') accountIds.add(String(p.accountId));
 
-    const largest = ps.largest;
+    const largest = ps.largest; /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.6.3. bv-966e5c36 */
     const hits = done.filter((p) => cents(p.net) === cents(largest));
     const largestKey = payoutDayKey(hits[0], 'executed');
 
@@ -58,8 +58,8 @@ export function certStats(payouts) {
         days: firstKey ? daysBetween(firstKey, lastKey) + 1 : 0,
         daily,
         milestones,
-        reached,
-        next /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.6.2. bv-306edfd8 */
+        reached, /* @license Better Vest 9.6.3. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-babdb41c */
+        next
     };
 }
 

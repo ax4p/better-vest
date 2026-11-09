@@ -21,12 +21,12 @@ export const DEFAULT_PREFS = { kind: 'summary', style: 'vest', theme: 'dark', fo
 export function cleanPrefs(p) {
     const o = p && typeof p === 'object' && !Array.isArray(p) ? p : {};
     const merged = Object.assign({}, DEFAULT_PREFS, o);
-    for (const k of ['list', 'show', 'rp']) merged[k] = Object.assign({}, DEFAULT_PREFS[k], o[k] && typeof o[k] === 'object' ? o[k] : {});
+    /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-4fad990f */ for (const k of ['list', 'show', 'rp']) merged[k] = Object.assign({}, DEFAULT_PREFS[k], o[k] && typeof o[k] === 'object' ? o[k] : {});
     if (!ROWS.includes(merged.rows)) merged.rows = 'accounts';
     if (!['today', 'yesterday', 'week', 'month'].includes(merged.period)) merged.period = 'today';
     if (!KINDS.includes(merged.kind)) merged.kind = 'summary';
     if (!['usd', 'pct', 'both', 'pts'].includes(merged.hero)) merged.hero = 'usd';
-    if (!['vest', 'silver', 'oled', 'neon'].includes(merged.style)) merged.style = 'vest'; /* @license Better Vest 9.6.2. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-db37cc2a */
+    if (!['vest', 'silver', 'oled', 'neon'].includes(merged.style)) merged.style = 'vest';
     if (!['dark', 'light'].includes(merged.theme)) merged.theme = 'dark';
     if (!['feed', 'square', 'wide', 'story'].includes(merged.format)) merged.format = 'feed';
     merged.handle = typeof merged.handle === 'string' ? merged.handle.slice(0, 32) : '';
@@ -42,8 +42,8 @@ export function loadPrefs(storage) {
     return cleanPrefs(p);
 }
 export function prefsToSave(P) {
-    const { kind, style, theme, format, hero, handle, list, show, rows, afterFees, rp, chart, pay, bg, accent } = P;
-    /*! This file is part of Better Vest by Astral and is protected by copyright. ref bv-755eca42 */ const period = P.period === 'day' ? 'today' : P.period;
+    const { kind, style, theme, format, hero, handle, list, show, rows, afterFees, rp, chart, pay, bg, accent } = P; /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-d416c1bf */
+    const period = P.period === 'day' ? 'today' : P.period;
     return { kind, style, theme, format, hero, handle, list, show, rows, period, afterFees, rp, chart, pay, bg, accent };
 }
 export function savePrefs(storage, P) {

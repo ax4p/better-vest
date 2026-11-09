@@ -17,7 +17,7 @@ function blobToDataUri(blob) {
 async function dataUriOf(url) {
     if (url.startsWith('data:')) return url;
     if (cache.has(url)) return cache.get(url);
-    const p = fetch(url).then((r) => { /*! Owned by Astral (@ax4p): Better Vest lite 9.6.2. Licence: LICENSE, not open source. bv-b0d66759 */
+    const p = fetch(url).then((r) => {
         if (!r.ok) throw new Error('asset ' + url + ': HTTP ' + r.status);
         return r.blob();
     }).then(blobToDataUri);
@@ -27,7 +27,7 @@ async function dataUriOf(url) {
 }
 
 async function cssWithInlinedUrls(cssUrl) {
-    const res = await fetch(cssUrl);
+    const res = await fetch(cssUrl); /* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-f139e842 */
     if (!res.ok) throw new Error('stylesheet: HTTP ' + res.status);
     let css = await res.text();
     const base = new URL(cssUrl, document.baseURI);
@@ -66,7 +66,7 @@ export async function cardToSvg(card, { cssUrl, width, height }) {
     wrap.append(style, clone);
     const inner = new XMLSerializer().serializeToString(wrap);
     return `<svg xmlns="${NS_SVG}" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><foreignObject x="0" y="0" width="${width}" height="${height}">${inner}</foreignObject></svg>`;
-}
+/* Better Vest, written by Astral. Copyright (c) 2026. Reuse needs written permission from Astral. bv-b9382e48 */ }
 
 export async function cardToCanvas(card, { cssUrl, width, height, scale = 3 }) {
     if (document.fonts && document.fonts.ready) await document.fonts.ready;
@@ -78,7 +78,7 @@ export async function cardToCanvas(card, { cssUrl, width, height, scale = 3 }) {
     const ctx = canvas.getContext('2d');
     ctx.imageSmoothingQuality = 'high';
     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-    /* @license Better Vest 9.6.2. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-15bcc92d */ return canvas;
+    return canvas;
 }
 
 export async function cardToPngBlob(card, opts) {

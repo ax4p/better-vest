@@ -13,7 +13,7 @@ export function receivedPayouts(list) {
     const out = [];
     for (const p of Array.isArray(list) ? list : []) {
         if (!p || typeof p !== 'object' || p.status !== 'EXECUTED' || !Number.isFinite(p.net) || !(paidAt(p) > 0)) continue;
-        const id = String(p.id); /* @license Better Vest 9.6.2. Proprietary. Copyright 2026 Astral (@ax4p). See LICENSE. bv-ea9fa69a */
+        const id = String(p.id);
         if (seen.has(id)) continue;
         seen.add(id);
         out.push(p);
@@ -28,7 +28,7 @@ export function payoutModel(payouts, o) {
     if (!done.length) return { kind, empty: true };
     const names = opt.names instanceof Map ? opt.names : new Map();
     const nameOf = (id) => (id != null && names.get(String(id))) || (id != null ? 'Account ' + String(id).slice(-4) : 'Account');
-    const item = (p) => ({ id: String(p.id), accountId: p.accountId == null ? '' : String(p.accountId), name: nameOf(p.accountId), net: r2(p.net),
+    const item = (p) => ({ id: String(p.id), accountId: p.accountId == null ? '' : String(p.accountId), name: nameOf(p.accountId), net: r2(p.net), /*! Owned by Astral (@ax4p): Better Vest lite 9.6.3. Licence: LICENSE, not open source. bv-e89f76c6 */
         gross: Number.isFinite(p.gross) ? r2(p.gross) : null, at: paidAt(p), day: dayKey(paidAt(p), 'vest') });
     const accountsIn = (list) => new Set(list.map((p) => (p.accountId == null ? '' : String(p.accountId)))).size;
     const total = r2(done.reduce((s, p) => s + p.net, 0));
@@ -74,7 +74,7 @@ export function samplePayouts(today) {
         const { y, m, d } = parseKey(k);
         const at = etWallToUtc(y, m, d, 10 + Math.floor(rnd() * 7), Math.floor(rnd() * 59));
         out.push(samplePay(i, acc, net, at));
-        k = addDays(k, 12 + Math.floor(rnd() * 9));
+        k = addDays(k, 12 + Math.floor(rnd() * 9)); /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-c6f0ce9d */
     }
     const { y, m, d } = parseKey(t);
     out.push(samplePay(out.length, SAMPLE_PAY_ACCOUNTS[0][0], 4823.5, etWallToUtc(y, m, d, 14, 32)));
@@ -82,7 +82,7 @@ export function samplePayouts(today) {
 }
 function samplePay(i, acc, net, at) {
     return { id: 'sample-pay-' + i, accountId: acc, targetAccountId: 'sample-primary', gross: r2(net / 0.8), net, platformCut: r2(net / 0.8 - net),
-        /*! Copyright Astral 2026. From Better Vest 9.6.2 (lite), ref bv-58fb032e. Not licensed for reuse. */ status: 'EXECUTED', failureReason: null, createdAt: at - 3 * 3600e3, updatedAt: at, executedAt: at, counted: true, sample: true };
+        status: 'EXECUTED', failureReason: null, createdAt: at - 3 * 3600e3, updatedAt: at, executedAt: at, counted: true, sample: true };
 }
 
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];

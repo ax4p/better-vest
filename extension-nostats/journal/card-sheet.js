@@ -26,11 +26,11 @@ const lsGet = (k) => { try { return localStorage.getItem(k); } catch (e) { retur
 const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {  } };
 function handleGet(kit) {
     try {
-        if (kit && kit.loadPrefs) return kit.loadPrefs(localStorage).handle || '';
+        if (kit && kit.loadPrefs) return kit.loadPrefs(localStorage).handle || ''; /* This file is part of Better Vest by Astral and is protected by copyright. ref bv-6e93c39f */
         const v = JSON.parse(lsGet(PREFS_KEY) || 'null');
         return v && typeof v.handle === 'string' ? v.handle.slice(0, 32) : '';
     } catch (e) { return ''; }
-} /* Better Vest (c) 2026 Astral. All rights reserved. bv-9f1c2c20 */
+}
 function handleSet(kit, s) {
     const v = String(s || '').slice(0, 32);
     try {
@@ -66,7 +66,7 @@ function stage(card, pal, format, font, scale) {
 }
 const pngOf = (st) => new Promise((resolve, reject) => st.canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('the image could not be made'))), 'image/png'));
 
-export function openShare(ctx, spec, opener) { /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-75b37c02 */
+export function openShare(ctx, spec, opener) { /*! Better Vest (c) 2026 Astral. All rights reserved. bv-20d4d196 */
     if (open) open.close();
     const { h, ui } = ctx;
     const { icon } = ui;
@@ -98,7 +98,7 @@ export function openShare(ctx, spec, opener) { /* Reading this outside Better Ve
     const note = h('span', { class: 'csh-note', role: 'status', 'aria-live': 'polite' });
     const stageEl = h('div', { class: 'csh-stage' }, frame, h('div', { class: 'csh-under' }, playBtn, note));
     const fmtSeg = ui.seg({ options: CARD_FORMATS.map((k) => ({ k, label: FORMAT_LABEL[k], title: { wide: 'Wide, for X and a screen', story: 'Tall, for a story', square: 'Square' }[k] })), value: S.format, label: 'Shape',
-        onChange: (k) => { S.format = k; lsSet(LS_KEY, JSON.stringify({ format: k })); redraw(true); } });
+        onChange: (k) => { S.format = k; lsSet(LS_KEY, JSON.stringify({ format: k })); redraw(true); } }); /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-dd64e101 */
     const themeSeg = ui.seg({ options: (plain ? [] : [{ k: 'cal', label: th.def.label || 'Calendar', title: 'The Calendar\'s theme' }]).concat([{ k: 'dark', label: 'Dark' }, { k: 'light', label: 'Light' }]),
         value: S.theme, label: 'Theme', onChange: (k) => { S.theme = k; redraw(false); } });
     const hideSw = ui.toggle(S.hide, (v) => { S.hide = v; redraw(false); }, 'Hide dollars');
@@ -110,7 +110,7 @@ export function openShare(ctx, spec, opener) { /* Reading this outside Better Ve
     const gifBtn = h('button', { class: 'btn', type: 'button', hidden: true, title: 'The same as an animated GIF, half size' }, h('span', null, 'GIF'));
     const motionRow = h('div', { class: 'csh-two', hidden: true }, vidBtn, gifBtn);
     const canClip = typeof ClipboardItem === 'function' && !!(navigator.clipboard && navigator.clipboard.write);
-    if (!canClip) { copyBtn.hidden = true; postBtn.hidden = true; } /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.6.2. bv-f1afdcea */
+    if (!canClip) { copyBtn.hidden = true; postBtn.hidden = true; }
     const side = h('div', { class: 'csh-side' },
         h('div', { class: 'csh-grp' }, h('span', { class: 'lab' }, 'Shape'), fmtSeg),
         h('div', { class: 'csh-grp' }, h('span', { class: 'lab' }, 'Theme'), themeSeg),
@@ -141,9 +141,9 @@ export function openShare(ctx, spec, opener) { /* Reading this outside Better Ve
         const availW = sw - 40 - (narrow ? 0 : 248 + 20) - 30;
         const availH = phone ? vh * 0.58 : narrow ? Math.min(vh * 0.5, 560) : vh * 0.86 - 52 - 28 - 40 - 30;
         const k = Math.max(0.1, Math.min(availW / W, availH / H));
-        const dpr = Math.min(3, window.devicePixelRatio || 1); /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.6.2. bv-a344550a */
+        const dpr = Math.min(3, window.devicePixelRatio || 1);
         cv.style.width = Math.round(W * k) + 'px';
-        cv.style.height = Math.round(H * k) + 'px';
+        cv.style.height = Math.round(H * k) + 'px'; /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-f86034c1 */
         const pw = Math.round(W * k * dpr), ph = Math.round(H * k * dpr);
         if (cv.width !== pw) cv.width = pw;
         if (cv.height !== ph) cv.height = ph;
@@ -171,13 +171,13 @@ export function openShare(ctx, spec, opener) { /* Reading this outside Better Ve
     }
     function describe() {
         const [W, H] = CARD_SIZES[S.format];
-        cv.setAttribute('aria-label', `${title}: ${card.title}, ${card.hero.parts ? card.hero.parts.sign + card.hero.parts.cur + card.hero.parts.int + card.hero.parts.cents : card.hero.text}, ${W * 2} by ${H * 2}`);
+        /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-00a419c2 */ cv.setAttribute('aria-label', `${title}: ${card.title}, ${card.hero.parts ? card.hero.parts.sign + card.hero.parts.cur + card.hero.parts.int + card.hero.parts.cents : card.hero.text}, ${W * 2} by ${H * 2}`);
     }
     function redraw(restart) {
         make();
         scale = size();
         describe();
-        /* All rights reserved by Astral (@ax4p), the author of Better Vest. ref bv-b267a4a0 */ if (restart) play();
+        if (restart) play();
         else if (!playing) paint(Infinity);
     }
     scale = size();
@@ -212,7 +212,7 @@ export function openShare(ctx, spec, opener) { /* Reading this outside Better Ve
         fmtSeg.classList.toggle('dis', !!what);
     }
     function saveBlob(blob, name) {
-        const url = URL.createObjectURL(blob);
+        const url = URL.createObjectURL(blob); /* Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-ba06a0ae */
         const a = h('a', { href: url, download: name });
         document.body.appendChild(a); a.click(); a.remove();
         setTimeout(() => URL.revokeObjectURL(url), 30000);
@@ -225,7 +225,7 @@ export function openShare(ctx, spec, opener) { /* Reading this outside Better Ve
             if (can) { try { await navigator.share({ files: [file] }); return true; } catch (e) { if (e && e.name === 'AbortError') return true; } }
         }
         saveBlob(blob, name);
-        return false; /*! Better Vest by Astral (@ax4p). Copyright (c) 2026 Astral. All rights reserved. ref bv-fdb08dbd */
+        return false;
     }
     const png = () => { const s2 = stage(card, pal, S.format, font, 2); s2.draw(Infinity); return pngOf(s2); };
     saveBtn.addEventListener('click', async () => {
@@ -257,7 +257,7 @@ export function openShare(ctx, spec, opener) { /* Reading this outside Better Ve
         } catch (e) { say('Could not copy the image (' + ((e && e.message) || e) + '). Save it, then add it to your post.', 'warn'); }
         setBusy('');
     });
-    vidBtn.addEventListener('click', async () => { /*! Reading this outside Better Vest? Then it was copied without permission. (c) Astral 2026, ref bv-34dcbcfc */
+    vidBtn.addEventListener('click', async () => {
         if (busy || !kit) return;
         setBusy('video');
         const label = vidBtn.lastChild;
@@ -271,7 +271,7 @@ export function openShare(ctx, spec, opener) { /* Reading this outside Better Ve
             });
             if (!gone) {
                 const name = base() + '.' + kit.videoExt(res.mime);
-                const shared = await deliver(res.blob, name);
+                const shared = await deliver(res.blob, name); /*! Copyright Astral 2026. From Better Vest 9.6.3 (nostats), ref bv-7a641b01. Not licensed for reuse. */
                 say(shared ? '' : 'Saved ' + name);
             }
             window.__calShareLastVideo = { size: res.blob.size, mime: res.mime, seconds: res.seconds };
@@ -289,8 +289,8 @@ export function openShare(ctx, spec, opener) { /* Reading this outside Better Ve
             const s1 = stage(card, pal, S.format, font, 1);
             const n = Math.ceil((ANIM_END + 0.4) * GIF_FPS);
             const frames = Array.from({ length: n + 1 }, (_, k) => ({ delay: k === n ? 250 : 100 / GIF_FPS }));
-            const res = await kit.makeGif({ stage: { canvas: s1.canvas, draw: (k) => s1.draw(k === n ? Infinity : k / GIF_FPS), frames }, width: W, height: H, size: 'half',
-                onProgress: (f) => { label.textContent = 'GIF ' + Math.round(f * 100) + '%'; }, cancelled: () => gifStop || gone }); /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-88f99716 */
+            /*! Better Vest (c) 2026 Astral. All rights reserved. bv-cb51b0fd */ const res = await kit.makeGif({ stage: { canvas: s1.canvas, draw: (k) => s1.draw(k === n ? Infinity : k / GIF_FPS), frames }, width: W, height: H, size: 'half',
+                onProgress: (f) => { label.textContent = 'GIF ' + Math.round(f * 100) + '%'; }, cancelled: () => gifStop || gone });
             if (!gone) {
                 const name = base() + '.gif';
                 saveBlob(res.blob, name);

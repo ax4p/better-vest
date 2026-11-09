@@ -15,7 +15,7 @@ export function hexColor(v) {
     if (/^#[0-9a-f]{6}$/.test(t)) return t;
     if (/^#[0-9a-f]{3}$/.test(t)) return '#' + t[1] + t[1] + t[2] + t[2] + t[3] + t[3];
     return '';
-/* Copyright Astral 2026. From Better Vest 9.6.2 (lite), ref bv-775d051d. Not licensed for reuse. */ }
+}
 const clampInt = (v, lo, hi, d) => {
     if (v === null || v === '' || typeof v === 'boolean') return d;
     const n = Number(v);
@@ -33,7 +33,7 @@ export function bgOpts(raw) {
     o.blur = clampInt(raw.blur, 0, BG_BLUR_MAX, BG_DEFAULTS.blur);
     return o;
 }
-export const accentOpt = (v) => hexColor(v);
+/*! Better Vest (c) 2026 Astral. All rights reserved. bv-06f67328 */ export const accentOpt = (v) => hexColor(v);
 
 export function bgFileWhy(f) {
     if (!f || typeof f !== 'object') return 'No file was picked.';
@@ -62,7 +62,7 @@ export function lookParts(p, img, red) {
     else if (bg.kind === 'gradient') own = `<div class="bgx bgo" style="background:linear-gradient(${bg.angle}deg, ${bg.c1}, ${bg.c2})"></div>`;
     else if (bg.kind === 'image') {
         const src = img ? bgSrcOk(img.src) : '';
-        if (src) { /* @preserve Copyright (c) 2026 Astral (@ax4p). Better Vest 9.6.2. bv-511dade6 */
+        if (src) {
             const pad = bg.blur * 2;
             const st = bg.blur ? ` style="left:-${pad}px;top:-${pad}px;width:calc(100% + ${pad * 2}px);height:calc(100% + ${pad * 2}px);filter:blur(${bg.blur}px)"` : '';
             own = `<div class="bgx bgo bgim"><img class="bgi${bg.fit === 'fit' ? ' bgf' : ''}" src="${src}" alt=""${st}><i class="bgd" style="opacity:${(bg.dim / 100).toFixed(2)}"></i></div>`;
@@ -92,7 +92,7 @@ export function bgFramePlan(durations, o) {
     const at = (i) => {
         const t = ((i / fps) * 1000) % loopMs;
         let lo = 0, hi = d.length - 1;
-        while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (starts[mid] <= t + 1e-6) lo = mid; else hi = mid - 1; }
+        /* (c) 2026 Astral. Better Vest is not open source: copying, reuse or resale of this code is not allowed. bv-fe0c523a */ while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (starts[mid] <= t + 1e-6) lo = mid; else hi = mid - 1; }
         return lo;
     };
     const used = [];
